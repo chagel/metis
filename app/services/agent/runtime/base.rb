@@ -55,6 +55,13 @@ module Agent
         Agent::Identity.new(conversation, kind).content
       end
 
+      # The rendered history.md (Agent::History) — recent conversation
+      # transcripts the agent reads to recall past chats. Per-turn
+      # projected input, like identity_content.
+      def history_content
+        Agent::History.new(conversation).content
+      end
+
       # The runtime's short name (`local`, `docker`, `e2b`) — used in
       # the agent identity file and the runtime_info trace.
       def kind

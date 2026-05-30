@@ -34,7 +34,13 @@ Sections appear in the rendered file in this order:
   resourceful, judgment-bearing, privacy-preserving, careful with
   external actions, and clear about what changed.
 - **This turn** — operator email, team name, runtime kind and its
-  isolation posture, workspace persistence model, uploads location.
+  isolation posture, workspace persistence model, uploads location,
+  and a **History** pointer to the companion `history.md` (recent
+  conversation transcripts + their `/conversations/:id` links). The
+  pointer is needed because pi auto-loads `AGENTS.md` but *not*
+  `history.md` — without it the agent would never look. The index and
+  transcripts themselves stay out of the boot identity; the agent
+  greps/reads `history.md` on demand to recall content or link back.
 - **Connectors** — each enabled connector with how the agent acts on
   it (*as you (OAuth)*, *team-shared credential*, *no credential —
   server visible but may reject*).
@@ -77,25 +83,31 @@ the other describing a different connector set.
 
 ## The projected-input pattern
 
-`AGENTS.md` is the third instance of a recurring shape in the
-workspace:
+`AGENTS.md` is one instance of a recurring shape in the workspace:
 
 | Projected input | Renderer | Durable source |
 |---|---|---|
 | `workspace/uploads/*` | `Workspace#stage_uploads` | `Message` attachments |
 | `workspace/.mcp.json` | `Agent::McpConfig` | `Connector` + `ConnectorCredential` |
 | `workspace/AGENTS.md` | `Agent::Identity` | `Conversation` + `Team` + `Connector` + runtime |
+| `workspace/history.md` | `Agent::History` | the operator's recent `Conversation`s + their `Message`s |
 
-All three are:
+All are:
 
 1. **Rendered fresh each turn**, from durable Rails records.
 2. **Written by the runtime during `run`** — the same call site each.
 3. **Overwritten in place** on every runtime — the durable source is
    always Rails, never the workspace copy.
 
-The pattern earns its keep when a new projected input arrives — a
-per-project brief, a skills index, a tool catalog. The five pipeline
-pieces drop in identically; only the renderer is new.
+The pattern earns its keep when a new projected input arrives — and
+`history.md` is the proof: it dropped in as a renderer
+(`Agent::History`), a writer (`Workspace#stage_history` + the E2B
+variant), a `Base#history_content` source, and one call line per
+runtime — no new transport. It gives the agent its memory of past
+chats (grep/read transcripts) and the ids to link the operator back,
+without an MCP server, an API, or a callback into Rails. It's a
+recent window, not full-history search — decryption happens in Rails
+over the operator's own conversations, bounded per turn.
 
 ## The two echoes of VISION
 

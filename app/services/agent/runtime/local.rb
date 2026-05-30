@@ -24,6 +24,7 @@ module Agent
         workspace.stage_uploads(conversation.uploaded_files)
         workspace.stage_mcp_config(mcp_config)
         workspace.stage_identity(identity_content)
+        workspace.stage_history(history_content)
         workspace.stage_skills
         # ext4 (CI) stores mtime at second granularity — a sub-second
         # start time can end up after a file written same-second.

@@ -83,6 +83,13 @@ module Agent
       File.write(workspace_dir.join(Identity::FILENAME), content)
     end
 
+    # Write the rendered history.md into the workspace root — recent
+    # conversation transcripts the agent can grep/read to recall past
+    # chats. Per-turn projected input like AGENTS.md. See Agent::History.
+    def stage_history(content)
+      File.write(workspace_dir.join(History::FILENAME), content)
+    end
+
     # Mirrors Runtime::E2b#stage_team_skills — skips when the marker matches.
     def stage_skills
       dest = skills_dir

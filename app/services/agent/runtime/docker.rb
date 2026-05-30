@@ -54,6 +54,7 @@ module Agent
         workspace.stage_uploads(conversation.uploaded_files)
         workspace.stage_mcp_config(mcp_config)
         workspace.stage_identity(identity_content)
+        workspace.stage_history(history_content)
         workspace.stage_skills
         turn_started_at = Time.current.floor  # see Local#run
         env = sandbox_env

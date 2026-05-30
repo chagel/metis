@@ -325,4 +325,16 @@ class Agent::IdentityTest < ActiveSupport::TestCase
     refute_match(/### Tools this turn/, out)
     refute_match(/GH_TOKEN/, out)
   end
+
+  test "points the agent at history.md for recall and linking, without inlining the list" do
+    conversation.user.conversations.create!(title: "Zoom in Asia")
+
+    out = render
+    assert_match(/\*\*History\*\*/, out)
+    assert_match(/history\.md/, out)
+    assert_match(%r{/conversations/:id}, out)
+    # The transcripts/index live in history.md, not the boot identity.
+    refute_match(/## Recent conversations/, out)
+    refute_match(/Zoom in Asia/, out)
+  end
 end

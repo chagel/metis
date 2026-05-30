@@ -57,6 +57,11 @@ module Agent
           Anything outside (system installs, `$HOME`) doesn't.
         - **Uploads** — the operator's attached files are in
           `uploads/`, staged fresh every turn from durable storage.
+        - **History** — your recent conversations with this operator are
+          in `history.md` (newest first, each with its date and
+          `/conversations/:id` link). You start every turn fresh — grep
+          or read it to recall what was discussed, or to link the
+          operator back to a past chat.
         - **Artifacts** — `artifacts/` is the channel back to the
           operator. Anything you write there this turn is attached to
           your reply for download or preview. **Default to writing

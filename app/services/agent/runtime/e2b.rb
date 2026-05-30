@@ -129,6 +129,7 @@ module Agent
         stage_uploads(sandbox)
         stage_mcp_config(sandbox)
         stage_identity(sandbox)
+        stage_history(sandbox)
         stage_skills(sandbox)
         session = PiAgent.session(transport_factory: transport_factory(sandbox, pi_args, sandbox_env))
         begin
@@ -276,6 +277,13 @@ module Agent
       # instructions.
       def stage_identity(sandbox)
         sandbox.files.write("#{WORKSPACE_DIR}/#{Agent::Identity::FILENAME}", identity_content)
+      end
+
+      # Write the rendered history.md into the sandbox workspace — recent
+      # conversation transcripts, a per-turn projected input the agent
+      # greps/reads to recall past chats.
+      def stage_history(sandbox)
+        sandbox.files.write("#{WORKSPACE_DIR}/#{Agent::History::FILENAME}", history_content)
       end
 
       # Project skills into the sandbox at WORKSPACE_DIR/.pi/skills/.

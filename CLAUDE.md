@@ -95,7 +95,9 @@ There is **no archive**. `Agent::SessionArchive` was removed (commits
 Per-turn projected inputs — `workspace/uploads/` (from `Message`
 attachments), the rendered `workspace/.mcp.json`, the rendered
 `workspace/AGENTS.md` (per-turn boot identity, see `docs/agent-identity.md`),
-and the repo's `.pi/skills/` tree copied into `workspace/.pi/skills/` (pi
+the rendered `workspace/history.md` (recent conversation transcripts the
+agent greps/reads to recall past chats, see `Agent::History`), and the
+repo's `.pi/skills/` tree copied into `workspace/.pi/skills/` (pi
 auto-discovers skills there) — are re-staged each turn even on a resumed
 sandbox, so they never become durable state. Pause/restage failures are logged, never raised — a
 storage failure must not crash a turn the user already saw stream.
