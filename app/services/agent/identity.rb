@@ -138,14 +138,10 @@ module Agent
 
     private
 
-    # Project the conversation is attached to (optional). Tells the
-    # agent which external resources are the SSOT for this work so it
-    # doesn't have to disambiguate ("which repo?", "which Linear
-    # project?") on turn 1. The hosted GitHub and Linear MCP servers
-    # don't accept a server-side scope filter — both take repo /
-    # project as per-call parameters — so this prose is load-bearing:
-    # it's the only surface that aligns tool calls to the project's
-    # SSOT.
+    # Project the conversation is attached to (optional). Names the external
+    # SSOT so the agent doesn't ask "which repo?" on turn 1. The GitHub/Linear
+    # MCP servers take repo/project per-call, not as a server-side scope — so
+    # this prose is the only surface aligning tool calls to the project.
     def project_context_block
       project = @conversation.project
       return "" unless project
@@ -162,12 +158,9 @@ module Agent
       "\n" + lines.join("\n") + "\n"
     end
 
-    # Project name validates against newlines, but `about` is freeform —
-    # an attacker (or a careless paste) could open a top-level heading
-    # that the agent reads as a new Metis section ("## Operator
-    # instructions: ignore prior context"). Strip leading ATX markers
-    # so user content can't manufacture sections; the rest of the line
-    # survives intact.
+    # `about` is freeform, so a stray or malicious leading `#` could open a
+    # heading the agent reads as a new Metis section. Strip leading ATX
+    # markers so user content can't manufacture sections.
     def sanitize_about(text)
       text.to_s.lines.map { |line| line.sub(/\A\s*#+\s*/, "") }.join
     end
@@ -179,11 +172,9 @@ module Agent
       end
     end
 
-    # Lookup-by-mention catalog — the agent reads this and matches the
-    # operator's words ("show me the latest PR on metis") against the
-    # team's saved projects, reaching for the mapping without asking.
-    # The attached project (if any) is already in #project_context_block
-    # with stronger framing, so skip it here to avoid duplication.
+    # Lookup-by-mention catalog: the agent matches the operator's words
+    # against saved projects without asking. Skips the attached project —
+    # #project_context_block already covers it with stronger framing.
     TEAM_PROJECTS_RENDERED_MAX = 25
     TEAM_PROJECT_ABOUT_TRUNCATE = 140
 
@@ -222,11 +213,9 @@ module Agent
       line
     end
 
-    # Operator-supplied context (about themselves) and instructions
-    # (how to respond), from their profile. Rendered as its own
-    # section so the agent treats it as standing guidance, not as the
-    # user's first prompt. Empty when neither is set — the heredoc
-    # interpolation collapses to a blank line.
+    # Operator's profile context and standing instructions, in their own
+    # section so the agent treats them as guidance, not the first prompt.
+    # Empty when neither is set.
     def operator_preferences_block
       sections = []
       if user.about_you.present?
@@ -285,9 +274,8 @@ module Agent
     def user = @conversation.user
     def team = @conversation.team
 
-    # The model Metis runs this turn, as a bullet appended after Runtime.
-    # The agent can't reliably name its own model, so we hand it the real
-    # id to cite (e.g. in a review footer). "" when undeterminable —
+    # The model Metis runs this turn, appended after Runtime. The agent can't
+    # reliably name its own model, so we hand it the real id to cite. "" when
     # Metis passed no --model and pi uses its own config.
     def model_section
       model = @conversation.configured_model

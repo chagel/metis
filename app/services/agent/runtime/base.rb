@@ -55,9 +55,7 @@ module Agent
         Agent::Identity.new(conversation, kind).content
       end
 
-      # The rendered history.md (Agent::History) — recent conversation
-      # transcripts the agent reads to recall past chats. Per-turn
-      # projected input, like identity_content.
+      # The rendered history.md (Agent::History) — per-turn projected input.
       def history_content
         Agent::History.new(conversation).content
       end

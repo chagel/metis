@@ -40,7 +40,8 @@ Sections appear in the rendered file in this order:
   pointer is needed because pi auto-loads `AGENTS.md` but *not*
   `history.md` — without it the agent would never look. The index and
   transcripts themselves stay out of the boot identity; the agent
-  greps/reads `history.md` on demand to recall content or link back.
+  greps/reads `history.md` on demand to recall content or link back. See
+  [`agent-conversation-history.md`](agent-conversation-history.md).
 - **Connectors** — each enabled connector with how the agent acts on
   it (*as you (OAuth)*, *team-shared credential*, *no credential —
   server visible but may reject*).

@@ -279,9 +279,7 @@ module Agent
         sandbox.files.write("#{WORKSPACE_DIR}/#{Agent::Identity::FILENAME}", identity_content)
       end
 
-      # Write the rendered history.md into the sandbox workspace — recent
-      # conversation transcripts, a per-turn projected input the agent
-      # greps/reads to recall past chats.
+      # Write history.md into the sandbox workspace — projected input. See Agent::History.
       def stage_history(sandbox)
         sandbox.files.write("#{WORKSPACE_DIR}/#{Agent::History::FILENAME}", history_content)
       end

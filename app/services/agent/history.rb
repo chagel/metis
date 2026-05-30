@@ -1,16 +1,12 @@
 module Agent
-  # Renders `history.md` — the operator's recent conversation transcripts,
-  # staged into the workspace each turn as a projected input (like
-  # `AGENTS.md` and `.mcp.json`). The agent greps/reads it to recall what
-  # was discussed, and each section carries the conversation's URL so it
-  # can link the operator back. Decryption happens here, in Rails, over
-  # the operator's own conversations only. A recent window, not the whole
-  # history. See docs/agent-identity.md.
+  # Renders `history.md` — recent conversation transcripts staged into the
+  # workspace each turn as a projected input. The agent greps/reads it to
+  # recall past chats and links the operator back via each section's URL.
+  # See docs/agent-conversation-history.md.
   class History
     FILENAME = "history.md".freeze
 
-    # Bounds, so the file stays small and per-turn decryption is cheap
-    # regardless of how long any one conversation got.
+    # Bounded so the file stays small and per-turn decryption stays cheap.
     CONVERSATIONS_MAX = 12
     MESSAGES_SCAN_MAX = 60
     TRANSCRIPT_CHARS_MAX = 6000
@@ -24,9 +20,8 @@ module Agent
       sections = recent_conversations.map { |conversation| conversation_section(conversation) }
       [ header, *sections ].join("\n") + "\n"
     rescue StandardError => e
-      # A projected input must never crash a turn (see docs/session-
-      # persistence.md). Decrypting recent messages is the realistic
-      # failure (a legacy-key row); degrade to the header, keep the turn.
+      # A projected input must never crash a turn; decrypting a legacy-key
+      # row is the realistic failure. Degrade to the header.
       Rails.logger.warn("Agent::History render failed for conversation #{@conversation.id}: #{e.message}")
       header + "\n"
     end
@@ -62,9 +57,8 @@ module Agent
       ].join("\n")
     end
 
-    # User and assistant turns, decrypted, oldest first, stopped once the
-    # per-conversation char budget is spent — so a 500-message thread
-    # costs the same as a short one.
+    # User/assistant turns, decrypted oldest-first, stopped at the char
+    # budget so a long thread costs the same as a short one.
     def transcript(conversation)
       budget = TRANSCRIPT_CHARS_MAX
       parts = []
