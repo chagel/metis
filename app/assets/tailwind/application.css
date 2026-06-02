@@ -1230,6 +1230,12 @@ body.auth-shell { min-height:100vh; display:grid; place-items:center; padding:24
 }
 .auth-submit:hover { opacity:.85; }
 .auth-submit-link { display:block; box-sizing:border-box; text-align:center; text-decoration:none; }
+.invite-about { margin-top:18px; padding-top:16px; border-top:1px solid var(--line); }
+.invite-pitch { font-size:13px; line-height:1.55; color:var(--ink-2); }
+.invite-pitch strong { color:var(--ink); }
+.invite-features { margin-top:12px; display:flex; flex-direction:column; gap:9px; }
+.invite-feature { display:flex; gap:9px; align-items:flex-start; font-size:13px; line-height:1.45; color:var(--ink-2); }
+.invite-feature svg { flex:none; width:16px; height:16px; margin-top:1px; color:var(--accent-fg); }
 .auth-links {
   display:flex; flex-wrap:wrap; justify-content:center; gap:6px 16px;
   margin-top:18px; padding-top:16px; border-top:1px solid var(--line);

@@ -46,4 +46,26 @@
     Already have an account?
     <%= link_to "Sign in", new_user_session_path(email: @invitation.email), class: "auth-link" %>
   </div>
+
+  <div class="invite-about">
+    <p class="invite-pitch">
+      <strong>Metis</strong> is a shared workspace for AI agents — a place to get real
+      work done with your team.
+    </p>
+    <ul class="invite-features">
+      <% [
+           "Chat with a capable AI agent, right in your browser",
+           "Share tools, connectors, and skills across your team",
+           "Bring your own provider — Anthropic, OpenAI, or Google"
+         ].each do |point| %>
+        <li class="invite-feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+          <span><%= point %></span>
+        </li>
+      <% end %>
+    </ul>
+  </div>
 <% end %>
