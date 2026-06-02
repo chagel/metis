@@ -3,6 +3,13 @@
 <h2>Sign in</h2>
 <p class="auth-sub">Welcome back to Metis.</p>
 
+<% if pending_invitation %>
+  <div class="auth-note">
+    Your invitation is for <strong><%= pending_invitation.email %></strong>. Sign in with that
+    address — including if you continue with Google or GitHub — so it matches the invite.
+  </div>
+<% end %>
+
 <% configured_oauth_providers = User.omniauth_providers.select { |provider| oauth_provider_configured?(provider) } %>
 <% if devise_mapping.omniauthable? && configured_oauth_providers.any? %>
   <div class="auth-oauth-row">
@@ -33,7 +40,7 @@
       html: { class: "auth-form" }) do |f| %>
   <div class="auth-field">
     <%= f.label :email, class: "auth-label" %>
-    <%= f.email_field :email, value: params[:email], autofocus: true, autocomplete: "email", class: "auth-input" %>
+    <%= f.email_field :email, value: (pending_invitation&.email || params[:email]), autofocus: true, autocomplete: "email", class: "auth-input" %>
   </div>
 
   <div class="auth-field">

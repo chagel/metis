@@ -31,6 +31,16 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to invitation_path(@invitation.token)
   end
 
+  test "the auth pages tell a mid-acceptance visitor which email to use" do
+    get invitation_path(@invitation.token) # stashes the token while signed out
+
+    get new_user_registration_path
+    assert_select ".auth-note", /#{Regexp.escape(@invitation.email)}/
+
+    get new_user_session_path
+    assert_select ".auth-note", /#{Regexp.escape(@invitation.email)}/
+  end
+
   test "accepting with the matching email joins the team and switches into it" do
     sign_in @invitee
     assert_difference -> { @team.memberships.count }, 1 do

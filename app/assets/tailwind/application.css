@@ -1230,6 +1230,12 @@ body.auth-shell { min-height:100vh; display:grid; place-items:center; padding:24
 }
 .auth-submit:hover { opacity:.85; }
 .auth-submit-link { display:block; box-sizing:border-box; margin-top:20px; text-align:center; text-decoration:none; }
+.auth-note {
+  margin-top:16px; padding:10px 13px; font-size:12.5px; line-height:1.5;
+  color:var(--ink-2); background:var(--accent-soft);
+  border:1px solid var(--line); border-radius:10px;
+}
+.auth-note strong { color:var(--ink); }
 .invite-about { margin-top:24px; padding-top:20px; border-top:1px solid var(--line); }
 .invite-pitch { font-size:13px; line-height:1.6; color:var(--ink-2); }
 .invite-pitch strong { color:var(--ink); }
