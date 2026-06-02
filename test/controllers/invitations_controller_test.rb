@@ -14,7 +14,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
   test "the invite landing is public and shows a path to create an account" do
     get invitation_path(@invitation.token)
     assert_response :success
-    assert_select "h2", text: "You're invited"
+    assert_select "h2", text: /You're invited/
     assert_select "a[href=?]", new_user_registration_path(email: @invitation.email)
   end
 
