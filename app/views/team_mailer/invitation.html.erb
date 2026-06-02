@@ -1,13 +1,30 @@
-<p>Hi,</p>
+<h1 style="margin:0 0 16px; font-size:20px; line-height:28px; font-weight:700; color:#1c1917;">
+  Join <%= @team.name %> on Metis
+</h1>
 
-<p>
-  <%= @inviter.display_label %> invited you to join
-  <strong><%= @team.name %></strong> on Metis as a <%= @invitation.role %>.
+<p style="margin:0 0 24px; font-size:15px; line-height:24px; color:#44403c;">
+  <strong><%= @inviter.display_label %></strong> invited you to join
+  <strong><%= @team.name %></strong> with the <strong><%= @invitation.role %></strong> role.
 </p>
 
-<p><%= link_to "Accept invitation", @accept_url %></p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+  <tr>
+    <td style="border-radius:8px; background-color:#1c1917;">
+      <a href="<%= @accept_url %>" style="display:inline-block; padding:12px 26px; font-size:15px; font-weight:600; line-height:20px; color:#ffffff; text-decoration:none;">
+        Accept invitation
+      </a>
+    </td>
+  </tr>
+</table>
 
-<p>
+<p style="margin:0 0 24px; font-size:13px; line-height:20px; color:#78716c;">
+  Or paste this link into your browser:<br>
+  <a href="<%= @accept_url %>" style="color:#7c3aed; word-break:break-all;"><%= @accept_url %></a>
+</p>
+
+<hr style="border:none; border-top:1px solid #e7e5e4; margin:0 0 20px;">
+
+<p style="margin:0; font-size:13px; line-height:20px; color:#a8a29e;">
   This invitation expires on <%= @invitation.expires_at.to_date.to_fs(:long) %>.
-  If you weren't expecting it, you can ignore this email.
+  If you weren't expecting it, you can safely ignore this email.
 </p>
