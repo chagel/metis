@@ -37,8 +37,19 @@ Rails.application.configure do
   # Make template changes take effect immediately.
   config.action_mailer.perform_caching = false
 
-  # Set localhost to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
+  # Send for real when Cloudflare creds are present (e.g. on a shared dev
+  # host); otherwise accumulate in ActionMailer::Base.deliveries.
+  config.action_mailer.delivery_method =
+    ENV["CLOUDFLARE_EMAIL_API_TOKEN"].present? ? :cloudflare : :test
+
+  # Set host to be used by links generated in mailer templates. A shared
+  # dev host (METIS_DEV_HOST) sits behind TLS with no explicit port.
+  config.action_mailer.default_url_options =
+    if (dev_host = ENV["METIS_DEV_HOST"].presence)
+      { host: dev_host, protocol: "https" }
+    else
+      { host: "localhost", port: 3000 }
+    end
 
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log

@@ -1,4 +1,4 @@
 class ApplicationMailer < ActionMailer::Base
-  default from: "from@example.com"
+  default from: -> { Rails.application.config.x.mail.from }
   layout "mailer"
 end
