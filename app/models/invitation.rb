@@ -4,6 +4,7 @@
 class Invitation < ApplicationRecord
   INVITABLE_ROLES = %w[member admin].freeze
   EXPIRES_IN = 14.days
+  RESEND_COOLDOWN = 2.minutes
 
   belongs_to :team
   belongs_to :invited_by, class_name: "User"
@@ -43,6 +44,19 @@ class Invitation < ApplicationRecord
       team.memberships.find_or_create_by!(user: user) { |m| m.role = role }
       update!(accepted_at: Time.current)
     end
+  end
+
+  # Re-arm the clock so a resent email's link is valid again. The token
+  # is unchanged, so any earlier link the invitee still has keeps working.
+  def reissue!
+    update!(expires_at: EXPIRES_IN.from_now)
+  end
+
+  # A pending invite's updated_at only moves on create or reissue!, so it
+  # is the "last sent at" — gate resends on it to keep an admin (or a
+  # double-click) from spamming the invitee.
+  def resendable?
+    updated_at <= RESEND_COOLDOWN.ago
   end
 
   private

@@ -53,6 +53,42 @@ class Settings::InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to team_path
   end
 
+  test "an admin can resend a pending invitation once the cooldown passes, re-arming its expiry" do
+    @user.memberships.create!(team: @team, role: :admin)
+    act_in(@team)
+    invitation = @team.invitations.create!(email: "new@example.com", role: :member, invited_by: @user)
+
+    travel Invitation::RESEND_COOLDOWN + 1.minute do
+      assert_enqueued_emails 1 do
+        post resend_team_invitation_path(invitation)
+      end
+      assert_redirected_to team_path
+      assert_in_delta Invitation::EXPIRES_IN.from_now, invitation.reload.expires_at, 1.second
+    end
+  end
+
+  test "resending within the cooldown is throttled, not re-sent" do
+    @user.memberships.create!(team: @team, role: :admin)
+    act_in(@team)
+    invitation = @team.invitations.create!(email: "new@example.com", role: :member, invited_by: @user)
+
+    assert_no_enqueued_emails do
+      post resend_team_invitation_path(invitation)
+    end
+    assert_redirected_to team_path
+  end
+
+  test "a plain member cannot resend" do
+    @user.memberships.create!(team: @team, role: :member)
+    act_in(@team)
+    invitation = @team.invitations.create!(email: "new@example.com", role: :member, invited_by: @user)
+
+    assert_no_enqueued_emails do
+      post resend_team_invitation_path(invitation)
+    end
+    assert_redirected_to team_path
+  end
+
   test "an owner can revoke a pending invitation" do
     @user.memberships.create!(team: @team, role: :owner)
     act_in(@team)

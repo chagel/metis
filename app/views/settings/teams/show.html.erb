@@ -104,6 +104,8 @@
                       <div class="invite-pending-meta">Invited as <%= invitation.role.titleize %></div>
                     </div>
                     <span class="badge-pending">Pending</span>
+                    <%= button_to "Resend", resend_team_invitation_path(invitation), method: :post,
+                          form_class: "inline-form", class: "btn btn-ghost btn-sm" %>
                     <%= button_to "Revoke", team_invitation_path(invitation), method: :delete,
                           form_class: "inline-form", class: "btn btn-ghost btn-sm" %>
                   </li>

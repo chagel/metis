@@ -46,7 +46,9 @@ Rails.application.routes.draw do
     # The active team (current_team), not addressed by id — a singular
     # resource managing whichever team the session is scoped to.
     resource :team, only: %i[show update destroy], controller: "settings/teams" do
-      resources :invitations, only: %i[create destroy], controller: "settings/invitations"
+      resources :invitations, only: %i[create destroy], controller: "settings/invitations" do
+        member { post :resend }
+      end
       resources :memberships, only: %i[update destroy], controller: "settings/memberships" do
         member { post :transfer }
         collection { delete :leave }

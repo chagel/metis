@@ -17,6 +17,20 @@ class Settings::InvitationsController < ApplicationController
     end
   end
 
+  # Re-send a still-pending invite (accepted ones 404), re-arming its
+  # expiry so the emailed link is valid again.
+  def resend
+    invitation = current_team.invitations.pending.find(params[:id])
+    unless invitation.resendable?
+      redirect_to team_path, alert: "That invitation was just sent — try again in a couple of minutes."
+      return
+    end
+
+    invitation.reissue!
+    TeamMailer.invitation(invitation).deliver_later
+    redirect_to team_path, notice: "Invitation resent to #{invitation.email}."
+  end
+
   def destroy
     current_team.invitations.find(params[:id]).destroy
     redirect_to team_path, notice: "Invitation revoked."
