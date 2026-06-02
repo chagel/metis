@@ -35,7 +35,7 @@
   <%= button_to "Sign out", destroy_user_session_path, method: :delete, class: "auth-submit" %>
 
 <% else %>
-  <h2>You're invited</h2>
+  <h2>You're invited 🎉</h2>
   <p class="auth-sub">
     <strong><%= @invitation.invited_by.display_label %></strong> invited you to join
     <strong><%= @invitation.team.name %></strong> on Metis as <%= @invitation.role %>.
