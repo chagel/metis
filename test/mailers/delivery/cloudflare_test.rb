@@ -51,6 +51,12 @@ class Delivery::CloudflareTest < ActiveSupport::TestCase
     end
   end
 
+  # Guard: the suite must never send real email through Cloudflare, even
+  # if a live token leaks into the test env (dotenv, CI secrets, …).
+  test "the test environment uses :test delivery, not :cloudflare" do
+    assert_equal :test, ActionMailer::Base.delivery_method
+  end
+
   private
 
   def response(code, body)
