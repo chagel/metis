@@ -14,8 +14,16 @@ module Delivery
   # built-in :smtp method.
   class Cloudflare
     Error = Class.new(StandardError)
+    # A retryable failure — a rate-limit, a Cloudflare 5xx, or a network
+    # blip. The delivery job retries these; permanent 4xx stay as Error.
+    TransientError = Class.new(Error)
 
     ENDPOINT = "https://api.cloudflare.com/client/v4/accounts/%s/email/sending/send".freeze
+
+    NETWORK_ERRORS = [
+      Net::OpenTimeout, Net::ReadTimeout, Errno::ECONNREFUSED, Errno::ECONNRESET,
+      Errno::ETIMEDOUT, SocketError, EOFError, IOError
+    ].freeze
 
     def initialize(settings = {})
       @account_id = settings[:account_id]
@@ -28,11 +36,15 @@ module Delivery
       end
 
       response = post(payload(mail))
-      unless response.code.to_i.between?(200, 299)
-        raise Error, "Cloudflare email send failed (#{response.code}): #{response.body.to_s.truncate(300)}"
-      end
+      code = response.code.to_i
+      return mail if code.between?(200, 299)
 
-      mail
+      message = "Cloudflare email send failed (#{response.code}): #{response.body.to_s.truncate(300)}"
+      # 429 (rate limit) and 5xx are worth retrying; 4xx (bad address,
+      # unverified sender, disabled account) are permanent.
+      raise(code == 429 || code >= 500 ? TransientError : Error, message)
+    rescue *NETWORK_ERRORS => e
+      raise TransientError, "Cloudflare email send failed (#{e.class}): #{e.message}"
     end
 
     # Maps a Mail::Message onto Cloudflare's flat JSON body. Public so the

@@ -6,6 +6,9 @@
 Rails.application.config.x.mail.from =
   ENV.fetch("METIS_MAIL_FROM", "Metis <noreply@example.com>")
 
+# Retry transient Cloudflare failures instead of dropping the email.
+Rails.application.config.action_mailer.delivery_job = "MailDeliveryJob"
+
 # Registered in to_prepare so the autoloaded Delivery::Cloudflare
 # constant resolves (and survives dev reloads); add_delivery_method is
 # idempotent.

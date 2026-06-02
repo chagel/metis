@@ -38,11 +38,29 @@ class Delivery::CloudflareTest < ActiveSupport::TestCase
     assert_equal "You're invited", JSON.parse(captured[:body])["subject"]
   end
 
-  test "deliver! raises on a non-2xx response" do
+  test "deliver! raises a permanent Error on a 4xx response" do
     stub_http(response(403, %({"errors":[{"code":10203}]}))) do
       error = assert_raises(Delivery::Cloudflare::Error) { @delivery.deliver!(@mail) }
+      assert_not_kind_of Delivery::Cloudflare::TransientError, error
       assert_match "403", error.message
     end
+  end
+
+  test "deliver! raises a TransientError on a rate limit or 5xx, so the job retries" do
+    stub_http(response(429, "rate limited")) do
+      assert_raises(Delivery::Cloudflare::TransientError) { @delivery.deliver!(@mail) }
+    end
+    stub_http(response(503, "unavailable")) do
+      assert_raises(Delivery::Cloudflare::TransientError) { @delivery.deliver!(@mail) }
+    end
+  end
+
+  test "deliver! turns a network failure into a TransientError" do
+    original = Net::HTTP.instance_method(:request)
+    Net::HTTP.define_method(:request) { |_req| raise Net::OpenTimeout }
+    assert_raises(Delivery::Cloudflare::TransientError) { @delivery.deliver!(@mail) }
+  ensure
+    Net::HTTP.define_method(:request, original)
   end
 
   test "deliver! raises when the account id or token is missing" do
