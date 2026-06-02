@@ -13,5 +13,10 @@ class TeamMailerTest < ActionMailer::TestCase
     assert_match "Acme", mail.subject
     assert_match "Ada", mail.subject
     assert_match invitation.token, mail.body.encoded
+
+    # The link must land on the show page (GET), not the POST-only accept
+    # route — a clicked email link is always a GET.
+    assert_match %r{/invitations/#{invitation.token}(?:\?|"|\s|$)}, mail.body.encoded
+    assert_no_match %r{/invitations/#{invitation.token}/accept}, mail.body.encoded
   end
 end
