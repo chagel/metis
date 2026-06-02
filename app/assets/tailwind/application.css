@@ -1229,6 +1229,7 @@ body.auth-shell { min-height:100vh; display:grid; place-items:center; padding:24
   transition:opacity .15s;
 }
 .auth-submit:hover { opacity:.85; }
+.auth-submit-link { display:block; box-sizing:border-box; text-align:center; text-decoration:none; }
 .auth-links {
   display:flex; flex-wrap:wrap; justify-content:center; gap:6px 16px;
   margin-top:18px; padding-top:16px; border-top:1px solid var(--line);

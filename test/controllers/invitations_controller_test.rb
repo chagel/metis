@@ -11,9 +11,24 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     @invitation = @team.invitations.create!(email: "new@example.com", role: :admin, invited_by: @inviter)
   end
 
-  test "requires sign in" do
+  test "the invite landing is public and shows a path to create an account" do
     get invitation_path(@invitation.token)
+    assert_response :success
+    assert_select "h2", text: "You're invited"
+    assert_select "a[href=?]", new_user_registration_path(email: @invitation.email)
+  end
+
+  test "accepting still requires sign in" do
+    assert_no_difference -> { @team.memberships.count } do
+      post accept_invitation_path(@invitation.token)
+    end
     assert_redirected_to new_user_session_path
+  end
+
+  test "after signing in, you land back on a stashed invitation" do
+    get invitation_path(@invitation.token) # stashes the token while signed out
+    post user_session_path, params: { user: { email: @invitee.email, password: "password123" } }
+    assert_redirected_to invitation_path(@invitation.token)
   end
 
   test "accepting with the matching email joins the team and switches into it" do

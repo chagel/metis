@@ -69,6 +69,17 @@ class ApplicationController < ActionController::Base
     ActiveModel::Type::Boolean.new.cast(value)
   end
 
+  # After signing in or up, return to a pending invitation when one is
+  # stashed (InvitationsController#show) — the 99% case is a brand-new
+  # invitee who just created an account. Inherited by Devise's session /
+  # registration / omniauth controllers, so it covers password and OAuth.
+  def after_sign_in_path_for(resource)
+    token = session.delete(:pending_invitation_token)
+    return invitation_path(token) if token.present? && Invitation.exists?(token: token)
+
+    super
+  end
+
   def with_user_locale(&block)
     I18n.with_locale(current_user.language.presence || I18n.default_locale, &block)
   end

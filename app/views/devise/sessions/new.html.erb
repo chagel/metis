@@ -33,7 +33,7 @@
       html: { class: "auth-form" }) do |f| %>
   <div class="auth-field">
     <%= f.label :email, class: "auth-label" %>
-    <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "auth-input" %>
+    <%= f.email_field :email, value: params[:email], autofocus: true, autocomplete: "email", class: "auth-input" %>
   </div>
 
   <div class="auth-field">

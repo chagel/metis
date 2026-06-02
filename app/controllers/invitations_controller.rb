@@ -1,12 +1,21 @@
-# Accept a team invitation from its tokenized link. Requires sign-in
-# (Devise stores the link and returns here after auth) and that the
-# signed-in user's email matches the address the invite was sent to.
+# Accept a team invitation from its tokenized link. The landing page
+# (show) is public so an invited user who has no account yet sees what
+# they're joining and can sign up; we stash the token so they return
+# here after auth (see ApplicationController#after_sign_in_path_for).
+# accept stays sign-in-gated and requires the signed-in user's email to
+# match the address the invite was sent to.
 class InvitationsController < ApplicationController
-  layout "settings"
+  layout "application"
+  skip_before_action :authenticate_user!, only: :show
 
   def show
     @invitation = Invitation.find_by!(token: params[:token])
-    redirect_if_settled(@invitation)
+
+    if user_signed_in?
+      redirect_if_settled(@invitation)
+    elsif !@invitation.accepted?
+      session[:pending_invitation_token] = @invitation.token
+    end
   end
 
   def accept
