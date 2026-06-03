@@ -41,19 +41,22 @@ module Mcp
         parse_or_raise(perform(request, uri), url)
       end
 
-      # An honest product User-Agent. Some MCP servers sit behind a WAF
-      # (Cloudflare) that 403s requests with a missing or known-bot UA
-      # (e.g. Sentry/Asana/PayPal blocked Python-urllib's default) — an
-      # explicit one keeps discovery/registration from being blocked.
-      USER_AGENT = "Metis-MCP/1.0 (+https://github.com/chagel/metis)".freeze
-
       def perform(request, uri)
-        request["User-Agent"] = USER_AGENT
+        request["User-Agent"] = user_agent
         http = Net::HTTP.new(uri.hostname, uri.port)
         http.use_ssl = uri.scheme == "https"
         http.open_timeout = 5
         http.read_timeout = 10
         http.request(request)
+      end
+
+      # An honest product User-Agent pointing at this deployment. Some MCP
+      # servers sit behind a WAF (Cloudflare) that 403s requests with a
+      # missing or known-bot UA (e.g. Sentry/Asana/PayPal blocked
+      # Python-urllib's default) — an explicit one avoids the block.
+      def user_agent
+        host = ENV["METIS_APP_HOST"].presence || ENV["METIS_DEV_HOST"].presence || "metis.local"
+        "Metis-MCP/1.0 (+https://#{host})"
       end
 
       def ok?(response)
