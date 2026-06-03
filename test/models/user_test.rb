@@ -5,6 +5,27 @@ class UserTest < ActiveSupport::TestCase
     User.create!(email: "u-#{SecureRandom.hex(4)}@example.com", password: "password123")
   end
 
+  def github_auth(uid:, email:)
+    OmniAuth::AuthHash.new(provider: "github", uid: uid.to_s,
+                           info: { email: email, nickname: "x" })
+  end
+
+  test "from_omniauth refuses to create a brand-new account when signup is disallowed" do
+    assert_no_difference("User.count") do
+      assert_raises(User::SignupNotAllowed) do
+        User.from_omniauth(github_auth(uid: "no-signup", email: "stranger@example.com"), allow_signup: false)
+      end
+    end
+  end
+
+  test "from_omniauth signs in an existing user even when signup is disallowed" do
+    user = create_user
+    user.identities.create!(provider: "github", uid: "known-1")
+
+    returned = User.from_omniauth(github_auth(uid: "known-1", email: user.email), allow_signup: false)
+    assert_equal user, returned
+  end
+
   test "a new user gets a personal team owned by them" do
     user = create_user
 

@@ -29,6 +29,16 @@ module ActiveSupport
       target.singleton_class.send(:define_method, method_name, original)
     end
 
+    # Run a block with the deployment registration gate set to `mode`
+    # (:invite_only / :open). Test defaults to :open, so gate tests flip it.
+    def with_registration_mode(mode)
+      previous = Rails.application.config.x.registration_mode
+      Rails.application.config.x.registration_mode = mode
+      yield
+    ensure
+      Rails.application.config.x.registration_mode = previous
+    end
+
     # Idempotently create one enabled catalog model and return its key —
     # for tests needing a valid preferred_model now that the catalog is
     # DB-backed (Agent::Catalog has no hardcoded fallback).

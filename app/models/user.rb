@@ -3,6 +3,10 @@ class User < ApplicationRecord
          :recoverable, :rememberable, :validatable,
          :omniauthable, omniauth_providers: %i[github google_oauth2 linear]
 
+  # Raised by from_omniauth when an OAuth sign-in would create a new
+  # account but the deployment's invite-only gate forbids it.
+  SignupNotAllowed = Class.new(StandardError)
+
   has_many :memberships, dependent: :destroy
   has_many :teams, through: :memberships
   has_many :conversations, dependent: :destroy
@@ -100,7 +104,11 @@ class User < ApplicationRecord
   # race: two callbacks for the same (provider, uid) both miss
   # Identity.find_by; the loser hits the unique index, rolls back,
   # retries, and the second pass finds the winner's identity.
-  def self.from_omniauth(auth)
+  # allow_signup gates brand-new account creation (the invite-only
+  # boundary); signing in an existing user or linking an identity to one
+  # is always allowed. Raises SignupNotAllowed when a new account would be
+  # created but isn't permitted.
+  def self.from_omniauth(auth, allow_signup: true)
     attempts = 0
     begin
       identity = Identity.find_by(provider: auth.provider, uid: auth.uid.to_s)
@@ -113,6 +121,8 @@ class User < ApplicationRecord
       transaction do
         email = trusted_email(auth) || noreply_email(auth)
         user = find_or_initialize_by(email: email)
+        raise SignupNotAllowed if user.new_record? && !allow_signup
+
         user.password = Devise.friendly_token[0, 32] if user.new_record?
         user.avatar_url = auth.info.image if auth.info.image.present?
         user.save!

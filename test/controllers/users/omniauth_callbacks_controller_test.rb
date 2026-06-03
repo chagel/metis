@@ -53,6 +53,18 @@ class Users::OmniauthCallbacksControllerTest < ActionDispatch::IntegrationTest
     Rails.application.env_config["omniauth.params"] = nil
   end
 
+  test "invite-only blocks creating an account via a first OAuth sign-in" do
+    User.create!(email: "existing@example.com", password: "password123") # past the bootstrap
+    mock_github(uid: "uninvited")
+
+    with_registration_mode(:invite_only) do
+      assert_no_difference([ "User.count", "Identity.count" ]) do
+        get user_github_omniauth_callback_path
+      end
+    end
+    assert_redirected_to new_user_session_path
+  end
+
   test "first GitHub sign-in creates a user, records the identity, and records an OauthGrant — no connector yet" do
     email = mock_github(uid: "42", login: "mgc")
 

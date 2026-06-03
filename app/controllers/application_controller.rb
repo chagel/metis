@@ -8,7 +8,8 @@ class ApplicationController < ActionController::Base
   around_action :with_user_locale, if: :user_signed_in?
   around_action :with_user_timezone, if: :user_signed_in?
 
-  helper_method :current_team, :current_membership, :team_manager?, :pending_invitation
+  helper_method :current_team, :current_membership, :team_manager?,
+                :pending_invitation, :registration_offered?
 
   SIDEBAR_PAGE_SIZE = 30
 
@@ -88,6 +89,28 @@ class ApplicationController < ActionController::Base
 
     token = session[:pending_invitation_token]
     @pending_invitation = token.present? ? Invitation.pending.find_by(token: token) : nil
+  end
+
+  # Account creation is the access boundary (every account runs the agent
+  # on the deployment's shared keys), so it's invite-only by default. The
+  # very first account is allowed as the bootstrap; an open deployment
+  # lets anyone in.
+  def registration_open?
+    Rails.configuration.x.registration_mode == :open
+  end
+
+  # Whether to even show the sign-up form: open, the bootstrap, or someone
+  # mid-acceptance of an invite.
+  def registration_offered?
+    registration_open? || User.none? || pending_invitation.present?
+  end
+
+  # Whether `email` may actually create an account — the invite gate. The
+  # invited email must match so one invite link mints one account, not many.
+  def registration_allowed_for?(email)
+    return true if registration_open? || User.none?
+
+    pending_invitation.present? && pending_invitation.email == email.to_s.strip.downcase
   end
 
   def with_user_locale(&block)

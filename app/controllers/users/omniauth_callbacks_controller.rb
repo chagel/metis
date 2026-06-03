@@ -29,7 +29,13 @@ class Users::OmniauthCallbacksController < Devise::OmniauthCallbacksController
     auth   = request.env["omniauth.auth"]
     params = request.env["omniauth.params"] || {}
 
-    target = was_signed_in ? attach_identity(current_user, auth) : User.from_omniauth(auth)
+    target =
+      if was_signed_in
+        attach_identity(current_user, auth)
+      else
+        signup_email = User.trusted_email(auth) || User.noreply_email(auth)
+        User.from_omniauth(auth, allow_signup: registration_allowed_for?(signup_email))
+      end
     grant_recorded = record_grant(target, auth, provider)
     # Skip activation when the grant write failed — otherwise the tile shows
     # "Connected" for a connector McpConfig drops every turn (no bearer).
@@ -38,6 +44,9 @@ class Users::OmniauthCallbacksController < Devise::OmniauthCallbacksController
   rescue IdentityAlreadyLinked
     redirect_to return_path,
                 alert: "This #{provider.titleize} account is already linked to another Metis user."
+  rescue User::SignupNotAllowed
+    redirect_to new_user_session_path,
+                alert: "Metis is invite-only — ask a team admin to invite you."
   rescue StandardError => error
     Rails.logger.error(
       "Omniauth(#{provider}) failed: #{error.class}: #{error.message}\n" \
