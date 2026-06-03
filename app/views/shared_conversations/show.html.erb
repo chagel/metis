@@ -1,5 +1,32 @@
 <% content_for :title, @conversation.display_title %>
 
+<% content_for :head do %>
+  <% share_url   = shared_conversation_url(@conversation.share_token) %>
+  <% share_title = @conversation.display_title %>
+  <% share_desc  = share_description(@conversation) %>
+  <% share_image = share_image_url(@conversation) %>
+
+  <meta name="description" content="<%= share_desc %>">
+  <link rel="canonical" href="<%= share_url %>">
+
+  <%# Open Graph — Slack, iMessage, WhatsApp, Discord, LinkedIn, Facebook %>
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Metis">
+  <meta property="og:title" content="<%= share_title %>">
+  <meta property="og:description" content="<%= share_desc %>">
+  <meta property="og:url" content="<%= share_url %>">
+  <meta property="og:image" content="<%= share_image %>">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="<%= share_title %>">
+
+  <%# Twitter / X %>
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="<%= share_title %>">
+  <meta name="twitter:description" content="<%= share_desc %>">
+  <meta name="twitter:image" content="<%= share_image %>">
+<% end %>
+
 <header class="shared-head">
   <div class="shared-head-inner">
     <a class="shared-brand" href="<%= root_path %>" target="_blank" rel="noopener">
