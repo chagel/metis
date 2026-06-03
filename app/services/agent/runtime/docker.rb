@@ -96,6 +96,7 @@ module Agent
           ingest_team_skills(slugs: touched_skill_slugs)
           session.close
           remove_container
+          workspace.discard_mcp_config
         end
       end
 

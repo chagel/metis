@@ -45,6 +45,7 @@ module Agent
           collect_host_artifacts(dir: workspace.artifacts_dir, since: turn_started_at)
           ingest_team_skills(slugs: touched_skill_slugs)
           session.close
+          workspace.discard_mcp_config
         end
       end
 

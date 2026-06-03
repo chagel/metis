@@ -85,6 +85,26 @@ class Agent::WorkspaceTest < ActiveSupport::TestCase
     assert_equal %({"mcpServers":{}}), File.read(workspace.workspace_dir.join(".mcp.json"))
   end
 
+  test "stage_mcp_config writes .mcp.json 0600 — it carries bearer tokens" do
+    workspace = Agent::Workspace.scratch(@conversation)
+    workspace.ensure!
+
+    workspace.stage_mcp_config(%({"mcpServers":{}}))
+
+    mode = File.stat(workspace.workspace_dir.join(".mcp.json")).mode & 0o777
+    assert_equal 0o600, mode
+  end
+
+  test "discard_mcp_config removes the token-bearing .mcp.json" do
+    workspace = Agent::Workspace.scratch(@conversation)
+    workspace.ensure!
+    workspace.stage_mcp_config(%({"mcpServers":{}}))
+
+    workspace.discard_mcp_config
+
+    assert_not File.exist?(workspace.workspace_dir.join(".mcp.json"))
+  end
+
   test "stage_identity writes AGENTS.md into the workspace root" do
     workspace = Agent::Workspace.scratch(@conversation)
     workspace.ensure!

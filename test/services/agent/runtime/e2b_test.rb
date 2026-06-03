@@ -143,6 +143,22 @@ class Agent::Runtime::E2bTest < ActiveSupport::TestCase
     assert_equal "sbx-new", @conversation.reload.e2b_sandbox_id
   end
 
+  test "discards .mcp.json before pausing so the snapshot holds no bearer tokens" do
+    mcp_path = "#{Agent::Runtime::E2b::WORKSPACE_DIR}/#{Agent::McpConfig::FILENAME}"
+    runs_at_pause = nil
+    sandbox = FakeSandbox.new(
+      sandbox_id: "sbx-new",
+      on_pause: ->(s) { runs_at_pause = s.commands.runs.dup }
+    )
+
+    with_e2b(create: sandbox) do
+      @runtime.run(pi_args: [ "--mode", "rpc" ]) { |_s| nil }
+    end
+
+    assert_includes runs_at_pause, "rm -f #{mcp_path}",
+                    "mcp config deleted before pause — a paused snapshot must not hold tokens"
+  end
+
   test "subsequent turns resume the stored sandbox, do not create a fresh one" do
     @conversation.update_column(:e2b_sandbox_id, "sbx-existing")
     sandbox = FakeSandbox.new(sandbox_id: "sbx-existing")

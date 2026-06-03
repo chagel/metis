@@ -70,9 +70,19 @@ module Agent
 
     # Write the rendered .mcp.json into the workspace root — a per-turn
     # projected input like uploads/, overwritten each turn and never
-    # archived (see docs/connectors.md).
+    # archived (see docs/connectors.md). It carries live OAuth bearer
+    # tokens, so it is written 0600 and discarded at turn end
+    # (#discard_mcp_config) — the rendered token must not linger on disk.
     def stage_mcp_config(content)
-      File.write(workspace_dir.join(McpConfig::FILENAME), content)
+      path = workspace_dir.join(McpConfig::FILENAME)
+      File.write(path, content)
+      File.chmod(0o600, path)
+    end
+
+    # Remove the token-bearing .mcp.json so rendered bearer tokens do not
+    # outlive the turn on disk. Re-staged next turn. Best-effort.
+    def discard_mcp_config
+      FileUtils.rm_f(workspace_dir.join(McpConfig::FILENAME))
     end
 
     # Write the rendered AGENTS.md into the workspace root. pi auto-loads
