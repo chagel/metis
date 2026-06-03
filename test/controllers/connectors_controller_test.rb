@@ -161,4 +161,9 @@ class ConnectorsControllerTest < ActionDispatch::IntegrationTest
       assert_select %(form[action^="#{user_github_omniauth_authorize_path}"] button), text: "Reconnect"
     end
   end
+
+  test "an mcp_oauth tile connects through the DCR flow, not omniauth" do
+    get connectors_path
+    assert_select %(form[action="#{connector_oauth_start_path("notion")}"] button), text: "Connect"
+  end
 end

@@ -23,7 +23,13 @@
                 Connector row AND a grant that covers its catalog scopes,
                 otherwise the tile would advertise a connector McpConfig
                 drops every turn. %>
-            <% wired = connector && (app.oauth? ? connector.credential_for(current_user)&.oauth_ready? : true) %>
+            <% member_cred = connector&.credential_for(current_user) %>
+            <% wired =
+                 if connector.nil? then false
+                 elsif app.oauth? then member_cred&.oauth_ready?
+                 elsif app.mcp_oauth? then member_cred&.mcp_oauth_access_token.present?
+                 else true
+                 end %>
             <%# "Reconnect" only when *I* connected before (my own credential
                 exists but lapsed); a teammate's connector or a login-only
                 grant means I've never connected this → "Connect". %>
@@ -44,6 +50,10 @@
                         data: { turbo: false }, class: "btn btn-primary") %>
                 <% elsif app.oauth? %>
                   <span class="app-state">OAuth — coming soon</span>
+                <% elsif app.mcp_oauth? %>
+                  <div style="flex:1"></div>
+                  <%= button_to(mine ? "Reconnect" : "Connect", connector_oauth_start_path(app.key),
+                        data: { turbo: false }, class: "btn btn-primary") %>
                 <% elsif team_manager? %>
                   <div style="flex:1"></div>
                   <%= link_to "Connect", new_connector_path(app: app.key), class: "btn btn-primary" %>

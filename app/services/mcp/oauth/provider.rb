@@ -36,6 +36,11 @@ module Mcp
         @client = client
       end
 
+      # Persisted on the credential so a later token refresh is
+      # self-contained (no re-discovery per turn).
+      def token_endpoint = @metadata.token_endpoint
+      def client_id = @client.client_id
+
       def authorize_url(redirect_uri:, state:, pkce:)
         Oauth.authorize_url(@metadata,
           client_id: @client.client_id,

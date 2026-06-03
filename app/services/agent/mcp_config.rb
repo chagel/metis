@@ -79,6 +79,7 @@ module Agent
       return {} if credential.nil?
 
       app = connector.catalog_app
+      return mcp_oauth_headers(connector, credential) if app&.mcp_oauth?
       return credential.credential_map unless app&.oauth?
 
       grant = credential.oauth_grant
@@ -105,6 +106,23 @@ module Agent
       Rails.logger.error("McpConfig: OAuth refresh failed for connector " \
                           "#{connector.id}: #{error.message}")
       nil
+    end
+
+    # Bearer for an MCP-OAuth (DCR) connector — the member's token,
+    # refreshed if stale. nil drops the connector (the member must
+    # reconnect). These connectors carry no catalog `credential` block, so
+    # the header shape is fixed: Authorization: Bearer.
+    def mcp_oauth_headers(connector, credential)
+      bearer = credential.mcp_oauth_bearer
+      if bearer.blank?
+        Rails.logger.warn(
+          "McpConfig: connector #{connector.id} (#{connector.name}) has no usable " \
+          "MCP-OAuth token for user #{@conversation.user_id} — dropping from .mcp.json"
+        )
+        return nil
+      end
+
+      { "Authorization" => "Bearer #{bearer}" }
     end
 
     # A second GitHub server, `github_bot`, bearing a freshly minted

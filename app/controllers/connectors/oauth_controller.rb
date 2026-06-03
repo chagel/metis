@@ -36,7 +36,7 @@ module Connectors
       tokens = provider.exchange(code: params[:code], code_verifier: flow["verifier"],
                                  redirect_uri: connector_oauth_callback_url)
 
-      activate(team, app, tokens)
+      activate(team, app, provider, tokens)
       redirect_to connectors_path, notice: "#{app.name} connected."
     rescue Mcp::Oauth::Error => error
       redirect_to connectors_path, alert: "Couldn't finish that connection: #{error.message}"
@@ -51,11 +51,11 @@ module Connectors
 
     # Land the connector on the team (creating the Connector row on first
     # connect) and store this member's token on their credential.
-    def activate(team, app, tokens)
+    def activate(team, app, provider, tokens)
       connector = team.connectors.find_or_initialize_by(catalog_key: app.key)
       connector.update!(name: app.key, transport: app.transport, definition: app.definition)
       credential = connector.connector_credentials.find_or_initialize_by(user: current_user)
-      credential.store_mcp_oauth!(tokens)
+      credential.store_mcp_oauth!(tokens, token_endpoint: provider.token_endpoint, client_id: provider.client_id)
     end
   end
 end

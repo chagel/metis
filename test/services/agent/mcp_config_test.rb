@@ -225,4 +225,41 @@ class Agent::McpConfigTest < ActiveSupport::TestCase
       end
     end
   end
+
+  # MCP-OAuth (DCR) connectors carry the member's token on their
+  # ConnectorCredential; McpConfig injects it as the bearer (refreshing
+  # when stale), with no catalog credential block.
+  def add_notion
+    connector = add_connector(name: "notion", catalog_key: "notion", transport: :http,
+                              definition: { "url" => "https://mcp.notion.com/mcp" })
+    [ connector, connector.connector_credentials.create!(user: member) ]
+  end
+
+  test "stages an mcp_oauth connector with the member's bearer" do
+    _connector, cred = add_notion
+    cred.store_mcp_oauth!({ "access_token" => "tok-1", "expires_in" => 3600 },
+                          token_endpoint: "https://auth.example/token", client_id: "cid")
+
+    entry = rendered["mcpServers"]["notion"]
+    assert_equal "https://mcp.notion.com/mcp", entry["url"]
+    assert_equal "Bearer tok-1", entry["headers"]["Authorization"]
+  end
+
+  test "refreshes an expired mcp_oauth token before staging" do
+    _connector, cred = add_notion
+    cred.store_mcp_oauth!({ "access_token" => "old", "refresh_token" => "rt", "expires_in" => -10 },
+                          token_endpoint: "https://auth.example/token", client_id: "cid")
+
+    with_stub(Mcp::Oauth, :refresh, ->(**) { { "access_token" => "fresh", "expires_in" => 3600 } }) do
+      assert_equal "Bearer fresh", rendered["mcpServers"]["notion"]["headers"]["Authorization"]
+    end
+  end
+
+  test "drops an mcp_oauth connector when the token is expired and can't refresh" do
+    _connector, cred = add_notion
+    cred.store_mcp_oauth!({ "access_token" => "old", "expires_in" => -10 }, # no refresh_token
+                          token_endpoint: "https://auth.example/token", client_id: "cid")
+
+    assert_nil rendered["mcpServers"]["notion"]
+  end
 end

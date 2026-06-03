@@ -12,6 +12,9 @@ class Connectors::OauthControllerTest < ActionDispatch::IntegrationTest
     def exchange(**)
       { "access_token" => "tok-123", "refresh_token" => "rt-9", "expires_in" => 3600 }
     end
+
+    def token_endpoint = "https://auth.example.com/token"
+    def client_id = "cid"
   end
 
   setup do

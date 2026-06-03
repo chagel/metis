@@ -46,5 +46,16 @@ module Mcp
         resource: resource
       })
     end
+
+    # Refresh an expired access token. The token_endpoint + client_id are
+    # persisted on the credential, so this needs no re-discovery.
+    def refresh(token_endpoint:, client_id:, refresh_token:, resource:)
+      Http.post_form(token_endpoint, {
+        grant_type: "refresh_token",
+        refresh_token: refresh_token,
+        client_id: client_id,
+        resource: resource
+      })
+    end
   end
 end
