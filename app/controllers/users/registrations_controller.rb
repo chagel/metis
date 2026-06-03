@@ -5,6 +5,13 @@ class Users::RegistrationsController < Devise::RegistrationsController
   before_action :require_registration_offered, only: :new
   before_action :require_registration_allowed, only: :create
 
+  # Account settings live under /settings/account now (Settings::Accounts).
+  # Devise still routes /users/edit, so point any stale link at the
+  # canonical page rather than rendering a second account form.
+  def edit
+    redirect_to account_path
+  end
+
   private
 
   def require_registration_offered

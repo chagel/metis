@@ -1,0 +1,92 @@
+<% content_for :title, "Account" %>
+
+<main class="pane">
+  <header class="pane-head">
+    <h1 class="pane-title">Account</h1>
+  </header>
+
+  <div class="pane-body">
+    <div class="pane-inner">
+      <%= form_with model: @user, url: account_path, method: :patch, class: "account-form" do |form| %>
+        <% if flash[:notice].present? %>
+          <div class="form-flash form-flash-ok"><%= flash[:notice] %></div>
+        <% end %>
+        <% if @user.errors.any? %>
+          <div class="form-flash form-flash-err">
+            <%= pluralize(@user.errors.count, "error") %> prevented saving your account:
+            <ul>
+              <% @user.errors.full_messages.each do |msg| %>
+                <li><%= msg %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <section class="settings-card">
+          <fieldset class="account-fieldset">
+            <legend>Email</legend>
+            <div class="form-row">
+              <%= form.label :email, "Email address" %>
+              <%= form.email_field :email, autocomplete: "email" %>
+              <p class="form-hint">Used to sign in and for account notifications.</p>
+            </div>
+          </fieldset>
+
+          <fieldset class="account-fieldset">
+            <legend>Password</legend>
+            <div class="form-row">
+              <%= form.label :password, "New password" %>
+              <%= form.password_field :password, autocomplete: "new-password" %>
+              <p class="form-hint">Leave blank to keep your current password.</p>
+            </div>
+            <div class="form-row">
+              <%= form.label :password_confirmation, "Confirm new password" %>
+              <%= form.password_field :password_confirmation, autocomplete: "new-password" %>
+            </div>
+          </fieldset>
+
+          <fieldset class="account-fieldset">
+            <legend>Confirm changes</legend>
+            <div class="form-row">
+              <%= form.label :current_password, "Current password" %>
+              <%= form.password_field :current_password, autocomplete: "current-password" %>
+              <p class="form-hint">
+                Required to save any change.
+                <% if @user.identities.exists? %>
+                  Signed up with a social account?
+                  <%= link_to "Set a password", new_user_password_path, data: { turbo_frame: "_top" } %> first.
+                <% end %>
+              </p>
+            </div>
+          </fieldset>
+
+          <div class="form-actions">
+            <%= form.submit "Save changes", class: "btn btn-primary" %>
+          </div>
+        </section>
+      <% end %>
+
+      <% if @user.identities.exists? %>
+        <section class="settings-card">
+          <div class="settings-card-sub">Connected accounts</div>
+          <ul class="identity-list">
+            <% @user.identities.order(:provider).each do |identity| %>
+              <li class="identity-row">
+                <span class="identity-provider"><%= identity.provider.titleize %></span>
+              </li>
+            <% end %>
+          </ul>
+        </section>
+      <% end %>
+
+      <section class="settings-card">
+        <div class="settings-danger">
+          <p class="form-hint">Deleting your account is permanent and cannot be undone.</p>
+          <%= button_to "Delete account", account_path, method: :delete, class: "btn btn-danger",
+                form: { data: { turbo_frame: "_top",
+                                turbo_confirm: "Delete your account? This permanently removes your conversations and cannot be undone." } } %>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>

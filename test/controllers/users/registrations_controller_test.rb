@@ -62,4 +62,10 @@ class Users::RegistrationsControllerTest < ActionDispatch::IntegrationTest
       assert_redirected_to new_user_session_path
     end
   end
+
+  test "the legacy account-edit route redirects to the settings account page" do
+    sign_in @inviter
+    get edit_user_registration_path
+    assert_redirected_to account_path
+  end
 end

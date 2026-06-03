@@ -57,6 +57,10 @@ Rails.application.routes.draw do
         collection { delete :leave }
       end
     end
+    # Account credentials (email, password, deletion) for the signed-in
+    # user — distinct from :profile, which is preferences. A singular
+    # resource: always the current user, never addressed by id.
+    resource :account, only: %i[show update destroy], controller: "settings/accounts"
     resource :profile, only: %i[show update]
     post "profile/detect_timezone", to: "profiles#detect_timezone",
                                     as: :detect_timezone_profile

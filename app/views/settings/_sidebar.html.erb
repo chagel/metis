@@ -27,6 +27,15 @@
       </svg>
       <span>Profile</span>
     <% end %>
+    <%= link_to account_path,
+          class: "nav-item#{' on' if controller_name == 'accounts'}" do %>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="10.5" cy="5.5" r="3"/>
+        <path d="M8.4 7.6L2.5 13.5M5 11l1.5 1.5M7 9l1.5 1.5"/>
+      </svg>
+      <span>Account</span>
+    <% end %>
     <%= link_to team_path,
           class: "nav-item#{' on' if controller_name == 'teams'}" do %>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
