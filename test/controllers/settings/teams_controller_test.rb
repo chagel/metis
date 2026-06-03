@@ -13,10 +13,19 @@ class Settings::TeamsControllerTest < ActionDispatch::IntegrationTest
     post switch_team_path(team), headers: { "HTTP_REFERER" => root_path }
   end
 
-  test "show renders the create-a-team prompt for the personal workspace" do
+  test "show renders the new-team action for the personal workspace" do
     get team_path
     assert_response :success
-    assert_select "a", text: "Create a team"
+    assert_select ".team-add .team-pick-name", text: "New team"
+  end
+
+  test "the personal workspace lists the shared teams you belong to" do
+    team = Team.create!(name: "Acme")
+    @user.memberships.create!(team: team, role: :member)
+
+    get team_path
+    assert_response :success
+    assert_select ".team-pick-name", text: "Acme"
   end
 
   test "show lists members for a real team" do
@@ -66,7 +75,7 @@ class Settings::TeamsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to team_path
     follow_redirect!
-    assert_select "a", text: "Create a team" # back in the personal workspace
+    assert_select ".team-add .team-pick-name", text: "New team" # back in the personal workspace
   end
 
   test "a non-owner cannot delete the team" do

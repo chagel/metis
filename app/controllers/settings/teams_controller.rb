@@ -10,9 +10,17 @@ class Settings::TeamsController < ApplicationController
 
   def show
     @team = current_team
-    @memberships = @team.memberships.includes(user: { avatar_attachment: :blob })
-    @invitation = Invitation.new
-    @pending_invitations = @team.invitations.pending.order(:created_at)
+    if @team.personal?
+      # The personal page is also where you find your way back to the
+      # shared teams you belong to — list them so they're never lost.
+      @joined_teams = current_user.memberships.joins(:team)
+        .where(teams: { personal: false })
+        .includes(team: :memberships).order("teams.name")
+    else
+      @memberships = @team.memberships.includes(user: { avatar_attachment: :blob })
+      @invitation = Invitation.new
+      @pending_invitations = @team.invitations.pending.order(:created_at)
+    end
   end
 
   def update

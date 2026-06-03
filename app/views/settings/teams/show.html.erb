@@ -4,17 +4,66 @@
   <header class="pane-head">
     <h1 class="pane-title"><%= @team.personal? ? "Personal workspace" : @team.name %></h1>
     <div style="flex:1"></div>
-    <%= link_to "New team", new_team_path, class: "btn btn-ghost" %>
+    <% unless @team.personal? %>
+      <%= button_to switch_team_path(current_user.personal_team), method: :post,
+            params: { to: "settings" }, form: { data: { turbo_frame: "_top" } },
+            class: "btn btn-ghost btn-back" do %>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M10 3L5 8l5 5"/>
+        </svg>
+        <span>All teams</span>
+      <% end %>
+    <% end %>
   </header>
 
   <div class="pane-body">
     <div class="pane-inner">
       <% if @team.personal? %>
         <p class="pane-lead">
-          You're in your personal workspace — a team of one. Create a team
-          to share connectors, skills, and projects with others.
+          You're in your personal workspace — a team of one. Teams let you
+          share connectors, skills, and projects with others.
         </p>
-        <%= link_to "Create a team", new_team_path, class: "btn btn-primary" %>
+
+        <section class="settings-card">
+          <div class="settings-card-head">
+            <span class="settings-card-title">Your teams</span>
+            <% if @joined_teams.any? %>
+              <span class="settings-card-count"><%= @joined_teams.size %></span>
+            <% end %>
+          </div>
+
+          <div class="team-pick-list">
+            <% @joined_teams.each do |membership| %>
+              <% team = membership.team %>
+              <%= button_to switch_team_path(team), method: :post,
+                    params: { to: "settings" }, form: { data: { turbo_frame: "_top" } },
+                    class: "team-pick", title: "Open #{team.name}" do %>
+                <span class="team-mono"><%= team.name.first.upcase %></span>
+                <span class="team-pick-id">
+                  <span class="team-pick-name"><%= team.name %></span>
+                  <span class="team-pick-meta">
+                    <%= pluralize(team.memberships.size, "member") %> · <%= membership.role.titleize %>
+                  </span>
+                </span>
+                <svg class="team-pick-go" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                     stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M6 3l5 5-5 5"/>
+                </svg>
+              <% end %>
+            <% end %>
+
+            <% if @joined_teams.any? %><hr class="card-divider"><% end %>
+
+            <%= link_to new_team_path, class: "team-pick team-add" do %>
+              <span class="team-mono">+</span>
+              <span class="team-pick-id">
+                <span class="team-pick-name">New team</span>
+                <span class="team-pick-meta">Share connectors, skills &amp; projects with others</span>
+              </span>
+            <% end %>
+          </div>
+        </section>
       <% else %>
         <% manager = team_manager? %>
         <% owner = current_membership&.owner? %>

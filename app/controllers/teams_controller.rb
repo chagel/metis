@@ -26,7 +26,9 @@ class TeamsController < ApplicationController
   def switch
     team = current_user.teams.find(params[:id])
     session[:current_team_id] = team.id
-    redirect_to root_path
+    # The sidebar switcher returns to chat; the settings team list keeps
+    # you in settings on the now-active team.
+    redirect_to params[:to] == "settings" ? team_path : root_path
   end
 
   private
