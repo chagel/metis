@@ -203,6 +203,14 @@ class User < ApplicationRecord
 
   private
 
+  # Send Devise's emails through the queue (deliver_later) like the rest
+  # of our mail — async, and retried on transient Cloudflare failures via
+  # MailDeliveryJob. Devise's default sends inline (deliver_now), which
+  # would block the request and bypass the retry path.
+  def send_devise_notification(notification, *args)
+    devise_mailer.send(notification, self, *args).deliver_later
+  end
+
   def preferred_model_known
     return if preferred_model.blank?
     return if Agent::Catalog.known_model?(preferred_model)
