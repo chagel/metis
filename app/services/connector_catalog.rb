@@ -13,6 +13,9 @@ class ConnectorCatalog
                     :oauth_scopes, :credential, :inputs) do
     def token_auth? = auth == "token"
     def oauth? = auth == "oauth"
+    # OAuth via the MCP authorization spec — discovery + Dynamic Client
+    # Registration, no pre-registered provider app. See docs/mcp-oauth-connectors.md.
+    def mcp_oauth? = auth == "mcp_oauth"
 
     # The MCP server definition with any %{input} placeholders filled
     # from the user-supplied values.

@@ -60,6 +60,25 @@ class ConnectorCredential < ApplicationRecord
     grant.covers?(connector.catalog_app.oauth_scopes)
   end
 
+  # MCP-OAuth (Dynamic Client Registration) connectors store their
+  # per-member token here directly — unlike the brokered providers, whose
+  # tokens live in an OauthGrant (those are pinned to OauthBroker::PROVIDERS,
+  # so an arbitrary MCP server can't reuse them). The `credentials` column
+  # is encrypted, so the token is encrypted at rest.
+  def store_mcp_oauth!(tokens, at: Time.current)
+    expires_in = tokens["expires_in"]
+    write_envelope("mcp_oauth", {
+      "access_token" => tokens["access_token"],
+      "refresh_token" => tokens["refresh_token"],
+      "expires_at" => (expires_in.present? ? (at + expires_in.to_i.seconds).iso8601 : nil)
+    }.compact)
+    save!
+  end
+
+  def mcp_oauth_access_token
+    (envelope["mcp_oauth"] || {})["access_token"]
+  end
+
   private
 
   def envelope

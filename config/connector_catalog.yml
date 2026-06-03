@@ -6,8 +6,20 @@
 # docs/connectors.md.
 #
 # auth:
-#   token — the user supplies a key/token
-#   oauth — Metis brokers an OAuth flow; per-member access tokens
+#   token      — the user supplies a key/token
+#   oauth      — Metis brokers an OAuth flow; per-member access tokens
+#   mcp_oauth  — OAuth via the MCP spec (discovery + Dynamic Client
+#                Registration); no pre-registered provider app needed.
+#                See docs/mcp-oauth-connectors.md.
+
+notion:
+  name: Notion
+  category: Productivity
+  description: Read, search, and update Notion pages and databases.
+  transport: http
+  definition:
+    url: https://mcp.notion.com/mcp
+  auth: mcp_oauth
 
 github:
   name: GitHub
