@@ -300,14 +300,15 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "a personal workspace shows Mine and Archived tabs but not Shared" do
+  test "a personal workspace shows Mine and Starred tabs but not Shared or Archived" do
     sign_in @user
     get conversations_path
 
     assert_response :success
     assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "active"), text: "Mine"
-    assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "archived"), text: "Archived"
+    assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "starred"), text: "Starred"
     assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "shared"), count: 0
+    assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "archived"), count: 0
     assert_select ".convo-tab.on", text: "Mine"
   end
 
@@ -458,7 +459,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_select "#convos-list .convo", count: 0
   end
 
-  test "the archived filter lists only the user's archived conversations" do
+  test "an unknown filter (e.g. archived) falls back to the active scope" do
     sign_in @user
     @user.conversations.create!(title: "Live")
     archived = @user.conversations.create!(title: "Done")
@@ -467,10 +468,9 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     get conversations_path(filter: "archived")
 
     assert_response :success
-    assert_select "#convos-list .convo .tt", text: "Done"
-    assert_select "#convos-list .convo .tt", text: "Live", count: 0
-    assert_select "#convos-list .convo .convo-avatar", count: 0
-    assert_select ".convo-tab.on", text: "Archived"
+    assert_select "#convos-list .convo .tt", text: "Live"
+    assert_select "#convos-list .convo .tt", text: "Done", count: 0
+    assert_select ".convo-tab.on", text: "Mine"
   end
 
   test "star marks a conversation as starred via turbo stream" do
