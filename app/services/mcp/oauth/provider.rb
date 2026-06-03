@@ -26,7 +26,11 @@ module Mcp
           issuer: metadata.issuer,
           client_id: client.client_id,
           client_secret: client.client_secret,
-          registration: client.raw
+          # Drop the secret from the raw blob — it's already in the
+          # encrypted client_secret column; the registration jsonb is
+          # plaintext, so keeping it here would leak a confidential
+          # client's secret at rest.
+          registration: client.raw.except("client_secret")
         )
       end
 

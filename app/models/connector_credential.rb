@@ -120,8 +120,6 @@ class ConnectorCredential < ApplicationRecord
     nil
   end
 
-  private
-
   def envelope
     credentials.present? ? JSON.parse(credentials) : {}
   end
