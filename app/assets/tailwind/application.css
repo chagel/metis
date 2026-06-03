@@ -323,9 +323,13 @@ img.avatar { background:none; object-fit:cover; }
    everything beneath. */
 .ws-crumb { display:flex; align-items:center; gap:5px; min-width:0; }
 .ws-sep { color:var(--faint); font-size:15px; line-height:1; user-select:none; }
-.ws-home { display:inline-flex; align-items:center; gap:5px; color:var(--ink); text-decoration:none; }
-.ws-home svg { width:15px; height:15px; color:var(--ink-3); }
-.ws-home:hover svg { color:var(--ink); }
+.ws-back {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:26px; height:26px; flex:none; border-radius:8px;
+  color:var(--ink-3); text-decoration:none;
+}
+.ws-back svg { width:15px; height:15px; }
+.ws-back:hover { background:var(--card); color:var(--ink); box-shadow:var(--sh-sm); }
 
 .team-switcher { position:relative; display:inline-flex; }
 .team-switcher-trigger {
