@@ -21,6 +21,33 @@ notion:
     url: https://mcp.notion.com/mcp
   auth: mcp_oauth
 
+monday:
+  name: monday.com
+  category: Productivity
+  description: Manage boards, items, and updates in monday.com.
+  transport: http
+  definition:
+    url: https://mcp.monday.com/mcp
+  auth: mcp_oauth
+
+stripe:
+  name: Stripe
+  category: Finance
+  description: Look up customers, payments, invoices, and subscriptions in Stripe.
+  transport: http
+  definition:
+    url: https://mcp.stripe.com
+  auth: mcp_oauth
+
+close:
+  name: Close
+  category: Sales
+  description: Search and update leads, contacts, and opportunities in Close CRM.
+  transport: http
+  definition:
+    url: https://mcp.close.com/mcp
+  auth: mcp_oauth
+
 github:
   name: GitHub
   category: Development

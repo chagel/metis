@@ -49,4 +49,21 @@ class ConnectorCatalogTest < ActiveSupport::TestCase
     assert_includes calendar.oauth_scopes, "https://www.googleapis.com/auth/calendar"
     assert_includes calendar.oauth_scopes, "https://www.googleapis.com/auth/calendar.events"
   end
+
+  test "every mcp_oauth app is an http connector with a server URL and no brokered provider" do
+    mcp_oauth = ConnectorCatalog.all.select(&:mcp_oauth?)
+
+    assert mcp_oauth.any?, "expected at least one mcp_oauth connector"
+    mcp_oauth.each do |app|
+      assert_equal "http", app.transport, "#{app.key} must be http-transport"
+      assert app.definition["url"].present?, "#{app.key} must declare a server URL"
+      assert_nil app.oauth_provider, "#{app.key} is DCR — it must not pin a brokered provider"
+    end
+  end
+
+  test "the DCR-connected popular servers are present" do
+    %w[notion monday stripe close].each do |key|
+      assert ConnectorCatalog.find(key)&.mcp_oauth?, "expected mcp_oauth catalog entry #{key.inspect}"
+    end
+  end
 end
