@@ -72,9 +72,9 @@ class ConnectorsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to edit_connector_path(connector)
   end
 
-  test "new without an app renders the custom form" do
+  test "new without an app redirects to the marketplace" do
     get new_connector_path
-    assert_response :success
+    assert_redirected_to connectors_path
   end
 
   test "POSTing to connect an oauth app redirects to the marketplace" do
@@ -85,13 +85,11 @@ class ConnectorsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to connectors_path
   end
 
-  test "creating a custom connector from the structured form" do
-    assert_difference("Connector.count", 1) do
-      post connectors_path, params: {
-        connector: { name: "fs", transport: "stdio", command: "npx", args: "-y" }
-      }
+  test "posting without a catalog_key redirects to the marketplace" do
+    assert_no_difference("Connector.count") do
+      post connectors_path, params: { connector: { name: "fs", transport: "http" } }
     end
-    assert_equal "npx", team.connectors.last.definition["command"]
+    assert_redirected_to connectors_path
   end
 
   test "the manage page renders for a connected app" do

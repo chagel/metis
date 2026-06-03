@@ -10,30 +10,27 @@ class ConnectorsController < ApplicationController
   def index
     @apps = ConnectorCatalog.all
     @connected = team.connectors.where.not(catalog_key: nil).index_by(&:catalog_key)
-    @custom = team.connectors.where(catalog_key: nil).order(:name)
   end
 
-  # ?app=<key> opens the catalog connect form; without it, the custom-MCP form.
+  # ?app=<key> opens the catalog connect form.
   def new
-    if (@app = ConnectorCatalog.find(params[:app]))
-      existing = team.connectors.find_by(catalog_key: @app.key)
-      # mcp_oauth re-renders the connect form even when already connected,
-      # so a reconnect can re-run the OAuth flow; others jump to manage.
-      return redirect_to edit_connector_path(existing) if existing && !@app.mcp_oauth?
-      return redirect_to connectors_path if @app.oauth? # handled by Devise omniauth
+    @app = ConnectorCatalog.find(params[:app])
+    return redirect_to connectors_path unless @app
 
-      render :connect
-    else
-      @connector = team.connectors.new(transport: :stdio)
-    end
+    existing = team.connectors.find_by(catalog_key: @app.key)
+    # mcp_oauth re-renders the connect form even when already connected,
+    # so a reconnect can re-run the OAuth flow; others jump to manage.
+    return redirect_to edit_connector_path(existing) if existing && !@app.mcp_oauth?
+    return redirect_to connectors_path if @app.oauth? # handled by Devise omniauth
+
+    render :connect
   end
 
   def create
-    if (app = ConnectorCatalog.find(params[:catalog_key]))
-      connect_app(app)
-    else
-      create_custom
-    end
+    app = ConnectorCatalog.find(params[:catalog_key])
+    return redirect_to connectors_path unless app
+
+    connect_app(app)
   end
 
   def edit
@@ -42,7 +39,6 @@ class ConnectorsController < ApplicationController
   end
 
   def update
-    @connector.assign_attributes(custom_params) unless @connector.catalog_key
     apply_bot_setting
     if @connector.save
       save_credential
@@ -92,39 +88,6 @@ class ConnectorsController < ApplicationController
 
     credential = connector.connector_credentials.find_or_initialize_by(user: current_user)
     credential.update!(credential_map: app.credential_map_for(secret))
-  end
-
-  def create_custom
-    @connector = team.connectors.new(custom_params)
-    if @connector.save
-      redirect_to edit_connector_path(@connector), notice: "Connector created."
-    else
-      render :new, status: :unprocessable_entity
-    end
-  end
-
-  def custom_params
-    form = connector_form
-    {
-      name: form[:name], transport: form[:transport],
-      definition: definition_from(form)
-    }
-  end
-
-  def connector_form
-    params.require(:connector).permit(:name, :transport, :command, :args, :url)
-  end
-
-  def definition_from(form)
-    case form[:transport]
-    when "stdio"
-      { "command" => form[:command].to_s.strip,
-        "args" => form[:args].to_s.split("\n").map(&:strip).reject(&:blank?) }
-    when "http"
-      { "url" => form[:url].to_s.strip }
-    else
-      {}
-    end
   end
 
   # Admin toggle for the github_bot token (github connector only; no
