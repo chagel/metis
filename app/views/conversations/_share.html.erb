@@ -1,13 +1,16 @@
 <%# Inline share panel for the chat header. Rendered into #conversation_share
     on the initial page and on every share/unshare request (Turbo Stream and
     full-page fallback both reuse this partial). %>
+<%# can_manage: owner controls (create/revoke). A read-only team viewer
+    gets the copyable link only. %>
+<% can_manage = local_assigns.fetch(:can_manage, true) %>
 <div id="<%= dom_id(conversation, :share) %>"
      class="share-panel"
      data-share-target="panel"
      data-shared="<%= conversation.shared? %>">
   <% if conversation.shared? %>
     <% url = shared_conversation_url(token: conversation.share_token) %>
-    <p class="share-panel-label">Anyone with this link can view the conversation.</p>
+    <p class="share-panel-label">Anyone with this link can view the conversation. It also appears in your team’s shared list.</p>
     <div class="share-panel-row">
       <input type="text"
              class="share-panel-url"
@@ -20,13 +23,15 @@
               data-action="click->share#copy"
               data-share-target="copyButton">Copy</button>
     </div>
-    <%= button_to "Revoke link",
-          share_conversation_path(conversation),
-          method: :delete,
-          class: "share-panel-revoke",
-          form: { data: { turbo_stream: true } } %>
-  <% else %>
-    <p class="share-panel-label">Create a public link so anyone can view this conversation.</p>
+    <% if can_manage %>
+      <%= button_to "Revoke link",
+            share_conversation_path(conversation),
+            method: :delete,
+            class: "share-panel-revoke",
+            form: { data: { turbo_stream: true } } %>
+    <% end %>
+  <% elsif can_manage %>
+    <p class="share-panel-label">Create a public link so anyone can view this conversation — and share it with your team.</p>
     <%= button_to "Create share link",
           share_conversation_path(conversation),
           method: :post,

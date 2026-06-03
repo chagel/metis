@@ -31,20 +31,39 @@
 
   <nav class="convos" aria-label="Conversations" data-turbo-prefetch="false"
        data-controller="infinite-scroll active-link">
-    <div id="convos-list">
-      <% if @conversations.any? %>
-        <%= render "conversations/convo_items",
-              conversations: @conversations,
-              last_bucket: nil,
-              grouped: true %>
-        <%= render "conversations/convo_sentinel",
-              pagy: @sidebar_pagy,
-              last_bucket: conversation_time_bucket(@conversations.last.updated_at) %>
-      <% else %>
-        <div class="convos-empty">No conversations yet — start one on the right.</div>
-      <% end %>
-    </div>
-    <div class="convos-empty" data-conversation-filter-target="empty" hidden>No matches.</div>
+    <%# The list (and its scope tabs) live in a turbo-frame so picking a
+        tab swaps only the list — the open conversation in #main and the
+        sidebar's scroll position stay put. Tabs are inside the frame, so
+        the server re-renders their active state on each swap. %>
+    <turbo-frame id="convos">
+      <div class="convo-tabs" role="tablist">
+        <%= link_to "Mine", conversations_path(filter: "active"),
+              class: "convo-tab#{' on' if @sidebar_filter == 'active'}" %>
+        <%# A personal workspace is a team of one — nothing to share with. %>
+        <% unless current_team.personal? %>
+          <%= link_to "Shared", conversations_path(filter: "shared"),
+                class: "convo-tab#{' on' if @sidebar_filter == 'shared'}" %>
+        <% end %>
+        <%= link_to "Archived", conversations_path(filter: "archived"),
+              class: "convo-tab#{' on' if @sidebar_filter == 'archived'}" %>
+      </div>
+
+      <div id="convos-list">
+        <% if @conversations.any? %>
+          <%= render "conversations/convo_items",
+                conversations: @conversations,
+                last_bucket: nil,
+                grouped: true %>
+          <%= render "conversations/convo_sentinel",
+                pagy: @sidebar_pagy,
+                last_bucket: conversation_time_bucket(@conversations.last.updated_at),
+                filter: @sidebar_filter %>
+        <% else %>
+          <div class="convos-empty"><%= sidebar_empty_message(@sidebar_filter) %></div>
+        <% end %>
+      </div>
+      <div class="convos-empty" data-conversation-filter-target="empty" hidden>No matches.</div>
+    </turbo-frame>
   </nav>
 
   <%= render "shared/user_menu" %>

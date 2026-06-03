@@ -207,4 +207,12 @@ class ConversationTest < ActiveSupport::TestCase
     refute @conversation.shared?
     assert_nil @conversation.reload.share_token
   end
+
+  test "shared scope returns only conversations with a share token" do
+    shared = @user.conversations.create!(title: "shared")
+    shared.generate_share_token!
+    @user.conversations.create!(title: "private")
+
+    assert_equal [ shared ], Conversation.shared.to_a
+  end
 end

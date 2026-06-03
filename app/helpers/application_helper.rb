@@ -166,6 +166,16 @@ module ApplicationHelper
     end
   end
 
+  SIDEBAR_EMPTY_MESSAGES = {
+    "shared" => "No conversations shared with your team yet.",
+    "archived" => "No archived conversations.",
+    "active" => "No conversations yet — start one on the right."
+  }.freeze
+
+  def sidebar_empty_message(filter)
+    SIDEBAR_EMPTY_MESSAGES.fetch(filter, SIDEBAR_EMPTY_MESSAGES["active"])
+  end
+
   # Human label for an identity provider key — `google_oauth2` reads as
   # "Google", `github` as "GitHub". Falls back to a titleized key.
   IDENTITY_PROVIDER_LABELS = {

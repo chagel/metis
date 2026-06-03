@@ -5,25 +5,38 @@
 
   <header class="chat-head">
     <div style="flex:1; min-width:0">
-      <h1 class="chat-title"
-          data-controller="conversation-title"
-          data-conversation-title-url-value="<%= conversation_path(@conversation) %>">
-        <span id="<%= dom_id(@conversation, :title) %>"
-              data-conversation-title-target="text"
-              data-action="click->conversation-title#edit"><%= @conversation.display_title %></span>
-        <input class="chat-title-input"
-               type="text"
-               data-conversation-title-target="input"
-               data-action="keydown->conversation-title#keydown blur->conversation-title#save"
-               hidden />
-      </h1>
-      <div class="chat-sub">
-        <span>Started <%= time_ago_in_words(@conversation.created_at) %> ago</span>
-        <%= render "context_meter", conversation: @conversation %>
-      </div>
+      <% if @read_only %>
+        <h1 class="chat-title">
+          <span id="<%= dom_id(@conversation, :title) %>"><%= @conversation.display_title %></span>
+        </h1>
+        <div class="chat-sub">
+          <span>Shared by <%= @conversation.user.display_label %></span>
+          <%= render "context_meter", conversation: @conversation %>
+        </div>
+      <% else %>
+        <h1 class="chat-title"
+            data-controller="conversation-title"
+            data-conversation-title-url-value="<%= conversation_path(@conversation) %>">
+          <span id="<%= dom_id(@conversation, :title) %>"
+                data-conversation-title-target="text"
+                data-action="click->conversation-title#edit"><%= @conversation.display_title %></span>
+          <input class="chat-title-input"
+                 type="text"
+                 data-conversation-title-target="input"
+                 data-action="keydown->conversation-title#keydown blur->conversation-title#save"
+                 hidden />
+        </h1>
+        <div class="chat-sub">
+          <span>Started <%= time_ago_in_words(@conversation.created_at) %> ago</span>
+          <%= render "context_meter", conversation: @conversation %>
+        </div>
+      <% end %>
     </div>
     <div class="chat-actions">
-      <% unless @conversation.archived? %>
+      <%# The share panel is available to read-only viewers too, so they can
+          copy the public link; owner-only controls (revoke/create, archive)
+          are gated on can_manage / @read_only. %>
+      <% if !@conversation.archived? && (!@read_only || @conversation.shared?) %>
         <div class="share" data-controller="share">
           <button type="button"
                   class="chat-action"
@@ -39,9 +52,11 @@
               <path d="M5.5 8.9l5 2.7"/>
             </svg>
           </button>
-          <%= render "conversations/share", conversation: @conversation %>
+          <%= render "conversations/share", conversation: @conversation, can_manage: !@read_only %>
         </div>
+      <% end %>
 
+      <% unless @read_only || @conversation.archived? %>
         <%= button_to archive_conversation_path(@conversation),
               method: :post,
               class: "chat-action",
@@ -59,7 +74,7 @@
     </div>
   </header>
 
-  <% if @conversation.archived? %>
+  <% if @conversation.archived? && !@read_only %>
     <div class="archived-banner" role="status">
       <svg class="archived-banner-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor"
            stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -78,7 +93,10 @@
 
   <div class="stream" data-chat-target="scroll">
     <div id="messages" class="thread" data-chat-target="messages">
-      <%= render @messages %>
+      <%# A shared (read-only) view hides the whole activity block —
+          reasoning and tool calls — matching the public share template. %>
+      <%= render partial: "messages/message", collection: @messages,
+            as: :message, locals: { hide_activity: @read_only } %>
     </div>
   </div>
 
@@ -94,5 +112,11 @@
     <span class="scroll-to-bottom-label scroll-to-bottom-label--new">New messages</span>
   </button>
 
-  <%= render "composer", conversation: @conversation %>
+  <% if @read_only %>
+    <div class="readonly-note">
+      Read-only — this conversation was shared with your team by <%= @conversation.user.display_label %>.
+    </div>
+  <% else %>
+    <%= render "composer", conversation: @conversation %>
+  <% end %>
 </main>

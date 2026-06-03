@@ -3,7 +3,7 @@ class ConversationsController < ApplicationController
 
   layout "chat"
 
-  before_action :set_conversation, only: %i[show cancel archive unarchive update share unshare]
+  before_action :set_conversation, only: %i[cancel archive unarchive update share unshare]
   before_action :set_sidebar, only: %i[index show archived]
 
   def index
@@ -30,7 +30,14 @@ class ConversationsController < ApplicationController
     redirect_to conversation
   end
 
+  # Own conversations open normally; a teammate's conversation that was
+  # shared with the team opens read-only (same chat view, no composer).
+  # Mutating actions still go through the owner-scoped set_conversation,
+  # so read-only here can't be escalated.
   def show
+    @conversation = current_user.conversations.find_by(id: params[:id]) ||
+                    current_team.conversations.shared.find(params[:id])
+    @read_only = @conversation.user_id != current_user.id
     @messages = @conversation.messages.chronological
   end
 

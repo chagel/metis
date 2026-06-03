@@ -297,4 +297,164 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :not_found
   end
+
+  test "a personal workspace shows Mine and Archived tabs but not Shared" do
+    sign_in @user
+    get conversations_path
+
+    assert_response :success
+    assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "active"), text: "Mine"
+    assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "archived"), text: "Archived"
+    assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "shared"), count: 0
+    assert_select ".convo-tab.on", text: "Mine"
+  end
+
+  test "a shared team shows the Shared tab" do
+    team = Team.create!(name: "Acme")
+    @user.memberships.create!(team: team, role: :owner)
+    sign_in @user
+    post switch_team_path(team), headers: { "HTTP_REFERER" => root_path }
+
+    get conversations_path
+    assert_response :success
+    assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "shared"), text: "Shared"
+  end
+
+  test "the shared filter lists every member's shared conversations in the team" do
+    team = Team.create!(name: "Acme")
+    @user.memberships.create!(team: team, role: :owner)
+    teammate = User.create!(email: "mate-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    team.memberships.create!(user: teammate, role: :member)
+
+    teammate_shared = teammate.conversations.create!(team: team, title: "Teammate shared")
+    teammate_shared.generate_share_token!
+    teammate.conversations.create!(team: team, title: "Teammate private")
+
+    mine = @user.conversations.create!(team: team, title: "My shared")
+    mine.generate_share_token!
+
+    sign_in @user
+    post switch_team_path(team), headers: { "HTTP_REFERER" => root_path }
+    get conversations_path(filter: "shared")
+
+    assert_response :success
+    assert_select "#convos-list .convo .tt", text: "Teammate shared"
+    assert_select "#convos-list .convo .tt", text: "My shared"
+    assert_select "#convos-list .convo .tt", text: "Teammate private", count: 0
+    assert_select "#convos-list .convo .convo-avatar"
+    assert_select ".convo-tab.on", text: "Shared"
+  end
+
+  test "the shared filter routes every row to the in-app chat view" do
+    team = Team.create!(name: "Acme")
+    @user.memberships.create!(team: team, role: :owner)
+    teammate = User.create!(email: "mate-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    team.memberships.create!(user: teammate, role: :member)
+    shared = teammate.conversations.create!(team: team, title: "Theirs")
+    shared.generate_share_token!
+
+    sign_in @user
+    post switch_team_path(team), headers: { "HTTP_REFERER" => root_path }
+    get conversations_path(filter: "shared")
+
+    assert_response :success
+    assert_select "#convos-list .convo[href=?][data-turbo-frame=main]", conversation_path(shared)
+  end
+
+  test "a team member opens a teammate's shared conversation read-only" do
+    team = Team.create!(name: "Acme")
+    @user.memberships.create!(team: team, role: :owner)
+    teammate = User.create!(email: "mate-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    team.memberships.create!(user: teammate, role: :member)
+    shared = teammate.conversations.create!(team: team, title: "Theirs")
+    shared.generate_share_token!
+    shared.messages.create!(role: :user, content: "hi")
+    shared.messages.create!(
+      role: :assistant, content: "the answer", reasoning: "secret thinking",
+      streaming_status: :done,
+      tool_calls: [ { "name" => "bash", "args" => {}, "output" => "ok", "status" => "done" } ]
+    )
+
+    sign_in @user
+    post switch_team_path(team), headers: { "HTTP_REFERER" => root_path }
+    get conversation_path(shared)
+
+    assert_response :success
+    assert_select "h1 span", text: "Theirs"
+    assert_select ".readonly-note"
+    assert_select "#composer", count: 0
+    # The public share link stays available (read-only), but not owner controls.
+    assert_select ".chat-actions .share .share-panel-url[value=?]",
+                  shared_conversation_url(token: shared.share_token)
+    assert_select ".chat-actions .share-panel-revoke", count: 0
+    assert_select ".chat-actions form[action=?]", archive_conversation_path(shared), count: 0
+    # A shared view hides the whole activity block (reasoning + tool calls),
+    # like the public share template; the answer text remains.
+    assert_select ".activity", count: 0
+    assert_select ".reasoning", count: 0
+    assert_no_match(/secret thinking/, @response.body)
+    assert_select ".chat-content", text: /the answer/
+  end
+
+  test "an owner sees reasoning and tool calls in their own conversation" do
+    sign_in @user
+    conversation = @user.conversations.create!(title: "Mine")
+    conversation.messages.create!(
+      role: :assistant, content: "answer", reasoning: "my private thinking",
+      streaming_status: :done,
+      tool_calls: [ { "name" => "bash", "args" => {}, "output" => "ok", "status" => "done" } ]
+    )
+
+    get conversation_path(conversation)
+
+    assert_response :success
+    assert_select ".activity"
+    assert_select ".reasoning", text: "my private thinking"
+  end
+
+  test "a team member cannot open a teammate's conversation that is not shared" do
+    team = Team.create!(name: "Acme")
+    @user.memberships.create!(team: team, role: :owner)
+    teammate = User.create!(email: "mate-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    team.memberships.create!(user: teammate, role: :member)
+    private_convo = teammate.conversations.create!(team: team, title: "Private")
+
+    sign_in @user
+    post switch_team_path(team), headers: { "HTTP_REFERER" => root_path }
+    get conversation_path(private_convo)
+
+    assert_response :not_found
+  end
+
+  test "the shared filter excludes conversations shared in another team" do
+    team = Team.create!(name: "Acme")
+    @user.memberships.create!(team: team, role: :owner)
+    other_team = Team.create!(name: "Other")
+    stranger = User.create!(email: "str-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    other_team.memberships.create!(user: stranger, role: :owner)
+    elsewhere = stranger.conversations.create!(team: other_team, title: "Elsewhere")
+    elsewhere.generate_share_token!
+
+    sign_in @user
+    post switch_team_path(team), headers: { "HTTP_REFERER" => root_path }
+    get conversations_path(filter: "shared")
+
+    assert_response :success
+    assert_select "#convos-list .convo", count: 0
+  end
+
+  test "the archived filter lists only the user's archived conversations" do
+    sign_in @user
+    @user.conversations.create!(title: "Live")
+    archived = @user.conversations.create!(title: "Done")
+    archived.archive!
+
+    get conversations_path(filter: "archived")
+
+    assert_response :success
+    assert_select "#convos-list .convo .tt", text: "Done"
+    assert_select "#convos-list .convo .tt", text: "Live", count: 0
+    assert_select "#convos-list .convo .convo-avatar", count: 0
+    assert_select ".convo-tab.on", text: "Archived"
+  end
 end

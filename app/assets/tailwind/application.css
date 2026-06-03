@@ -112,6 +112,10 @@ turbo-cable-stream-source { display:none; }
    to layout, so the inner `<main>` (or `<turbo-frame>` from index/
    show) is the actual grid item in `.app` and inherits its sizing. */
 turbo-frame#main { display:contents; }
+/* The scope-tabs + conversation list live in #convos so a tab swaps only
+   the list. Transparent to layout, so its children remain direct flow
+   children of the scrolling `.convos` container. */
+turbo-frame#convos { display:contents; }
 
 /* ───────────── sidebar ───────────── */
 .sidebar { background:var(--side); display:flex; flex-direction:column; min-height:0; }
@@ -158,6 +162,13 @@ turbo-frame#main { display:contents; }
   margin-bottom:1px;
 }
 .convo .tt { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; }
+/* Author chip on Shared-scope rows (the list spans the whole team). */
+.convo-avatar {
+  width:18px; height:18px; border-radius:50%; flex:none; margin-right:8px;
+  overflow:hidden; object-fit:cover; display:inline-grid; place-items:center;
+  background:linear-gradient(145deg,#5a7d8f,#3e5d6e); color:#fff;
+  font-weight:600; font-size:9px;
+}
 .convo:hover { background:var(--card); color:var(--ink); box-shadow:var(--sh-sm); }
 .convo.on { background:var(--card); color:var(--ink); font-weight:600; box-shadow:var(--sh-md); }
 
@@ -242,6 +253,19 @@ turbo-frame#main { display:contents; }
 .convos-loading {
   color:var(--faint); font-size:12px; letter-spacing:.04em;
 }
+
+/* ───────────── conversation scope tabs ─────────────
+   Mine / Shared / Archived. Compact text tabs that swap the sidebar
+   list's scope in place (turbo-frame). The active tab carries `.on`. */
+.convo-tabs { display:flex; gap:3px; padding:0 2px 6px; }
+.convo-tab {
+  padding:3px 8px; border-radius:7px;
+  color:var(--ink-3); text-decoration:none;
+  font-size:12px; font-weight:500;
+  transition:background-color .13s, color .13s;
+}
+.convo-tab:hover { color:var(--ink); background:var(--bg); }
+.convo-tab.on { color:var(--ink); background:var(--card); box-shadow:var(--sh-sm); }
 
 .avatar {
   width:32px; height:32px; border-radius:50%; flex:none;
@@ -854,6 +878,11 @@ img.avatar { background:none; object-fit:cover; }
 /* ───────────── composer ───────────── */
 .composer-wrap { padding:12px 28px 18px; }
 .composer-inner { max-width:760px; margin:0 auto; }
+/* Stands in for the composer on a read-only (team-shared) conversation. */
+.readonly-note {
+  max-width:760px; margin:0 auto; padding:12px 28px 20px;
+  color:var(--ink-3); font-size:12.5px; text-align:center;
+}
 .composer-error {
   margin-bottom:8px; border-radius:10px; padding:8px 12px; font-size:13px;
   background:var(--danger-soft); color:var(--danger); border:1px solid var(--danger-line);

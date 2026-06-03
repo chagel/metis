@@ -17,6 +17,7 @@ class Conversation < ApplicationRecord
   scope :recent, -> { order(updated_at: :desc) }
   scope :active, -> { where(archived_at: nil) }
   scope :archived, -> { where.not(archived_at: nil) }
+  scope :shared, -> { where.not(share_token: nil) }
   scope :for_team, ->(team) { where(team: team) }
 
   def archived?

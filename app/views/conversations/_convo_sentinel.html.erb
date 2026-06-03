@@ -1,4 +1,4 @@
-<%# locals: (pagy:, last_bucket: nil)
+<%# locals: (pagy:, last_bucket: nil, filter: nil)
 
     Endless-scroll trigger at the bottom of #convos-list. The enclosing
     `.convos` scroll container carries `data-controller="infinite-scroll"`;
@@ -13,7 +13,7 @@
   <div id="convos-sentinel"
        class="convos-sentinel"
        data-infinite-scroll-target="sentinel"
-       data-url="<%= conversations_path(page: pagy.next, last_bucket: last_bucket) %>">
+       data-url="<%= conversations_path(page: pagy.next, last_bucket: last_bucket, filter: local_assigns[:filter]) %>">
     <span class="convos-loading" aria-hidden="true">Loading…</span>
   </div>
 <% end %>
