@@ -19,13 +19,16 @@ Devise.setup do |config|
   # Configure the e-mail address which will be shown in Devise::Mailer,
   # note that it will be overwritten if you use your own mailer class
   # with default "from" parameter.
-  config.mailer_sender = "please-change-me-at-config-initializers-devise@example.com"
+  # Same sender as the rest of our mail (METIS_MAIL_FROM) — it must be on
+  # the Cloudflare-verified domain or Delivery::Cloudflare rejects it.
+  config.mailer_sender = ENV.fetch("METIS_MAIL_FROM", "Metis <noreply@example.com>")
 
   # Configure the class responsible to send e-mails.
   # config.mailer = 'Devise::Mailer'
 
-  # Configure the parent class responsible to send e-mails.
-  # config.parent_mailer = 'ActionMailer::Base'
+  # Inherit ApplicationMailer so Devise's emails use the branded
+  # `layout "mailer"` like every other Metis email.
+  config.parent_mailer = "ApplicationMailer"
 
   # ==> ORM configuration
   # Load and configure the ORM. Supports :active_record (default) and
