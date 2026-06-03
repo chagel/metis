@@ -142,9 +142,6 @@ module Agent
 
       lines = [ "## Project context", "", "This conversation is about the **#{project.name}** project." ]
 
-      directives = external_refs_directives(project)
-      lines.concat([ "", *directives ]) if directives.any?
-
       if project.about.present?
         lines.concat([ "", sanitize_about(project.about) ])
       end
@@ -156,13 +153,6 @@ module Agent
     # heading the agent reads as instructions. Strip leading ATX markers.
     def sanitize_about(text)
       text.to_s.lines.map { |line| line.sub(/\A\s*#+\s*/, "") }.join
-    end
-
-    def external_refs_directives(project)
-      ResourcePicker.each.filter_map do |_, picker|
-        clause = picker.directive_clause(project)
-        clause && "- #{clause}"
-      end
     end
 
     # Lookup-by-mention catalog of the team's projects; the attached one is
@@ -194,13 +184,10 @@ module Agent
     end
 
     def team_project_line(project)
-      clauses = ResourcePicker.each.filter_map { |_, picker| picker.summary_clause(project) }
       line = "- **#{project.name}**"
-      line += " — #{clauses.join(", ")}" if clauses.any?
-      line += "." if clauses.any?
       if project.about.present?
         about = sanitize_about(project.about).strip.tr("\n", " ").squeeze(" ").truncate(TEAM_PROJECT_ABOUT_TRUNCATE)
-        line += " #{about}" if about.present?
+        line += " — #{about}" if about.present?
       end
       line
     end

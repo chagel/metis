@@ -313,18 +313,6 @@ Devise.setup do |config|
                     include_granted_scopes: true
   end
 
-  # Linear is wired only as a connector — there is no "Sign in with
-  # Linear" surface. The OAuth client exists solely so the marketplace
-  # "Connect" button can mint a per-user access token for mcp.linear.app.
-  # No base scope is requested here; the connector authorize URL adds
-  # the read/write/issues:create scopes the catalog declares.
-  if ENV["LINEAR_CLIENT_ID"].present? && ENV["LINEAR_CLIENT_SECRET"].present?
-    require Rails.root.join("lib/omni_auth/strategies/linear")
-    config.omniauth :linear,
-                    ENV.fetch("LINEAR_CLIENT_ID"),
-                    ENV.fetch("LINEAR_CLIENT_SECRET")
-  end
-
   # ==> Warden configuration
   # If you want to use other strategies, that are not supported by Devise, or
   # change the failure app, you can configure them inside the config.warden block.

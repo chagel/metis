@@ -7,10 +7,4 @@
       <div class="conn-sub"><%= truncate(project.about, length: 120) %></div>
     <% end %>
   </div>
-  <% ResourcePicker.each do |provider, picker| %>
-    <% display = project.ref_for(provider, picker::DISPLAY_FIELD).presence ||
-                 project.ref_for(provider, picker::REF_FIELD) %>
-    <% next unless display %>
-    <span class="tag"><%= display %></span>
-  <% end %>
 <% end %>

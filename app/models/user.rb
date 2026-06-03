@@ -1,7 +1,7 @@
 class User < ApplicationRecord
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :validatable,
-         :omniauthable, omniauth_providers: %i[github google_oauth2 linear]
+         :omniauthable, omniauth_providers: %i[github google_oauth2]
 
   # Raised by from_omniauth when an OAuth sign-in would create a new
   # account but the deployment's invite-only gate forbids it.

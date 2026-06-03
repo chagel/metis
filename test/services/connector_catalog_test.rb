@@ -62,7 +62,7 @@ class ConnectorCatalogTest < ActiveSupport::TestCase
   end
 
   test "the DCR-connected popular servers are present" do
-    %w[notion monday stripe close sentry asana paypal].each do |key|
+    %w[notion monday stripe close sentry asana paypal linear].each do |key|
       assert ConnectorCatalog.find(key)&.mcp_oauth?, "expected mcp_oauth catalog entry #{key.inspect}"
     end
   end

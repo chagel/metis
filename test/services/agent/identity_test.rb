@@ -177,18 +177,12 @@ class Agent::IdentityTest < ActiveSupport::TestCase
   end
 
   test "renders the project context block when the conversation is attached to a project" do
-    # The hosted GitHub and Linear MCP servers don't accept a server-side
-    # scope filter — both take repo / project as per-tool-call parameters.
-    # The project layer here is the only surface that aligns the agent's
-    # tool calls to the project's SSOT, so the prose must be directive,
-    # not descriptive.
+    # The repo / board a project maps to lives in its freeform `about`
+    # text now (no structured external_refs picker), so the agent reads
+    # whatever the operator wrote there.
     project = conversation.team.projects.create!(
       name: "Metis",
-      about: "Rails 8.1 chat in front of pi.",
-      external_refs: {
-        "github" => { "repo" => "chagel/metis" },
-        "linear" => { "project_id" => "abc-123" }
-      }
+      about: "Rails 8.1 chat in front of pi. GitHub repo chagel/metis."
     )
     conversation.update!(project: project)
 
@@ -196,24 +190,8 @@ class Agent::IdentityTest < ActiveSupport::TestCase
 
     assert_match(/## Project context/, out)
     assert_match(/\*\*Metis\*\* project/, out)
-    assert_match(%r{`chagel/metis`}, out)
-    assert_match(/owner.*repo/, out)
-    assert_match(/`abc-123`/, out)
-    assert_match(/Linear queries.*project id/i, out)
     assert_match(/Rails 8\.1 chat in front of pi/, out)
-  end
-
-  test "omits external-ref directives that are not set in the project" do
-    project = conversation.team.projects.create!(
-      name: "Personal",
-      external_refs: { "github" => { "repo" => "chagel/dotfiles" } }
-    )
-    conversation.update!(project: project)
-
-    out = render
-
-    assert_match(%r{`chagel/dotfiles`}, out)
-    refute_match(/Linear project id/, out)
+    assert_match(%r{GitHub repo chagel/metis}, out)
   end
 
   test "omits the project context block entirely when the conversation is unattached" do
@@ -227,28 +205,22 @@ class Agent::IdentityTest < ActiveSupport::TestCase
     # but it still sees the team's saved projects so a message like
     # "show me the latest PR on metis" can be resolved by lookup.
     team = conversation.team
-    team.projects.create!(name: "Metis",
-                           external_refs: { "github" => { "repo" => "chagel/metis" },
-                                             "linear" => { "project_id" => "abc-123", "project_name" => "Metis" } },
-                           about: "Rails 8.1 chat over pi.")
-    team.projects.create!(name: "Themis",
-                           external_refs: { "github" => { "repo" => "pipihosting/themis" } })
+    team.projects.create!(name: "Metis", about: "Rails 8.1 chat over pi.")
+    team.projects.create!(name: "Themis", about: "Property ops platform.")
 
     out = render
 
     assert_match(/## Projects/, out)
     # The directive prose tells the agent to USE the mapping, not just be aware of it.
     assert_match(/reach for the mapping without asking/i, out)
-    # Each project rendered with a one-line summary.
-    assert_match(/\*\*Metis\*\* — GitHub repo `chagel\/metis`, Linear project "Metis" \(id `abc-123`\). Rails 8\.1 chat over pi\./, out)
-    assert_match(/\*\*Themis\*\* — GitHub repo `pipihosting\/themis`/, out)
+    # Each project rendered with its about-note as a one-line summary.
+    assert_match(/\*\*Metis\*\* — Rails 8\.1 chat over pi\./, out)
+    assert_match(/\*\*Themis\*\* — Property ops platform\./, out)
   end
 
   test "the team projects catalog skips the conversation's attached project — that one already has the spotlight in ## Project context" do
-    metis = conversation.team.projects.create!(
-      name: "Metis", external_refs: { "github" => { "repo" => "chagel/metis" } })
-    conversation.team.projects.create!(name: "Themis",
-                                        external_refs: { "github" => { "repo" => "pipihosting/themis" } })
+    metis = conversation.team.projects.create!(name: "Metis", about: "Chat over pi.")
+    conversation.team.projects.create!(name: "Themis", about: "Property ops.")
     conversation.update!(project: metis)
 
     out = render

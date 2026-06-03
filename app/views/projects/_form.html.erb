@@ -12,61 +12,9 @@
   <div class="field">
     <%= f.label :about, "About this project" %>
     <%= f.text_area :about, rows: 5,
-          placeholder: "What's this project about? The agent reads this on every turn in this project." %>
-    <p class="field-hint">Freeform notes — conventions, constraints, who's involved. Shows up in the agent's context.</p>
+          placeholder: "What's this project about? The agent reads this on every turn in this project.\n\nName the resources it maps to — e.g. \"GitHub repo chagel/metis, Linear project Metis\"." %>
+    <p class="field-hint">Freeform notes — conventions, constraints, who's involved, which repo or board it maps to. Shows up in the agent's context.</p>
   </div>
-
-  <% available = local_assigns.fetch(:available_providers, []) %>
-
-  <%# Hidden inputs round-trip the stored external_refs on every save
-      — even when the External resources section isn't rendered
-      (no connectors authorized) the value survives so it isn't
-      silently wiped. When a picker IS rendered and the user picks a
-      new value, its <select> (and the synced display hidden input)
-      win over these via DOM order. %>
-  <% ResourcePicker.each do |provider, picker| %>
-    <% ResourcePicker.fields_for(picker).each do |field| %>
-      <%= hidden_field_tag "project[external_refs][#{provider}][#{field}]",
-                            project.ref_for(provider, field).to_s %>
-    <% end %>
-  <% end %>
-
-  <% if available.any? %>
-    <h2 class="form-section">External resources</h2>
-    <p class="field-hint" style="margin-bottom: 16px">
-      Tell the agent which external resource this project corresponds to.
-      Every conversation in this project inherits the mapping — the agent
-      stops asking "which repo?" or "which Linear project?".
-    </p>
-
-    <%# Each frame stays idle until the user clicks the placeholder
-        inside it — clicks within a frame auto-target that frame, so
-        Turbo swaps the placeholder for the loaded picker without
-        fetching on page render. %>
-    <% ResourcePicker.each do |provider, picker| %>
-      <% next unless available.include?(provider) %>
-      <%# Display falls back to the ref value for connectors where they're
-          the same (GitHub) and for legacy values saved before DISPLAY_FIELD
-          existed (Linear ids stored without project_name). %>
-      <% display = project.ref_for(provider, picker::DISPLAY_FIELD).presence ||
-                   project.ref_for(provider, picker::REF_FIELD) %>
-
-      <turbo-frame id="<%= project_picker_frame_id(project, provider) %>">
-        <div class="field">
-          <%= label_tag nil, picker::LABEL %>
-          <%= link_to picker_projects_path(provider: provider, project_id: project.id),
-                       class: "ref-placeholder" do %>
-            <% if display %>
-              <span class="ref-placeholder-value"><%= display %></span>
-            <% else %>
-              <span class="ref-placeholder-hint"><%= picker::PLACEHOLDER_HINT %></span>
-            <% end %>
-            <%= render "ref_placeholder_glyphs" %>
-          <% end %>
-        </div>
-      </turbo-frame>
-    <% end %>
-  <% end %>
 
   <div class="form-actions">
     <%= f.submit(project.persisted? ? "Save" : "Create project", class: "btn btn-primary") %>

@@ -139,18 +139,7 @@ linear:
   transport: http
   definition:
     url: https://mcp.linear.app/mcp
-  auth: oauth
-  oauth_provider: linear
-  # Linear's working set for an agent: read everything, comment/update,
-  # and file new issues. `admin` is intentionally excluded — the agent
-  # shouldn't be reshaping the workspace.
-  oauth_scopes:
-    - read
-    - write
-    - issues:create
-  credential:
-    header: Authorization
-    format: "Bearer %{token}"
+  auth: mcp_oauth
 
 google_calendar:
   name: Google Calendar

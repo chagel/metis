@@ -11,10 +11,6 @@ class Users::OmniauthCallbacksController < Devise::OmniauthCallbacksController
     handle(OauthBroker.normalize_provider("google_oauth2"))
   end
 
-  def linear
-    handle(OauthBroker.normalize_provider("linear"))
-  end
-
   def failure
     redirect_to new_user_session_path, alert: "Sign-in was cancelled."
   end

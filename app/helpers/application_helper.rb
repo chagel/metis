@@ -143,15 +143,6 @@ module ApplicationHelper
     LANGUAGE_LABELS[code.to_s] || code.to_s.upcase
   end
 
-  # Turbo-frame DOM id for a project's picker for a connector. Both
-  # the placeholder in the form and the loaded picker partial use this
-  # so Turbo can swap content in place. `dom_id` returns "new_project"
-  # for unpersisted records and "project_<id>" otherwise — same shape
-  # either way.
-  def project_picker_frame_id(project, provider)
-    "#{dom_id(project)}_picker_#{provider}"
-  end
-
   # Display label for a recency bucket. Views can't reach the constant
   # by bare name (lexical scope, not the include chain), so they go
   # through this helper.
@@ -215,8 +206,6 @@ module ApplicationHelper
       GithubApp::Config.configured?
     when "google"
       GoogleApp::Config.configured?
-    when "linear"
-      LinearApp::Config.configured?
     else
       false
     end

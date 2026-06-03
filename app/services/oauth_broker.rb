@@ -19,14 +19,12 @@ module OauthBroker
 
   CLIENTS = {
     "github" => Clients::Github,
-    "google" => Clients::Google,
-    "linear" => Clients::Linear
+    "google" => Clients::Google
   }.freeze
 
   STRATEGY_TO_PROVIDER = {
     "github" => "github",
-    "google_oauth2" => "google",
-    "linear" => "linear"
+    "google_oauth2" => "google"
   }.freeze
 
   PROVIDER_TO_STRATEGY = STRATEGY_TO_PROVIDER.invert.freeze
@@ -37,12 +35,9 @@ module OauthBroker
   # lets us identify the user (matching what config/initializers/devise.rb
   # asks for on the bare sign-in flow). Connector-specific scopes are
   # added incrementally on top by the marketplace "Connect" button.
-  # Linear is connector-only (no sign-in surface), so its base set is
-  # empty — the authorize URL carries only the connector's scopes.
   SIGN_IN_SCOPES = {
     "github" => [ "user:email" ],
-    "google" => [ "email", "profile" ],
-    "linear" => []
+    "google" => [ "email", "profile" ]
   }.freeze
 
   class << self
@@ -131,7 +126,7 @@ module OauthBroker
 
     def revoke_token_for(grant)
       case grant.provider
-      when "github", "linear"
+      when "github"
         grant.access_token
       else
         grant.refresh_token || grant.access_token

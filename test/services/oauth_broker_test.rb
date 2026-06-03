@@ -171,7 +171,6 @@ class OauthBrokerTest < ActiveSupport::TestCase
     refute OauthBroker.scope_check_meaningful?("github"),
            "GitHub App OAuth responses don't carry scopes; coverage check is unenforceable"
     assert OauthBroker.scope_check_meaningful?("google")
-    assert OauthBroker.scope_check_meaningful?("linear")
   end
 
   test "normalize_provider maps the omniauth strategy name to the canonical OauthGrant provider name" do
