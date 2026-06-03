@@ -266,6 +266,12 @@ turbo-frame#convos { display:contents; }
 }
 .convo-tab:hover { color:var(--ink); background:var(--bg); }
 .convo-tab.on { color:var(--ink); background:var(--card); box-shadow:var(--sh-sm); }
+/* "New shared conversation" indicator, broadcast onto the Shared tab. */
+.tab-dot {
+  display:inline-block; width:6px; height:6px; margin-left:5px;
+  border-radius:50%; background:var(--accent); vertical-align:middle;
+}
+.tab-dot[hidden] { display:none; }
 
 .avatar {
   width:32px; height:32px; border-radius:50%; flex:none;

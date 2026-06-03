@@ -1,7 +1,9 @@
 require "test_helper"
+require "turbo/broadcastable/test_helper"
 
 class ConversationsControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
+  include Turbo::Broadcastable::TestHelper
 
   setup do
     @user = User.create!(email: "test@example.com", password: "password123")
@@ -317,7 +319,20 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
 
     get conversations_path
     assert_response :success
-    assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "shared"), text: "Shared"
+    assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "shared")
+    assert_select ".convo-tabs a.convo-tab #shared-tab-dot[hidden]"
+  end
+
+  test "sharing in a team broadcasts the shared-tab dot to the team" do
+    team = Team.create!(name: "Acme")
+    @user.memberships.create!(team: team, role: :owner)
+    conversation = @user.conversations.create!(team: team, title: "Shareable")
+    sign_in @user
+
+    assert_turbo_stream_broadcasts(team, count: 1) do
+      post share_conversation_path(conversation), as: :turbo_stream
+    end
+    assert conversation.reload.shared?
   end
 
   test "the shared filter lists every member's shared conversations in the team" do

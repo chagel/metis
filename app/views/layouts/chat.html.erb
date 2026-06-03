@@ -7,6 +7,9 @@
         turn-status updates arrive even when viewing a different
         conversation. %>
     <%= turbo_stream_from current_user %>
+    <%# Team-level broadcasts (e.g. the "new shared conversation" dot) reach
+        every member currently active in this team. %>
+    <%= turbo_stream_from current_team unless current_team.personal? %>
     <div class="app" data-controller="sidebar">
       <button type="button" class="sidebar-toggle"
               data-action="click->sidebar#toggle"

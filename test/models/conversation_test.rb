@@ -1,7 +1,9 @@
 require "test_helper"
+require "turbo/broadcastable/test_helper"
 
 class ConversationTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
+  include Turbo::Broadcastable::TestHelper
 
   setup do
     @user = User.create!(email: "conv@example.com", password: "password123")
@@ -214,5 +216,15 @@ class ConversationTest < ActiveSupport::TestCase
     @user.conversations.create!(title: "private")
 
     assert_equal [ shared ], Conversation.shared.to_a
+  end
+
+  test "broadcast_shared_to_team! lights the shared tab on the team stream" do
+    team = Team.create!(name: "Acme")
+    @user.memberships.create!(team: team, role: :owner)
+    conversation = @user.conversations.create!(team: team, title: "Shared")
+
+    assert_turbo_stream_broadcasts(team, count: 1) do
+      conversation.broadcast_shared_to_team!
+    end
   end
 end

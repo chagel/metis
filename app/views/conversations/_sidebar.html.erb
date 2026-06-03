@@ -41,8 +41,10 @@
               class: "convo-tab#{' on' if @sidebar_filter == 'active'}" %>
         <%# A personal workspace is a team of one — nothing to share with. %>
         <% unless current_team.personal? %>
-          <%= link_to "Shared", conversations_path(filter: "shared"),
-                class: "convo-tab#{' on' if @sidebar_filter == 'shared'}" %>
+          <%= link_to conversations_path(filter: "shared"),
+                class: "convo-tab#{' on' if @sidebar_filter == 'shared'}" do %>
+            Shared<%= render "conversations/shared_tab_dot", active: false %>
+          <% end %>
         <% end %>
         <%= link_to "Archived", conversations_path(filter: "archived"),
               class: "convo-tab#{' on' if @sidebar_filter == 'archived'}" %>

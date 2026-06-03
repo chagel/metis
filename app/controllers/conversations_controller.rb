@@ -75,7 +75,9 @@ class ConversationsController < ApplicationController
   end
 
   def share
+    newly_shared = !@conversation.shared?
     @conversation.generate_share_token!
+    @conversation.broadcast_shared_to_team! if newly_shared && !@conversation.team.personal?
     respond_to do |format|
       format.turbo_stream { render "conversations/share" }
       format.html { redirect_to @conversation }

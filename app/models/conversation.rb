@@ -40,6 +40,18 @@ class Conversation < ApplicationRecord
     update!(share_token: nil)
   end
 
+  # Light up the "Shared" tab for every teammate currently in this team —
+  # they share the team's Turbo stream (see chat layout). Cleared when
+  # their sidebar tab bar next re-renders.
+  def broadcast_shared_to_team!
+    broadcast_replace_to(
+      team,
+      target: "shared-tab-dot",
+      partial: "conversations/shared_tab_dot",
+      locals: { active: true }
+    )
+  end
+
   # Soft-archive: hides the conversation from the active sidebar but
   # preserves all messages, attachments, and runtime state. Fully
   # reversible via #unarchive!. No-op if already archived.
