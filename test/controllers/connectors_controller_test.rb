@@ -106,6 +106,16 @@ class ConnectorsControllerTest < ActionDispatch::IntegrationTest
     assert_nil connector.credential_for(@user)
   end
 
+  test "an admin can enable and disable the github bot on the connector" do
+    connector = github_connector
+
+    patch connector_path(connector), params: { connector: { bot_enabled: "1" } }
+    assert connector.reload.bot_enabled?
+
+    patch connector_path(connector), params: { connector: { bot_enabled: "0" } }
+    assert_not connector.reload.bot_enabled?
+  end
+
   test "disconnect removes the connector" do
     connector = github_connector
     assert_difference("Connector.count", -1) { delete connector_path(connector) }

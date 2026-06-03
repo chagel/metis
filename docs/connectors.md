@@ -181,25 +181,28 @@ on file anywhere.
     more than one place, set `GITHUB_APP_INSTALLATION_ID` to pick which
     (auto-resolution otherwise raises, naming the var).
     No bearer is stored. `McpConfig` stages this **second** server
-    automatically — no credential row, no toggle — whenever the
-    deployment is App-auth configured (`GITHUB_APP_ID` +
-    `GITHUB_APP_PRIVATE_KEY`) and the team has a `github` connector. A
-    mint failure just omits it; it never crashes the turn.
+    whenever the deployment is App-auth configured (`GITHUB_APP_ID` +
+    `GITHUB_APP_PRIVATE_KEY`), the team has a `github` connector, **and an
+    admin has turned the bot on** for it (`Connector#bot_enabled?` —
+    `settings.bot_enabled`, off by default, set from the connector's
+    manage page). A mint failure just omits it; it never crashes the turn.
     - **Authority scope**: the bearer is **installation-wide** — it can
       reach every repo the App is installed on for that account/org,
       independent of the operator's own access. That's broader than the
-      user-scoped `github` token; it matters once teams land (a member
-      could act, via the bot, on repos their own grant can't touch).
+      user-scoped `github` token, and it is **team-wide**: once enabled,
+      every member of the team gets `github_bot` in their turns and can
+      act, via the bot, on repos their own grant can't touch. That's why
+      it's an explicit admin opt-in, not an ambient default — the admin
+      who owns the App installation accepts the sharing, and scopes it by
+      limiting where the App is installed on GitHub.
 
   The split exists because some work wants bot attribution, not
   impersonation — chiefly **agent-authored PR reviews**: GitHub forbids
   approving your own PR, so a review posted through `github` can only
   comment, while `github_bot` can approve / request changes. The
   reviewing-code skill routes review posting to `github_bot` and leaves
-  everything else on `github`. Both are the operator's own deployment —
-  there is no team or shared-credential concept here (teams aren't built
-  yet); the two servers are just two identities the single operator can
-  act through.
+  everything else on `github` — two identities a member can act through,
+  the bot one being the admin-gated team-wide grant above.
 
   User-to-server has GitHub-App semantics — it preserves user identity
   (commits author as the operator), but it can only access resources

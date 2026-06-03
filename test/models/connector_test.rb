@@ -101,4 +101,16 @@ class ConnectorTest < ActiveSupport::TestCase
 
     assert_difference("ConnectorCredential.count", -1) { connector.destroy }
   end
+
+  test "bot_enabled? is false by default and coerces stored values" do
+    connector = stdio_connector
+
+    assert_not connector.bot_enabled?
+
+    connector.bot_enabled = "1"
+    assert connector.bot_enabled?
+
+    connector.bot_enabled = "0"
+    assert_not connector.bot_enabled?
+  end
 end

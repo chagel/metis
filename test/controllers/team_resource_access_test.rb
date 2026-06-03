@@ -58,6 +58,16 @@ class TeamResourceAccessTest < ActionDispatch::IntegrationTest
     assert_redirected_to team_path
   end
 
+  test "a member cannot enable the github bot on a connector" do
+    connector = @team.connectors.create!(catalog_key: "github", name: "github",
+                                         transport: :http, definition: { "url" => "https://mcp.example/" })
+    act_as(@member)
+    patch connector_path(connector), params: { connector: { bot_enabled: "1" } }
+
+    assert_redirected_to team_path
+    assert_not connector.reload.bot_enabled?
+  end
+
   test "an admin can curate the team's tools" do
     admin = User.create!(email: "a-#{SecureRandom.hex(4)}@example.com", password: "password123")
     @team.memberships.create!(user: admin, role: :admin)

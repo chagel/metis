@@ -14,11 +14,20 @@ class Connector < ApplicationRecord
   # markers, and McpConfig skips them when rendering .mcp.json.
   enum :transport, { stdio: 0, http: 1, cli: 2 }
 
+  # Admin opt-in for the github_bot installation token, off by default —
+  # it's installation-wide and shared team-wide, so staging it is a
+  # deliberate choice, not a deployment default. See docs/connectors.md.
+  store_accessor :settings, :bot_enabled
+
   validates :name, presence: true,
                     format: { with: /\A[a-z0-9][a-z0-9_-]*\z/i },
                     uniqueness: { scope: :team_id }
   validates :transport, presence: true
   validate :definition_matches_transport
+
+  def bot_enabled?
+    ActiveModel::Type::Boolean.new.cast(bot_enabled)
+  end
 
   # The credential a given member connects with: their own if set, else
   # the team's shared credential, else nil.

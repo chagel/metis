@@ -65,6 +65,28 @@
           <% end %>
         <% end %>
 
+        <% if @app.oauth_provider == "github" && GithubApp::Config.app_auth_configured? %>
+          <section class="conn-bot">
+            <%= form_with model: @connector, class: "conn-form" do |f| %>
+              <label class="conn-bot-toggle">
+                <%= check_box_tag "connector[bot_enabled]", "1", @connector.bot_enabled? %>
+                <span class="conn-bot-main">
+                  <span class="conn-bot-title">Let the agent act as the GitHub bot</span>
+                  <span class="conn-bot-sub">
+                    Lets the agent post PR reviews as
+                    <code><%= GithubApp::Config.app_slug || "metis" %>[bot]</code>. Every
+                    member gets this, reaching every repo the App is installed on — scope
+                    it on GitHub.
+                  </span>
+                </span>
+              </label>
+              <div class="form-actions">
+                <%= f.submit "Save", class: "btn btn-primary" %>
+              </div>
+            <% end %>
+          </section>
+        <% end %>
+
         <% if @app.token_auth? && @app.credential %>
           <%= form_with model: @connector, class: "conn-form" do |f| %>
             <div class="field">

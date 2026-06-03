@@ -41,6 +41,7 @@ class ConnectorsController < ApplicationController
 
   def update
     @connector.assign_attributes(custom_params) unless @connector.catalog_key
+    apply_bot_setting
     if @connector.save
       save_credential
       redirect_to edit_connector_path(@connector), notice: "Connector saved."
@@ -122,6 +123,14 @@ class ConnectorsController < ApplicationController
     else
       {}
     end
+  end
+
+  # Admin toggle for the github_bot token (github connector only; no
+  # param elsewhere). require_team_admin! already gates this action.
+  def apply_bot_setting
+    return unless params[:connector]&.key?(:bot_enabled)
+
+    @connector.bot_enabled = ActiveModel::Type::Boolean.new.cast(params[:connector][:bot_enabled])
   end
 
   # OAuth-shaped apps own credentials through the connect flow — never accept

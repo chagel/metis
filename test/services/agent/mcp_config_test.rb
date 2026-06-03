@@ -174,18 +174,30 @@ class Agent::McpConfigTest < ActiveSupport::TestCase
 
   # A second `github_bot` server (installation token) is staged next to
   # the user's own `github` server when the deployment is App-auth
-  # configured, so the agent can act as the bot for PR reviews.
-  def add_github_connector
-    add_connector(name: "github", transport: :http,
-                  definition: { "url" => "https://mcp.example/" }, catalog_key: "github")
+  # configured AND an admin has turned the bot on for the connector, so
+  # the agent can act as the bot for PR reviews.
+  def add_github_connector(bot_enabled: true)
+    connector = add_connector(name: "github", transport: :http,
+                              definition: { "url" => "https://mcp.example/" }, catalog_key: "github")
+    connector.update!(bot_enabled: bot_enabled)
+    connector
   end
 
-  test "stages a github_bot server with a minted installation token when configured" do
+  test "stages a github_bot server with a minted installation token when configured and enabled" do
     add_github_connector
     with_stub(GithubApp::Config, :app_auth_configured?, -> { true }) do
       with_stub(GithubApp::InstallationToken, :for, ->(id = nil) { "ghs_bot" }) do
         assert_equal({ "Authorization" => "Bearer ghs_bot" },
                      rendered["mcpServers"]["github_bot"]["headers"])
+      end
+    end
+  end
+
+  test "no github_bot server when the connector has not enabled the bot" do
+    add_github_connector(bot_enabled: false)
+    with_stub(GithubApp::Config, :app_auth_configured?, -> { true }) do
+      with_stub(GithubApp::InstallationToken, :for, ->(id = nil) { "ghs_bot" }) do
+        assert_not_includes rendered["mcpServers"].keys, "github_bot"
       end
     end
   end

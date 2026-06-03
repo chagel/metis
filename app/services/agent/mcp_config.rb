@@ -111,16 +111,16 @@ module Agent
     # installation token so the agent can act as `<slug>[bot]` — used by
     # the reviewing-code skill to post PR reviews (GitHub forbids
     # approving your own PR, so the personal `github` server can't).
-    # Staged alongside the user's own `github` server whenever the
-    # deployment is App-auth configured and the user has GitHub
-    # connected. The install id is auto-resolved. nil (not configured,
-    # no github connector, or a mint failure) just omits it — never
-    # crashes the turn. See docs/connectors.md.
+    # Staged only when the deployment is App-auth configured and an admin
+    # has enabled the bot on the team's github connector (`bot_enabled`,
+    # off by default — the token is installation-wide). nil (not eligible
+    # or a mint failure) just omits it — never crashes the turn. See
+    # docs/connectors.md.
     def bot_entry
       return unless GithubApp::Config.app_auth_configured?
 
       github = connectors.find { |connector| connector.catalog_app&.oauth_provider == "github" }
-      return unless github
+      return unless github&.bot_enabled?
 
       token = GithubApp::InstallationToken.for
       entry = github.definition.deep_dup
