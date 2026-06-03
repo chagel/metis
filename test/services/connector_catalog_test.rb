@@ -66,4 +66,15 @@ class ConnectorCatalogTest < ActiveSupport::TestCase
       assert ConnectorCatalog.find(key)&.mcp_oauth?, "expected mcp_oauth catalog entry #{key.inspect}"
     end
   end
+
+  test "metabase is a per-instance mcp_oauth connector with a URL placeholder + input" do
+    metabase = ConnectorCatalog.find("metabase")
+
+    assert metabase.mcp_oauth?
+    assert_includes metabase.definition["url"], "%{instance_url}"
+    assert_equal "instance_url", metabase.inputs.first["key"]
+    # The placeholder resolves from the input.
+    assert_equal "https://mb.test/api/mcp",
+                 metabase.resolved_definition("instance_url" => "https://mb.test")["url"]
+  end
 end

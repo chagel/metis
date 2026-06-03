@@ -57,6 +57,33 @@ class Connectors::OauthControllerTest < ActionDispatch::IntegrationTest
     assert_equal "tok-123", connector.credential_for(@user).mcp_oauth_access_token
   end
 
+  test "per-instance start resolves the supplied URL and stashes it" do
+    with_provider do
+      post connector_oauth_start_path("metabase"), params: { inputs: { instance_url: "https://mb.example.com" } }
+    end
+
+    assert_redirected_to "https://auth.example.com/authorize?x=1"
+    assert_equal "https://mb.example.com/api/mcp", session[:mcp_oauth]["resource"]
+  end
+
+  test "per-instance start without a URL bounces back to the connect form" do
+    with_provider { post connector_oauth_start_path("metabase") } # no inputs
+    assert_redirected_to new_connector_path(app: "metabase")
+    assert_nil session[:mcp_oauth]
+  end
+
+  test "per-instance callback creates the connector at the resolved URL" do
+    with_provider do
+      post connector_oauth_start_path("metabase"), params: { inputs: { instance_url: "https://mb.example.com" } }
+      state = session[:mcp_oauth]["state"]
+      get connector_oauth_callback_path, params: { code: "authcode", state: state }
+    end
+
+    connector = @user.personal_team.connectors.find_by(catalog_key: "metabase")
+    assert_equal "https://mb.example.com/api/mcp", connector.definition["url"]
+    assert_equal "tok-123", connector.credential_for(@user).mcp_oauth_access_token
+  end
+
   test "callback rejects a mismatched state and stores nothing" do
     with_provider do
       post connector_oauth_start_path("notion")

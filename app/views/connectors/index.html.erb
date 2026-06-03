@@ -50,6 +50,11 @@
                         data: { turbo: false }, class: "btn btn-primary") %>
                 <% elsif app.oauth? %>
                   <span class="app-state">OAuth — coming soon</span>
+                <% elsif app.mcp_oauth? && app.inputs.any? %>
+                  <%# Per-instance: collect the server URL on a form first. %>
+                  <div style="flex:1"></div>
+                  <%= link_to(mine ? "Reconnect" : "Connect", new_connector_path(app: app.key),
+                        class: "btn btn-primary") %>
                 <% elsif app.mcp_oauth? %>
                   <div style="flex:1"></div>
                   <%= button_to(mine ? "Reconnect" : "Connect", connector_oauth_start_path(app.key),

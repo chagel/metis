@@ -48,6 +48,21 @@ close:
     url: https://mcp.close.com/mcp
   auth: mcp_oauth
 
+# Self-hosted: the member supplies their own Metabase URL; the same
+# discovery + DCR flow runs against that instance's embedded OAuth server.
+metabase:
+  name: Metabase
+  category: Analytics
+  description: Query questions, dashboards, and models in your Metabase instance.
+  transport: http
+  definition:
+    url: "%{instance_url}/api/mcp"
+  auth: mcp_oauth
+  inputs:
+    - key: instance_url
+      label: Metabase URL
+      placeholder: https://metabase.example.com
+
 github:
   name: GitHub
   category: Development

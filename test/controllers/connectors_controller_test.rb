@@ -166,4 +166,16 @@ class ConnectorsControllerTest < ActionDispatch::IntegrationTest
     get connectors_path
     assert_select %(form[action="#{connector_oauth_start_path("notion")}"] button), text: "Connect"
   end
+
+  test "a per-instance mcp_oauth tile links to a form to collect the server URL" do
+    get connectors_path
+    assert_select %(a[href="#{new_connector_path(app: "metabase")}"]), text: "Connect"
+  end
+
+  test "the per-instance connect form posts the URL to the DCR flow" do
+    get new_connector_path(app: "metabase")
+    assert_response :success
+    assert_select %(form[action="#{connector_oauth_start_path("metabase")}"])
+    assert_select %(input[name="inputs[instance_url]"])
+  end
 end

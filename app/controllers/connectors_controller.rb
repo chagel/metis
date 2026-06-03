@@ -17,7 +17,9 @@ class ConnectorsController < ApplicationController
   def new
     if (@app = ConnectorCatalog.find(params[:app]))
       existing = team.connectors.find_by(catalog_key: @app.key)
-      return redirect_to edit_connector_path(existing) if existing
+      # mcp_oauth re-renders the connect form even when already connected,
+      # so a reconnect can re-run the OAuth flow; others jump to manage.
+      return redirect_to edit_connector_path(existing) if existing && !@app.mcp_oauth?
       return redirect_to connectors_path if @app.oauth? # handled by Devise omniauth
 
       render :connect

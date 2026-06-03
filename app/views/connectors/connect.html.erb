@@ -41,6 +41,25 @@
             <%= link_to "Cancel", connectors_path, class: "btn btn-ghost" %>
           </div>
         <% end %>
+      <% elsif @app.mcp_oauth? %>
+        <%# Per-instance OAuth (DCR): collect the server URL, then POST to
+            the connect flow which discovers + registers against it. %>
+        <%= form_with url: connector_oauth_start_path(@app.key), method: :post,
+              class: "conn-form", data: { turbo: false } do %>
+          <% @app.inputs.each do |input| %>
+            <div class="field">
+              <%= label_tag "inputs_#{input['key']}", input["label"] %>
+              <%= url_field_tag "inputs[#{input['key']}]", nil,
+                    id: "inputs_#{input['key']}", autocomplete: "off",
+                    placeholder: input["placeholder"] %>
+            </div>
+          <% end %>
+
+          <div class="form-actions">
+            <%= submit_tag "Connect #{@app.name}", class: "btn btn-primary" %>
+            <%= link_to "Cancel", connectors_path, class: "btn btn-ghost" %>
+          </div>
+        <% end %>
       <% else %>
         <div class="pane-empty">
           <p><%= @app.name %> is not connectable yet.</p>
