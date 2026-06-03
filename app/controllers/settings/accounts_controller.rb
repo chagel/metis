@@ -5,12 +5,12 @@
 class Settings::AccountsController < ApplicationController
   layout "settings"
 
+  before_action :set_user, only: %i[show update]
+
   def show
-    @user = current_user
   end
 
   def update
-    @user = current_user
     if @user.update_with_password(account_params)
       # A password change rotates the auth token and would sign them out;
       # re-establish the session so they stay on the page.
@@ -33,6 +33,15 @@ class Settings::AccountsController < ApplicationController
   end
 
   private
+
+  def set_user
+    @user = current_user
+    # Only providers we actually support for sign-in — not connector
+    # authorizations (e.g. Linear), which also leave an Identity behind
+    # but can't be used to log in.
+    @identities = @user.identities
+      .where(provider: OauthBroker::STRATEGY_TO_PROVIDER.keys).order(:provider)
+  end
 
   def account_params
     params.require(:user).permit(:email, :password, :password_confirmation, :current_password)

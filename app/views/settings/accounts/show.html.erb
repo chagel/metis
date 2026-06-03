@@ -66,24 +66,40 @@
         </section>
       <% end %>
 
-      <% if @user.identities.exists? %>
+      <% if @identities.any? %>
         <section class="settings-card">
-          <div class="settings-card-sub">Connected accounts</div>
+          <div class="settings-card-head">
+            <span class="settings-card-title">Connected accounts</span>
+          </div>
+          <p class="form-hint">Sign-in providers linked to your account.</p>
           <ul class="identity-list">
-            <% @user.identities.order(:provider).each do |identity| %>
+            <% @identities.each do |identity| %>
               <li class="identity-row">
-                <span class="identity-provider"><%= identity.provider.titleize %></span>
+                <span class="identity-badge">
+                  <%= render "settings/accounts/provider_glyph", provider: identity.provider %>
+                </span>
+                <span class="identity-id">
+                  <span class="identity-provider"><%= identity_provider_label(identity.provider) %></span>
+                  <span class="identity-meta">Connected</span>
+                </span>
+                <svg class="identity-check" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3.5 8.5l3 3 6-7"/>
+                </svg>
               </li>
             <% end %>
           </ul>
         </section>
       <% end %>
 
-      <section class="settings-card">
-        <div class="settings-danger">
-          <p class="form-hint">Deleting your account is permanent and cannot be undone.</p>
+      <section class="settings-card settings-card-danger">
+        <div class="settings-card-head">
+          <span class="settings-card-title">Delete account</span>
+        </div>
+        <div class="danger-row">
+          <p class="form-hint">Permanently removes your account and conversations. This cannot be undone.</p>
           <%= button_to "Delete account", account_path, method: :delete, class: "btn btn-danger",
-                form: { data: { turbo_frame: "_top",
+                form: { class: "inline-form", data: { turbo_frame: "_top",
                                 turbo_confirm: "Delete your account? This permanently removes your conversations and cannot be undone." } } %>
         </div>
       </section>

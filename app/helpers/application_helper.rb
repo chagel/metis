@@ -166,6 +166,17 @@ module ApplicationHelper
     end
   end
 
+  # Human label for an identity provider key — `google_oauth2` reads as
+  # "Google", `github` as "GitHub". Falls back to a titleized key.
+  IDENTITY_PROVIDER_LABELS = {
+    "github" => "GitHub",
+    "google_oauth2" => "Google"
+  }.freeze
+
+  def identity_provider_label(provider)
+    IDENTITY_PROVIDER_LABELS[provider.to_s] || provider.to_s.titleize
+  end
+
   # The plain "Sign in with X" / "Connect X account" authorize path
   # for a catalog app — the *sign-in* shape, with no extra scopes.
   # Returns nil if the app's provider strategy isn't wired up.
