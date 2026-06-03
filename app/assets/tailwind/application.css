@@ -351,8 +351,7 @@ img.avatar { background:none; object-fit:cover; }
 /* Sidebar breadcrumb: Metis › <team switcher>. The team is the
    first-level tenancy scope (docs/tenancy.md); switching it re-scopes
    everything beneath. */
-.ws-crumb { display:flex; align-items:center; gap:5px; min-width:0; }
-.ws-sep { color:var(--faint); font-size:15px; line-height:1; user-select:none; }
+.ws-crumb { display:flex; align-items:center; gap:10px; min-width:0; }
 .ws-back {
   display:inline-flex; align-items:center; justify-content:center;
   width:26px; height:26px; flex:none; border-radius:8px;
