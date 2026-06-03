@@ -1,0 +1,30 @@
+<%# Star toggle for the chat header. Owner-only; renders into
+    #conversation_star on initial load and on each star/unstar request
+    (Turbo Stream and full-page fallback both reuse this partial). %>
+<span id="<%= dom_id(conversation, :star) %>">
+  <% if conversation.starred? %>
+    <%= button_to star_conversation_path(conversation),
+          method: :delete,
+          class: "chat-action on",
+          title: "Unstar conversation",
+          aria: { label: "Unstar conversation" },
+          form: { data: { turbo_stream: true } } do %>
+      <svg viewBox="0 0 16 16" fill="currentColor" stroke="currentColor" stroke-width="1.2"
+           stroke-linejoin="round" aria-hidden="true">
+        <path d="M8 1.6l1.9 3.85 4.25.62-3.07 3 .72 4.23L8 11.3l-3.8 2l.72-4.23-3.07-3 4.25-.62z"/>
+      </svg>
+    <% end %>
+  <% else %>
+    <%= button_to star_conversation_path(conversation),
+          method: :post,
+          class: "chat-action",
+          title: "Star conversation",
+          aria: { label: "Star conversation" },
+          form: { data: { turbo_stream: true } } do %>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M8 1.6l1.9 3.85 4.25.62-3.07 3 .72 4.23L8 11.3l-3.8 2l.72-4.23-3.07-3 4.25-.62z"/>
+      </svg>
+    <% end %>
+  <% end %>
+</span>

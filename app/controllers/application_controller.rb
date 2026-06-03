@@ -126,7 +126,7 @@ class ApplicationController < ActionController::Base
     Time.use_zone(zone, &block)
   end
 
-  SIDEBAR_FILTERS = %w[active shared archived].freeze
+  SIDEBAR_FILTERS = %w[active shared starred archived].freeze
 
   # :countless (LIMIT+1 probe, no COUNT). Don't switch to headless: true —
   # that drops the probe and `@sidebar_pagy.next` goes nil.
@@ -140,11 +140,13 @@ class ApplicationController < ActionController::Base
   end
 
   # "shared" spans the whole team (every member's shared conversations);
-  # "active" and "archived" are the signed-in user's own. All ordered by
-  # recency for the same bucketed sidebar list.
+  # "active", "starred", and "archived" are the signed-in user's own.
+  # "starred" excludes archived rows so they live only under "Archived".
+  # All ordered by recency for the same bucketed sidebar list.
   def sidebar_scope(filter)
     case filter
     when "shared"   then current_team.conversations.shared.active.recent
+    when "starred"  then current_user.conversations.for_team(current_team).starred.active.recent
     when "archived" then current_user.conversations.for_team(current_team).archived.recent
     else                 current_user.conversations.for_team(current_team).active.recent
     end

@@ -45,6 +45,8 @@
             Shared<%= render "conversations/shared_tab_dot", active: false %>
           <% end %>
         <% end %>
+        <%= link_to "Starred", conversations_path(filter: "starred"),
+              class: "convo-tab#{' on' if @sidebar_filter == 'starred'}" %>
         <%= link_to "Archived", conversations_path(filter: "archived"),
               class: "convo-tab#{' on' if @sidebar_filter == 'archived'}" %>
       </div>

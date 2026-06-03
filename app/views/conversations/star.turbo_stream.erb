@@ -1,0 +1,3 @@
+<%= turbo_stream.replace dom_id(@conversation, :star),
+      partial: "conversations/star",
+      locals: { conversation: @conversation } %>

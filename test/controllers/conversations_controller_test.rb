@@ -472,4 +472,65 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_select "#convos-list .convo .convo-avatar", count: 0
     assert_select ".convo-tab.on", text: "Archived"
   end
+
+  test "star marks a conversation as starred via turbo stream" do
+    sign_in @user
+    conversation = @user.conversations.create!(title: "Pin me")
+
+    post star_conversation_path(conversation), as: :turbo_stream
+
+    assert_response :success
+    assert conversation.reload.starred?
+    assert_select "turbo-stream[action=replace][target=?]", dom_id(conversation, :star)
+  end
+
+  test "star is reversible via unstar" do
+    sign_in @user
+    conversation = @user.conversations.create!(title: "Unpin me")
+    conversation.star!
+
+    delete star_conversation_path(conversation), as: :turbo_stream
+
+    assert_response :success
+    refute conversation.reload.starred?
+  end
+
+  test "cannot star another user's conversation" do
+    other = User.create!(email: "star-other@example.com", password: "password123")
+    conversation = other.conversations.create!(title: "Theirs")
+    sign_in @user
+
+    post star_conversation_path(conversation)
+
+    assert_response :not_found
+    refute conversation.reload.starred?
+  end
+
+  test "the starred filter lists only the user's active starred conversations" do
+    sign_in @user
+    @user.conversations.create!(title: "Plain")
+    starred = @user.conversations.create!(title: "Important")
+    starred.star!
+    archived_starred = @user.conversations.create!(title: "Old favourite")
+    archived_starred.star!
+    archived_starred.archive!
+
+    get conversations_path(filter: "starred")
+
+    assert_response :success
+    assert_select "#convos-list .convo .tt", text: "Important"
+    assert_select "#convos-list .convo .tt", text: "Plain", count: 0
+    assert_select "#convos-list .convo .tt", text: "Old favourite", count: 0
+    assert_select ".convo-tab.on", text: "Starred"
+  end
+
+  test "the owner sees a star toggle on their own conversation" do
+    sign_in @user
+    conversation = @user.conversations.create!(title: "Mine")
+
+    get conversation_path(conversation)
+
+    assert_response :success
+    assert_select ".chat-actions form[action=?]", star_conversation_path(conversation)
+  end
 end

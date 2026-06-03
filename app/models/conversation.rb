@@ -17,11 +17,16 @@ class Conversation < ApplicationRecord
   scope :recent, -> { order(updated_at: :desc) }
   scope :active, -> { where(archived_at: nil) }
   scope :archived, -> { where.not(archived_at: nil) }
+  scope :starred, -> { where.not(starred_at: nil) }
   scope :shared, -> { where.not(share_token: nil) }
   scope :for_team, ->(team) { where(team: team) }
 
   def archived?
     archived_at.present?
+  end
+
+  def starred?
+    starred_at.present?
   end
 
   def shared?
@@ -63,6 +68,18 @@ class Conversation < ApplicationRecord
   def unarchive!
     return unless archived?
     update!(archived_at: nil)
+  end
+
+  # Star: surfaces the conversation under the sidebar's "Starred" filter
+  # regardless of recency. Personal to the owner. No-op when unchanged.
+  def star!
+    return if starred?
+    update!(starred_at: Time.current)
+  end
+
+  def unstar!
+    return unless starred?
+    update!(starred_at: nil)
   end
 
   TITLE_MAX = 60

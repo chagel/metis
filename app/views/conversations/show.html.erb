@@ -57,6 +57,7 @@
       <% end %>
 
       <% unless @read_only || @conversation.archived? %>
+        <%= render "conversations/star", conversation: @conversation %>
         <%= button_to archive_conversation_path(@conversation),
               method: :post,
               class: "chat-action",

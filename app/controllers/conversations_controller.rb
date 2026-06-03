@@ -3,7 +3,7 @@ class ConversationsController < ApplicationController
 
   layout "chat"
 
-  before_action :set_conversation, only: %i[cancel archive unarchive update share unshare]
+  before_action :set_conversation, only: %i[cancel archive unarchive star unstar update share unshare]
   before_action :set_sidebar, only: %i[index show archived]
 
   def index
@@ -72,6 +72,22 @@ class ConversationsController < ApplicationController
     @conversation.unarchive!
     flash[:notice] = "Conversation restored."
     redirect_to @conversation
+  end
+
+  def star
+    @conversation.star!
+    respond_to do |format|
+      format.turbo_stream { render "conversations/star" }
+      format.html { redirect_to @conversation }
+    end
+  end
+
+  def unstar
+    @conversation.unstar!
+    respond_to do |format|
+      format.turbo_stream { render "conversations/star" }
+      format.html { redirect_to @conversation }
+    end
   end
 
   def share

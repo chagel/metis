@@ -168,6 +168,7 @@ module ApplicationHelper
 
   SIDEBAR_EMPTY_MESSAGES = {
     "shared" => "No conversations shared with your team yet.",
+    "starred" => "No starred conversations yet — star one to keep it handy.",
     "archived" => "No archived conversations.",
     "active" => "No conversations yet — start one on the right."
   }.freeze

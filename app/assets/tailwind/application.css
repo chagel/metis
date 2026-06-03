@@ -222,6 +222,9 @@ turbo-frame#convos { display:contents; }
 .chat-action svg { width:16px; height:16px; }
 .chat-action:hover { background:var(--card); color:var(--ink); box-shadow:var(--sh-sm); }
 .chat-action:active { transform:scale(.94); }
+/* Starred conversation: the filled star reads as an active toggle. */
+.chat-action.on,
+.chat-action.on:hover { color:var(--gold); }
 .chat-action:focus-visible {
   outline:none; border-color:var(--accent);
   box-shadow:0 0 0 3px var(--accent-glow);
@@ -255,7 +258,7 @@ turbo-frame#convos { display:contents; }
 }
 
 /* ───────────── conversation scope tabs ─────────────
-   Mine / Shared / Archived. Compact text tabs that swap the sidebar
+   Mine / Shared / Starred / Archived. Compact text tabs that swap the sidebar
    list's scope in place (turbo-frame). The active tab carries `.on`. */
 .convo-tabs { display:flex; gap:3px; padding:0 2px 6px; }
 .convo-tab {

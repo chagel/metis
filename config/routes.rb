@@ -21,6 +21,8 @@ Rails.application.routes.draw do
       post :cancel
       post :archive
       post :unarchive
+      post :star
+      delete :star, action: :unstar
       post :share
       delete :share, action: :unshare
     end

@@ -142,6 +142,35 @@ class ConversationTest < ActiveSupport::TestCase
     refute @conversation.archived?
   end
 
+  test "star! stamps starred_at and unstar! clears it" do
+    refute @conversation.starred?
+    refute Conversation.starred.exists?(@conversation.id)
+
+    @conversation.star!
+    assert @conversation.starred?
+    assert_not_nil @conversation.starred_at
+    assert Conversation.starred.exists?(@conversation.id)
+
+    @conversation.unstar!
+    refute @conversation.starred?
+    assert_nil @conversation.starred_at
+    refute Conversation.starred.exists?(@conversation.id)
+  end
+
+  test "star! is idempotent and does not move starred_at on a second call" do
+    @conversation.star!
+    first_stamp = @conversation.starred_at
+    travel 1.minute do
+      @conversation.star!
+      assert_equal first_stamp, @conversation.reload.starred_at
+    end
+  end
+
+  test "unstar! is a no-op when the conversation is not starred" do
+    assert_nothing_raised { @conversation.unstar! }
+    refute @conversation.starred?
+  end
+
   test "destroying a conversation with no sandbox is a no-op for E2B" do
     called = false
     with_stub(Agent::Runtime::E2b, :kill_sandbox, ->(_id) { called = true }) do
