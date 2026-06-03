@@ -24,9 +24,7 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Schibsted+Grotesk:wght@500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <%= preload_link_tag asset_path("figtree-latin.woff2"), as: "font", type: "font/woff2", crossorigin: "anonymous" %>
 
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
