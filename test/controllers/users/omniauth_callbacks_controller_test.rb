@@ -109,6 +109,35 @@ class Users::OmniauthCallbacksControllerTest < ActionDispatch::IntegrationTest
     assert_includes grant.scope_set, "repo"
   end
 
+  test "connecting lands the connector on the team carried in the OAuth state, not the personal team" do
+    user = User.create!(email: "conn-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    shared = Team.create!(name: "Acme")
+    user.memberships.create!(team: shared, role: :admin)
+    sign_in user
+
+    mock_github(uid: "team-conn", scope: "user:email repo read:user", connect: "github")
+    Rails.application.env_config["omniauth.params"] = { "connect" => "github", "team" => shared.id.to_s }
+
+    get user_github_omniauth_callback_path
+
+    assert shared.connectors.exists?(catalog_key: "github"), "connector lands on the acting team"
+    refute user.personal_team.connectors.exists?(catalog_key: "github"), "not the personal team"
+  end
+
+  test "a forged team id the user isn't a member of falls back to the personal team" do
+    user = User.create!(email: "conn-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    outsider_team = Team.create!(name: "NotMine")
+    sign_in user
+
+    mock_github(uid: "forged-team", scope: "user:email repo read:user", connect: "github")
+    Rails.application.env_config["omniauth.params"] = { "connect" => "github", "team" => outsider_team.id.to_s }
+
+    get user_github_omniauth_callback_path
+
+    refute outsider_team.connectors.exists?(catalog_key: "github"), "must not attach to a team they're not in"
+    assert user.personal_team.connectors.exists?(catalog_key: "github"), "falls back to personal team"
+  end
+
   test "subsequent GitHub sign-in finds the user through the identity and updates the grant" do
     user = User.create!(email: "existing-#{SecureRandom.hex(4)}@example.com", password: "password123")
     user.identities.create!(provider: "github", uid: "7")

@@ -40,10 +40,25 @@ registry:
 env:
   secret:
     - RAILS_MASTER_KEY
+    # Cloudflare Email Service token (and every provider/OAuth secret your
+    # deployment uses) — values come from .kamal/secrets. See .env.example
+    # for the full list the app reads in production.
+    - CLOUDFLARE_EMAIL_API_TOKEN
   clear:
     # Run the Solid Queue Supervisor inside the web server's Puma process to do jobs.
     # When you start using multiple servers, you should split out job processing to a dedicated machine.
     SOLID_QUEUE_IN_PUMA: true
+
+    # --- Outbound email + invite links ---
+    # Sender must be on the Cloudflare-verified domain; METIS_APP_HOST is
+    # the host invitation/reset links point at (match proxy.host above).
+    METIS_MAIL_FROM: "Metis <noreply@example.com>"
+    METIS_APP_HOST: app.example.com
+    CLOUDFLARE_ACCOUNT_ID: your-cloudflare-account-id
+
+    # Account access: invite_only (default) or open. invite_only means the
+    # first account bootstraps and everyone else needs an invitation.
+    METIS_REGISTRATION_MODE: invite_only
 
     # Set number of processes dedicated to Solid Queue (default: 1)
     # JOB_CONCURRENCY: 3

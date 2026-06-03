@@ -199,8 +199,11 @@ module ApplicationHelper
     return nil unless oauth_provider_configured?(app.oauth_provider)
 
     scopes = (OauthBroker::SIGN_IN_SCOPES.fetch(app.oauth_provider, []) + app.oauth_scopes).uniq.join(",")
+    # `team` rides the OAuth state so the callback lands the connector on
+    # the team the user was acting in, not their personal team.
     send("user_#{strategy}_omniauth_authorize_path",
          connect: app.key,
+         team: current_team.id,
          scope: scopes,
          prompt: "consent",
          include_granted_scopes: true)

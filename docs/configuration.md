@@ -17,6 +17,10 @@ cp .env.example .env
 | Provider API keys — `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, … | see [Providers](#providers) |
 | `METIS_DOCKER_IMAGE` | image for the `docker` runtime (default `metis-pi`) |
 | `E2B_API_KEY` / `METIS_E2B_TEMPLATE` | required by the `e2b` runtime |
+| `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_EMAIL_API_TOKEN` | outbound email — see [Email & access](#email--account-access) |
+| `METIS_MAIL_FROM` | sender for all email (on the Cloudflare-verified domain) |
+| `METIS_APP_HOST` | host for links in emails (invites, password reset) |
+| `METIS_REGISTRATION_MODE` | `invite_only` (default) or `open` |
 
 ## Runtimes
 
@@ -73,3 +77,20 @@ locally works here. The new-chat composer's model list is the deployment
 LLM catalog — synced from pi and curated by a superuser at **Settings →
 Models**. After setting a provider's key, click **Refresh** there to pull
 that provider's models into the catalog, then enable the ones to offer.
+
+## Email & account access
+
+Transactional email — team invitations and Devise's password reset — is
+sent through **Cloudflare Email Service**'s REST API (`Delivery::Cloudflare`),
+not SMTP. Set `CLOUDFLARE_ACCOUNT_ID` and a send-scoped
+`CLOUDFLARE_EMAIL_API_TOKEN`, and point `METIS_MAIL_FROM` at an address on
+a **domain you've verified** in that Cloudflare account. `METIS_APP_HOST`
+is the host links in those emails resolve to (production; a shared dev
+host uses `METIS_DEV_HOST`). With the token unset, development falls back
+to ActionMailer's `:test` delivery (no real send).
+
+Account creation is the access boundary — every account runs the agent on
+the deployment's shared provider keys — so `METIS_REGISTRATION_MODE`
+defaults to **`invite_only`**: only invitees (and the first, bootstrap
+account) may register. Set it to `open` to let anyone sign up. See
+[`teams.md`](teams.md) for the invitation flow.

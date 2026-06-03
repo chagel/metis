@@ -73,13 +73,21 @@ class Users::OmniauthCallbacksController < Devise::OmniauthCallbacksController
     app = ConnectorCatalog.find(catalog_key)
     return unless app
 
-    OmniauthConnector.activate_connector(target, app, auth)
+    OmniauthConnector.activate_connector(target, app, auth, team: connect_team(target, params["team"]))
   rescue StandardError => error
     # Non-fatal: sign-in half already succeeded.
     Rails.logger.error(
       "Omniauth connector activation failed for user #{target&.id} app=#{params['connect']}: " \
       "#{error.class}: #{error.message}"
     )
+  end
+
+  # The team the connector belongs to — the one the user was acting in
+  # when they clicked Connect, carried through the OAuth state. Validated
+  # against membership (a forged id can't attach to a team they're not
+  # in); falls back to the personal team.
+  def connect_team(user, team_id)
+    user.teams.find_by(id: team_id) || user.personal_team
   end
 
   def finish_sign_in(target, provider)

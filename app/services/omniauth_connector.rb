@@ -30,13 +30,13 @@ class OmniauthConnector
       grant
     end
 
-    # Mark `app` as connected for `user`: create the ConnectorCredential
-    # marker on the team's Connector (creating the Connector too if
-    # this is the first team member to wire it). The token lives in
-    # the OauthGrant `record_grant` just updated — this row is just
-    # the per-member presence signal McpConfig keys off.
-    def activate_connector(user, app, auth)
-      connector = user.personal_team.connectors.find_or_initialize_by(catalog_key: app.key)
+    # Mark `app` as connected for `user` on `team`: create the
+    # ConnectorCredential marker on the team's Connector (creating the
+    # Connector too if this is the first team member to wire it). The
+    # token lives in the OauthGrant `record_grant` just updated — this row
+    # is just the per-member presence signal McpConfig keys off.
+    def activate_connector(user, app, auth, team:)
+      connector = team.connectors.find_or_initialize_by(catalog_key: app.key)
       connector.update!(name: app.key, transport: app.transport, definition: app.definition)
       credential = connector.connector_credentials.find_or_initialize_by(user: user)
       # Don't blank a previously-set handle if a later callback omits it

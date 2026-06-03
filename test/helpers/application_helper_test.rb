@@ -97,6 +97,12 @@ class ApplicationHelperTest < ActionView::TestCase
     end
   end
 
+  # connector_authorize_path_for reads current_team (an ApplicationController
+  # helper_method) to thread the team through the OAuth state.
+  def current_team
+    @current_team ||= Team.new(id: 99)
+  end
+
   test "connector_authorize_path_for returns an incremental OAuth URL when configured" do
     app = ConnectorCatalog.find("github")
 
@@ -105,6 +111,7 @@ class ApplicationHelperTest < ActionView::TestCase
 
       assert_includes path, user_github_omniauth_authorize_path
       assert_includes path, "connect=github"
+      assert_includes path, "team=99"
       assert_includes path, "prompt=consent"
       assert_includes path, "include_granted_scopes=true"
       assert_match(/scope=[^&]*repo/, path)
