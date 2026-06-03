@@ -116,6 +116,21 @@ class ConnectorsControllerTest < ActionDispatch::IntegrationTest
     assert_not connector.reload.bot_enabled?
   end
 
+  test "the manage form's hidden companion disables the bot when the box is unchecked" do
+    connector = github_connector
+    connector.update!(bot_enabled: true)
+
+    # An unchecked check_box_tag sends no "1"; the hidden field supplies "0".
+    patch connector_path(connector), params: { connector: { bot_enabled: "0" } }
+    assert_not connector.reload.bot_enabled?
+
+    # Form rendering: the hidden companion is present so the param is never absent.
+    with_stub(GithubApp::Config, :app_auth_configured?, -> { true }) do
+      get edit_connector_path(connector)
+      assert_select %(input[type=hidden][name="connector[bot_enabled]"][value="0"])
+    end
+  end
+
   test "disconnect removes the connector" do
     connector = github_connector
     assert_difference("Connector.count", -1) { delete connector_path(connector) }
