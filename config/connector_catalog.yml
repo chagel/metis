@@ -48,6 +48,33 @@ close:
     url: https://mcp.close.com/mcp
   auth: mcp_oauth
 
+sentry:
+  name: Sentry
+  category: Development
+  description: Investigate issues, errors, and releases across your Sentry projects.
+  transport: http
+  definition:
+    url: https://mcp.sentry.dev/mcp
+  auth: mcp_oauth
+
+asana:
+  name: Asana
+  category: Productivity
+  description: Manage tasks, projects, and portfolios in Asana.
+  transport: http
+  definition:
+    url: https://mcp.asana.com/mcp
+  auth: mcp_oauth
+
+paypal:
+  name: PayPal
+  category: Finance
+  description: Look up orders, payments, invoices, and disputes in PayPal.
+  transport: http
+  definition:
+    url: https://mcp.paypal.com/mcp
+  auth: mcp_oauth
+
 # Self-hosted: the member supplies their own Metabase URL; the same
 # discovery + DCR flow runs against that instance's embedded OAuth server.
 metabase:
