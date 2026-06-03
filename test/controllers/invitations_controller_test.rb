@@ -31,6 +31,13 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to invitation_path(@invitation.token)
   end
 
+  test "an expired invitation is not stashed, so signing in lands in the app" do
+    @invitation.update!(expires_at: 1.day.ago)
+    get invitation_path(@invitation.token) # signed out — must not stash an expired token
+    post user_session_path, params: { user: { email: @invitee.email, password: "password123" } }
+    assert_redirected_to root_path
+  end
+
   test "the auth pages tell a mid-acceptance visitor which email to use" do
     get invitation_path(@invitation.token) # stashes the token while signed out
 

@@ -13,7 +13,7 @@ class InvitationsController < ApplicationController
 
     if user_signed_in?
       redirect_if_settled(@invitation)
-    elsif !@invitation.accepted?
+    elsif !@invitation.accepted? && !@invitation.expired?
       session[:pending_invitation_token] = @invitation.token
     end
   end
