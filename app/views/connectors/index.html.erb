@@ -3,10 +3,6 @@
 <main class="pane">
   <header class="pane-head">
     <h1 class="pane-title">Connectors</h1>
-    <div style="flex:1"></div>
-    <% if team_manager? %>
-      <%= link_to "Add custom MCP server", new_connector_path, class: "btn btn-ghost" %>
-    <% end %>
   </header>
 
   <div class="pane-body">
@@ -35,7 +31,14 @@
                 grant means I've never connected this → "Connect". %>
             <% mine = connector&.connector_credentials&.exists?(user: current_user) %>
             <div class="app-tile">
-              <div class="app-name"><%= app.name %></div>
+              <div class="app-head">
+                <div class="app-name"><%= app.name %></div>
+                <% if connector_needs_setup?(app) %>
+                  <span class="app-dot"
+                        title="Admin setup required — register an OAuth app (see docs/configuration.md)."
+                        aria-label="Admin setup required"></span>
+                <% end %>
+              </div>
               <div class="app-desc"><%= app.description %></div>
               <div class="app-foot">
                 <% if wired %>
@@ -65,25 +68,6 @@
                 <% end %>
               </div>
             </div>
-          <% end %>
-        </div>
-      <% end %>
-
-      <% if @custom.any? %>
-        <div class="cat-label">Custom</div>
-        <div class="conn-list">
-          <% @custom.each do |connector| %>
-            <%# Managers edit a custom connector; members see it read-only. %>
-            <%= content_tag(team_manager? ? :a : :div, class: "conn-row",
-                  href: (team_manager? ? edit_connector_path(connector) : nil)) do %>
-              <div class="conn-main">
-                <div class="conn-name"><%= connector.name %></div>
-                <div class="conn-sub">
-                  <%= connector.definition["command"].presence || connector.definition["url"] %>
-                </div>
-              </div>
-              <span class="tag rt"><%= connector.transport %></span>
-            <% end %>
           <% end %>
         </div>
       <% end %>

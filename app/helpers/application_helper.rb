@@ -200,6 +200,15 @@ module ApplicationHelper
          include_granted_scopes: true)
   end
 
+  # True when a connector still needs a one-time admin OAuth-app setup —
+  # a brokered provider (GitHub/Google) whose deployment credentials aren't
+  # configured yet. The marketplace flags only these (with a dot) so an
+  # installation owner sees what's left to wire up; mcp_oauth (DCR) and
+  # token connectors need no setup and carry no marker.
+  def connector_needs_setup?(app)
+    app.oauth? && !oauth_provider_configured?(app.oauth_provider)
+  end
+
   def oauth_provider_configured?(provider)
     case OauthBroker.normalize_provider(provider) || provider.to_s
     when "github"

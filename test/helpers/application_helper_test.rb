@@ -118,6 +118,17 @@ class ApplicationHelperTest < ActionView::TestCase
     end
   end
 
+  test "connector_needs_setup? flags only brokered connectors whose OAuth app isn't configured" do
+    with_stub(GithubApp::Config, :configured?, -> { false }) do
+      assert connector_needs_setup?(ConnectorCatalog.find("github"))
+    end
+    with_stub(GithubApp::Config, :configured?, -> { true }) do
+      refute connector_needs_setup?(ConnectorCatalog.find("github"))
+    end
+    # mcp_oauth (DCR) connectors never need admin setup.
+    refute connector_needs_setup?(ConnectorCatalog.find("notion"))
+  end
+
   test "oauth_provider_configured? normalizes omniauth strategy names" do
     with_stub(GoogleApp::Config, :configured?, -> { true }) do
       assert oauth_provider_configured?(:google_oauth2)

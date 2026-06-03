@@ -1110,7 +1110,6 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
 .conn-form { display:flex; flex-direction:column; gap:17px; }
 .field { display:flex; flex-direction:column; gap:6px; }
 .field > label { font-size:12.5px; font-weight:600; color:var(--ink-2); }
-.field > label.field-sub { margin-top:7px; }
 .field input,.field textarea,.field select {
   font-family:var(--fb); font-size:13.5px; color:var(--ink);
   background:var(--card); border:1px solid var(--line-2); border-radius:10px;
@@ -1141,7 +1140,9 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
   background:var(--card); border:1px solid var(--line); border-radius:14px;
   padding:15px 16px; box-shadow:var(--sh-sm);
 }
+.app-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .app-name { font-family:var(--fd); font-weight:600; font-size:14.5px; }
+.app-dot { flex:none; width:7px; height:7px; border-radius:999px; background:var(--danger); cursor:default; }
 .app-desc { font-size:12.5px; color:var(--ink-3); line-height:1.5; flex:1; }
 .app-foot { display:flex; align-items:center; gap:8px; margin-top:5px; }
 .app-state { font-family:var(--fm); font-size:10.5px; color:var(--ink-3); }
