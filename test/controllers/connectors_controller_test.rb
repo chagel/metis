@@ -118,4 +118,22 @@ class ConnectorsControllerTest < ActionDispatch::IntegrationTest
     get edit_connector_path(connector)
     assert_response :not_found
   end
+
+  test "the github tile reads Connect when I have no credential, even if a teammate wired it" do
+    github_connector # team Connector row exists; current user has no credential on it
+
+    with_stub(GithubApp::Config, :configured?, -> { true }) do
+      get connectors_path
+      assert_select %(form[action^="#{user_github_omniauth_authorize_path}"] button), text: "Connect"
+    end
+  end
+
+  test "the github tile reads Reconnect when I connected before but the grant lapsed" do
+    github_connector.connector_credentials.create!(user: @user) # my credential exists, no usable grant
+
+    with_stub(GithubApp::Config, :configured?, -> { true }) do
+      get connectors_path
+      assert_select %(form[action^="#{user_github_omniauth_authorize_path}"] button), text: "Reconnect"
+    end
+  end
 end

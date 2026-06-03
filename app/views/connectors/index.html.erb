@@ -24,6 +24,10 @@
                 otherwise the tile would advertise a connector McpConfig
                 drops every turn. %>
             <% wired = connector && (app.oauth? ? connector.credential_for(current_user)&.oauth_ready? : true) %>
+            <%# "Reconnect" only when *I* connected before (my own credential
+                exists but lapsed); a teammate's connector or a login-only
+                grant means I've never connected this → "Connect". %>
+            <% mine = connector&.connector_credentials&.exists?(user: current_user) %>
             <div class="app-tile">
               <div class="app-name"><%= app.name %></div>
               <div class="app-desc"><%= app.description %></div>
@@ -36,7 +40,7 @@
                   <% end %>
                 <% elsif app.oauth? && (oauth_path = connector_authorize_path_for(app)) %>
                   <div style="flex:1"></div>
-                  <%= button_to(connector ? "Reconnect" : "Connect", oauth_path,
+                  <%= button_to(mine ? "Reconnect" : "Connect", oauth_path,
                         data: { turbo: false }, class: "btn btn-primary") %>
                 <% elsif app.oauth? %>
                   <span class="app-state">OAuth — coming soon</span>
