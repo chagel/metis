@@ -11,7 +11,7 @@
   </header>
 
   <div class="stream">
-    <div class="thread archived-list">
+    <div class="archived-list">
       <% if @archived_conversations.any? %>
         <% @archived_conversations.each do |conversation| %>
           <div id="<%= dom_id(conversation, :archived) %>" class="archived-row">

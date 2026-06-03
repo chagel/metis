@@ -234,7 +234,7 @@ turbo-frame#convos { display:contents; }
   background:transparent; border:0; color:var(--ink); text-decoration:underline;
   cursor:pointer; padding:0; font:inherit;
 }
-.archived-list { padding:12px 16px; display:flex; flex-direction:column; gap:8px; }
+.archived-list { max-width:760px; margin:0 auto; padding:12px 0; display:flex; flex-direction:column; gap:8px; }
 .archived-row {
   display:flex; align-items:center; gap:12px; padding:10px 12px;
   background:var(--card); border-radius:10px; box-shadow:var(--sh-sm);
