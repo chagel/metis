@@ -76,42 +76,39 @@ class ConversationsController < ApplicationController
 
   def star
     @conversation.star!
-    respond_to do |format|
-      format.turbo_stream { render "conversations/star" }
-      format.html { redirect_to @conversation }
-    end
+    respond_with_panel "conversations/star"
   end
 
   def unstar
     @conversation.unstar!
-    respond_to do |format|
-      format.turbo_stream { render "conversations/star" }
-      format.html { redirect_to @conversation }
-    end
+    respond_with_panel "conversations/star"
   end
 
   def share
     newly_shared = !@conversation.shared?
     @conversation.generate_share_token!
     @conversation.broadcast_shared_to_team! if newly_shared && !@conversation.team.personal?
-    respond_to do |format|
-      format.turbo_stream { render "conversations/share" }
-      format.html { redirect_to @conversation }
-    end
+    respond_with_panel "conversations/share"
   end
 
   def unshare
     @conversation.revoke_share!
-    respond_to do |format|
-      format.turbo_stream { render "conversations/share" }
-      format.html { redirect_to @conversation }
-    end
+    respond_with_panel "conversations/share"
   end
 
   private
 
   def set_conversation
     @conversation = current_user.conversations.find(params[:id])
+  end
+
+  # The star/share toggles re-render their inline header panel over Turbo,
+  # or fall back to a full-page redirect.
+  def respond_with_panel(partial)
+    respond_to do |format|
+      format.turbo_stream { render partial }
+      format.html { redirect_to @conversation }
+    end
   end
 
   # Composer wins; profile default backs up a scrubbed pick; both blank →

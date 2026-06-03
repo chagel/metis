@@ -177,6 +177,11 @@ module ApplicationHelper
     SIDEBAR_EMPTY_MESSAGES.fetch(filter, SIDEBAR_EMPTY_MESSAGES["active"])
   end
 
+  # Sidebar scope-tab class, marking the current filter active.
+  def sidebar_tab_class(filter)
+    class_names("convo-tab", "on" => @sidebar_filter == filter)
+  end
+
   # Human label for an identity provider key — `google_oauth2` reads as
   # "Google", `github` as "GitHub". Falls back to a titleized key.
   IDENTITY_PROVIDER_LABELS = {

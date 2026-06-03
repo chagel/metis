@@ -144,11 +144,12 @@ class ApplicationController < ActionController::Base
   # "starred" excludes archived rows so they live only under "Archived".
   # All ordered by recency for the same bucketed sidebar list.
   def sidebar_scope(filter)
+    mine = current_user.conversations.for_team(current_team)
     case filter
     when "shared"   then current_team.conversations.shared.active.recent
-    when "starred"  then current_user.conversations.for_team(current_team).starred.active.recent
-    when "archived" then current_user.conversations.for_team(current_team).archived.recent
-    else                 current_user.conversations.for_team(current_team).active.recent
+    when "starred"  then mine.starred.active.recent
+    when "archived" then mine.archived.recent
+    else                 mine.active.recent
     end
   end
 end
