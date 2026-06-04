@@ -190,7 +190,7 @@ GEM
       logger
     i18n (1.14.8)
       concurrent-ruby (~> 1.0)
-    image_processing (2.0.1)
+    image_processing (2.0.2)
     importmap-rails (2.2.3)
       actionpack (>= 6.0.0)
       activesupport (>= 6.0.0)
@@ -549,7 +549,6 @@ DEPENDENCIES
   tzinfo-data
   web-console
 
-CHECKSUMS
   action_text-trix (2.1.19) sha256=7012f59421009cf284aa651294896414d653a61a2417c9b8714c8476d2f74009
   actioncable (8.1.3) sha256=e5bc7f75e44e6a22de29c4f43176927c3a9ce4824464b74ed18d8226e75a80f0
   actionmailbox (8.1.3) sha256=df7da474eaa0e70df4ed5a6fef66eb3b3b0f2dbf7f14518deee8d77f1b4aae59
@@ -620,7 +619,7 @@ CHECKSUMS
   globalid (1.3.0) sha256=05c639ad6eb4594522a0b07983022f04aa7254626ab69445a0e493aa3786ff11
   hashie (5.1.0) sha256=c266471896f323c446ea8207f8ffac985d2718df0a0ba98651a3057096ca3870
   i18n (1.14.8) sha256=285778639134865c5e0f6269e0b818256017e8cde89993fdfcbfb64d088824a5
-  image_processing (2.0.1) sha256=69c93216dafe1179343a6c3ae8bfa554e3c1f5eece4043f255595e76df2cbf3f
+  image_processing (2.0.2) sha256=d0cf990f862d64efb1a14916044bf4b5bb2bccc7e235022413cde46019799cfa
   importmap-rails (2.2.3) sha256=7101be2a4dc97cf1558fb8f573a718404c5f6bcfe94f304bf1f39e444feeb16a
   io-console (0.8.2) sha256=d6e3ae7a7cc7574f4b8893b4fca2162e57a825b223a177b7afa236c5ef9814cc
   io-event (1.16.1) sha256=641686f1e919a4890f788b86393026f8ef1394ee4af4d2ab9c24c81e237736ed
