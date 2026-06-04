@@ -165,6 +165,7 @@ module Agent
       private
 
       def execute(sandbox, pi_args:)
+        emit_status(:preparing, "Preparing workspace")
         provision(sandbox)
         stage_extensions(sandbox)
         stage_uploads(sandbox)
@@ -192,7 +193,16 @@ module Agent
 
       def resume_existing
         sandbox = self.class.client.get(conversation.daytona_sandbox_id)
-        sandbox.start(timeout: SANDBOX_TIMEOUT) unless sandbox.state == "started"
+        unless sandbox.state == "started"
+          # Starting an archived sandbox restores its filesystem from object
+          # storage (slower) — surface that as a distinct phase.
+          if sandbox.state == "archived"
+            emit_status(:restoring, "Restoring sandbox")
+          else
+            emit_status(:resuming, "Resuming sandbox")
+          end
+          sandbox.start(timeout: SANDBOX_TIMEOUT)
+        end
         @sandbox_was_resumed = true
         sandbox
       rescue ::Daytona::NotFoundError
@@ -205,6 +215,7 @@ module Agent
       end
 
       def create_fresh
+        emit_status(:creating, "Creating sandbox")
         @sandbox_was_resumed = false
         self.class.client.create(
           ::Daytona::Models::CreateSandboxFromSnapshotParams.new(

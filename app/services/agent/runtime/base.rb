@@ -15,6 +15,20 @@ module Agent
         @touched_skill_slugs = Set.new
       end
 
+      # A proc the adapter sets so the runtime can report provisioning phases
+      # (create/resume/restore/start/prepare) to the UI *before* the pi session
+      # yields its first event. Called with (phase, message). Nil for control
+      # sessions and tests, where #emit_status is a silent no-op.
+      attr_accessor :status_sink
+
+      # Report a provisioning phase. Failure-safe: a status broadcast must
+      # never crash a turn the user is waiting on.
+      def emit_status(phase, message)
+        status_sink&.call(phase, message)
+      rescue StandardError => e
+        Rails.logger.warn("emit_status failed for conversation #{conversation.id}: #{e.message}")
+      end
+
       # Files published during the most recent #run. Each entry is
       # { filename:, io: }, ready to pass to ActiveStorage#attach.
       attr_reader :artifacts

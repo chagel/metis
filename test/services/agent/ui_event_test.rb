@@ -12,6 +12,13 @@ class Agent::UiEventTest < ActiveSupport::TestCase
     assert_raises(ArgumentError) { Agent::UiEvent.new(:nonsense) }
   end
 
+  test "runtime_status is a known type carrying a phase and message" do
+    event = Agent::UiEvent.new(:runtime_status, data: { phase: :creating, message: "Creating sandbox" })
+    assert_equal :runtime_status, event.type
+    assert_equal "Creating sandbox", event[:message]
+    refute event.terminal?
+  end
+
   test "turn_finished is terminal" do
     assert Agent::UiEvent.new(:turn_finished).terminal?
   end

@@ -1,0 +1,15 @@
+<%# The live turn indicator. Ticks a client-side elapsed timer from
+    started_at ("Working for 24s") so it stays correct when navigating back to
+    an in-flight conversation. `phase` (set by ChatBroadcaster#update_runtime_status
+    during sandbox/container provisioning, before pi's first event) overrides
+    the label with the runtime phase ("Resuming sandbox… 4s"); it clears back
+    to the timer on the first pi output. broadcast_remove_to targets this id
+    when the turn finishes. %>
+<div id="<%= dom_id(message) %>_indicator"
+     class="working-status"
+     data-controller="elapsed-timer"
+     data-elapsed-timer-started-at-value="<%= message.started_at.to_i * 1000 %>"
+     data-elapsed-timer-phase-value="<%= phase %>">
+  <span class="msg-indicator" aria-hidden="true">&#x25CF;</span>
+  <span class="working-label" data-elapsed-timer-target="label" role="status" aria-live="polite"></span>
+</div>

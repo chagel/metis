@@ -52,6 +52,27 @@ class ChatBroadcasterTest < ActiveSupport::TestCase
     assert_equal "", @broadcaster.instance_variable_get(:@text)
   end
 
+  test "a runtime_status event renders the phase into the indicator" do
+    @broadcaster.handle(event(:runtime_status, phase: :resuming, message: "Resuming sandbox"))
+
+    assert @broadcaster.instance_variable_get(:@phase_shown),
+           "a phase was shown, so the first pi event should clear it"
+  end
+
+  test "message_started clears a shown runtime phase back to the timer" do
+    @broadcaster.handle(event(:runtime_status, phase: :creating, message: "Creating sandbox"))
+    @broadcaster.handle(event(:message_started, id: "m1", role: "assistant"))
+
+    refute @broadcaster.instance_variable_get(:@phase_shown), "phase cleared once pi starts"
+  end
+
+  test "message_started is a no-op when no runtime phase was shown" do
+    assert_nothing_raised do
+      @broadcaster.handle(event(:message_started, id: "m1", role: "assistant"))
+    end
+    refute @broadcaster.instance_variable_get(:@phase_shown)
+  end
+
   test "record_tool carries skill_slug from started through later events" do
     @broadcaster.send(:record_tool,
       event(:tool_call_started, tool_call_id: "t1", name: "bash",

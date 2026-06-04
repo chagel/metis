@@ -36,6 +36,9 @@ module Agent
         return enum_for(:stream, input, images: images, files: files) unless block
 
         @last_text_message_id = nil
+        @runtime.status_sink = lambda do |phase, message|
+          block.call(Agent::UiEvent.new(:runtime_status, data: { phase: phase, message: message }.compact))
+        end
         @runtime.run(pi_args: pi_args) do |session|
           @session = session
           session.prompt(prompt_with_files(input, files), images: pi_images(images)) do |pi_event|

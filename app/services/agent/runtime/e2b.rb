@@ -150,6 +150,7 @@ module Agent
       private
 
       def execute(sandbox, pi_args:)
+        emit_status(:preparing, "Preparing workspace")
         provision(sandbox)
         stage_extensions(sandbox)
         stage_uploads(sandbox)
@@ -177,6 +178,7 @@ module Agent
       end
 
       def resume_existing
+        emit_status(:resuming, "Resuming sandbox")
         sandbox = E2B::Sandbox.connect(conversation.e2b_sandbox_id)
         sandbox.resume(timeout: SANDBOX_TIMEOUT)
         @sandbox_was_resumed = true
@@ -191,6 +193,7 @@ module Agent
       end
 
       def create_fresh
+        emit_status(:creating, "Creating sandbox")
         @sandbox_was_resumed = false
         E2B::Sandbox.create(template: template, timeout: SANDBOX_TIMEOUT)
       end

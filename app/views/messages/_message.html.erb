@@ -37,17 +37,7 @@
         <%= render "messages/artifacts", message: message %>
 
         <% if message.streaming? || message.pending? %>
-          <%# Elapsed timer: ticks client-side from started_at so the
-              user sees "Working for 24s" even when navigating back to
-              an in-flight conversation. broadcast_remove_to targets
-              this id when the turn finishes. %>
-          <div id="<%= dom_id(message) %>_indicator"
-               class="working-status"
-               data-controller="elapsed-timer"
-               data-elapsed-timer-started-at-value="<%= message.started_at.to_i * 1000 %>">
-            <span class="msg-indicator" aria-hidden="true">&#x25CF;</span>
-            <span class="working-label" data-elapsed-timer-target="label"></span>
-          </div>
+          <%= render "messages/streaming_indicator", message: message, phase: nil %>
         <% end %>
 
         <% if message.canceled? %>

@@ -4,8 +4,13 @@ import { Controller } from "@hotwired/stimulus"
 // streams. Reads started_at as a Unix-ms timestamp from a data attribute
 // and ticks every second. Stimulus disconnects it automatically when the
 // indicator element is removed from the DOM (ChatBroadcaster#finish).
+//
+// When a `phase` value is present (set by ChatBroadcaster while the runtime
+// provisions its sandbox/container, before pi's first event), the label shows
+// the phase instead — "Resuming sandbox… 4s" — and reverts to "Working for Ns"
+// once the broadcaster re-renders this element with no phase.
 export default class extends Controller {
-  static values = { startedAt: Number }
+  static values = { startedAt: Number, phase: String }
   static targets = ["label"]
 
   connect() {
@@ -25,9 +30,9 @@ export default class extends Controller {
   }
 
   _format(seconds) {
-    if (seconds < 60) return `Working for ${seconds}s`
-    const m = Math.floor(seconds / 60)
-    const s = String(seconds % 60).padStart(2, "0")
-    return `Working for ${m}m ${s}s`
+    const t = seconds < 60
+      ? `${seconds}s`
+      : `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s`
+    return this.phaseValue ? `${this.phaseValue}… ${t}` : `Working for ${t}`
   }
 }

@@ -8,6 +8,7 @@ module Agent
   # it for native embellishments.
   class UiEvent
     TYPES = %i[
+      runtime_status
       message_started
       text_delta
       reasoning_delta
