@@ -95,7 +95,7 @@ class Settings::MembershipsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to team_path
     follow_redirect!
-    assert_select "a", text: "Create a team" # back in the personal workspace
+    assert_select "a[href=?]", new_team_path # back in the personal workspace
   end
 
   test "the owner cannot leave without transferring or deleting" do
