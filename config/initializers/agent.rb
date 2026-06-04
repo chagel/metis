@@ -10,6 +10,9 @@
 #             needs a Docker daemon and an image (see docker:image).
 #   :e2b    — pi inside a secure E2B microVM. The isolated runtime;
 #             requires E2B_API_KEY and a template with pi baked in.
+#   :daytona— pi inside a Daytona elastic sandbox. The Daytona-backed
+#             isolated runtime; requires DAYTONA_API_KEY and a snapshot
+#             with pi baked in (see the daytona:snapshot rake task).
 Rails.application.config.x.agent.runtime =
   ENV.fetch("METIS_AGENT_RUNTIME", "local").to_sym
 
@@ -30,6 +33,46 @@ Rails.application.config.x.agent.e2b_eviction_window =
 # the docker:image rake task.
 Rails.application.config.x.agent.docker_image =
   ENV.fetch("METIS_DOCKER_IMAGE", "metis-pi")
+
+# Daytona credentials and target for the :daytona runtime. The API key is a
+# shared, deployment-level resource (no per-user keys). api_url/target are
+# optional — unset uses the SDK defaults (https://app.daytona.io/api, the
+# org's default region).
+Rails.application.config.x.agent.daytona_api_key = ENV["DAYTONA_API_KEY"].presence
+Rails.application.config.x.agent.daytona_api_url = ENV["DAYTONA_API_URL"].presence
+Rails.application.config.x.agent.daytona_target  = ENV["DAYTONA_TARGET"].presence
+
+# Daytona snapshot (image) used by the :daytona runtime — should have pi
+# installed. See the daytona:snapshot rake task for the build definition.
+Rails.application.config.x.agent.daytona_snapshot =
+  ENV.fetch("METIS_DAYTONA_SNAPSHOT", "metis-pi")
+
+# Idle-lifecycle intervals (minutes) passed to Daytona at sandbox create.
+# Unlike E2B, where a suspended sandbox is free, Daytona keeps billing a
+# STOPPED sandbox for disk storage; ARCHIVED moves the filesystem to cheap
+# object storage (lower cost, slower to resume). So these intervals are cost
+# control, not just cleanup — and they replace E2B's EvictPausedSandboxesJob
+# (no Daytona eviction cron). A deleted sandbox's next turn provisions fresh
+# (working tree gone, history intact). 0 disables an interval.
+#
+#   auto_stop    — a *crash* safety net only. Runtime::Daytona already stops
+#                  the sandbox at end of turn (that is what ends compute
+#                  billing); autoStop just catches one left RUNNING by a killed
+#                  worker. It auto-stops on SDK inactivity, and a long
+#                  autonomous turn produces none (log streaming rides the
+#                  preview proxy, which Daytona excludes), so this MUST exceed
+#                  the longest turn — keep it ≥ METIS_STALLED_TURN_MINUTES or a
+#                  live turn gets stopped mid-flight.
+#   auto_archive — how long a stopped (idle) sandbox waits before its
+#                  filesystem moves to cheap storage. Lower = less disk cost,
+#                  but a returning conversation pays a slower cold resume.
+#   auto_delete  — how long before an idle sandbox is reaped entirely.
+Rails.application.config.x.agent.daytona_auto_stop_minutes =
+  ENV.fetch("METIS_DAYTONA_AUTO_STOP_MINUTES", "120").to_i
+Rails.application.config.x.agent.daytona_auto_archive_minutes =
+  ENV.fetch("METIS_DAYTONA_AUTO_ARCHIVE_MINUTES", "60").to_i
+Rails.application.config.x.agent.daytona_auto_delete_minutes =
+  ENV.fetch("METIS_DAYTONA_AUTO_DELETE_MINUTES", "1440").to_i
 
 # pi's default provider/model — used when a conversation sets none of
 # its own (the new-chat composer normally does). See

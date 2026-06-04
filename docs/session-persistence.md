@@ -36,6 +36,20 @@ agent ran — so it belongs to the `Runtime`, not to one shared mechanism.
   `EvictPausedSandboxesJob` to kill long-idle ones — the next turn
   provisions fresh.
 
+- **`Runtime::Daytona`** — the Daytona analog of E2b: an elastic cloud
+  sandbox resumed by id. "Pause" maps to `stop`, "resume" to `start`
+  (Daytona persists a stopped sandbox's filesystem on its runner). First
+  turn: `client.create` → run → `stop` → save sandbox_id. Subsequent
+  turns: `client.get(id)` → `start` → run → `stop`. The economics differ
+  from E2B, though: a suspended E2B sandbox is free, but Daytona keeps
+  billing a *stopped* sandbox for disk storage (archived is cheaper but
+  slower to resume). So stopping each turn only ends *compute* billing;
+  to bound the residual storage cost there is **no eviction job** —
+  `create` sets Daytona's native `autoArchive` and `autoDelete` intervals
+  (idle sandbox → cheap object storage → reaped), and `autoStop` is set
+  high as a crash-only safety net. The next turn against a deleted sandbox
+  provisions fresh.
+
 `Agent::SessionArchive` is gone. The tar-to-Active-Storage path is no
 longer needed by any runtime.
 
@@ -53,7 +67,7 @@ agent-produced output: user uploads, the rendered MCP connector config,
 the agent's per-turn boot identity. Each is read straight from its
 durable source at the start of every turn and **overwritten in place**
 in the persistent workspace — host filesystem for `Local` and `Docker`,
-the resumed microVM for `E2b`.
+the resumed microVM for `E2b`, the resumed sandbox for `Daytona`.
 
 | Projected input | Source |
 |---|---|

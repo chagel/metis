@@ -8,11 +8,13 @@ class Conversation < ApplicationRecord
   # personal team unless one was given (docs/tenancy.md).
   before_validation :default_team, on: :create
 
-  # E2B does not auto-clean paused sandboxes; if we forget to kill one
-  # when its conversation is destroyed, it sits on E2B's servers
-  # forever (see docs/coding-runtime.md). EvictPausedSandboxesJob is
-  # the other side of this contract — for the long-idle case.
+  # Cloud runtimes leave a sandbox behind between turns; if we forget to
+  # kill it when its conversation is destroyed, it lingers on the
+  # provider's servers (see docs/coding-runtime.md). For E2B the idle case
+  # is handled by EvictPausedSandboxesJob; Daytona reaps idle sandboxes via
+  # its native auto-delete interval. Each hook is a no-op when its id is blank.
   before_destroy :kill_paused_e2b_sandbox
+  before_destroy :kill_daytona_sandbox
 
   scope :recent, -> { order(updated_at: :desc) }
   scope :active, -> { where(archived_at: nil) }
@@ -172,5 +174,9 @@ class Conversation < ApplicationRecord
 
   def kill_paused_e2b_sandbox
     Agent::Runtime::E2b.kill_sandbox(e2b_sandbox_id)
+  end
+
+  def kill_daytona_sandbox
+    Agent::Runtime::Daytona.kill_sandbox(daytona_sandbox_id)
   end
 end

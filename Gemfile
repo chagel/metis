@@ -44,6 +44,9 @@ gem "pi-agent-rb", "~> 0.1.2", require: "pi_agent"
 # E2B secure cloud sandboxes — the isolated runtime for the agent
 gem "e2b"
 
+# Daytona elastic-sandbox runtime.
+gem "daytona", github: "chagel/daytona-sdk"
+
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
 

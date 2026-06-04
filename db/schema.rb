@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_03_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_04_215328) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -77,6 +77,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_03_140000) do
     t.datetime "cancel_requested_at"
     t.jsonb "context_usage", default: {}, null: false
     t.datetime "created_at", null: false
+    t.string "daytona_sandbox_id"
     t.string "e2b_sandbox_id"
     t.bigint "project_id"
     t.jsonb "runtime_state", default: {}, null: false
@@ -88,6 +89,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_03_140000) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["archived_at"], name: "index_conversations_on_archived_at"
+    t.index ["daytona_sandbox_id"], name: "index_conversations_on_daytona_sandbox_id"
     t.index ["e2b_sandbox_id"], name: "index_conversations_on_e2b_sandbox_id"
     t.index ["project_id"], name: "index_conversations_on_project_id"
     t.index ["share_token"], name: "index_conversations_on_share_token", unique: true

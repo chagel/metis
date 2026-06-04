@@ -12,11 +12,14 @@ cp .env.example .env
 
 | Variable | Purpose |
 |---|---|
-| `METIS_AGENT_RUNTIME` | `local` (default), `docker`, or `e2b` |
+| `METIS_AGENT_RUNTIME` | `local` (default), `docker`, `e2b`, or `daytona` |
 | `METIS_AGENT_PROVIDER` / `METIS_AGENT_MODEL` | default LLM provider/model for pi |
 | Provider API keys — `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, … | see [Providers](#providers) |
 | `METIS_DOCKER_IMAGE` | image for the `docker` runtime (default `metis-pi`) |
 | `E2B_API_KEY` / `METIS_E2B_TEMPLATE` | required by the `e2b` runtime |
+| `DAYTONA_API_KEY` / `METIS_DAYTONA_SNAPSHOT` | required by the `daytona` runtime |
+| `DAYTONA_API_URL` / `DAYTONA_TARGET` | optional Daytona API endpoint / region |
+| `METIS_DAYTONA_AUTO_STOP_MINUTES` / `_AUTO_ARCHIVE_MINUTES` / `_AUTO_DELETE_MINUTES` | Daytona idle-lifecycle intervals, minutes (default 120 / 60 / 1440). Stop is a crash-only safety net — keep it above the longest turn. |
 | `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_EMAIL_API_TOKEN` | outbound email — see [Email & access](#email--account-access) |
 | `METIS_MAIL_FROM` | sender for all email (on the Cloudflare-verified domain) |
 | `METIS_APP_HOST` | host for links in emails (invites, password reset) |
@@ -43,11 +46,24 @@ The runtime decides *where* pi runs. See `coding-runtime.md` and
   ```sh
   rake "e2b:template[metis-pi]"
   ```
+- **`daytona`** — pi runs inside an isolated
+  [Daytona](https://www.daytona.io) elastic sandbox. The Daytona analog
+  of `e2b`, but the economics differ: an E2B suspended sandbox is free,
+  whereas Daytona still bills a *stopped* sandbox for disk storage and an
+  *archived* one (cheaper, slower to resume) less. So metis stops the
+  sandbox each turn to end compute billing, and Daytona's native
+  auto-archive/auto-delete intervals manage the residual storage cost of
+  idle conversations (no metis eviction cron). Build the snapshot once:
+
+  ```sh
+  rake "daytona:snapshot[metis-pi]"
+  ```
 
 Every runtime carries the **MCP connector bridge**
 ([`pi-mcp-adapter`](https://github.com/nicobailon/pi-mcp-adapter)):
-`bin/setup` installs it into your local pi, and the `docker` image and
-`e2b` template bake it in at build time. See `connectors.md`.
+`bin/setup` installs it into your local pi, and the `docker` image,
+`e2b` template, and `daytona` snapshot bake it in at build time. See
+`connectors.md`.
 
 ## Providers
 

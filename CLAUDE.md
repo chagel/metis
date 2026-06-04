@@ -53,8 +53,8 @@ pi. The Agent layer separates two concerns:
    UI from pi's wire protocol; it is not a multi-backend seam.
 2. **`Agent::Runtime`** — *where* the agent runs. `Runtime::Local` runs pi
    as a local subprocess, `Runtime::Docker` in a container, `Runtime::E2b`
-   in an isolated microVM. **`Runtime::Local` is not a security boundary** —
-   pi has shell access.
+   in an isolated microVM, `Runtime::Daytona` in a Daytona elastic sandbox.
+   **`Runtime::Local` is not a security boundary** — pi has shell access.
 
 pi's native events are translated into **`Agent::UiEvent`**, a canonical
 vocabulary (`text_delta`, `tool_call_started`, `turn_finished`, …) that
@@ -90,6 +90,12 @@ turns is a **per-runtime concern** — see `docs/session-persistence.md`:
 - `Runtime::E2b` uses E2B's native `pause`/`resume` by sandbox id —
   first turn creates and pauses, later turns resume the same microVM.
   `EvictPausedSandboxesJob` reaps long-idle sandboxes.
+- `Runtime::Daytona` uses Daytona's `stop`/`start` by sandbox id (the
+  pause/resume analog). Idle sandboxes are reaped by Daytona's native
+  auto-stop/archive/delete intervals, set at create — no metis cron. The
+  community SDK is a fork (`chagel/daytona-sdk`) that adds session stdin +
+  follow-logs streaming; `DaytonaTransport` drives `pi --mode rpc` over a
+  Daytona session.
 
 There is **no archive**. `Agent::SessionArchive` was removed (commits
 `349a0cb`, `c08eb79`); don't reintroduce a tar-to-Active-Storage path.

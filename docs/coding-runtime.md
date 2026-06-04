@@ -54,6 +54,16 @@ doesn't pin to a worker — any worker can pick up any turn, as before.
 
 **`Runtime::E2b`** — see "E2b: pause/resume the microVM" below.
 
+**`Runtime::Daytona`** — the Daytona analog of E2b. Same resume-by-id
+shape, but "pause" is Daytona's `stop` and "resume" is `start`. The
+economics differ: an E2B suspended sandbox is free, whereas a *stopped*
+Daytona sandbox still bills disk storage (an *archived* one — cheaper,
+slower to resume — less). So stopping each turn ends compute billing, and
+the cost ladder is Daytona-native (`autoArchive`/`autoDelete` intervals at
+create) rather than `EvictPausedSandboxesJob`; `autoStop` is a crash-only
+net set above the longest turn. The sandbox id lives on
+`Conversation#daytona_sandbox_id`.
+
 **`Runtime::Local`** — unchanged. Persistence has always been pi-native
 (the scope dir lives between turns on a stable host filesystem).
 `Local` is dev-only; the v2 lifetime shape is for the sandbox runtimes.

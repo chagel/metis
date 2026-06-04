@@ -12,7 +12,7 @@ module Agent
   #
   # Runtime::Local runs the agent as a local subprocess; Runtime::Docker
   # runs it in a Docker container; Runtime::E2b runs it inside a secure
-  # E2B microVM.
+  # E2B microVM; Runtime::Daytona inside a Daytona elastic sandbox.
   module Runtime
     # Resolve the runtime for a conversation — a per-deployment choice
     # (config.x.agent.runtime).
@@ -27,9 +27,10 @@ module Agent
     # The configured runtime class (no conversation needed).
     def self.runtime_class(name = Rails.application.config.x.agent.runtime)
       case name&.to_sym
-      when :local  then Local
-      when :docker then Docker
-      when :e2b    then E2b
+      when :local   then Local
+      when :docker  then Docker
+      when :e2b     then E2b
+      when :daytona then Daytona
       else
         raise Agent::Error, "Unknown agent runtime #{name.inspect} — set config.x.agent.runtime"
       end
