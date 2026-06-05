@@ -102,6 +102,34 @@ module Agent
         { "runtime" => kind }
       end
 
+      # Per-turn phase timing, shared across runtimes. A runtime calls
+      # #init_timings at the top of #run, wraps each phase in #timed, and calls
+      # #log_timings in its ensure. Output is one greppable line:
+      #   [<kind> timing] conversation=N resumed=BOOL acquire=…ms staging=…ms …
+      # #timed is thread-safe so staging phases can time themselves from worker
+      # threads.
+      def init_timings
+        @timings = {}
+        @timings_mutex = Mutex.new
+      end
+
+      def timed(phase)
+        started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        yield
+      ensure
+        ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000).round
+        @timings_mutex.synchronize { @timings[phase] = ms }
+      end
+
+      def log_timings
+        return if @timings.blank?
+
+        summary = @timings.map { |phase, ms| "#{phase}=#{ms}ms" }.join(" ")
+        Rails.logger.info(
+          "[#{kind} timing] conversation=#{conversation.id} resumed=#{@sandbox_was_resumed} #{summary}"
+        )
+      end
+
       # Per-turn process environment to expose to the agent inside the
       # sandbox — credentials projected from the operator's OauthGrants.
       # Each entry is conditional on the operator having authorised the

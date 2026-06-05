@@ -140,8 +140,7 @@ module Agent
       end
 
       def run(pi_args:, &block)
-        @timings = {}
-        @timings_mutex = Mutex.new
+        init_timings
         sandbox = timed(:acquire) { acquire_sandbox }
         @sandbox_id = sandbox.id
         turn_started_at = Time.current.floor  # see Local#run
@@ -154,28 +153,6 @@ module Agent
           timed(:schedule_stop) { schedule_stop(sandbox) }
         end
         log_timings
-      end
-
-      # Wrap a turn phase, recording its wall-clock (ms) in @timings for the
-      # end-of-turn #log_timings summary. Returns the block's value untouched.
-      # Thread-safe: staging phases time themselves from worker threads.
-      def timed(phase)
-        started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        yield
-      ensure
-        ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000).round
-        @timings_mutex.synchronize { @timings[phase] = ms }
-      end
-
-      # One greppable line per turn: where the wall-clock went. resumed=false is
-      # a fresh create. Grep `[daytona timing]` to aggregate.
-      def log_timings
-        return if @timings.blank?
-
-        summary = @timings.map { |phase, ms| "#{phase}=#{ms}ms" }.join(" ")
-        Rails.logger.info(
-          "[daytona timing] conversation=#{conversation.id} resumed=#{@sandbox_was_resumed} #{summary}"
-        )
       end
 
       # Pull each touched skill out of the sandbox and upsert it. Runs while the

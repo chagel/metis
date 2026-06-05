@@ -96,17 +96,19 @@ module Agent
       end
 
       def run(pi_args:, &block)
-        sandbox = acquire_sandbox
+        init_timings
+        sandbox = timed(:acquire) { acquire_sandbox }
         @sandbox_id = sandbox.sandbox_id
         turn_started_at = Time.current.floor  # see Local#run
         execute(sandbox, pi_args: pi_args, &block)
       ensure
         if sandbox
-          collect_sandbox_artifacts(sandbox, since: turn_started_at) if turn_started_at
-          ingest_team_skills(sandbox: sandbox, slugs: touched_skill_slugs)
-          discard_mcp_config(sandbox)
-          pause_sandbox(sandbox)
+          timed(:collect_artifacts) { collect_sandbox_artifacts(sandbox, since: turn_started_at) } if turn_started_at
+          timed(:ingest_team_skills) { ingest_team_skills(sandbox: sandbox, slugs: touched_skill_slugs) }
+          timed(:discard_mcp) { discard_mcp_config(sandbox) }
+          timed(:pause) { pause_sandbox(sandbox) }
         end
+        log_timings
       end
 
       # Pull each touched skill out of the sandbox and upsert it. The
@@ -156,15 +158,15 @@ module Agent
 
       def execute(sandbox, pi_args:)
         emit_status(:preparing, "Preparing workspace")
-        provision(sandbox)
-        stage_extensions(sandbox)
-        stage_uploads(sandbox)
-        stage_mcp_config(sandbox)
-        stage_identity(sandbox)
-        stage_skills(sandbox)
+        timed(:provision) { provision(sandbox) }
+        timed(:stage_extensions) { stage_extensions(sandbox) }
+        timed(:stage_uploads) { stage_uploads(sandbox) }
+        timed(:stage_mcp) { stage_mcp_config(sandbox) }
+        timed(:stage_identity) { stage_identity(sandbox) }
+        timed(:stage_skills) { stage_skills(sandbox) }
         session = PiAgent.session(transport_factory: transport_factory(sandbox, pi_args, sandbox_env))
         begin
-          yield session
+          timed(:pi_session) { yield session }
         ensure
           session.close
         end

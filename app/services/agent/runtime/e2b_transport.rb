@@ -32,6 +32,7 @@ module Agent
       end
 
       def start
+        @started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         # stdin: true is mandatory — without it E2B never opens the pipe
         # and send_stdin is a silent no-op.
         @handle = @sandbox.commands.run(
@@ -84,9 +85,20 @@ module Agent
       end
 
       def dispatch_message(line)
+        log_first_message
         @on_message&.call(JSON.parse(line))
       rescue JSON::ParserError => e
         Rails.logger.warn("[e2b] non-JSON line from pi: #{e.message}: #{line.inspect}")
+      end
+
+      # ms from command start to pi's first RPC line — sandbox command setup +
+      # pi boot, the "thinking…" the user waits through before output streams.
+      def log_first_message
+        return if @first_message_logged
+
+        @first_message_logged = true
+        ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - @started_at) * 1000).round
+        Rails.logger.info("[e2b timing] first_pi_message=#{ms}ms")
       end
 
       # pi's stderr is otherwise invisible — the runtime is a remote
