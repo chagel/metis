@@ -25,4 +25,8 @@ class Agent::Runtime::BaseTest < ActiveSupport::TestCase
 
     assert_nothing_raised { @runtime.emit_status(:starting, "Starting container") }
   end
+
+  test "initial_status is nil for the base (no provisioning to predict)" do
+    assert_nil @runtime.initial_status
+  end
 end

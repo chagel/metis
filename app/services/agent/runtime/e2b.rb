@@ -58,6 +58,11 @@ module Agent
         Pathname.new(SESSION_DIR)
       end
 
+      # A stored sandbox id means the next turn resumes; otherwise it creates.
+      def initial_status
+        conversation.e2b_sandbox_id.present? ? "Resuming sandbox" : "Creating sandbox"
+      end
+
       # Control-plane session (Agent::Runtime.control_session): the
       # template's pi answers. There is no persistent sandbox for a control
       # query, so spin an ephemeral microVM, ask, and kill it — heavier

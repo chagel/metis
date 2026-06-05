@@ -38,6 +38,16 @@ module Agent
         raise NotImplementedError, "#{self.class} must implement #session_dir"
       end
 
+      # The provisioning phase a turn is *likely* to open with, rendered into
+      # the indicator's initial HTML so the first phase shows even though the
+      # matching #emit_status broadcast races the indicator's own (HTTP)
+      # render and is usually dropped. No network — a cheap prediction from
+      # sandbox-id presence that later broadcasts refine. nil = no phase
+      # (Local). See app/views/messages/_streaming_indicator and ChatBroadcaster.
+      def initial_status
+        nil
+      end
+
       # Paths to the app's pi extensions (Agent::Runtime.extension_sources)
       # as reachable from this runtime's execution environment, for the Pi
       # adapter to load with `pi --extension`. A runtime that runs pi where

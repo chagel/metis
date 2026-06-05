@@ -1,3 +1,4 @@
+require "open3"
 require "shellwords"
 require "time"
 
@@ -71,6 +72,13 @@ module Agent
 
       def session_dir
         Pathname.new(SESSION_DIR)
+      end
+
+      # A stored sandbox id means the next turn resumes (or restores from
+      # archive — indistinguishable without a network call, so predict the
+      # common case); otherwise it creates fresh.
+      def initial_status
+        conversation.daytona_sandbox_id.present? ? "Resuming sandbox" : "Creating sandbox"
       end
 
       # Control-plane session (Agent::Runtime.control_session): the snapshot's
@@ -355,17 +363,25 @@ module Agent
         stage_team_skills(sandbox, dest_root)
       end
 
+      # Ship the repo .pi/skills/ tree as one gzipped tar (built on the host)
+      # and untar it in the sandbox — one upload + one extract instead of an
+      # upload RPC per file, which for .pi/skills/'s 300+ files cost ~2 min over
+      # the wire. COPYFILE_DISABLE keeps macOS ._ AppleDouble files out of the tar.
       def stage_repo_skills_from_host(sandbox, dest_root)
         source = Agent::Workspace::SKILLS_SOURCE
         return unless source.directory?
 
-        Dir.glob(source.join("**/*"), File::FNM_DOTMATCH).each do |path|
-          next if File.directory?(path)
-          next if File.basename(path).match?(/\A\.{1,2}\z/)
+        archive, err, status = Open3.capture3(
+          { "COPYFILE_DISABLE" => "1" }, "tar", "-czf", "-", "-C", source.to_s, "."
+        )
+        raise "tar of #{source} failed: #{err}" unless status.success?
 
-          rel = Pathname.new(path).relative_path_from(source).to_s
-          put_file(sandbox, "#{dest_root}/#{rel}", File.binread(path))
-        end
+        remote = "/tmp/metis-repo-skills.tgz"
+        put_file(sandbox, remote, archive)
+        sandbox.process.exec(
+          "mkdir -p #{Shellwords.escape(dest_root)} && " \
+          "tar -xzf #{remote} -C #{Shellwords.escape(dest_root)} && rm -f #{remote}"
+        )
       end
 
       TEAM_SKILLS_MARKER = ".team-skills.sig".freeze

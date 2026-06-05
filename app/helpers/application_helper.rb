@@ -65,6 +65,18 @@ module ApplicationHelper
     [ base, ext ]
   end
 
+  # The provisioning phase to seed a freshly-pending turn's indicator with
+  # ("Creating sandbox", "Resuming sandbox", "Starting container"), so the
+  # first phase is visible even though the runtime's matching broadcast races
+  # the indicator's own render. nil for runtimes with no provisioning (Local)
+  # — the indicator then shows the plain elapsed timer. Resolution failures
+  # must never break message rendering, so they degrade to no phase.
+  def runtime_initial_phase(conversation)
+    Agent::Runtime.for(conversation).initial_status
+  rescue StandardError
+    nil
+  end
+
   # Summary label for an assistant turn's reasoning/tools disclosure.
   def activity_summary(message)
     return "Working…" unless message.done?

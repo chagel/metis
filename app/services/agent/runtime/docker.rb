@@ -72,6 +72,11 @@ module Agent
         Pathname.new(SESSION_DIR)
       end
 
+      # Every turn runs a fresh container.
+      def initial_status
+        "Starting container"
+      end
+
       # The app's pi extensions at their in-container paths, under the
       # read-only extensions mount (#docker_args bind-mounts the dir).
       def extension_paths

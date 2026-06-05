@@ -166,6 +166,13 @@ class Agent::Runtime::DaytonaTest < ActiveSupport::TestCase
     assert_equal Agent::Runtime::Daytona::SESSION_DIR, @runtime.session_dir.to_s
   end
 
+  test "initial_status predicts creating without a stored sandbox, resuming with one" do
+    assert_equal "Creating sandbox", @runtime.initial_status
+
+    @conversation.update_column(:daytona_sandbox_id, "sbx-warm")
+    assert_equal "Resuming sandbox", Agent::Runtime::Daytona.new(conversation: @conversation).initial_status
+  end
+
   test "first turn creates a sandbox, stops it, and records the id on the conversation" do
     sandbox = FakeSandbox.new(id: "sbx-new")
     client = FakeClient.new(create: sandbox)
@@ -341,8 +348,11 @@ class Agent::Runtime::DaytonaTest < ActiveSupport::TestCase
       end
     end
 
-    repo_uploads = sandbox.fs.writes.keys.grep(%r{\A#{WORKSPACE}/\.pi/skills/[^/]+/SKILL\.md\z})
-    assert repo_uploads.any?, "snapshot without bake falls back to host upload"
+    # The host fallback tars the tree, uploads one archive, and extracts it
+    # in the sandbox — one upload instead of ~300 per-file writes.
+    assert sandbox.fs.writes.key?("/tmp/metis-repo-skills.tgz"), "uploads the skills tarball"
+    extracted = sandbox.process.runs.any? { |c| c.include?("tar -xzf") && c.include?("#{WORKSPACE}/.pi/skills") }
+    assert extracted, "extracts the tarball into the workspace skills dir"
   end
 
   test "resumed sandbox skips team-skill rewrite when the signature marker matches the DB" do

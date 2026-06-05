@@ -37,7 +37,11 @@
         <%= render "messages/artifacts", message: message %>
 
         <% if message.streaming? || message.pending? %>
-          <%= render "messages/streaming_indicator", message: message, phase: nil %>
+          <%# A just-pending turn seeds the indicator with the predicted
+              provisioning phase (the live broadcast races the HTTP render);
+              once streaming, the broadcaster drives the phase. %>
+          <%= render "messages/streaming_indicator", message: message,
+                phase: (message.pending? ? runtime_initial_phase(message.conversation) : nil) %>
         <% end %>
 
         <% if message.canceled? %>
