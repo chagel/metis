@@ -29,6 +29,21 @@ class ChatBroadcaster
     finish
   end
 
+  # Place the still-pending assistant card on the *conversation* stream at the
+  # very start of the turn — before #handle's runtime/text broadcasts. The
+  # controller no longer appends it over HTTP: that put the card on a separate,
+  # unordered channel, so the first provisioning status ("Creating sandbox…")
+  # raced the card's render and was dropped (only the later "Preparing
+  # workspace…" survived). Appending it here, ordered ahead of every status on
+  # the same stream, guarantees the card exists when those land — and the card
+  # renders with the runtime's predicted opening phase (the job runs the real
+  # runtime, so the prediction is right even if the web process isn't). It also
+  # means teammates watching a shared conversation see the turn appear live.
+  def place_pending
+    broadcast(:append, target: "messages", partial: "messages/message",
+                       locals: { message: @message })
+  end
+
   # Appends the "running" dot to this conversation's sidebar row.
   # The dot is broadcast on the user's stream so it appears even when
   # the user is viewing a different conversation.

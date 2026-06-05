@@ -2,9 +2,9 @@
   <%= render @user_message %>
 <% end %>
 
-<%= turbo_stream.append "messages" do %>
-  <%= render @assistant_message %>
-<% end %>
+<%# The assistant placeholder is appended by ChatJob on the conversation
+    stream (ChatBroadcaster#place_pending), so it's ordered ahead of the
+    provisioning-status broadcasts instead of racing them over HTTP. %>
 
 <%= turbo_stream.replace "composer",
       partial: "conversations/composer", locals: { conversation: @conversation } %>

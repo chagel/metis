@@ -26,6 +26,10 @@ class ChatJob < ApplicationJob
   private
 
   def run(conversation, user_message, assistant_message, broadcaster, adapter)
+    # Render the card while it's still :pending so its indicator seeds with the
+    # runtime's predicted opening phase; the status broadcasts below then ride
+    # the same (ordered) stream, so the acquire phase no longer races.
+    broadcaster.place_pending
     assistant_message.update!(streaming_status: :streaming)
     broadcaster.start_sidebar_indicator
     text = +""
