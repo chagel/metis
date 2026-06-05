@@ -23,29 +23,11 @@ namespace :e2b do
       rm -rf /var/lib/apt/lists/*
     SH
 
-    # The @googleworkspace/cli package ships both glibc and musl Linux binaries.
-    # Its platform detector picks glibc by default, but the e2b base image
-    # (Debian bookworm) only has GLIBC 2.36 while the prebuilt glibc binary
-    # requires GLIBC 2.39, causing a hard crash on every gws call. Patch
-    # platform.js to always prefer musl on Linux (statically linked, no glibc
-    # dependency) then force-reinstall the binary.
-    fix_gws_musl = <<~'SH'.strip.gsub(/\s+/, " ")
-      node -e "
-        const fs = require('fs');
-        const p = '/usr/local/lib/node_modules/@googleworkspace/cli/platform.js';
-        let src = fs.readFileSync(p, 'utf8');
-        src = src.replace(
-          /\/\/ On Linux[\s\S]*?if \(rawOs === 'Linux'\) \{[\s\S]*?\}\s*\}/,
-          \"// On Linux, prefer musl to avoid glibc version issues\n  if (rawOs === 'Linux') { osType = 'unknown-linux-musl'; }\"
-        );
-        fs.writeFileSync(p, src);
-      " &&
-      rm -f /usr/local/lib/node_modules/@googleworkspace/cli/bin/.version &&
-      node /usr/local/lib/node_modules/@googleworkspace/cli/install.js
-    SH
-
+    # Debian trixie (glibc 2.41), not the default node:lts (bookworm, glibc
+    # 2.36). The @googleworkspace/cli prebuilt glibc binary requires GLIBC
+    # 2.39 — on bookworm every `gws` call hard-crashes with a version error.
     template = E2B::Template.new(file_context_path: Rails.root.to_s)
-                            .from_node_image
+                            .from_node_image("lts-trixie")
                             .apt_install([ "curl", "gnupg" ])
                             .run_cmd(install_gh, user: "root")
                             .npm_install(pi_package, g: true)
@@ -58,9 +40,6 @@ namespace :e2b do
                             # agent. npm fetches the matching prebuilt
                             # binary from the project's GitHub Releases.
                             .npm_install("@googleworkspace/cli", g: true)
-                            # Force the musl (statically-linked) binary — see
-                            # fix_gws_musl comment above.
-                            .run_cmd(fix_gws_musl, user: "root")
                             # Explicit user: pi extensions install into the user's
                             # home; running as root would write to /root/.pi and
                             # pi at runtime (user `user`) wouldn't find them.
