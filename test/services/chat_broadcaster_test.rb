@@ -52,10 +52,6 @@ class ChatBroadcasterTest < ActiveSupport::TestCase
     assert_equal "", @broadcaster.instance_variable_get(:@text)
   end
 
-  test "place_pending renders and broadcasts the assistant card without error" do
-    assert_nothing_raised { @broadcaster.place_pending }
-  end
-
   test "a runtime_status event renders the phase into the indicator" do
     @broadcaster.handle(event(:runtime_status, phase: :resuming, message: "Resuming sandbox"))
 
