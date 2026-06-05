@@ -10,6 +10,8 @@ module Agent
     # E2B delivers stdout as arbitrary byte chunks, not lines, so chunks are
     # reframed through PiAgent::Framer (strict-LF JSONL) before parsing.
     class E2bTransport
+      include TransportTiming
+
       CLOSE_TIMEOUT = 5
       # Lifetime cap for the pi process. The e2b SDK derives the stdout
       # stream's HTTP timeout from this, so it must comfortably exceed the
@@ -89,16 +91,6 @@ module Agent
         @on_message&.call(JSON.parse(line))
       rescue JSON::ParserError => e
         Rails.logger.warn("[e2b] non-JSON line from pi: #{e.message}: #{line.inspect}")
-      end
-
-      # ms from command start to pi's first RPC line — sandbox command setup +
-      # pi boot, the "thinking…" the user waits through before output streams.
-      def log_first_message
-        return if @first_message_logged
-
-        @first_message_logged = true
-        ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - @started_at) * 1000).round
-        Rails.logger.info("[e2b timing] first_pi_message=#{ms}ms")
       end
 
       # pi's stderr is otherwise invisible — the runtime is a remote

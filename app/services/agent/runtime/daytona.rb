@@ -268,8 +268,9 @@ module Agent
       # latest message id is the freshness token any new turn bumps.
       # Logged-not-raised.
       def schedule_stop(sandbox)
-        conversation.update_column(:daytona_sandbox_id, sandbox.id) \
-          if conversation.daytona_sandbox_id != sandbox.id
+        if conversation.daytona_sandbox_id != sandbox.id
+          conversation.update_column(:daytona_sandbox_id, sandbox.id)
+        end
 
         DaytonaStopJob
           .set(wait: self.class.keep_warm_seconds.seconds)
@@ -284,11 +285,9 @@ module Agent
 
       # Copy the baked repo .pi/skills/ tree from the snapshot image into the
       # conversation workspace. One sandbox-local cp instead of ~300 per-file
-      # uploads. No-op on resumed sandboxes (the tree persists via stop/start)
-      # and on snapshots that predate the bake.
+      # uploads. Caller (#stage_skills) gates this on the baked dir existing and
+      # on a fresh sandbox (the tree persists via stop/start on a resumed one).
       def stage_repo_skills_from_snapshot(sandbox)
-        return unless file_exists?(sandbox, BAKED_REPO_SKILLS_DIR)
-
         dest = "#{WORKSPACE_DIR}/#{Agent::Workspace::SKILLS_SUBPATH}"
         sandbox.process.exec(
           "rm -rf #{Shellwords.escape(dest)} && " \
@@ -528,11 +527,11 @@ module Agent
         sandbox.fs.download_file(path).to_s
       end
 
+      # Any Daytona error (NotFoundError included) means "treat as absent" —
+      # a transient probe failure should fall back to re-staging, not crash.
       def file_exists?(sandbox, path)
         sandbox.fs.get_file_info(path)
         true
-      rescue ::Daytona::NotFoundError
-        false
       rescue ::Daytona::DaytonaError
         false
       end
