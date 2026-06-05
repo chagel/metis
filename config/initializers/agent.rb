@@ -74,6 +74,15 @@ Rails.application.config.x.agent.daytona_auto_archive_minutes =
 Rails.application.config.x.agent.daytona_auto_delete_minutes =
   ENV.fetch("METIS_DAYTONA_AUTO_DELETE_MINUTES", "1440").to_i
 
+# Keep-warm window (seconds). After a turn, Runtime::Daytona schedules the
+# sandbox stop this many seconds out (DaytonaStopJob) instead of stopping
+# inline — so the stop never holds the worker, and a follow-up within the
+# window reuses the still-running box (no stop, no resume). The trade-off is
+# idle compute billing for the window; autoStop (above) is the backstop if the
+# job never runs. 0 = stop as soon as the job runs (async, no warm window).
+Rails.application.config.x.agent.daytona_keep_warm_seconds =
+  ENV.fetch("METIS_DAYTONA_KEEP_WARM_SECONDS", "120").to_i
+
 # pi's default provider/model — used when a conversation sets none of
 # its own (the new-chat composer normally does). See
 # Agent::Adapters::Pi#credential_args.

@@ -173,15 +173,17 @@ class Agent::Runtime::DaytonaTest < ActiveSupport::TestCase
     assert_equal "Resuming sandbox", Agent::Runtime::Daytona.new(conversation: @conversation).initial_status
   end
 
-  test "first turn creates a sandbox, stops it, and records the id on the conversation" do
+  test "first turn creates a sandbox, schedules its stop, and records the id on the conversation" do
     sandbox = FakeSandbox.new(id: "sbx-new")
     client = FakeClient.new(create: sandbox)
 
-    with_daytona(client: client) do
-      @runtime.run(pi_args: [ "--mode", "rpc" ]) { |_s| nil }
+    assert_enqueued_with(job: DaytonaStopJob, args: [ @conversation.id, "sbx-new", nil ]) do
+      with_daytona(client: client) do
+        @runtime.run(pi_args: [ "--mode", "rpc" ]) { |_s| nil }
+      end
     end
 
-    assert_equal 1, sandbox.stop_count, "sandbox stopped at end of turn"
+    assert_equal 0, sandbox.stop_count, "stop is deferred to the keep-warm job, not inline"
     refute sandbox.deleted?, "sandbox not deleted — the next turn will resume it"
     assert_equal "sbx-new", @conversation.reload.daytona_sandbox_id
   end
@@ -201,18 +203,17 @@ class Agent::Runtime::DaytonaTest < ActiveSupport::TestCase
     assert_equal Rails.application.config.x.agent.daytona_auto_delete_minutes, params.auto_delete_interval
   end
 
-  test "discards .mcp.json before stopping so the persisted fs holds no bearer tokens" do
+  test "discards .mcp.json at end of turn so the fs holds no bearer tokens" do
     mcp_path = "#{WORKSPACE}/#{Agent::McpConfig::FILENAME}"
-    runs_at_stop = nil
-    sandbox = FakeSandbox.new(id: "sbx-new", on_stop: ->(s) { runs_at_stop = s.process.runs.dup })
+    sandbox = FakeSandbox.new(id: "sbx-new")
     client = FakeClient.new(create: sandbox)
 
     with_daytona(client: client) do
       @runtime.run(pi_args: [ "--mode", "rpc" ]) { |_s| nil }
     end
 
-    assert_includes runs_at_stop, "rm -f #{mcp_path}",
-                    "mcp config deleted before stop — a stopped sandbox must not hold tokens"
+    assert_includes sandbox.process.runs, "rm -f #{mcp_path}",
+                    "mcp config deleted at end of turn — the warm/persisted fs must hold no tokens"
   end
 
   test "subsequent turns resume the stored sandbox and start it when stopped" do
@@ -227,7 +228,7 @@ class Agent::Runtime::DaytonaTest < ActiveSupport::TestCase
     assert_equal [ "sbx-existing" ], client.got_ids
     assert_equal [ Agent::Runtime::Daytona::SANDBOX_TIMEOUT ], sandbox.start_timeouts,
                  "started with the runtime's timeout"
-    assert_equal 1, sandbox.stop_count, "stopped again at end of turn"
+    assert_equal 0, sandbox.stop_count, "stop deferred to the keep-warm job"
     assert_equal "sbx-existing", @conversation.reload.daytona_sandbox_id, "id unchanged when reused"
   end
 
@@ -254,15 +255,27 @@ class Agent::Runtime::DaytonaTest < ActiveSupport::TestCase
 
     assert_equal "sbx-replacement", @conversation.reload.daytona_sandbox_id,
                  "the new sandbox's id replaces the stale one"
-    assert_equal 1, fresh.stop_count
   end
 
-  test "stop failure best-effort deletes the sandbox and clears the id" do
-    sandbox = FakeSandbox.new(id: "sbx-stop-fail", stop_error: ::Daytona::DaytonaError.new("stop http 500"))
-    client = FakeClient.new(create: sandbox)
+  test "stop_sandbox stops the box for the deferred keep-warm stop" do
+    sandbox = FakeSandbox.new(id: "sbx-stop")
+    client = FakeClient.new(get: sandbox)
 
     with_daytona(client: client) do
-      @runtime.run(pi_args: [ "--mode", "rpc" ]) { |_s| nil }
+      Agent::Runtime::Daytona.stop_sandbox(@conversation, "sbx-stop")
+    end
+
+    assert_equal 1, sandbox.stop_count
+    refute sandbox.deleted?
+  end
+
+  test "stop_sandbox best-effort deletes the sandbox and clears the id when stop fails" do
+    @conversation.update_column(:daytona_sandbox_id, "sbx-stop-fail")
+    sandbox = FakeSandbox.new(id: "sbx-stop-fail", stop_error: ::Daytona::DaytonaError.new("stop http 500"))
+    client = FakeClient.new(get: sandbox)
+
+    with_daytona(client: client) do
+      Agent::Runtime::Daytona.stop_sandbox(@conversation, "sbx-stop-fail")
     end
 
     assert sandbox.deleted?, "fallback to delete when stop fails"
@@ -481,10 +494,9 @@ class Agent::Runtime::DaytonaTest < ActiveSupport::TestCase
     assert_equal({ "runtime" => "daytona", "sandbox_id" => "sbx-99" }, @runtime.runtime_info)
   end
 
-  test "collects artifacts from the sandbox before the stop" do
+  test "collects artifacts from the sandbox during the turn" do
     art_path = "#{Agent::Runtime::Daytona::ARTIFACTS_DIR}/report.csv"
-    stopped_with_artifacts = nil
-    sandbox = FakeSandbox.new(on_stop: ->(_s) { stopped_with_artifacts = @runtime.artifacts.map { |a| a[:filename] } })
+    sandbox = FakeSandbox.new
     sandbox.fs.exist_paths << Agent::Runtime::Daytona::ARTIFACTS_DIR
     sandbox.fs.entries_by_dir[Agent::Runtime::Daytona::ARTIFACTS_DIR] = [
       file_entry("report.csv", size: 8, mtime: Time.now + 5)
@@ -496,8 +508,8 @@ class Agent::Runtime::DaytonaTest < ActiveSupport::TestCase
       @runtime.run(pi_args: [ "--mode", "rpc" ]) { |_s| nil }
     end
 
-    assert_equal [ "report.csv" ], stopped_with_artifacts,
-                 "artifacts collected before stop — a stopped sandbox is unreachable"
+    assert_equal [ "report.csv" ], @runtime.artifacts.map { |a| a[:filename] },
+                 "artifacts collected while the sandbox is reachable"
     assert_equal "a,b\n1,2\n", @runtime.artifacts.first[:io].read
   end
 

@@ -15,8 +15,9 @@ module Agent
     # docs/session-persistence.md).
     #
     # Unlike E2B, where a suspended sandbox is free, Daytona still bills a
-    # *stopped* sandbox for disk storage — so #pause_sandbox stops at end of
-    # turn (to end compute billing) and create sets autoArchive/autoDelete to
+    # *stopped* sandbox for disk storage — so the sandbox is stopped after a
+    # keep-warm window (#schedule_stop enqueues DaytonaStopJob, off the request
+    # path) to end compute billing, and create sets autoArchive/autoDelete to
     # move a long-idle sandbox to cheap object storage and then reap it. There
     # is no eviction cron; that ladder is Daytona's job.
     #
@@ -70,6 +71,27 @@ module Agent
         Rails.logger.warn("Daytona sandbox delete failed for sandbox_id=#{sandbox_id}: #{e.message}")
       end
 
+      # Seconds a conversation's sandbox stays running after a turn before the
+      # deferred stop ends its compute billing.
+      def self.keep_warm_seconds
+        Rails.application.config.x.agent.daytona_keep_warm_seconds.to_i
+      end
+
+      # Stop the sandbox to end compute billing while keeping its filesystem for
+      # the next resume. Called out-of-band by DaytonaStopJob after the
+      # keep-warm window. Logged-not-raised: on failure the box is deleted so it
+      # can't leak as a running orphan, and the id is cleared so the next turn
+      # provisions fresh.
+      def self.stop_sandbox(conversation, sandbox_id)
+        client.get(sandbox_id).stop(timeout: SANDBOX_TIMEOUT)
+      rescue ::Daytona::NotFoundError
+        conversation.update_column(:daytona_sandbox_id, nil)
+      rescue ::Daytona::DaytonaError => e
+        Rails.logger.warn("Daytona deferred stop failed for conversation #{conversation.id}: #{e.message}")
+        kill_sandbox(sandbox_id)
+        conversation.update_column(:daytona_sandbox_id, nil)
+      end
+
       def session_dir
         Pathname.new(SESSION_DIR)
       end
@@ -119,6 +141,7 @@ module Agent
 
       def run(pi_args:, &block)
         @timings = {}
+        @timings_mutex = Mutex.new
         sandbox = timed(:acquire) { acquire_sandbox }
         @sandbox_id = sandbox.id
         turn_started_at = Time.current.floor  # see Local#run
@@ -128,18 +151,20 @@ module Agent
           timed(:collect_artifacts) { collect_sandbox_artifacts(sandbox, since: turn_started_at) } if turn_started_at
           timed(:ingest_team_skills) { ingest_team_skills(sandbox: sandbox, slugs: touched_skill_slugs) }
           timed(:discard_mcp) { discard_mcp_config(sandbox) }
-          timed(:pause) { pause_sandbox(sandbox) }
+          timed(:schedule_stop) { schedule_stop(sandbox) }
         end
         log_timings
       end
 
       # Wrap a turn phase, recording its wall-clock (ms) in @timings for the
       # end-of-turn #log_timings summary. Returns the block's value untouched.
+      # Thread-safe: staging phases time themselves from worker threads.
       def timed(phase)
         started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         yield
       ensure
-        @timings[phase] = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000).round
+        ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000).round
+        @timings_mutex.synchronize { @timings[phase] = ms }
       end
 
       # One greppable line per turn: where the wall-clock went. resumed=false is
@@ -153,8 +178,8 @@ module Agent
         )
       end
 
-      # Pull each touched skill out of the sandbox and upsert it. Must run
-      # before #pause_sandbox: a stopped sandbox's toolbox is unreachable.
+      # Pull each touched skill out of the sandbox and upsert it. Runs while the
+      # sandbox is still up (before #schedule_stop hands it to the stop job).
       # Logged-not-raised.
       def ingest_team_skills(sandbox:, slugs:)
         repo_slugs = Agent::Workspace.repo_slugs
@@ -197,17 +222,46 @@ module Agent
       def execute(sandbox, pi_args:)
         emit_status(:preparing, "Preparing workspace")
         timed(:provision) { provision(sandbox) }
-        timed(:stage_extensions) { stage_extensions(sandbox) }
-        timed(:stage_uploads) { stage_uploads(sandbox) }
-        timed(:stage_mcp) { stage_mcp_config(sandbox) }
-        timed(:stage_identity) { stage_identity(sandbox) }
-        timed(:stage_skills) { stage_skills(sandbox) }
+        # Individual stage_* timings below overlap (they run concurrently);
+        # :staging is the wall-clock that actually counts.
+        timed(:staging) { stage_projected_inputs(sandbox) }
         session = PiAgent.session(transport_factory: transport_factory(sandbox, pi_args, sandbox_env))
         begin
           timed(:pi_session) { yield session }
         ensure
           session.close
         end
+      end
+
+      # label => method for the per-turn projected inputs. Each is a chain of
+      # toolbox round trips writing to a disjoint path, so they stage
+      # concurrently (see #stage_projected_inputs).
+      PARALLEL_STAGES = {
+        stage_extensions: :stage_extensions,
+        stage_uploads: :stage_uploads,
+        stage_mcp: :stage_mcp_config,
+        stage_identity: :stage_identity,
+        stage_skills: :stage_skills
+      }.freeze
+
+      # Stage the projected inputs concurrently — wall-clock becomes the slowest
+      # single step instead of their sum. Safe because they write to disjoint
+      # paths and the persistent HTTP adapter pools connections per thread.
+      # #provision already ran (it creates the scope dirs these write under).
+      # Each thread runs under the Rails executor so its Active Record
+      # connection is returned promptly and autoloading is thread-safe. A
+      # failure in any step is re-raised after all join, so staging still fails
+      # the turn.
+      def stage_projected_inputs(sandbox)
+        errors = Thread::Queue.new
+        PARALLEL_STAGES.map do |label, method|
+          Thread.new do
+            Rails.application.executor.wrap { timed(label) { send(method, sandbox) } }
+          rescue StandardError => e
+            errors << e
+          end
+        end.each(&:join)
+        raise errors.pop unless errors.empty?
       end
 
       # Resume the conversation's stopped sandbox, or create one if there isn't
@@ -259,25 +313,23 @@ module Agent
         )
       end
 
-      # Stop the sandbox so the next turn can resume it; persist the id if it
-      # changed (first turn) or was cleared. Logged-not-raised: a stop failure
-      # at end-of-turn must not crash the turn the user already saw. If stop
-      # fails we best-effort delete so it doesn't leak as a running orphan, and
-      # clear the id — next turn provisions fresh.
-      def pause_sandbox(sandbox)
-        sandbox.stop(timeout: SANDBOX_TIMEOUT)
+      # Hand the sandbox off to a deferred stop rather than stopping inline. The
+      # turn already streamed, so the stop (pure cost-control) must not hold the
+      # worker or serialize with the next turn's resume. Persist the id now — a
+      # follow-up, possibly inside the keep-warm window, needs it — then enqueue
+      # the stop for keep_warm_seconds later. A follow-up within the window
+      # reuses the still-running box and the job no-ops (see DaytonaStopJob); the
+      # latest message id is the freshness token any new turn bumps.
+      # Logged-not-raised.
+      def schedule_stop(sandbox)
         conversation.update_column(:daytona_sandbox_id, sandbox.id) \
           if conversation.daytona_sandbox_id != sandbox.id
-      rescue StandardError => e
-        Rails.logger.warn("Daytona sandbox stop failed for conversation #{conversation.id}: #{e.message}")
-        force_delete_after_stop_failure(sandbox)
-        conversation.update_column(:daytona_sandbox_id, nil)
-      end
 
-      def force_delete_after_stop_failure(sandbox)
-        sandbox.delete
-      rescue StandardError
-        # nothing more to do — log was already written by pause_sandbox
+        DaytonaStopJob
+          .set(wait: self.class.keep_warm_seconds.seconds)
+          .perform_later(conversation.id, sandbox.id, conversation.messages.maximum(:id))
+      rescue StandardError => e
+        Rails.logger.warn("Daytona schedule_stop failed for conversation #{conversation.id}: #{e.message}")
       end
 
       def provision(sandbox)
@@ -352,8 +404,8 @@ module Agent
         put_file(sandbox, "#{WORKSPACE_DIR}/#{Agent::McpConfig::FILENAME}", mcp_config)
       end
 
-      # Delete .mcp.json before #pause_sandbox so the stopped sandbox's
-      # persisted filesystem never holds the live bearer tokens it carries.
+      # Delete .mcp.json at end of turn so neither the keep-warm running sandbox
+      # nor its persisted filesystem holds the live bearer tokens it carries.
       # Re-staged next turn. Logged-not-raised.
       def discard_mcp_config(sandbox)
         path = "#{WORKSPACE_DIR}/#{Agent::McpConfig::FILENAME}"
@@ -449,8 +501,8 @@ module Agent
         put_file(sandbox, marker_path, signature)
       end
 
-      # Must run before #pause_sandbox — a stopped sandbox's toolbox is
-      # unreachable.
+      # Runs while the sandbox is still up (before #schedule_stop hands it to
+      # the stop job) — a stopped sandbox's toolbox is unreachable.
       def collect_sandbox_artifacts(sandbox, since:)
         return unless file_exists?(sandbox, ARTIFACTS_DIR)
 
