@@ -130,6 +130,36 @@ module Agent
         )
       end
 
+      # label => method for the per-turn projected inputs, shared by the
+      # sandbox runtimes (E2b, Daytona — same method names). #provision, which
+      # creates the scope dirs these write under, runs first and separately.
+      PARALLEL_STAGES = {
+        stage_extensions: :stage_extensions,
+        stage_uploads: :stage_uploads,
+        stage_mcp: :stage_mcp_config,
+        stage_identity: :stage_identity,
+        stage_skills: :stage_skills
+      }.freeze
+
+      # Stage the projected inputs concurrently — wall-clock becomes the slowest
+      # single step instead of their sum. Safe because they write to disjoint
+      # paths and each runtime's SDK tolerates concurrent calls (Daytona pools
+      # connections per thread; E2b verified). Each thread runs under the Rails
+      # executor so its Active Record connection is returned promptly and
+      # autoloading is thread-safe. A failure in any step is re-raised after all
+      # join, so staging still fails the turn.
+      def stage_projected_inputs(sandbox)
+        errors = Thread::Queue.new
+        PARALLEL_STAGES.map do |label, method|
+          Thread.new do
+            Rails.application.executor.wrap { timed(label) { send(method, sandbox) } }
+          rescue StandardError => e
+            errors << e
+          end
+        end.each(&:join)
+        raise errors.pop unless errors.empty?
+      end
+
       # Per-turn process environment to expose to the agent inside the
       # sandbox — credentials projected from the operator's OauthGrants.
       # Each entry is conditional on the operator having authorised the

@@ -159,11 +159,9 @@ module Agent
       def execute(sandbox, pi_args:)
         emit_status(:preparing, "Preparing workspace")
         timed(:provision) { provision(sandbox) }
-        timed(:stage_extensions) { stage_extensions(sandbox) }
-        timed(:stage_uploads) { stage_uploads(sandbox) }
-        timed(:stage_mcp) { stage_mcp_config(sandbox) }
-        timed(:stage_identity) { stage_identity(sandbox) }
-        timed(:stage_skills) { stage_skills(sandbox) }
+        # Individual stage_* timings below overlap (they run concurrently);
+        # :staging is the wall-clock that actually counts.
+        timed(:staging) { stage_projected_inputs(sandbox) }
         session = PiAgent.session(transport_factory: transport_factory(sandbox, pi_args, sandbox_env))
         begin
           timed(:pi_session) { yield session }
@@ -344,16 +342,18 @@ module Agent
         dest_root = "#{WORKSPACE_DIR}/#{Agent::Workspace::SKILLS_SUBPATH}"
 
         unless @sandbox_was_resumed
-          if sandbox.files.exists?(BAKED_REPO_SKILLS_DIR)
-            stage_repo_skills_from_template(sandbox)
-          else
-            # Legacy fallback for templates built before the bake.
-            sandbox.commands.run("rm -rf #{Shellwords.escape(dest_root)}")
-            stage_repo_skills_from_host(sandbox, dest_root)
+          timed(:skills_repo) do
+            if sandbox.files.exists?(BAKED_REPO_SKILLS_DIR)
+              stage_repo_skills_from_template(sandbox)
+            else
+              # Legacy fallback for templates built before the bake.
+              sandbox.commands.run("rm -rf #{Shellwords.escape(dest_root)}")
+              stage_repo_skills_from_host(sandbox, dest_root)
+            end
           end
         end
 
-        stage_team_skills(sandbox, dest_root)
+        timed(:skills_team) { stage_team_skills(sandbox, dest_root) }
       end
 
       def stage_repo_skills_from_host(sandbox, dest_root)
@@ -380,12 +380,14 @@ module Agent
           return if sandbox.files.read(marker_path) == signature
         end
 
-        repo_slugs = Agent::Workspace.repo_slugs
         enabled = conversation.team.skills.enabled.to_a
-        enabled_slugs = enabled.map(&:slug).to_set
 
-        # Drop sandbox dirs no longer enabled (operator-deleted / disabled).
-        if sandbox.files.exists?(dest_root)
+        # Pruning stale dirs and clearing each slug dir before re-writing only
+        # matters on a resumed sandbox — a fresh one's skills dir was just
+        # created, so there is nothing stale; skip those RPCs on fresh.
+        if @sandbox_was_resumed && sandbox.files.exists?(dest_root)
+          repo_slugs = Agent::Workspace.repo_slugs
+          enabled_slugs = enabled.map(&:slug).to_set
           sandbox.files.list(dest_root).each do |entry|
             next if entry.file?
 
@@ -399,7 +401,7 @@ module Agent
 
         enabled.each do |skill|
           slug_dir = "#{dest_root}/#{skill.slug}"
-          sandbox.commands.run("rm -rf #{Shellwords.escape(slug_dir)}")
+          sandbox.commands.run("rm -rf #{Shellwords.escape(slug_dir)}") if @sandbox_was_resumed
           skill.files.each do |file|
             rel = Pathname.new(skill.relative_path(file)).cleanpath.to_s
             next if rel.start_with?("..") || rel.start_with?("/")

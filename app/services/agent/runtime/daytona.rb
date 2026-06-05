@@ -210,37 +210,6 @@ module Agent
         end
       end
 
-      # label => method for the per-turn projected inputs. Each is a chain of
-      # toolbox round trips writing to a disjoint path, so they stage
-      # concurrently (see #stage_projected_inputs).
-      PARALLEL_STAGES = {
-        stage_extensions: :stage_extensions,
-        stage_uploads: :stage_uploads,
-        stage_mcp: :stage_mcp_config,
-        stage_identity: :stage_identity,
-        stage_skills: :stage_skills
-      }.freeze
-
-      # Stage the projected inputs concurrently — wall-clock becomes the slowest
-      # single step instead of their sum. Safe because they write to disjoint
-      # paths and the persistent HTTP adapter pools connections per thread.
-      # #provision already ran (it creates the scope dirs these write under).
-      # Each thread runs under the Rails executor so its Active Record
-      # connection is returned promptly and autoloading is thread-safe. A
-      # failure in any step is re-raised after all join, so staging still fails
-      # the turn.
-      def stage_projected_inputs(sandbox)
-        errors = Thread::Queue.new
-        PARALLEL_STAGES.map do |label, method|
-          Thread.new do
-            Rails.application.executor.wrap { timed(label) { send(method, sandbox) } }
-          rescue StandardError => e
-            errors << e
-          end
-        end.each(&:join)
-        raise errors.pop unless errors.empty?
-      end
-
       # Resume the conversation's stopped sandbox, or create one if there isn't
       # a usable one. A stored id that no longer resolves (Daytona-side cleanup,
       # eviction, manual delete) is cleared and we fall back to fresh provision.
@@ -447,12 +416,14 @@ module Agent
           return if download_text(sandbox, marker_path) == signature
         end
 
-        repo_slugs = Agent::Workspace.repo_slugs
         enabled = conversation.team.skills.enabled.to_a
-        enabled_slugs = enabled.map(&:slug).to_set
 
-        # Drop sandbox dirs no longer enabled (operator-deleted / disabled).
-        if file_exists?(sandbox, dest_root)
+        # Pruning stale dirs and clearing each slug dir before re-writing only
+        # matters on a resumed sandbox — a fresh one's skills dir was just
+        # created, so there is nothing stale; skip those round trips on fresh.
+        if @sandbox_was_resumed && file_exists?(sandbox, dest_root)
+          repo_slugs = Agent::Workspace.repo_slugs
+          enabled_slugs = enabled.map(&:slug).to_set
           sandbox.fs.list_files(dest_root).each do |entry|
             next unless entry_dir?(entry)
 
@@ -465,7 +436,7 @@ module Agent
 
         enabled.each do |skill|
           slug_dir = "#{dest_root}/#{skill.slug}"
-          sandbox.process.exec("rm -rf #{Shellwords.escape(slug_dir)}")
+          sandbox.process.exec("rm -rf #{Shellwords.escape(slug_dir)}") if @sandbox_was_resumed
           skill.files.each do |file|
             rel = Pathname.new(skill.relative_path(file)).cleanpath.to_s
             next if rel.start_with?("..") || rel.start_with?("/")
