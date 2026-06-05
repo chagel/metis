@@ -37,6 +37,7 @@ module Agent
       end
 
       def start
+        @started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         @sandbox.process.create_session(@session_id)
         response = @sandbox.process.execute_session_command(
           @session_id,
@@ -99,9 +100,20 @@ module Agent
       end
 
       def dispatch_message(line)
+        log_first_message
         @on_message&.call(JSON.parse(line))
       rescue JSON::ParserError => e
         Rails.logger.warn("[daytona] non-JSON line from pi: #{e.message}: #{line.inspect}")
+      end
+
+      # ms from session start to pi's first RPC line — session setup + pi boot,
+      # the "thinking…" the user waits through before output streams.
+      def log_first_message
+        return if @first_message_logged
+
+        @first_message_logged = true
+        ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - @started_at) * 1000).round
+        Rails.logger.info("[daytona timing] first_pi_message=#{ms}ms")
       end
 
       # pi's stderr is otherwise invisible — the runtime is a remote sandbox

@@ -164,9 +164,7 @@ class ChatBroadcaster
   # indicator the elapsed timer lives in — these arrive before pi's first event.
   def update_runtime_status(event)
     @phase_shown = true
-    broadcast(:replace, target: "#{base_id}_indicator",
-                        partial: "messages/streaming_indicator",
-                        locals: { message: @message, phase: event[:message] })
+    broadcast_indicator(phase: event[:message])
   end
 
   # pi has started producing output, so provisioning is done — drop the phase
@@ -175,9 +173,13 @@ class ChatBroadcaster
     return unless @phase_shown
 
     @phase_shown = false
+    broadcast_indicator(phase: nil)
+  end
+
+  def broadcast_indicator(phase:)
     broadcast(:replace, target: "#{base_id}_indicator",
                         partial: "messages/streaming_indicator",
-                        locals: { message: @message, phase: nil })
+                        locals: { message: @message, phase: phase })
   end
 
   # Append into the message card, not the body — the body's innerHTML is

@@ -118,17 +118,39 @@ module Agent
       end
 
       def run(pi_args:, &block)
-        sandbox = acquire_sandbox
+        @timings = {}
+        sandbox = timed(:acquire) { acquire_sandbox }
         @sandbox_id = sandbox.id
         turn_started_at = Time.current.floor  # see Local#run
         execute(sandbox, pi_args: pi_args, &block)
       ensure
         if sandbox
-          collect_sandbox_artifacts(sandbox, since: turn_started_at) if turn_started_at
-          ingest_team_skills(sandbox: sandbox, slugs: touched_skill_slugs)
-          discard_mcp_config(sandbox)
-          pause_sandbox(sandbox)
+          timed(:collect_artifacts) { collect_sandbox_artifacts(sandbox, since: turn_started_at) } if turn_started_at
+          timed(:ingest_team_skills) { ingest_team_skills(sandbox: sandbox, slugs: touched_skill_slugs) }
+          timed(:discard_mcp) { discard_mcp_config(sandbox) }
+          timed(:pause) { pause_sandbox(sandbox) }
         end
+        log_timings
+      end
+
+      # Wrap a turn phase, recording its wall-clock (ms) in @timings for the
+      # end-of-turn #log_timings summary. Returns the block's value untouched.
+      def timed(phase)
+        started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        yield
+      ensure
+        @timings[phase] = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000).round
+      end
+
+      # One greppable line per turn: where the wall-clock went. resumed=false is
+      # a fresh create. Grep `[daytona timing]` to aggregate.
+      def log_timings
+        return if @timings.blank?
+
+        summary = @timings.map { |phase, ms| "#{phase}=#{ms}ms" }.join(" ")
+        Rails.logger.info(
+          "[daytona timing] conversation=#{conversation.id} resumed=#{@sandbox_was_resumed} #{summary}"
+        )
       end
 
       # Pull each touched skill out of the sandbox and upsert it. Must run
@@ -174,15 +196,15 @@ module Agent
 
       def execute(sandbox, pi_args:)
         emit_status(:preparing, "Preparing workspace")
-        provision(sandbox)
-        stage_extensions(sandbox)
-        stage_uploads(sandbox)
-        stage_mcp_config(sandbox)
-        stage_identity(sandbox)
-        stage_skills(sandbox)
+        timed(:provision) { provision(sandbox) }
+        timed(:stage_extensions) { stage_extensions(sandbox) }
+        timed(:stage_uploads) { stage_uploads(sandbox) }
+        timed(:stage_mcp) { stage_mcp_config(sandbox) }
+        timed(:stage_identity) { stage_identity(sandbox) }
+        timed(:stage_skills) { stage_skills(sandbox) }
         session = PiAgent.session(transport_factory: transport_factory(sandbox, pi_args, sandbox_env))
         begin
-          yield session
+          timed(:pi_session) { yield session }
         ensure
           session.close
         end
@@ -352,15 +374,17 @@ module Agent
         dest_root = "#{WORKSPACE_DIR}/#{Agent::Workspace::SKILLS_SUBPATH}"
 
         unless @sandbox_was_resumed
-          if file_exists?(sandbox, BAKED_REPO_SKILLS_DIR)
-            stage_repo_skills_from_snapshot(sandbox)
-          else
-            sandbox.process.exec("rm -rf #{Shellwords.escape(dest_root)}")
-            stage_repo_skills_from_host(sandbox, dest_root)
+          timed(:skills_repo) do
+            if file_exists?(sandbox, BAKED_REPO_SKILLS_DIR)
+              stage_repo_skills_from_snapshot(sandbox)
+            else
+              sandbox.process.exec("rm -rf #{Shellwords.escape(dest_root)}")
+              stage_repo_skills_from_host(sandbox, dest_root)
+            end
           end
         end
 
-        stage_team_skills(sandbox, dest_root)
+        timed(:skills_team) { stage_team_skills(sandbox, dest_root) }
       end
 
       # Ship the repo .pi/skills/ tree as one gzipped tar (built on the host)
@@ -475,12 +499,14 @@ module Agent
         []
       end
 
-      def entry_name(entry) = entry["name"] || entry[:name]
-      def entry_dir?(entry) = entry["isDir"] || entry[:isDir] || entry["is_dir"] || entry[:is_dir] || false
-      def entry_size(entry) = entry["size"] || entry[:size]
+      # list_files entries are JSON.parse'd toolbox responses: string keys,
+      # camelCase (name/isDir/size/modTime).
+      def entry_name(entry) = entry["name"]
+      def entry_dir?(entry) = entry["isDir"] || false
+      def entry_size(entry) = entry["size"]
 
       def entry_mtime(entry)
-        raw = entry["modTime"] || entry[:modTime] || entry["mod_time"] || entry[:mod_time]
+        raw = entry["modTime"]
         raw && Time.parse(raw.to_s)
       rescue ArgumentError, TypeError
         nil
