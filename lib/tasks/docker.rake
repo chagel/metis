@@ -15,8 +15,7 @@ namespace :docker do
     Digest::SHA256.hexdigest(parts.join("\x00"))
   end
 
-  def self.build_pi_image(name)
-    fingerprint = pi_image_fingerprint
+  def self.build_pi_image(name, fingerprint: pi_image_fingerprint)
     # Context is the repo root (not docker/pi-runtime) so the Dockerfile can
     # COPY .pi/extensions into the image; .dockerignore keeps storage/ etc. out.
     ok = system(
@@ -28,7 +27,6 @@ namespace :docker do
       Rails.root.to_s
     )
     abort "docker build failed" unless ok
-    fingerprint
   end
 
   desc "Build the pi runtime image for Agent::Runtime::Docker. Usage: rake docker:image[name]"
@@ -67,7 +65,7 @@ namespace :docker do
     end
 
     puts "[sync_pi_image] drift on #{host} (have #{remote.presence&.first(12) || 'none'}, want #{fingerprint[0, 12]}) — rebuilding…"
-    build_pi_image(name)
+    build_pi_image(name, fingerprint: fingerprint)
 
     puts "[sync_pi_image] uploading #{name} to #{host}…"
     loaded = system("bash", "-c",
