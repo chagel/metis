@@ -97,8 +97,9 @@ module Agent
         "Starting container"
       end
 
-      # The app's pi extensions at their in-container paths, under the
-      # read-only extensions mount (#docker_args bind-mounts the dir).
+      # The app's pi extensions at their in-image paths — baked into
+      # metis-pi at EXTENSIONS_DIR (docker/pi-runtime/Dockerfile), not
+      # bind-mounted, so the runtime works under Docker-in-Docker.
       def extension_paths
         Agent::Runtime.extension_sources.map do |source|
           Pathname.new("#{EXTENSIONS_DIR}/#{source.parent.basename}/#{source.basename}")
