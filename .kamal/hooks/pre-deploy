@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+#
+# Kamal pre-deploy hook — keep the metis-pi runtime image in sync on the job
+# host before the new app boots and starts driving it.
+#
+# The :docker agent runtime launches pi from the metis-pi image with
+# `--pull never`, and Kamal does not manage that image (only the app image).
+# Without this, a pi-version or .pi/extensions change would ship in the app
+# while the host still ran the stale runtime image. docker:sync_pi_image
+# fingerprints the image inputs and only rebuilds + uploads on drift, so this
+# is a cheap no-op when nothing changed.
+#
+# Runs on the deployer (needs Docker, as the app build already does). Skips
+# rollbacks and any deploy whose target isn't the docker runtime.
+set -euo pipefail
+
+[ "${KAMAL_COMMAND:-}" = "rollback" ] && exit 0
+grep -qE '^[[:space:]]*METIS_AGENT_RUNTIME:[[:space:]]*docker\b' config/deploy.yml || exit 0
+
+exec bin/rails "docker:sync_pi_image"
