@@ -24,7 +24,12 @@ agent ran — so it belongs to the `Runtime`, not to one shared mechanism.
   durable storage. No archive — the host filesystem is the durable
   source. See [`coding-runtime.md`](coding-runtime.md). The constraint
   that follows (workers all need access to the persistent workspace
-  root) is the same one `Local` has always had.
+  root) is the same one `Local` has always had. Under Docker-in-Docker
+  (the production setup, where the worker is itself a container) that
+  root must sit at an **identical absolute path** on host and worker —
+  `METIS_PERSISTENT_ROOT`, default `/srv/metis/agent` in prod — so the
+  per-turn bind mount the host daemon performs resolves to the same
+  files. See coding-runtime's provisioning notes.
 
 - **`Runtime::E2b`** — the microVM has no host bind mount, but E2B
   natively pauses and resumes a sandbox by id. First turn:

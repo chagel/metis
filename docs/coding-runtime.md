@@ -6,6 +6,16 @@
 > microVM resumed via `pause`/`resume` — but in both cases the
 > conversation's working tree, transcript, and installed dependencies
 > survive between turns. `Agent::SessionArchive` is gone.
+>
+> **Production (since 2026-06):** the `docker` runtime under **gVisor**
+> (`runsc`), driven from the containerized `job` worker via a mounted
+> socket (Docker-in-Docker) on a single host. See [Isolation: runc vs.
+> gVisor](#isolation-runc-vs-gvisor), [Provisioning the job
+> host](#provisioning-the-job-host-docker-in-docker), and [Security
+> posture](#security-posture-rootful-daemon-accepted-rootless-deferred)
+> below. Earlier deployments ran `e2b`; the switch was a speed win
+> (local daemon, no network round-trips) with gVisor restoring
+> microVM-grade isolation.
 
 ## Context
 
@@ -279,11 +289,14 @@ be GC'd later out-of-band.
 - **E2b paused-storage pricing.** Not published by E2B; the 24h
   default eviction window is a conservative guess. Worth measuring
   once we have meaningful usage, then tuning `METIS_E2B_EVICTION_HOURS`.
-- **Docker multi-worker.** A single-host self-host is fine; a
-  multi-worker deployment needs the persistent workspace root on
-  shared FS (NFS or equivalent) or per-conversation host pinning.
-  Same constraint `Local` has always had; worth deciding before the
-  second host appears, not after.
+- **Docker multi-worker.** The current production setup is a single
+  host, which is fine. A multi-worker deployment needs the persistent
+  workspace root (`/srv/metis/agent`) on shared FS (NFS or equivalent)
+  or per-conversation host pinning, and `metis-pi` + gVisor provisioned
+  on every job host. Same constraint `Local` has always had; worth
+  deciding before the second host appears, not after.
+- **Rootless dockerd.** Deferred — see [Security
+  posture](#security-posture-rootful-daemon-accepted-rootless-deferred).
 - **Workspace size cap.** Per-conversation disk budget — a runaway
   `git clone` of a huge monorepo should fail predictably, not
   consume host disk (Docker) or E2B quota.

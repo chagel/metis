@@ -14,14 +14,14 @@ One turn flows from the browser down to pi and streams back up, live:
       ▼
    Agent service layer  (app/services/agent/)
       ├─ Adapters::Pi   the agent — drives pi, native events → UiEvent
-      └─ Runtime        where pi runs — Local · Docker · E2b
+      └─ Runtime        where pi runs — Local · Docker (gVisor) · E2b · Daytona
       │
       ▼  pi-agent-rb · JSONL over stdio
    pi --mode rpc · the agent harness — LLM loop, tools, extensions
 
    Persistence
       ├─ PostgreSQL       conversations & messages
-      └─ Workspace fs     Docker bind mount · E2b pause/resume · Local host
+      └─ Workspace fs     Docker bind mount · E2b/Daytona pause/resume · Local host
 ```
 
 The core is the **Agent service layer** (`app/services/agent/`): an
@@ -35,7 +35,7 @@ Per-area docs:
 - [`connectors.md`](connectors.md) — MCP connectors and OAuth.
 - [`session-persistence.md`](session-persistence.md) — how a conversation's
   scope survives between turns, per runtime.
-- [`coding-runtime.md`](coding-runtime.md) — the `local` / `docker` / `e2b` runtimes.
+- [`coding-runtime.md`](coding-runtime.md) — the `local` / `docker` / `e2b` / `daytona` runtimes (prod: `docker` under gVisor).
 - [`agent-identity.md`](agent-identity.md) — the per-turn `AGENTS.md`.
 - [`skills.md`](skills.md) — team-authored skills.
 - [`configuration.md`](configuration.md) — runtimes, providers, environment.
