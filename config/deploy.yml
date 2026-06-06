@@ -23,8 +23,14 @@ servers:
     # at an identical path on host and container so the per-turn workspace
     # bind mount the daemon performs resolves to the same files
     # (METIS_PERSISTENT_ROOT below). Provision gVisor + the metis-pi image
-    # on the host first. Drop both volumes when running e2b/daytona.
+    # on the host first. Drop these options when running e2b/daytona.
+    #
+    # group-add: the container runs as uid 1000 (rails); the socket is
+    # root:docker 660, so the process must join the host's docker group to
+    # use it. 988 is `getent group docker` on the job host — re-check if the
+    # host is reprovisioned.
     options:
+      group-add: "988"
       volume:
         - "/var/run/docker.sock:/var/run/docker.sock"
         - "/srv/metis/agent:/srv/metis/agent"
