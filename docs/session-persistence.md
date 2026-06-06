@@ -53,6 +53,24 @@ agent ran — so it belongs to the `Runtime`, not to one shared mechanism.
 `Agent::SessionArchive` is gone. The tar-to-Active-Storage path is no
 longer needed by any runtime.
 
+## Context rehydration on a reaped sandbox
+
+When a cloud sandbox is reaped (E2B eviction, Daytona auto-delete, manual
+delete), the next turn provisions a *fresh* one — and pi's `--session-dir`
+transcript is gone with it, so pi would resume with no memory of the
+conversation. metis still holds every turn in the DB (`Message` rows), so
+on that fresh-provision-after-a-prior-session case it replays the
+conversation back into the new sandbox as restored context.
+
+This is **not** an archive of pi's session state — it's a projection of
+durable Rails state, exactly like uploads or `AGENTS.md`. The transcript
+is rendered into the per-turn `AGENTS.md` (`Agent::Identity`, gated on
+`Runtime::Base#context_lost?` — fresh sandbox **and** a prior
+`backend_session_id`), so it lands in pi's context every turn without a
+separate read step. The render is bounded (recent turns within a char
+budget) and leads with a warning that the workspace files are gone too —
+the agent must not act as if anything it wrote earlier is still on disk.
+
 ## Scope layout
 
     scope/

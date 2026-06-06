@@ -52,26 +52,6 @@ class ModelsControllerTest < ActionDispatch::IntegrationTest
     assert_not @model.reload.enabled?
   end
 
-  test "a superuser sets the default model" do
-    sign_in @superuser
-    post model_item_default_path(@model)
-
-    assert @model.reload.is_default?
-  end
-
-  test "default race redirects with an alert" do
-    sign_in @superuser
-    model = @model
-    with_stub(LlmModel, :find, ->(_id) { model }) do
-      with_stub(model, :make_default!, -> { raise ActiveRecord::RecordNotUnique }) do
-        post model_item_default_path(model)
-      end
-    end
-
-    assert_redirected_to models_path
-    assert_equal "Another superuser changed the default model. Please try again.", flash[:alert]
-  end
-
   test "refresh surfaces an unreachable pi" do
     sign_in @superuser
     with_stub(PiAgent, :session, ->(*, **) { raise "no pi" }) do

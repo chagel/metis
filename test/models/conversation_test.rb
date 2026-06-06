@@ -256,4 +256,32 @@ class ConversationTest < ActiveSupport::TestCase
       conversation.broadcast_shared_to_team!
     end
   end
+
+  test "replayable_history returns prior user and assistant turns in order" do
+    @conversation.messages.create!(role: :user, content: "first", streaming_status: :done)
+    @conversation.messages.create!(role: :assistant, content: "reply", streaming_status: :done)
+    # In-flight turn — the live prompt plus its pending assistant.
+    @conversation.messages.create!(role: :user, content: "current ask", streaming_status: :done)
+    @conversation.messages.create!(role: :assistant, content: "", streaming_status: :pending)
+
+    contents = @conversation.replayable_history.map(&:content)
+    assert_equal [ "first", "reply" ], contents
+  end
+
+  test "replayable_history excludes the current user message and its pending assistant" do
+    @conversation.messages.create!(role: :user, content: "current ask", streaming_status: :done)
+    @conversation.messages.create!(role: :assistant, content: "", streaming_status: :pending)
+
+    assert_empty @conversation.replayable_history
+  end
+
+  test "replayable_history ignores tool and system messages" do
+    @conversation.messages.create!(role: :user, content: "do it", streaming_status: :done)
+    @conversation.messages.create!(role: :tool, content: "tool noise", streaming_status: :done)
+    @conversation.messages.create!(role: :system, content: "system note", streaming_status: :done)
+    @conversation.messages.create!(role: :assistant, content: "done", streaming_status: :done)
+    @conversation.messages.create!(role: :user, content: "current", streaming_status: :done)
+
+    assert_equal [ "do it", "done" ], @conversation.replayable_history.map(&:content)
+  end
 end

@@ -166,6 +166,17 @@ class Conversation < ApplicationRecord
     messages.with_attached_files.flat_map { |message| message.files.attachments }
   end
 
+  # Prior user/assistant turns, for replaying context into a fresh sandbox
+  # whose predecessor (holding pi's transcript) was reaped — Agent::Identity
+  # renders these. Excludes the in-flight turn: the current user message goes
+  # to pi as the live prompt, and its pending assistant carries a higher id.
+  def replayable_history
+    current_user_id = messages.user.maximum(:id)
+    scope = messages.conversational
+    scope = scope.where("messages.id < ?", current_user_id) if current_user_id
+    scope.chronological
+  end
+
   private
 
   def default_team

@@ -1178,30 +1178,72 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
 /* models catalog */
 .muted { color:var(--ink-3); font-size:13px; }
 .badge-warn { color:var(--danger); background:var(--danger-soft); }
-.badge-default { color:var(--on-accent); background:var(--accent); }
 .btn-sm { padding:6px 11px; font-size:12px; border-radius:8px; }
-.btn-ghost.is-on { color:var(--ink); border-color:var(--line-2); }
+
+.models-intro {
+  color:var(--ink-3); font-size:13.5px; line-height:1.5;
+  max-width:60ch; margin-bottom:18px;
+}
 
 .model-provider {
-  background:var(--card); border:1px solid var(--line); border-radius:12px;
-  padding:14px 16px; margin-bottom:14px; box-shadow:var(--sh-sm);
+  background:var(--card); border:1px solid var(--line); border-radius:14px;
+  margin-bottom:14px; box-shadow:var(--sh-sm); overflow:hidden;
+  transition:opacity .15s;
 }
-.model-provider.is-off { opacity:.6; }
-.model-provider-head { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.model-provider.is-off { opacity:.62; }
+.model-provider-head { display:flex; align-items:center; gap:12px; padding:14px 16px; }
+.model-provider-id { flex:1; min-width:0; }
 .model-provider-name { font-size:15px; font-weight:650; color:var(--ink); margin:0; }
+.model-provider-sub { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:3px; }
 .model-key { font-family:var(--fm); font-size:11.5px; color:var(--ink-3); }
+.model-count { font-size:11.5px; color:var(--ink-3); }
 
-.model-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
+.model-list {
+  list-style:none; margin:0; padding:6px; display:flex; flex-direction:column; gap:2px;
+  border-top:1px solid var(--line);
+}
 .model-row {
-  display:flex; align-items:center; gap:10px;
-  padding:9px 10px; border-radius:9px; border:1px solid transparent;
+  display:flex; align-items:center; gap:14px;
+  padding:11px 10px; border-radius:10px; border:1px solid transparent;
+  transition:background-color .12s,border-color .12s;
 }
 .model-row:hover { background:var(--bg); border-color:var(--line); }
-.model-row.is-off { opacity:.55; }
-.model-id { display:flex; align-items:center; gap:8px; min-width:0; }
+.model-row.is-off { opacity:.5; }
+.model-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; }
+.model-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .model-label { font-size:13.5px; font-weight:600; color:var(--ink); }
-.model-meta { display:flex; gap:12px; font-size:11.5px; flex:none; }
-.model-actions { display:flex; gap:6px; flex:none; }
+.model-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.model-tag {
+  font-size:11px; color:var(--ink-3); background:var(--bg);
+  border:1px solid var(--line); border-radius:6px; padding:2px 7px; white-space:nowrap;
+}
+.model-actions { display:flex; align-items:center; gap:10px; flex:none; }
+
+/* enable/disable toggle — clearer than a button labelled with its own state */
+.switch {
+  position:relative; flex:none; width:38px; height:22px; padding:0; margin:0;
+  border:none; border-radius:999px; background:var(--line-2); cursor:pointer;
+  transition:background-color .18s;
+}
+.switch::after {
+  content:""; position:absolute; top:2px; left:2px;
+  width:18px; height:18px; border-radius:50%;
+  background:#fff; box-shadow:var(--sh-sm); transition:transform .18s;
+}
+.switch.is-on { background:var(--accent); }
+.switch.is-on::after { transform:translateX(16px); }
+.switch:focus-visible { outline:none; box-shadow:0 0 0 3px var(--accent-glow); }
+.switch-lg { width:44px; height:25px; }
+.switch-lg::after { width:21px; height:21px; }
+.switch-lg.is-on::after { transform:translateX(19px); }
+
+/* read-only state for non-superusers */
+.status-pill {
+  font-size:11px; font-weight:600; color:var(--ink-3);
+  background:var(--bg); border:1px solid var(--line); border-radius:999px;
+  padding:3px 10px;
+}
+.status-pill.is-on { color:var(--accent); border-color:var(--accent); }
 
 /* connector list */
 .conn-list { display:flex; flex-direction:column; gap:8px; }
@@ -1827,6 +1869,19 @@ body.auth-shell { min-height:100vh; display:grid; place-items:center; padding:24
   .nav-item { padding:11px 12px; }
   .archived-restore { padding:7px 14px; font-size:13px; }
   .archived-banner-action { padding:8px 14px; font-size:13px; }
+
+  /* Models catalog — roomier rows, bigger toggles, no sticky hover tint.
+     The switch stays inline, so the two-line model_main wraps its tags
+     beside it down to ~320px. */
+  .model-provider-head { padding:13px 14px; }
+  .model-row { gap:12px; padding:12px 10px; }
+  .model-row:hover { background:none; border-color:transparent; }
+  .switch { width:46px; height:27px; }
+  .switch::after { width:23px; height:23px; }
+  .switch.is-on::after { transform:translateX(19px); }
+  .switch-lg { width:50px; height:29px; }
+  .switch-lg::after { width:25px; height:25px; }
+  .switch-lg.is-on::after { transform:translateX(21px); }
 
   /* Safe-area insets — iPhone notch + home-indicator in PWA / fullscreen
      standalone. `env()` is 0 on devices that don't expose insets, so

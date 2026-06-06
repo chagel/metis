@@ -53,11 +53,31 @@ class Agent::CatalogTest < ActiveSupport::TestCase
     assert_nil Agent::Catalog.provider_for("no-such-model")
   end
 
-  test "default_model and default_provider follow the deployment default" do
-    _anthropic, codex = seed_catalog
-    codex.llm_models.find_by(key: "gpt-5.5").make_default!
+  test "default_model and default_provider follow the configured deployment default" do
+    seed_catalog
+    original_model = Rails.application.config.x.agent.model
+    original_provider = Rails.application.config.x.agent.provider
+    Rails.application.config.x.agent.model = "gpt-5.5"
+    Rails.application.config.x.agent.provider = "openai-codex"
 
     assert_equal "gpt-5.5", Agent::Catalog.default_model
     assert_equal "openai-codex", Agent::Catalog.default_provider
+  ensure
+    Rails.application.config.x.agent.model = original_model
+    Rails.application.config.x.agent.provider = original_provider
+  end
+
+  test "default falls back to the first listed provider's first model" do
+    seed_catalog
+    original_model = Rails.application.config.x.agent.model
+    original_provider = Rails.application.config.x.agent.provider
+    Rails.application.config.x.agent.model = nil
+    Rails.application.config.x.agent.provider = nil
+
+    assert_equal "anthropic", Agent::Catalog.default_provider
+    assert_equal "claude-opus-4-8", Agent::Catalog.default_model
+  ensure
+    Rails.application.config.x.agent.model = original_model
+    Rails.application.config.x.agent.provider = original_provider
   end
 end

@@ -44,26 +44,19 @@ module Agent
         model_id == Rails.application.config.x.agent.model.presence
     end
 
-    # Model pre-selected in the composer: the superuser-set deployment default,
-    # else the configured env default when it's in the catalog, else the
-    # default provider's first model.
+    # Model pre-selected in the composer: the configured env default when
+    # it's in the catalog, else the default provider's first model.
     def self.default_model(provider_options = providers)
-      default = LlmModel.current_default
-      return default.key if default
-
       configured = Rails.application.config.x.agent.model.presence
       return configured if configured && known_model?(configured, provider_options)
 
-      provider = provider_options.find { |p| p[:id] == default_provider(provider_options, default) }
+      provider = provider_options.find { |p| p[:id] == default_provider(provider_options) }
       provider&.dig(:models)&.first&.dig(:id)
     end
 
-    # Provider pre-selected in the composer: the default model's provider,
-    # else the configured env default, else the first listed. Accepts the
-    # already-resolved default so default_model needn't re-query it.
-    def self.default_provider(provider_options = providers, default = LlmModel.current_default)
-      return default.llm_provider.key if default
-
+    # Provider pre-selected in the composer: the configured env default,
+    # else the first listed.
+    def self.default_provider(provider_options = providers)
       configured = Rails.application.config.x.agent.provider.presence
       ids = provider_options.map { |provider| provider[:id] }
       ids.include?(configured) ? configured : ids.first

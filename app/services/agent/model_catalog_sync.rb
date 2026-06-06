@@ -5,9 +5,9 @@ module Agent
   #
   # pi (get_available_models) is the source of truth for *what exists*; the
   # rows add what pi has no concept of — operator curation (enabled, label,
-  # ordering, the deployment default). Curation is sticky: a refresh updates
-  # pi-derived metadata but never clobbers enabled / label / position /
-  # is_default on rows that already exist. Models pi no longer reports are
+  # ordering). Curation is sticky: a refresh updates pi-derived metadata but
+  # never clobbers enabled / label / position on rows that already exist.
+  # Models pi no longer reports are
   # kept (and shown stale by last_seen_at), never deleted — a key may just
   # be temporarily unset.
   #

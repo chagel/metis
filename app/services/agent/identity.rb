@@ -4,9 +4,10 @@ module Agent
   class Identity
     FILENAME = "AGENTS.md".freeze
 
-    def initialize(conversation, runtime_kind)
+    def initialize(conversation, runtime_kind, restore_history: false)
       @conversation = conversation
       @runtime_kind = runtime_kind.to_s
+      @restore_history = restore_history
     end
 
     def content
@@ -67,6 +68,7 @@ module Agent
           back later — keep those elsewhere in `workspace/`. When in
           doubt, publish. Mention the filename in your reply.
 
+        #{conversation_history_block}
         #{project_context_block}
         #{team_projects_block}
         #{operator_preferences_block}
@@ -132,6 +134,70 @@ module Agent
     end
 
     private
+
+    HISTORY_CHAR_BUDGET = 12_000
+    HISTORY_MESSAGE_TRUNCATE = 2_000
+
+    # The sandbox holding pi's transcript was reaped; replay the conversation
+    # from the DB so a fresh sandbox keeps the thread. The warning is
+    # load-bearing — the workspace files are gone too, so the agent must not
+    # act as if anything it wrote earlier still exists on disk.
+    def conversation_history_block
+      return "" unless @restore_history
+
+      body = restored_transcript
+      return "" if body.blank?
+
+      "\n" + <<~MD
+        ## Conversation so far
+
+        This conversation resumed after its sandbox was recycled, so your
+        working memory and **every file you wrote earlier are gone** — don't
+        assume anything you created before still exists on disk; re-read or
+        re-create before relying on it. Below is Metis's record of the
+        conversation up to now — memory of what was said, not files you can open.
+
+        #{body}
+      MD
+    end
+
+    # Quote the most recent turns within budget, walking newest-first so a long
+    # reaped conversation only decrypts the messages it keeps; mark how many
+    # older ones were dropped.
+    def restored_transcript
+      rows = @conversation.replayable_history.reverse_order
+      kept = []
+      total = 0
+      truncated = false
+      rows.each do |message|
+        line = transcript_quote(message)
+        next unless line
+        if kept.any? && total + line.length > HISTORY_CHAR_BUDGET
+          truncated = true
+          break
+        end
+
+        kept.unshift(line)
+        total += line.length
+      end
+
+      if truncated
+        omitted = rows.size - kept.size
+        kept.unshift("_[#{omitted} earlier message#{'s' unless omitted == 1} omitted]_")
+      end
+      kept.join("\n\n")
+    end
+
+    # The `> ` framing reads as quoted transcript and keeps a markdown heading
+    # in the content from manufacturing a Metis section.
+    def transcript_quote(message)
+      text = message.content.to_s.strip
+      return nil if text.blank?
+
+      speaker = message.user? ? "Operator" : "You"
+      quoted = text.truncate(HISTORY_MESSAGE_TRUNCATE).each_line.map { |line| "> #{line.chomp}" }.join("\n")
+      "**#{speaker}:**\n#{quoted}"
+    end
 
     # The hosted GitHub/Linear MCP servers take repo/project as per-call
     # params, not a server-side scope — so this prose is the only thing

@@ -74,9 +74,10 @@ module Agent
 
       # The rendered AGENTS.md (Agent::Identity) — the agent boot file
       # pi auto-loads from its working directory each turn. Per-turn
-      # projected input, like mcp_config.
+      # projected input, like mcp_config. On a reaped sandbox
+      # (#context_lost?) it also replays the conversation from the DB.
       def identity_content
-        Agent::Identity.new(conversation, kind).content
+        Agent::Identity.new(conversation, kind, restore_history: context_lost?).content
       end
 
       # The runtime's short name (`local`, `docker`, `e2b`) — used in
@@ -235,6 +236,13 @@ module Agent
       end
 
       private
+
+      # A fresh sandbox for a conversation that already had a pi session: the
+      # sandbox holding pi's transcript was reaped. Local/Docker never set the
+      # flag (their workspace persists on the host), so this stays false there.
+      def context_lost?
+        @sandbox_was_resumed == false && conversation.backend_session_id.present?
+      end
 
       def git_identity_for(user)
         email = user.email.to_s

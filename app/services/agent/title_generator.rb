@@ -83,8 +83,8 @@ module Agent
 
     def build_context
       body = @conversation.messages
-                          .where(role: %i[user assistant])
-                          .order(:created_at)
+                          .conversational
+                          .chronological
                           .limit(CONTEXT_MESSAGES)
                           .filter_map { |m|
                             text = m.content.to_s.strip
