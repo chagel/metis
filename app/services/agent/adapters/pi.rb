@@ -78,7 +78,10 @@ module Agent
         when :message_update
           translate_update(event)
         when :message_end
-          ui(:message_finished, event, id: message_id(event), content: message_content(event))
+          # pi emits message_end for every message in the agent loop — the user
+          # prompt and tool-result messages too. Only the assistant's carries
+          # reply text; the others must not leak into the message body.
+          message_role(event) == "assistant" ? ui(:message_finished, event, id: message_id(event), content: message_content(event)) : nil
         when :tool_execution_start
           note_skill_touched(event)
           ui(:tool_call_started, event,

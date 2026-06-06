@@ -20,7 +20,7 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
                "assistantMessageEvent" => { "type" => "text_delta", "delta" => "Hi" } })
         emit({ "type" => "message_update", "message" => { "id" => "m1" },
                "assistantMessageEvent" => { "type" => "text_delta", "delta" => " there" } })
-        emit({ "type" => "message_end", "message" => { "id" => "m1", "content" => "Hi there" } })
+        emit({ "type" => "message_end", "message" => { "id" => "m1", "role" => "assistant", "content" => "Hi there" } })
         emit({ "type" => "turn_end" })
         emit({ "type" => "agent_end", "messages" => [] })
       when "get_session_stats"
@@ -153,10 +153,21 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
 
   test "translates message_end with array content" do
     ui = adapter.translate(pi_event("type" => "message_end",
-                                    "message" => { "id" => "m1",
+                                    "message" => { "id" => "m1", "role" => "assistant",
                                                    "content" => [ { "type" => "text", "text" => "final answer" } ] }))
     assert_equal :message_finished, ui.type
     assert_equal "final answer", ui[:content]
+  end
+
+  test "drops message_end for a non-assistant message so it can't leak into the body" do
+    # pi emits message_end for the user prompt and tool-result messages too;
+    # their text must never reach the assistant body.
+    %w[user tool].each do |role|
+      ui = adapter.translate(pi_event("type" => "message_end",
+                                      "message" => { "id" => "u1", "role" => role,
+                                                     "content" => [ { "type" => "text", "text" => "not the reply" } ] }))
+      assert_nil ui, "message_end for role=#{role} should be dropped"
+    end
   end
 
   test "translates tool_execution_start" do
