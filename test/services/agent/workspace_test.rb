@@ -20,6 +20,12 @@ class Agent::WorkspaceTest < ActiveSupport::TestCase
     refute_equal Agent::Workspace::SCRATCH_ROOT, Agent::Workspace::PERSISTENT_ROOT
   end
 
+  test "persistent root stays under tmp in test even if METIS_PERSISTENT_ROOT is set" do
+    # The env override (for Docker-in-Docker path-identity) must never take
+    # effect in test, or the suite's rm_rf teardowns could alias real data.
+    assert_includes Agent::Workspace::PERSISTENT_ROOT.to_s, "tmp/agent_persistent_test"
+  end
+
   test "scopes the session, workspace, and uploads dirs per user and conversation" do
     workspace = Agent::Workspace.scratch(@conversation)
     scope = Agent::Workspace::SCRATCH_ROOT.join("u#{@user.id}", "c#{@conversation.id}")

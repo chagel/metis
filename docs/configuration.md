@@ -16,6 +16,7 @@ cp .env.example .env
 | `METIS_AGENT_PROVIDER` / `METIS_AGENT_MODEL` | default LLM provider/model for pi |
 | Provider API keys — `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, … | see [Providers](#providers) |
 | `METIS_DOCKER_IMAGE` | image for the `docker` runtime (default `metis-pi`) |
+| `METIS_DOCKER_RUNTIME` | OCI runtime for `docker`-runtime containers — unset = daemon default (`runc`); `runsc` for gVisor (see [coding runtime](coding-runtime.md)) |
 | `E2B_API_KEY` / `METIS_E2B_TEMPLATE` | required by the `e2b` runtime |
 | `DAYTONA_API_KEY` / `METIS_DAYTONA_SNAPSHOT` | required by the `daytona` runtime |
 | `DAYTONA_API_URL` / `DAYTONA_TARGET` | optional Daytona API endpoint / region |

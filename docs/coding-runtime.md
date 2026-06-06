@@ -104,6 +104,67 @@ problem for chat turns that take seconds to minutes. The persistent-
 container shape stays available as a future optimisation if that
 latency starts mattering.
 
+#### Isolation: runc vs. gVisor
+
+The default OCI runtime (`runc`) gives namespace + cgroup confinement
+and dropped capabilities, but pi shares the host kernel — a kernel
+exploit escapes the container. For untrusted multi-tenant turns, set
+`METIS_DOCKER_RUNTIME=runsc` to run containers under
+[gVisor](https://gvisor.dev), a user-space kernel that intercepts
+syscalls and closes that gap, approaching microVM-grade isolation while
+keeping the local-daemon speed that makes `docker` faster than the
+remote `e2b` / `daytona` runtimes. The runtime must be installed and
+registered on the host daemon; the flag wires into both the per-turn and
+control-plane `docker run` paths. This is the same isolation tier
+Anthropic uses for cloud-hosted code execution (gVisor for many
+concurrent server-side sandboxes; OS-level sandboxing for the local
+CLI).
+
+#### Provisioning the job host (Docker-in-Docker)
+
+In production the worker (`job` role) is itself a Kamal container, so it
+reaches the daemon via a mounted socket — Docker-in-Docker (DooD).
+
+**`docker/provision-job-host.sh` automates the host prep** (idempotent):
+`sudo ./docker/provision-job-host.sh` installs and registers gVisor,
+creates the agent dir with the right ownership, and verifies a container
+runs under runsc. Pass `--build-image <repo>` to also build `metis-pi`,
+or `--rootless` for rootless-dockerd guidance. What it does, step by step:
+
+1. **gVisor.** Install `runsc` from gVisor's apt repo, then
+   `sudo runsc install` (registers the runtime in
+   `/etc/docker/daemon.json`, leaving `runc` the default) and restart
+   docker. Verify: `docker info | grep -iA2 runtimes` shows `runsc`.
+2. **Rootless dockerd** *(recommended, manual — `--rootless` prints the
+   steps)*. Run the daemon rootless so the socket mounted into the job
+   container grants only an unprivileged host user's powers, not real
+   root — the mitigation for the socket's host-access risk (a worker RCE
+   becomes a rootless user, not root). `runsc` works under rootless with
+   the systrap platform. Note: the rootless socket is at
+   `/run/user/<uid>/docker.sock`, so the job-role volume in deploy.yml
+   must point there instead of `/var/run/docker.sock`.
+3. **The pi image.** Build `metis-pi` on the host daemon
+   (`rake "docker:image[metis-pi]"` from a checkout, or push to the
+   `localhost:5555` registry and pull) — `--pull never` needs it local.
+   Also `mkdir -p /srv/metis/agent && chown 1000:1000 /srv/metis/agent`
+   (the container's `rails` uid writes the bind mount).
+
+The matching deploy.yml wiring (job role only): the docker socket and
+`/srv/metis/agent` bind-mounted at an identical path, `METIS_AGENT_RUNTIME=docker`,
+`METIS_DOCKER_RUNTIME=runsc`, and `METIS_PERSISTENT_ROOT=/srv/metis/agent`.
+
+**Why the identical path matters.** Under DooD the `docker run --volume
+SRC:/metis` the worker issues is executed by the *host* daemon, which
+resolves `SRC` against the host filesystem — not the worker container.
+So the persistent root must be the same absolute path in both
+(`/srv/metis/agent`), or pi runs in an empty workspace. The app's
+`.pi/extensions` dodge this entirely by being baked into `metis-pi`
+rather than bind-mounted.
+
+Measure the gVisor cost on the actual host before/after:
+`rake "docker:bench_runtime[metis-pi]"` times a file-IO-heavy turn-shaped
+workload under `runc` vs `runsc`.
+
 ### E2b: pause/resume the microVM
 
 E2B's SDK supports first-class pause/resume of a running sandbox: a

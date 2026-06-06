@@ -30,13 +30,30 @@ class Agent::Runtime::DockerTest < ActiveSupport::TestCase
     session
   end
 
+  def with_docker_runtime(value)
+    config = Rails.application.config.x.agent
+    original = config.docker_runtime
+    config.docker_runtime = value
+    yield
+  ensure
+    config.docker_runtime = original
+  end
+
   test "session_dir is the in-container session path" do
     assert_equal Pathname.new("/metis/sessions"), @runtime.session_dir
   end
 
-  test "extension_paths point inside the read-only extensions mount" do
+  test "extension_paths point at the image-baked extensions dir" do
     paths = @runtime.extension_paths.map(&:to_s)
     assert_includes paths, "/metis-extensions/web-tools/index.ts"
+  end
+
+  test "docker_args does not bind-mount extensions (baked into the image)" do
+    # Extensions ship inside metis-pi (docker/pi-runtime/Dockerfile), so no
+    # host bind mount — that would break under Docker-in-Docker anyway.
+    args = @runtime.send(:docker_args, [ "--mode", "rpc" ])
+    refute(args.any? { |a| a.to_s.include?("/metis-extensions") },
+      "docker_args should not mount the extensions dir")
   end
 
 
@@ -56,6 +73,36 @@ class Agent::Runtime::DockerTest < ActiveSupport::TestCase
     assert_includes args, "#{@workspace.scope_dir}:/metis"
     assert_includes args, Rails.application.config.x.agent.docker_image
     assert_equal [ "pi", "--mode", "rpc" ], args.last(3)
+  end
+
+  test "docker_args omits --runtime when no OCI runtime is configured" do
+    refute_includes @runtime.send(:docker_args, [ "--mode", "rpc" ]), "--runtime"
+  end
+
+  test "docker_args injects --runtime <oci> when one is configured (e.g. gVisor)" do
+    with_docker_runtime("runsc") do
+      args = @runtime.send(:docker_args, [ "--mode", "rpc" ])
+
+      idx = args.index("--runtime")
+      assert idx, "expected --runtime in docker args"
+      assert_equal "runsc", args[idx + 1]
+    end
+  end
+
+  test "control_session passes the configured --runtime to its throwaway container" do
+    captured = nil
+    original = PiAgent.method(:session)
+    PiAgent.define_singleton_method(:session) { |*, **kw| captured = kw[:args]; fake = Object.new; def fake.close = nil; fake }
+
+    with_docker_runtime("runsc") do
+      Agent::Runtime::Docker.control_session { |_s| nil }
+    end
+
+    idx = captured.index("--runtime")
+    assert idx, "expected --runtime in control_session args"
+    assert_equal "runsc", captured[idx + 1]
+  ensure
+    PiAgent.define_singleton_method(:session, original)
   end
 
   test "docker_args forwards credential env vars with the bare-key form (no token in argv)" do

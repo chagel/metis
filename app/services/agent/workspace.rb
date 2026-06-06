@@ -8,8 +8,19 @@ module Agent
     SCRATCH_ROOT = Rails.root.join("tmp/agent").freeze
     # In test, route persistent scopes under tmp/ so the suite's
     # rm_rf teardowns can never alias a dev user's storage/agent/uN
-    # (sequences in the dev and test DBs collide on small ids).
-    PERSISTENT_ROOT = Rails.root.join(Rails.env.test? ? "tmp/agent_persistent_test" : "storage/agent").freeze
+    # (sequences in the dev and test DBs collide on small ids). Outside
+    # test, METIS_PERSISTENT_ROOT can point this at a host directory
+    # bind-mounted at an identical path into the job container — required
+    # by Runtime::Docker under Docker-in-Docker so the per-turn bind mount
+    # resolves to the same files on host and container (docs/coding-runtime.md).
+    PERSISTENT_ROOT =
+      if Rails.env.test?
+        Rails.root.join("tmp/agent_persistent_test").freeze
+      elsif ENV["METIS_PERSISTENT_ROOT"].present?
+        Pathname.new(ENV["METIS_PERSISTENT_ROOT"]).freeze
+      else
+        Rails.root.join("storage/agent").freeze
+      end
     SKILLS_SOURCE = Rails.root.join(".pi/skills").freeze
     SKILLS_SUBPATH = ".pi/skills".freeze
     # Mirrors Runtime::E2b#TEAM_SKILLS_MARKER — see stage_skills.

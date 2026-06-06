@@ -15,6 +15,19 @@ servers:
     hosts:
       - <%= ENV.fetch("KAMAL_JOB_IP") %>
     cmd: bin/jobs
+    # :docker agent runtime (DooD): the job container shells out to the
+    # host daemon to launch pi containers. The socket is mounted on this
+    # role ONLY (never web) — it grants host-level daemon access, so keep
+    # it off the internet-facing role; run the daemon rootless to cap the
+    # blast radius (docs/coding-runtime.md). The agent dir is bind-mounted
+    # at an identical path on host and container so the per-turn workspace
+    # bind mount the daemon performs resolves to the same files
+    # (METIS_PERSISTENT_ROOT below). Provision gVisor + the metis-pi image
+    # on the host first. Drop both volumes when running e2b/daytona.
+    options:
+      volume:
+        - "/var/run/docker.sock:/var/run/docker.sock"
+        - "/srv/metis/agent:/srv/metis/agent"
 
 proxy:
   ssl: false
@@ -50,7 +63,14 @@ env:
     METIS_APP_HOST: <%= ENV.fetch("METIS_HOST") %>
     CLOUDFLARE_ACCOUNT_ID: <%= ENV.fetch("CLOUDFLARE_ACCOUNT_ID") %>
     METIS_REGISTRATION_MODE: invite_only
-    METIS_AGENT_RUNTIME: e2b
+    METIS_AGENT_RUNTIME: docker
+    # OCI runtime for pi containers — "runsc" = gVisor (requires gVisor
+    # registered on the job host's daemon). Confines untrusted agent code.
+    METIS_DOCKER_RUNTIME: runsc
+    # Persistent agent root — MUST match the job-role host bind mount above
+    # so the per-turn workspace mount is path-identical under DooD. The host
+    # dir must be writable by the container's runtime uid (rails = 1000).
+    METIS_PERSISTENT_ROOT: /srv/metis/agent
     METIS_AGENT_PROVIDER: anthropic
     METIS_AGENT_MODEL: anthropic/claude-opus-4-8
     METIS_E2B_TEMPLATE: metis-pi

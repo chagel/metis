@@ -34,6 +34,16 @@ Rails.application.config.x.agent.e2b_eviction_window =
 Rails.application.config.x.agent.docker_image =
   ENV.fetch("METIS_DOCKER_IMAGE", "metis-pi")
 
+# OCI runtime for the :docker runtime's containers. Unset uses the daemon
+# default (runc) — namespace isolation over a shared host kernel. Set to
+# "runsc" (gVisor) for a user-space kernel that intercepts syscalls,
+# closing the kernel-escape gap that separates a plain container from a
+# microVM — the isolation tier Metis wants for untrusted multi-tenant
+# turns, at near-native local cost. Requires the runtime installed and
+# registered on the host daemon. See docs/coding-runtime.md.
+Rails.application.config.x.agent.docker_runtime =
+  ENV["METIS_DOCKER_RUNTIME"].presence
+
 # Daytona credentials and target for the :daytona runtime. The API key is a
 # shared, deployment-level resource (no per-user keys). api_url/target are
 # optional — unset uses the SDK defaults (https://app.daytona.io/api, the

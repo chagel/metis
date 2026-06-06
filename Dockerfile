@@ -20,6 +20,21 @@ RUN apt-get update -qq && \
     ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
+# docker CLI (client only — no daemon). The job role uses it under the
+# :docker agent runtime to launch pi containers against the host daemon via
+# a mounted socket (see config/deploy.yml, docs/coding-runtime.md). Inert
+# for other runtimes / the web role.
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y ca-certificates curl gnupg && \
+    install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc && \
+    chmod a+r /etc/apt/keyrings/docker.asc && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+      > /etc/apt/sources.list.d/docker.list && \
+    apt-get update -qq && \
+    apt-get install --no-install-recommends -y docker-ce-cli && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
 # Set production environment variables and enable jemalloc for reduced memory usage and latency.
 ENV RAILS_ENV="production" \
     BUNDLE_DEPLOYMENT="1" \

@@ -47,3 +47,12 @@ RUN HOME=/tmp pi install npm:pi-mcp-adapter@2.7.0 \
 # drive it. The npm package downloads the matching pre-built binary
 # from the project's GitHub Releases.
 RUN npm install --global @googleworkspace/cli
+
+# The app's bundled pi extensions, baked in at the path
+# Runtime::Docker#extension_paths expects (EXTENSIONS_DIR =
+# /metis-extensions). Baked rather than bind-mounted from the Rails side
+# because under Docker-in-Docker a host-daemon bind mount resolves the
+# source against the host filesystem, not the job container — so the repo
+# path would not exist. Build context is the repo root (see docker:image);
+# rebuild this image when .pi/extensions changes.
+COPY .pi/extensions /metis-extensions
