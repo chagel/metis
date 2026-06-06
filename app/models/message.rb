@@ -27,6 +27,7 @@ class Message < ApplicationRecord
   MAX_UPLOAD_SIZE = 10.megabytes
 
   scope :chronological, -> { order(:created_at) }
+  scope :conversational, -> { where(role: %i[user assistant]) }
 
   # Once an assistant turn finishes, the conversation has enough context
   # (first user msg + first assistant reply) for a good title. Gating on

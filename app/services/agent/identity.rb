@@ -145,8 +145,8 @@ module Agent
     def conversation_history_block
       return "" unless @restore_history
 
-      lines = @conversation.replayable_history.filter_map { |message| transcript_quote(message) }
-      return "" if lines.empty?
+      body = restored_transcript
+      return "" if body.blank?
 
       "\n" + <<~MD
         ## Conversation so far
@@ -157,8 +157,35 @@ module Agent
         re-create before relying on it. Below is Metis's record of the
         conversation up to now — memory of what was said, not files you can open.
 
-        #{truncate_history(lines)}
+        #{body}
       MD
+    end
+
+    # Quote the most recent turns within budget, walking newest-first so a long
+    # reaped conversation only decrypts the messages it keeps; mark how many
+    # older ones were dropped.
+    def restored_transcript
+      rows = @conversation.replayable_history.reverse_order
+      kept = []
+      total = 0
+      truncated = false
+      rows.each do |message|
+        line = transcript_quote(message)
+        next unless line
+        if kept.any? && total + line.length > HISTORY_CHAR_BUDGET
+          truncated = true
+          break
+        end
+
+        kept.unshift(line)
+        total += line.length
+      end
+
+      if truncated
+        omitted = rows.size - kept.size
+        kept.unshift("_[#{omitted} earlier message#{'s' unless omitted == 1} omitted]_")
+      end
+      kept.join("\n\n")
     end
 
     # The `> ` framing reads as quoted transcript and keeps a markdown heading
@@ -170,22 +197,6 @@ module Agent
       speaker = message.user? ? "Operator" : "You"
       quoted = text.truncate(HISTORY_MESSAGE_TRUNCATE).each_line.map { |line| "> #{line.chomp}" }.join("\n")
       "**#{speaker}:**\n#{quoted}"
-    end
-
-    # Keep the most recent turns within budget; mark how many older ones dropped.
-    def truncate_history(lines)
-      kept = []
-      total = 0
-      lines.reverse_each do |line|
-        break if total + line.length > HISTORY_CHAR_BUDGET && kept.any?
-
-        total += line.length
-        kept.unshift(line)
-      end
-
-      omitted = lines.length - kept.length
-      kept.unshift("_[#{omitted} earlier message#{'s' unless omitted == 1} omitted]_") if omitted.positive?
-      kept.join("\n\n")
     end
 
     # The hosted GitHub/Linear MCP servers take repo/project as per-call
