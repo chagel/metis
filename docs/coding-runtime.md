@@ -133,24 +133,21 @@ or `--rootless` for rootless-dockerd guidance. What it does, step by step:
 
 1. **gVisor.** Install `runsc` from gVisor's apt repo, then
    `sudo runsc install` (registers the runtime in
-   `/etc/docker/daemon.json`, leaving `runc` the default) and restart
-   docker. Verify: `docker info | grep -iA2 runtimes` shows `runsc`.
-2. **Rootless dockerd** *(recommended, manual — `--rootless` prints the
-   steps)*. Run the daemon rootless so the socket mounted into the job
-   container grants only an unprivileged host user's powers, not real
-   root — the mitigation for the socket's host-access risk (a worker RCE
-   becomes a rootless user, not root). `runsc` works under rootless with
-   the systrap platform. Note: the rootless socket is at
-   `/run/user/<uid>/docker.sock`, so the job-role volume in deploy.yml
-   must point there instead of `/var/run/docker.sock`.
-3. **The pi image.** Build `metis-pi` on the host daemon
-   (`rake "docker:image[metis-pi]"` from a checkout, or push to the
-   `localhost:5555` registry and pull) — `--pull never` needs it local.
-   Also `mkdir -p /srv/metis/agent && chown 1000:1000 /srv/metis/agent`
-   (the container's `rails` uid writes the bind mount).
+   `/etc/docker/daemon.json`, leaving `runc` the default) and
+   `systemctl reload docker` — a SIGHUP live-reloads the runtimes list
+   **without restarting containers**, so co-tenant apps keep running.
+   Verify: `docker info | grep -iA2 runtimes` shows `runsc`.
+2. **The pi image + agent dir.** Build `metis-pi` on the host daemon
+   (`rake "docker:image[metis-pi]"` from a checkout, or build on the
+   deploy machine and `docker save | ssh | docker load`) — `--pull never`
+   needs it local. Also `mkdir -p /srv/metis/agent && chown 1000:1000
+   /srv/metis/agent` (the container's `rails` uid writes the bind mount).
 
 The matching deploy.yml wiring (job role only): the docker socket and
-`/srv/metis/agent` bind-mounted at an identical path, `METIS_AGENT_RUNTIME=docker`,
+`/srv/metis/agent` bind-mounted at an identical path, `group-add` for the
+host's docker gid (the container runs as uid 1000; the socket is
+`root:docker 0660`, so the process must join that group to use it — find it
+with `getent group docker`), plus `METIS_AGENT_RUNTIME=docker`,
 `METIS_DOCKER_RUNTIME=runsc`, and `METIS_PERSISTENT_ROOT=/srv/metis/agent`.
 
 **Why the identical path matters.** Under DooD the `docker run --volume
@@ -164,6 +161,32 @@ rather than bind-mounted.
 Measure the gVisor cost on the actual host before/after:
 `rake "docker:bench_runtime[metis-pi]"` times a file-IO-heavy turn-shaped
 workload under `runc` vs `runsc`.
+
+#### Security posture: rootful daemon (accepted), rootless deferred
+
+Production runs a **rootful** Docker daemon today. The mounted socket
+therefore gives the job container effective **host root** if the Rails
+worker is ever RCE'd. This is an accepted risk, not an oversight:
+
+- The *untrusted-code* boundary — pi running arbitrary agent code — is
+  already closed by **gVisor** (`runsc`). The socket risk is a *second*,
+  narrower boundary: it requires first compromising the Rails worker
+  itself (vulnerable gem, unsafe deserialization), a much higher bar, and
+  the internet-facing `web` role deliberately has **no** socket.
+- It's a single-operator host running first-party apps, so "worker RCE →
+  host root" is a low-likelihood path.
+
+**Rootless dockerd is the real fix but is non-trivial here**, so it's
+deferred to a planned change (test on a throwaway Linux VM first — there is
+no Linux dev env otherwise). The blocker: rootless runs a *separate* daemon
+in a user namespace that **remaps uids** (container uid 1000 → a host
+subuid). pi currently runs `--user 1000:1000`, so under rootless it would
+write the workspace as a subuid the rootful-deployed job container can't
+own — **breaking the path-identity write-through**. Making it work needs:
+a dedicated rootless daemon (runsc + metis-pi re-provisioned there), the
+job-role socket repointed to `/run/user/<uid>/docker.sock`, and a
+`Runtime::Docker` change to launch pi as `--user 0:0` (container-root maps
+to the host user, realigning ownership). Until then: rootful, as above.
 
 ### E2b: pause/resume the microVM
 
