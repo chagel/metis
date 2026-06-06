@@ -55,6 +55,9 @@ pi. The Agent layer separates two concerns:
    as a local subprocess, `Runtime::Docker` in a container, `Runtime::E2b`
    in an isolated microVM, `Runtime::Daytona` in a Daytona elastic sandbox.
    **`Runtime::Local` is not a security boundary** — pi has shell access.
+   In production the `docker` runtime runs under **gVisor** (`runsc`, set by
+   `METIS_DOCKER_RUNTIME`) as Docker-in-Docker from the containerized `job`
+   worker on a single host; see `docs/coding-runtime.md`.
 
 pi's native events are translated into **`Agent::UiEvent`**, a canonical
 vocabulary (`text_delta`, `tool_call_started`, `turn_finished`, …) that
@@ -75,6 +78,17 @@ keeps the raw payload for native view helpers.
 **Division of labor:** `ChatJob` owns *persistence* (writing the final message
 content + `streaming_status`); `ChatBroadcaster` owns the *live DOM*. Keep
 these separate.
+
+### Observability
+
+Every finished turn persists its usage onto the assistant `Message`
+(`input_tokens`, `output_tokens`, `cache_read_tokens`, `cost` USD,
+`model_key`) — cost and model come straight from pi's `get_session_stats`
+RPC, so Metis prices nothing itself. Optionally each turn is also exported as
+an OpenTelemetry span to Langfuse (or any OTLP backend) via
+`Observability::LangfuseTrace`, recorded from `ChatJob` after the turn. The
+two layers are independent; OTLP export is off unless configured. See
+`docs/observability.md`.
 
 ### Session continuity & storage
 
@@ -99,6 +113,11 @@ turns is a **per-runtime concern** — see `docs/session-persistence.md`:
 
 There is **no archive**. `Agent::SessionArchive` was removed (commits
 `349a0cb`, `c08eb79`); don't reintroduce a tar-to-Active-Storage path.
+
+When a sandbox is reaped its working tree and pi transcript are gone, but the
+`Message` history is not: if pi has no session to `--continue`, `Agent::Identity`
+replays `Conversation#replayable_history` into `AGENTS.md` so the next turn
+recovers prior context.
 
 Per-turn projected inputs — `workspace/uploads/` (from `Message`
 attachments), the rendered `workspace/.mcp.json`, the rendered
@@ -125,7 +144,8 @@ uses its own config. Full env-var table in `docs/configuration.md`.
 The agent reaches external systems (GitHub, Google, Linear, …) through
 **MCP servers**, bridged into pi by the `pi-mcp-adapter` extension —
 installed into each pi environment at setup/image-build time, not loaded
-by Rails. See `docs/connectors.md`.
+by Rails. See `docs/connectors.md` (and `docs/mcp-oauth-connectors.md` for
+the OAuth/DCR flow).
 
 - `Connector` + `ConnectorCredential` + `OauthGrant` model the
   per-team-and-user authorization state; `ConnectorsController` is the
@@ -159,7 +179,7 @@ projected input — rewritten each turn, never durable. See `docs/skills.md`.
   `Connector`, future projects/skills) has `belongs_to :team`. A user's
   personal account is a team of one. Authorization is always
   `resource.team.members.include?(user)` — no `User`-vs-`Team` branch,
-  no polymorphic `owner`. See `docs/tenancy.md`.
+  no polymorphic `owner`. See `docs/tenancy.md` and `docs/teams.md`.
 - Models use integer enums: `Conversation#backend`, `Message#role`,
   `Message#streaming_status`.
 - Test parallelization is gated behind a high threshold (`threshold: 5000`
