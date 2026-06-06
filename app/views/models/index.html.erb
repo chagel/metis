@@ -15,9 +15,9 @@
 
   <div class="pane-body">
     <div class="pane-inner">
-      <p class="muted" style="margin-bottom:1rem">
+      <p class="models-intro">
         The providers and models this deployment offers in the new-chat composer.
-        <%= current_user.superuser? ? "Refresh to pull the latest from pi, then enable what you want and set a default." : "Managed by an administrator." %>
+        <%= current_user.superuser? ? "Refresh to pull the latest from pi, then toggle on what you want." : "Managed by an administrator." %>
       </p>
 
       <%# Enable/disable and set-default submit inside this frame, so Turbo
@@ -35,7 +35,7 @@
           </div>
         <% else %>
           <% @providers.each do |provider| %>
-            <%= render "provider", provider: provider, default_model: @default_model %>
+            <%= render "provider", provider: provider %>
           <% end %>
         <% end %>
       <% end %>

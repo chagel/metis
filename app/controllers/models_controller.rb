@@ -1,6 +1,6 @@
 # The deployment's LLM catalog under /settings — list providers/models,
-# refresh from pi, toggle availability, and set the default. The page is
-# readable by any member; mutations are superuser-only.
+# refresh from pi, and toggle availability. The page is readable by any
+# member; mutations are superuser-only.
 class ModelsController < ApplicationController
   layout "settings"
 
@@ -8,7 +8,6 @@ class ModelsController < ApplicationController
 
   def index
     @providers = LlmProvider.ordered.includes(:llm_models)
-    @default_model = LlmModel.current_default
   end
 
   def refresh
@@ -29,13 +28,5 @@ class ModelsController < ApplicationController
     model = LlmModel.find(params[:id])
     model.update!(enabled: boolean_param(params[:enabled]))
     redirect_to models_path
-  end
-
-  def make_default
-    LlmModel.find(params[:id]).make_default!
-    redirect_to models_path
-  rescue ActiveRecord::RecordNotUnique
-    redirect_to models_path,
-                alert: "Another superuser changed the default model. Please try again."
   end
 end
