@@ -45,7 +45,14 @@ module ApplicationHelper
     parts = []
     parts << format_duration(message.duration) if message.duration
     parts << token_summary(message)
+    parts << format_cost(message.cost) if message.cost&.positive?
     parts.reject(&:blank?).join(" · ")
+  end
+
+  # A turn's cost: "$0.0011", "$1.23". Sub-cent costs keep 4 decimals so a
+  # cheap turn doesn't render as "$0.00".
+  def format_cost(cost)
+    cost >= 0.01 ? format("$%.2f", cost) : format("$%.4f", cost)
   end
 
   # Human-readable turn duration: "2.3s", "1m 04s".

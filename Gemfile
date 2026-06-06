@@ -75,6 +75,13 @@ gem "ruby-vips", "~> 2.0"
 # S3 (and S3-compatible: R2, MinIO) backend for Active Storage in production.
 gem "aws-sdk-s3", require: false
 
+# LLM observability: export per-turn token/cost traces to Langfuse (or any
+# OTLP backend) over OpenTelemetry. Required lazily by
+# config/initializers/observability.rb only when METIS_LANGFUSE_ENABLED is
+# set, so a deployment that leaves it off pays nothing.
+gem "opentelemetry-sdk", require: false
+gem "opentelemetry-exporter-otlp", require: false
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"

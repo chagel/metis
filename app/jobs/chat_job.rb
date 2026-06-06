@@ -59,12 +59,15 @@ class ChatJob < ApplicationJob
       tool_calls: scrub_null_bytes(tools.values),
       streaming_status: final_status(canceled: canceled, errored: errored),
       finished_at: Time.current,
-      **turn_token_columns(conversation, adapter)
+      **turn_usage_columns(conversation, adapter)
     )
     persist_session_id(conversation, adapter)
     persist_context_usage(conversation, adapter)
     persist_agent_model(conversation, adapter)
     persist_runtime(conversation, adapter)
+    Observability::LangfuseTrace.record_turn(
+      conversation: conversation, user_message: user_message, assistant_message: assistant_message
+    )
     broadcaster.refresh_usage
     broadcaster.collapse_activity
     broadcaster.stop_sidebar_indicator
@@ -109,10 +112,20 @@ class ChatJob < ApplicationJob
     conversation.update_column(:backend_session_id, session_id)
   end
 
-  # pi reports cumulative session token counts; this turn's share is the
-  # rise over what earlier messages already account for. Computed before
-  # the assistant message's own tokens are written.
-  def turn_token_columns(conversation, adapter)
+  # This turn's usage, written onto the assistant message. pi reports
+  # cumulative session totals, so each turn's share is the rise over what
+  # earlier messages already account for. Tokens, cost, and model are
+  # independent: a provider that returns no usage (pi omits stats, see
+  # earendil-works/pi#5386) still records its model, and an absent cost
+  # doesn't suppress tokens. Computed before this message's own rows count.
+  def turn_usage_columns(conversation, adapter)
+    token_deltas(conversation, adapter)
+      .merge(cost_delta(conversation, adapter))
+      .merge(model_key: adapter.model_info&.dig("id"))
+      .compact
+  end
+
+  def token_deltas(conversation, adapter)
     totals = adapter.token_totals
     return {} if totals.blank?
 
@@ -121,6 +134,13 @@ class ChatJob < ApplicationJob
       output_tokens:     turn_delta(totals["output"],    conversation.messages.sum(:output_tokens)),
       cache_read_tokens: turn_delta(totals["cacheRead"], conversation.messages.sum(:cache_read_tokens))
     }
+  end
+
+  def cost_delta(conversation, adapter)
+    total = adapter.cost_total
+    return {} if total.nil?
+
+    { cost: [ total.to_d - conversation.messages.sum(:cost), 0 ].max }
   end
 
   def turn_delta(total, prior)

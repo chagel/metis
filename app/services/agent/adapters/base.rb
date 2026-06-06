@@ -44,6 +44,12 @@ module Agent
         nil
       end
 
+      # Cumulative session cost in USD after the last run, or nil if the
+      # backend does not price runs.
+      def cost_total
+        nil
+      end
+
       # The model the backend resolved for the last run — a hash with
       # "id"/"name"/"provider" keys, or nil.
       def model_info

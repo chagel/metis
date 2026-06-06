@@ -45,6 +45,8 @@ env:
     - GOOGLE_OAUTH_CLIENT_SECRET
     - E2B_API_KEY
     - DAYTONA_API_KEY
+    - LANGFUSE_PUBLIC_KEY
+    - LANGFUSE_SECRET_KEY
   clear:
     METIS_MAIL_FROM: "Metis <noreply@<%= ENV.fetch('METIS_HOST') %>>"
     METIS_APP_HOST: <%= ENV.fetch("METIS_HOST") %>
@@ -68,6 +70,9 @@ env:
     AWS_REGION: <%= ENV.fetch("AWS_REGION") %>
     JOB_CONCURRENCY: "3"
     WEB_CONCURRENCY: "2"
+    METIS_LANGFUSE_ENABLED: "<%= ENV.fetch('METIS_LANGFUSE_ENABLED', '') %>"
+    LANGFUSE_HOST: <%= ENV.fetch("LANGFUSE_HOST", "https://cloud.langfuse.com") %>
+    METIS_LANGFUSE_INCLUDE_CONTENT: "<%= ENV.fetch('METIS_LANGFUSE_INCLUDE_CONTENT', '') %>"
 
 aliases:
   console: app exec --interactive --reuse "bin/rails console"

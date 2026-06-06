@@ -24,6 +24,9 @@ cp .env.example .env
 | `METIS_MAIL_FROM` | sender for all email (on the Cloudflare-verified domain) |
 | `METIS_APP_HOST` | host for links in emails (invites, password reset) |
 | `METIS_REGISTRATION_MODE` | `invite_only` (default) or `open` |
+| `METIS_LANGFUSE_ENABLED` | export per-turn token/cost traces to Langfuse — see [Observability](observability.md) |
+| `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_HOST` | Langfuse credentials + endpoint (host defaults to `https://cloud.langfuse.com`) |
+| `METIS_LANGFUSE_INCLUDE_CONTENT` | also export prompt/completion text (off by default — `Message#content` is encrypted) |
 
 ## Runtimes
 

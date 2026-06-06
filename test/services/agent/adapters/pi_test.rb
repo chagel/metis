@@ -28,6 +28,7 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
                "success" => true, "data" => {
                  "sessionId" => "stub-session-1",
                  "tokens" => { "input" => 120, "output" => 45, "cacheRead" => 30 },
+                 "cost" => 0.0123,
                  "contextUsage" => { "tokens" => 195, "contextWindow" => 272000, "percent" => 0.07 }
                } })
       when "get_state"
@@ -242,11 +243,12 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
     assert_equal "stub-session-1", adapter.native_session_id
   end
 
-  test "stream captures token totals and context usage from session stats" do
+  test "stream captures token totals, cost, and context usage from session stats" do
     adapter = streaming_adapter(PROMPT_STUB)
     adapter.stream("hi") { |_event| nil }
 
     assert_equal({ "input" => 120, "output" => 45, "cacheRead" => 30 }, adapter.token_totals)
+    assert_in_delta 0.0123, adapter.cost_total, 1e-9
     assert_equal 272000, adapter.context_usage["contextWindow"]
   end
 
@@ -258,9 +260,10 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
                  adapter.model_info)
   end
 
-  test "token_totals, context_usage, and model_info are nil before a run" do
+  test "token_totals, context_usage, cost_total, and model_info are nil before a run" do
     assert_nil adapter.token_totals
     assert_nil adapter.context_usage
+    assert_nil adapter.cost_total
     assert_nil adapter.model_info
   end
 

@@ -57,6 +57,9 @@ module Agent
       def native_session_id = @session_stats&.dig("sessionId")
       def token_totals = @session_stats&.dig("tokens")
       def context_usage = @session_stats&.dig("contextUsage")
+      # Cumulative session cost in USD (pi prices each turn natively). nil
+      # when a provider returns no usage and pi omits cost (e.g. Ollama).
+      def cost_total = @session_stats&.dig("cost")
       def model_info = @model_info
       def runtime_info = @runtime.runtime_info
       def artifacts = @runtime.artifacts

@@ -3,14 +3,16 @@ require "test_helper"
 class ChatJobTest < ActiveSupport::TestCase
   # Fake adapter that replays a canned Agent::UiEvent stream.
   class FakeAdapter
-    attr_reader :native_session_id, :token_totals, :context_usage, :model_info, :runtime_info, :artifacts
+    attr_reader :native_session_id, :token_totals, :context_usage, :cost_total,
+                :model_info, :runtime_info, :artifacts
 
     def initialize(events, native_session_id: nil, token_totals: nil, context_usage: nil,
-                   model_info: nil, runtime_info: nil, artifacts: [])
+                   cost_total: nil, model_info: nil, runtime_info: nil, artifacts: [])
       @events = events
       @native_session_id = native_session_id
       @token_totals = token_totals
       @context_usage = context_usage
+      @cost_total = cost_total
       @model_info = model_info
       @runtime_info = runtime_info
       @artifacts = artifacts
@@ -198,6 +200,41 @@ class ChatJobTest < ActiveSupport::TestCase
     assert_equal 30, @assistant_message.input_tokens
     assert_equal 15, @assistant_message.output_tokens
     assert_equal 5, @assistant_message.cache_read_tokens
+  end
+
+  test "records this turn's cost on the assistant message" do
+    run_with([ Agent::UiEvent.new(:turn_finished) ], cost_total: 0.0042)
+
+    assert_in_delta 0.0042, @assistant_message.reload.cost, 1e-9
+  end
+
+  test "cost is this turn's rise over earlier turns' cumulative cost" do
+    @conversation.messages.create!(
+      role: :assistant, content: "earlier", streaming_status: :done, cost: 0.30
+    )
+    run_with([ Agent::UiEvent.new(:turn_finished) ], cost_total: 0.45)
+
+    assert_in_delta 0.15, @assistant_message.reload.cost, 1e-9
+  end
+
+  test "records the model that served this turn on the message" do
+    run_with([ Agent::UiEvent.new(:turn_finished) ],
+             model_info: { "id" => "gpt-5.5", "name" => "GPT-5.5", "provider" => "openai-codex" })
+
+    assert_equal "gpt-5.5", @assistant_message.reload.model_key
+  end
+
+  test "tolerates a provider that returns no usage stats (earendil-works/pi#5386)" do
+    # Ollama-style: pi omits session stats, so the adapter reports nil for
+    # every usage field. The turn must still finish, just without numbers.
+    run_with([ Agent::UiEvent.new(:text_delta, data: { delta: "hi" }),
+              Agent::UiEvent.new(:turn_finished) ],
+             token_totals: nil, cost_total: nil, model_info: nil)
+
+    @assistant_message.reload
+    assert_predicate @assistant_message, :done?
+    assert_nil @assistant_message.cost
+    assert_nil @assistant_message.input_tokens
   end
 
   test "stores the context-window usage on the conversation" do
