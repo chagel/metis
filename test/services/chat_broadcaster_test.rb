@@ -40,16 +40,25 @@ class ChatBroadcasterTest < ActiveSupport::TestCase
     @broadcaster.handle(event(:text_delta, delta: "\n\n"))
     @broadcaster.handle(event(:text_delta, delta: "Body text"))
 
-    # The live buffer must match what ChatJob persists (every delta), so the
-    # block separator survives and Heading/Body don't fuse live.
-    assert_equal "## Heading\n\nBody text", @broadcaster.instance_variable_get(:@text)
+    # The block separator survives so Heading/Body don't fuse live.
+    assert_equal "## Heading\n\nBody text", @broadcaster.instance_variable_get(:@pending)
   end
 
   test "an empty text delta is skipped" do
     @broadcaster.handle(event(:text_delta, delta: ""))
     @broadcaster.handle(event(:text_delta, delta: nil))
 
-    assert_equal "", @broadcaster.instance_variable_get(:@text)
+    assert_equal "", @broadcaster.instance_variable_get(:@pending)
+  end
+
+  test "message_finished adopts pi's complete text over a short delta stream" do
+    # openai ends the delta stream a few chars short of the message's real
+    # text; the message_end content is authoritative.
+    @broadcaster.handle(event(:text_delta, delta: "Hi. What do you nee"))
+    @broadcaster.handle(event(:message_finished, id: "m1", content: "Hi. What do you need?"))
+
+    assert_equal [ "Hi. What do you need?" ], @broadcaster.instance_variable_get(:@segments)
+    assert_equal "", @broadcaster.instance_variable_get(:@pending)
   end
 
   test "a runtime_status event renders the phase into the indicator" do

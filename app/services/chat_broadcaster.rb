@@ -6,7 +6,8 @@ class ChatBroadcaster
   def initialize(conversation, assistant_message)
     @conversation = conversation
     @message = assistant_message
-    @text = +""
+    @segments = []
+    @pending = +""
     @tools = {}
   end
 
@@ -15,6 +16,7 @@ class ChatBroadcaster
     when :runtime_status    then update_runtime_status(event)
     when :message_started   then clear_runtime_phase
     when :text_delta        then append_text(event[:delta])
+    when :message_finished  then finalize_segment(event[:content])
     when :reasoning_delta   then append_reasoning(event[:delta])
     when :tool_call_started then start_tool(event)
     when :tool_call_progress, :tool_call_finished then update_tool(event)
@@ -102,21 +104,32 @@ class ChatBroadcaster
 
   def base_id = dom_id(@message)
 
-  # Accumulate the streamed text and re-render the whole body as Markdown.
-  # An innerHTML update (not append) keeps partial Markdown — open code
-  # fences, half-built tables — rendering correctly as more text arrives.
-  #
-  # Skip only empty deltas, never `blank?` ones: some models stream block
-  # separators as standalone whitespace deltas ("\n\n", " "), and dropping
-  # those fuses Markdown blocks live (headings, tables) while the persisted
-  # content — which keeps every delta — renders fine on refresh.
+  # Skip only empty deltas, never blank ones: models stream block separators
+  # ("\n\n", " ") as standalone deltas, and dropping them fuses Markdown blocks.
   def append_text(delta)
     return if delta.to_s.empty?
 
-    @text << delta
+    @pending << delta
+    render_body
+  end
+
+  # pi's complete text for the message that just ended — openai streams a few
+  # chars short, so adopt it as truth and start the next segment clean.
+  def finalize_segment(content)
+    @segments << content.to_s
+    @pending = +""
+    render_body
+  end
+
+  # innerHTML replace (not append) so partial Markdown — open fences, half-built
+  # tables — still renders. Strip the leading break Pi#segmented_delta injects.
+  def render_body
+    body = (@segments + [ @pending.strip ]).reject(&:empty?).join("\n\n")
+    return if body.empty?
+
     Turbo::StreamsChannel.broadcast_update_to(
       @conversation, target: "#{base_id}_body",
-      html: ApplicationController.helpers.markdown(@text)
+      html: ApplicationController.helpers.markdown(body)
     )
   end
 

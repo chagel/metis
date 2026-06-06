@@ -30,6 +30,7 @@ class ChatJob < ApplicationJob
     broadcaster.start_sidebar_indicator
     text = +""
     reasoning = +""
+    segments = []
     tools = {}
     errored = false
     canceled = false
@@ -38,11 +39,12 @@ class ChatJob < ApplicationJob
     adapter.stream(user_message.content,
                    images: user_message.images, files: user_message.files) do |event|
       case event.type
-      when :text_delta      then text << event[:delta].to_s
-      when :reasoning_delta then reasoning << event[:delta].to_s
+      when :text_delta       then text << event[:delta].to_s
+      when :reasoning_delta  then reasoning << event[:delta].to_s
+      when :message_finished then segments << event[:content].to_s
       when :tool_call_started, :tool_call_progress, :tool_call_finished
         record_tool_call(tools, event)
-      when :error           then errored = true
+      when :error            then errored = true
       end
       broadcaster.handle(event)
 
@@ -54,7 +56,7 @@ class ChatJob < ApplicationJob
     end
 
     assistant_message.update!(
-      content: scrub_null_bytes(text),
+      content: scrub_null_bytes(final_text(segments, text)),
       reasoning: scrub_null_bytes(reasoning.presence),
       tool_calls: scrub_null_bytes(tools.values),
       streaming_status: final_status(canceled: canceled, errored: errored),
@@ -90,6 +92,13 @@ class ChatJob < ApplicationJob
     return :errored if errored
 
     :done
+  end
+
+  # openai ends the delta stream a few chars short of the real text, which pi
+  # delivers complete in message_end; fall back to the buffer if nothing finalized.
+  def final_text(segments, streamed)
+    finalized = segments.reject(&:blank?)
+    finalized.any? ? finalized.join("\n\n") : streamed
   end
 
   # Accumulate one tool call across its started/progress/finished events,

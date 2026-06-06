@@ -61,6 +61,43 @@ class ChatJobTest < ActiveSupport::TestCase
     assert @assistant_message.done?
   end
 
+  test "persists pi's authoritative message text when the delta stream ends short" do
+    # openai ends the text_delta stream a few chars before the message's real
+    # text; message_end carries the complete content. The saved reply must be
+    # the complete one, not the truncated delta accumulation.
+    run_with([
+               Agent::UiEvent.new(:text_delta, data: { delta: "I'm Metis, running as `openai/gpt-5.4-mini" }),
+               Agent::UiEvent.new(:message_finished,
+                                  data: { id: "m1", content: "I'm Metis, running as `openai/gpt-5.4-mini`." }),
+               Agent::UiEvent.new(:turn_finished)
+             ])
+
+    assert_equal "I'm Metis, running as `openai/gpt-5.4-mini`.", @assistant_message.reload.content
+  end
+
+  test "joins multiple finished message segments with a blank line" do
+    run_with([
+               Agent::UiEvent.new(:text_delta, data: { delta: "First" }),
+               Agent::UiEvent.new(:message_finished, data: { id: "m1", content: "First part." }),
+               Agent::UiEvent.new(:text_delta, data: { delta: "Second" }),
+               Agent::UiEvent.new(:message_finished, data: { id: "m2", content: "Second part." }),
+               Agent::UiEvent.new(:turn_finished)
+             ])
+
+    assert_equal "First part.\n\nSecond part.", @assistant_message.reload.content
+  end
+
+  test "falls back to the streamed text when no message finalized" do
+    # A turn that errors before any message_end still saves what streamed.
+    run_with([
+               Agent::UiEvent.new(:text_delta, data: { delta: "partial answer" }),
+               Agent::UiEvent.new(:error, data: { message: "boom" }),
+               Agent::UiEvent.new(:turn_finished)
+             ])
+
+    assert_equal "partial answer", @assistant_message.reload.content
+  end
+
   test "strips U+0000 from a tool call's output so the turn persists" do
     run_with([
                Agent::UiEvent.new(:tool_call_started,
