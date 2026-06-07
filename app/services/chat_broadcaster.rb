@@ -88,9 +88,8 @@ class ChatBroadcaster
     )
   end
 
-  # Reveal the Fork action on the just-finished assistant message (rendered
-  # pending, without it). On the owner's own stream — not the conversation's —
-  # so read-only teammates don't get a control they can't use.
+  # On the owner's own stream, not the conversation's, so read-only teammates
+  # co-viewing don't get a Fork control they can't use.
   def reveal_fork
     return unless @message.done?
 

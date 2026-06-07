@@ -1,16 +1,12 @@
 require "json"
 
 module Agent
-  # Truncates a copied pi session transcript to a snapshot — the file half of
-  # pi's `fork`. A pi session is one JSONL file of {id, parentId, message}
-  # entries; Metis never branches in place, so file order is the active path
-  # and dropping from the Nth user line down is exactly what pi's fork yields.
+  # A pi session is one JSONL file of {id, parentId, message} entries; Metis
+  # never branches in place, so file order is the active path and dropping from
+  # the Nth user line down is exactly what pi's own `fork` yields.
   module SessionTree
     module_function
 
-    # Rewrite the active session file, keeping entries before the
-    # `user_index`-th user message. nil / past the last user entry keeps
-    # everything (a clone). Returns true if it truncated.
     def truncate_before_user(session_dir:, user_index:)
       file = active_session_file(session_dir)
       return false unless file

@@ -23,7 +23,6 @@ class MessagesController < ApplicationController
     head(:conflict) # in-progress-turn index caught a race
   end
 
-  # Branch a new conversation continuing from a completed assistant turn.
   def fork
     message = @conversation.messages.find(params[:id])
     return head(:unprocessable_entity) unless message.assistant? && message.done?

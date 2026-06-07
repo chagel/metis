@@ -1,13 +1,10 @@
 require "fileutils"
 
 module Agent
-  # On a host-backed fork's first turn, copies the source's pi session +
-  # workspace into the fork's scope (truncated to the snapshot) and sets a
-  # backend_session_id so the turn --continues pi's real memory. Runs in
-  # ChatJob — the worker that can see the host scope.
-  #
-  # Best-effort: any failure clears fork_pending and leaves the session blank,
-  # degrading to a history-replay fork rather than crashing the turn.
+  # Copies the source's pi session + workspace into the fork's scope, truncated
+  # to the snapshot, so its first turn --continues pi's real memory. Runs in
+  # ChatJob — the worker that can see the host scope. Best-effort: failure
+  # degrades to a history-replay fork (see #needs_history_replay?).
   class ForkPreparer
     def self.prepare(conversation)
       new(conversation).prepare

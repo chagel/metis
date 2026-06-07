@@ -73,9 +73,8 @@ module Agent
       end
 
       # The rendered AGENTS.md (Agent::Identity) — pi's per-turn boot file.
-      # With no live transcript to lean on — a reaped sandbox (#context_lost?)
-      # or a cloud-source fork (#needs_history_replay?) — it also replays the
-      # conversation from the DB.
+      # With no live transcript — a reaped sandbox or a cloud-source fork — it
+      # also replays the conversation from the DB.
       def identity_content
         restore = context_lost? || conversation.needs_history_replay?
         Agent::Identity.new(conversation, kind, restore_history: restore).content
