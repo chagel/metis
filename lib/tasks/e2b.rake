@@ -28,8 +28,12 @@ namespace :e2b do
     # 2.39 — on bookworm every `gws` call hard-crashes with a version error.
     template = E2B::Template.new(file_context_path: Rails.root.to_s)
                             .from_node_image("lts-trixie")
-                            .apt_install([ "curl", "gnupg" ])
+                            # python3 + poppler-utils: foundation for the bundled
+                            # `pdf` skill. Keep in sync with docker/pi-runtime/Dockerfile.
+                            .apt_install([ "curl", "gnupg", "python3", "python3-pip", "poppler-utils" ])
                             .run_cmd(install_gh, user: "root")
+                            # --break-system-packages: trixie's system Python is PEP-668 managed.
+                            .run_cmd("pip install --no-cache-dir --break-system-packages pypdf pdfplumber", user: "root")
                             .npm_install(pi_package, g: true)
                             # The Google Workspace CLI (gws) — how the agent
                             # reaches Gmail, Calendar, and Drive. Reads its

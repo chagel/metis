@@ -9,10 +9,13 @@ FROM node:22-slim
 # agent can authenticate as the operator against GitHub via the
 # `GH_TOKEN` the runtime injects per turn (see app/services/agent/
 # runtime/base.rb). Installed from GitHub's apt source — the
-# `gh-cli.list` repo holds the current major.
+# `gh-cli.list` repo holds the current major. python3 + poppler-utils
+# are the foundation for the bundled `pdf` skill; advanced PDF deps are
+# left for the agent to install on demand.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       bash ca-certificates curl git gnupg ripgrep \
+      python3 python3-pip poppler-utils \
  && install -m 0755 -d /etc/apt/keyrings \
  && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
       | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
@@ -22,6 +25,11 @@ RUN apt-get update \
  && apt-get update \
  && apt-get install -y --no-install-recommends gh \
  && rm -rf /var/lib/apt/lists/*
+
+# --break-system-packages: Debian marks the system Python PEP-668
+# externally-managed; this disposable image installs straight into it.
+RUN pip install --no-cache-dir --break-system-packages \
+      pypdf pdfplumber
 
 # pi itself, pinned to the version pi-agent-rb supports. The rake task
 # passes PI_VERSION from PiAgent::SUPPORTED_PI_VERSION.
