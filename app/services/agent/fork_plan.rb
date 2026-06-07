@@ -30,8 +30,8 @@ module Agent
     # everything" (a clone — the forked turn was the latest).
     def truncate_user_index
       ordered = source.messages.user.chronological.pluck(:id)
-      prior_user_id = source.messages.user.where("messages.id < ?", message.id).maximum(:id)
-      prior_user_id ? ordered.index(prior_user_id) + 1 : 0
+      prior = ordered.rindex { |id| id < message.id }
+      prior ? prior + 1 : 0
     end
 
     # A real session copy is possible only when both the source's last runtime
