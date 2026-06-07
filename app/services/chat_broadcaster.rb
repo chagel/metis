@@ -89,14 +89,14 @@ class ChatBroadcaster
   end
 
   # On the owner's own stream, not the conversation's, so read-only teammates
-  # co-viewing don't get a Fork control they can't use.
-  def reveal_fork
+  # co-viewing don't get the Fork control they can't use.
+  def reveal_actions
     return unless @message.done?
 
     Turbo::StreamsChannel.broadcast_append_to(
       @conversation.user,
       target: "#{base_id}_foot",
-      partial: "messages/fork",
+      partial: "messages/actions",
       locals: { message: @message }
     )
   end

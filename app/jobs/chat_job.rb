@@ -75,7 +75,7 @@ class ChatJob < ApplicationJob
     )
     broadcaster.refresh_usage
     broadcaster.collapse_activity
-    broadcaster.reveal_fork
+    broadcaster.reveal_actions
     broadcaster.stop_sidebar_indicator
     broadcaster.refresh_composer
   end

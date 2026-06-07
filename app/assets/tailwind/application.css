@@ -643,18 +643,23 @@ img.avatar { background:none; object-fit:cover; }
 }
 .msg-meta:empty { display:none; }
 
-/* Assistant footer: meta on the left, Fork pushed to the trailing edge. */
+/* Assistant footer: meta on the left, action cluster on the trailing edge. */
 .msg-foot { display:flex; align-items:center; gap:10px; margin-top:10px; }
 .msg-foot .msg-meta { margin-top:0; flex:1; min-width:0; }
-.msg-fork {
+.msg-actions { display:inline-flex; align-items:center; gap:2px; flex:none; }
+.msg-fork, .msg-copy {
   display:inline-flex; align-items:center; justify-content:center; flex:none;
   padding:3px; border:0; border-radius:6px; background:transparent;
   color:var(--faint); cursor:pointer; transition:color .15s, background .15s;
 }
-.msg-fork svg { width:13px; height:13px; }
+.msg-fork svg, .msg-copy svg { width:13px; height:13px; }
 .msg-fork-form { margin:0; display:inline-flex; }
-.msg-fork:hover { color:var(--ink); background:var(--card); box-shadow:var(--sh-sm); }
-.msg-fork:active { transform:scale(.96); }
+.msg-fork:hover, .msg-copy:hover { color:var(--ink); background:var(--card); box-shadow:var(--sh-sm); }
+.msg-fork:active, .msg-copy:active { transform:scale(.96); }
+.msg-copy .ico-check { display:none; }
+.msg-copy.is-copied { color:var(--accent-fg); }
+.msg-copy.is-copied .ico-copy { display:none; }
+.msg-copy.is-copied .ico-check { display:inline; }
 
 /* Elapsed-timer row shown while a turn streams. The pulsing dot
    keeps the existing .msg-indicator animation; the .working-label

@@ -99,17 +99,18 @@ class ChatBroadcasterTest < ActiveSupport::TestCase
     assert_equal "eli5", locals[:skill_slug]
   end
 
-  test "reveal_fork broadcasts the fork action to the owner once the turn is done" do
+  test "reveal_actions broadcasts the copy and fork actions to the owner once done" do
     @message.update!(streaming_status: :done)
 
-    streams = capture_turbo_stream_broadcasts(@owner) { @broadcaster.reveal_fork }
+    streams = capture_turbo_stream_broadcasts(@owner) { @broadcaster.reveal_actions }
 
     assert_equal 1, streams.size
     assert_includes streams.first.to_s, "msg-fork"
+    assert_includes streams.first.to_s, "msg-copy"
   end
 
-  test "reveal_fork stays silent while the message is unfinished" do
-    streams = capture_turbo_stream_broadcasts(@owner) { @broadcaster.reveal_fork }
+  test "reveal_actions stays silent while the message is unfinished" do
+    streams = capture_turbo_stream_broadcasts(@owner) { @broadcaster.reveal_actions }
     assert_empty streams
   end
 end

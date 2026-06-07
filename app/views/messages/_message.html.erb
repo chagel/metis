@@ -52,7 +52,7 @@
           <div id="<%= dom_id(message) %>_meta"
                class="msg-meta"><%= message_meta(message) %></div>
           <% if local_assigns[:forkable] && message.done? %>
-            <%= render "messages/fork", message: message %>
+            <%= render "messages/actions", message: message %>
           <% end %>
         </div>
       </div>
