@@ -2,8 +2,7 @@
   <%= render @user_message %>
 <% end %>
 
-<%# Forkable, but still pending — ChatBroadcaster#reveal_fork surfaces the
-    action on the owner's stream once the turn finishes. %>
+<%# Still pending — ChatBroadcaster#reveal_fork adds Fork once it finishes. %>
 <%= turbo_stream.append "messages" do %>
   <%= render "messages/message", message: @assistant_message, forkable: true %>
 <% end %>

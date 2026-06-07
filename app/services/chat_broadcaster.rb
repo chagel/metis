@@ -88,11 +88,9 @@ class ChatBroadcaster
     )
   end
 
-  # Reveal the Fork action on the just-finished assistant message — it was
-  # rendered pending (no action) when the turn started. Broadcast on the
-  # owner's own stream (not the conversation's), so read-only teammates
-  # co-viewing the turn don't get a control they can't use. No-op unless the
-  # turn completed cleanly; an errored/canceled message stays unforkable.
+  # Reveal the Fork action on the just-finished assistant message (rendered
+  # pending, without it). On the owner's own stream — not the conversation's —
+  # so read-only teammates don't get a control they can't use.
   def reveal_fork
     return unless @message.done?
 

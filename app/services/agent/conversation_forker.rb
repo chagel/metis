@@ -1,10 +1,7 @@
 module Agent
-  # Builds a new conversation forked from a source message: copies the Metis
-  # message rows up to the fork point (so the new thread renders its inherited
-  # history immediately) and flags whether the first turn should copy the real
-  # pi session (#fork_pending, host-backed runtimes) or fall back to history
-  # replay (cloud sources). The actual session copy is deferred to
-  # Agent::ForkPreparer on the first turn — see docs/session-persistence.md.
+  # Builds a forked conversation and copies its inherited Metis message rows.
+  # The real pi session copy is deferred to ForkPreparer on the first turn
+  # (host-backed runtimes); cloud sources fall back to history replay.
   class ConversationForker
     def initialize(message, by:)
       @plan = ForkPlan.new(message)
@@ -45,8 +42,7 @@ module Agent
           tool_calls: src.tool_calls,
           streaming_status: :done,
           native_ref: src.native_ref,
-          # Preserve the original timestamps so the inherited turns read as
-          # history, not as if they all happened at fork time.
+          # Keep original timestamps so the inherited turns read as history.
           created_at: src.created_at,
           started_at: src.started_at,
           finished_at: src.finished_at
@@ -55,9 +51,8 @@ module Agent
       end
     end
 
-    # Share the underlying blobs — a fork inherits the same uploads/artifacts,
-    # no re-upload. Usage columns (tokens/cost) are intentionally left nil:
-    # the fork's first turn accounts its own usage from pi's fresh totals.
+    # Share the blobs (no re-upload). Usage columns stay nil so the fork's
+    # first turn accounts its own from pi's fresh totals.
     def copy_attachments(src, dst)
       dst.images.attach(src.images.blobs) if src.images.attached?
       dst.files.attach(src.files.blobs) if src.files.attached?

@@ -182,18 +182,15 @@ class Conversation < ApplicationRecord
     forked_from_message_id.present?
   end
 
-  # The conversation this one branched from, or nil if it wasn't a fork (or
-  # the source was since destroyed — the FK nullifies forked_from_message_id).
+  # nil if not a fork, or the source was destroyed (the FK nullifies the id).
   def forked_from_conversation
     forked_from_message&.conversation
   end
 
-  # A cloud-source fork starts with copied history but no pi transcript of its
-  # own, so the agent gets that inherited history the same way a reaped sandbox
-  # is rehydrated — Agent::Identity replays replayable_history into AGENTS.md.
-  # A host-backed fork (fork_pending) instead copies the real pi session on its
-  # first turn (Agent::ForkPreparer), so it must NOT also replay. Once
-  # backend_session_id is set, normal --continue / sandbox resume takes over.
+  # A cloud-source fork has no pi transcript of its own, so Agent::Identity
+  # replays its copied history into AGENTS.md (as for a reaped sandbox). A
+  # host-backed fork (fork_pending) copies the real session instead, so it must
+  # not also replay; once backend_session_id is set, --continue takes over.
   def needs_history_replay?
     forked? && backend_session_id.blank? && !fork_pending?
   end

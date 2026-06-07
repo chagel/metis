@@ -643,14 +643,9 @@ img.avatar { background:none; object-fit:cover; }
 }
 .msg-meta:empty { display:none; }
 
-/* Footer row pairing the timestamp/meta with the hover-reveal Fork action.
-   The user variant aligns right under its bubble; the assistant variant
-   keeps the meta on the left and pushes Fork to the trailing edge. */
-.msg-foot { display:flex; align-items:center; gap:10px; }
-.msg-user .msg-foot { margin-top:6px; }
-.msg-user .msg-foot .msg-stamp { margin-top:0; }
-.ai-card .msg-foot { margin-top:10px; }
-.ai-card .msg-foot .msg-meta { margin-top:0; flex:1; min-width:0; }
+/* Assistant footer: meta on the left, Fork pushed to the trailing edge. */
+.msg-foot { display:flex; align-items:center; gap:10px; margin-top:10px; }
+.msg-foot .msg-meta { margin-top:0; flex:1; min-width:0; }
 .msg-fork {
   display:inline-flex; align-items:center; justify-content:center; flex:none;
   padding:3px; border:0; border-radius:6px; background:transparent;

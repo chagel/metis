@@ -1,6 +1,4 @@
-<%# Branch a new conversation from this message. Owner-only (rendered with
-    forkable: true), and only for completed turns. Breaks out of the chat
-    frame so the redirect lands on the new conversation. %>
+<%# Breaks out of the chat frame so the redirect lands on the new fork. %>
 <%= button_to fork_conversation_message_path(message.conversation, message),
       method: :post,
       class: "msg-fork",
