@@ -13,6 +13,7 @@ module Agent
 
     def copied_messages
       source.messages.chronological.where("messages.id <= ?", message.id)
+            .with_attached_images.with_attached_files.with_attached_artifacts
     end
 
     # The pi user entry after the forked turn; >= the count means clone.

@@ -17,7 +17,7 @@ module Agent
 
     def prepare
       return unless @conversation.fork_pending?
-      raise Agent::Error, "fork source no longer exists" unless source
+      return @conversation.update_columns(fork_pending: false) unless source
 
       copy_scope
       SessionTree.truncate_before_user(
