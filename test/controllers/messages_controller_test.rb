@@ -22,6 +22,16 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert @conversation.messages.exists?(role: :assistant, streaming_status: :pending)
   end
 
+  test "the create stream renders no fork action yet" do
+    post conversation_messages_path(@conversation),
+         params: { content: "Hello agent" }, as: :turbo_stream
+
+    assert_response :success
+    # User messages aren't forkable, and the assistant is still pending — its
+    # action is revealed only at turn end (ChatBroadcaster#reveal_fork).
+    assert_equal 0, response.body.scan("msg-fork-form").size
+  end
+
   test "replying lifts the conversation to the top of the sidebar list" do
     post conversation_messages_path(@conversation),
          params: { content: "Hello agent" }, as: :turbo_stream
@@ -109,5 +119,48 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     post conversation_messages_path(@conversation),
          params: { content: "hi" }, as: :turbo_stream
     assert_redirected_to new_user_session_path
+  end
+
+  test "forking a message creates a new conversation through that turn and redirects" do
+    @conversation.messages.create!(role: :user, content: "hi", streaming_status: :done)
+    assistant = @conversation.messages.create!(role: :assistant, content: "hello there", streaming_status: :done)
+
+    assert_difference -> { @user.conversations.count }, 1 do
+      post fork_conversation_message_path(@conversation, assistant)
+    end
+
+    fork = @user.conversations.recent.first
+    assert_redirected_to conversation_path(fork)
+    assert_equal assistant, fork.forked_from_message
+    assert_equal [ "hi", "hello there" ], fork.messages.chronological.pluck(:content)
+  end
+
+  test "cannot fork a user message" do
+    user_message = @conversation.messages.create!(role: :user, content: "redo this", streaming_status: :done)
+
+    assert_no_difference -> { Conversation.count } do
+      post fork_conversation_message_path(@conversation, user_message)
+    end
+    assert_response :unprocessable_entity
+  end
+
+  test "cannot fork a message in another user's conversation" do
+    other = User.create!(email: "other-fork@example.com", password: "password123")
+    other_conversation = other.conversations.create!
+    message = other_conversation.messages.create!(role: :assistant, content: "x", streaming_status: :done)
+
+    assert_no_difference -> { Conversation.count } do
+      post fork_conversation_message_path(other_conversation, message)
+    end
+    assert_response :not_found
+  end
+
+  test "cannot fork a streaming message" do
+    message = @conversation.messages.create!(role: :assistant, content: "", streaming_status: :streaming)
+
+    assert_no_difference -> { Conversation.count } do
+      post fork_conversation_message_path(@conversation, message)
+    end
+    assert_response :unprocessable_entity
   end
 end

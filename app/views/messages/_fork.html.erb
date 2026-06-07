@@ -1,0 +1,18 @@
+<%# Branch a new conversation from this message. Owner-only (rendered with
+    forkable: true), and only for completed turns. Breaks out of the chat
+    frame so the redirect lands on the new conversation. %>
+<%= button_to fork_conversation_message_path(message.conversation, message),
+      method: :post,
+      class: "msg-fork",
+      title: "Fork into a new thread from here",
+      aria: { label: "Fork conversation from this message" },
+      form: { class: "msg-fork-form", data: { turbo_frame: "_top" } } do %>
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="4" cy="4" r="1.5"/>
+    <circle cx="4" cy="12" r="1.5"/>
+    <circle cx="12" cy="6.5" r="1.5"/>
+    <path d="M4 5.5v5"/>
+    <path d="M4 8h4a4 4 0 0 0 4-4"/>
+  </svg>
+<% end %>

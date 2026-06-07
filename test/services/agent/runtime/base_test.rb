@@ -54,4 +54,26 @@ class Agent::Runtime::BaseTest < ActiveSupport::TestCase
 
     refute_match(/## Conversation so far/, @runtime.identity_content)
   end
+
+  test "identity_content replays history for a cloud-source fork (no session to copy)" do
+    source = @user.conversations.create!
+    message = source.messages.create!(role: :user, content: "src", streaming_status: :done)
+    @conversation.update!(forked_from_message: message, fork_pending: false, backend_session_id: nil)
+    @conversation.messages.create!(role: :user, content: "earlier", streaming_status: :done)
+    @conversation.messages.create!(role: :assistant, content: "reply", streaming_status: :done)
+    @conversation.messages.create!(role: :user, content: "current", streaming_status: :done)
+
+    assert_match(/## Conversation so far/, @runtime.identity_content)
+  end
+
+  test "identity_content does not replay for a host-backed fork still owing a session copy" do
+    source = @user.conversations.create!
+    message = source.messages.create!(role: :user, content: "src", streaming_status: :done)
+    @conversation.update!(forked_from_message: message, fork_pending: true, backend_session_id: nil)
+    @conversation.messages.create!(role: :user, content: "earlier", streaming_status: :done)
+    @conversation.messages.create!(role: :assistant, content: "reply", streaming_status: :done)
+    @conversation.messages.create!(role: :user, content: "current", streaming_status: :done)
+
+    refute_match(/## Conversation so far/, @runtime.identity_content)
+  end
 end

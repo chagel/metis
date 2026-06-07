@@ -192,6 +192,16 @@ turbo-frame#convos { display:contents; }
   background:var(--bg); color:var(--ink-2); font-size:13px;
 }
 .archived-banner-icon { width:16px; height:16px; flex:none; color:var(--ink-3); }
+
+/* Provenance banner on a forked conversation, mirroring .archived-banner. */
+.fork-banner {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 28px; border-bottom:1px solid var(--line);
+  background:var(--bg); color:var(--ink-2); font-size:13px;
+}
+.fork-banner-icon { width:16px; height:16px; flex:none; color:var(--ink-3); }
+.fork-banner-link { color:var(--accent-fg); text-decoration:none; }
+.fork-banner-link:hover { text-decoration:underline; }
 .archived-banner-text { flex:1; min-width:0; }
 .archived-banner form { margin:0; }
 .archived-banner-action {
@@ -632,6 +642,24 @@ img.avatar { background:none; object-fit:cover; }
   color:var(--ink-3); font-variant-numeric:tabular-nums;
 }
 .msg-meta:empty { display:none; }
+
+/* Footer row pairing the timestamp/meta with the hover-reveal Fork action.
+   The user variant aligns right under its bubble; the assistant variant
+   keeps the meta on the left and pushes Fork to the trailing edge. */
+.msg-foot { display:flex; align-items:center; gap:10px; }
+.msg-user .msg-foot { margin-top:6px; }
+.msg-user .msg-foot .msg-stamp { margin-top:0; }
+.ai-card .msg-foot { margin-top:10px; }
+.ai-card .msg-foot .msg-meta { margin-top:0; flex:1; min-width:0; }
+.msg-fork {
+  display:inline-flex; align-items:center; justify-content:center; flex:none;
+  padding:3px; border:0; border-radius:6px; background:transparent;
+  color:var(--faint); cursor:pointer; transition:color .15s, background .15s;
+}
+.msg-fork svg { width:13px; height:13px; }
+.msg-fork-form { margin:0; display:inline-flex; }
+.msg-fork:hover { color:var(--ink); background:var(--card); box-shadow:var(--sh-sm); }
+.msg-fork:active { transform:scale(.96); }
 
 /* Elapsed-timer row shown while a turn streams. The pulsing dot
    keeps the existing .msg-indicator animation; the .working-label

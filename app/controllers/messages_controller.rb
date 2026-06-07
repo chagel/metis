@@ -23,6 +23,17 @@ class MessagesController < ApplicationController
     head(:conflict) # in-progress-turn index caught a race
   end
 
+  # Branch a new conversation continuing from a completed assistant turn: pi's
+  # session is carried (host-backed) or replayed (cloud), and the inherited
+  # history is copied for display.
+  def fork
+    message = @conversation.messages.find(params[:id])
+    return head(:unprocessable_entity) unless message.assistant? && message.done?
+
+    fork = Agent::ConversationForker.new(message, by: current_user).call
+    redirect_to fork
+  end
+
   private
 
   def set_conversation

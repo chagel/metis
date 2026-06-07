@@ -88,6 +88,22 @@ class ChatBroadcaster
     )
   end
 
+  # Reveal the Fork action on the just-finished assistant message — it was
+  # rendered pending (no action) when the turn started. Broadcast on the
+  # owner's own stream (not the conversation's), so read-only teammates
+  # co-viewing the turn don't get a control they can't use. No-op unless the
+  # turn completed cleanly; an errored/canceled message stays unforkable.
+  def reveal_fork
+    return unless @message.done?
+
+    Turbo::StreamsChannel.broadcast_append_to(
+      @conversation.user,
+      target: "#{base_id}_foot",
+      partial: "messages/fork",
+      locals: { message: @message }
+    )
+  end
+
   # Called by ChatJob once the turn is persisted: re-renders the
   # reasoning/tools disclosure from the saved message, which collapses
   # it (the turn is now done) — or removes it if there was neither.

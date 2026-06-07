@@ -45,6 +45,36 @@ class ConversationTest < ActiveSupport::TestCase
     end
   end
 
+  test "forked? and needs_history_replay? track provenance and session state" do
+    source = @user.conversations.create!
+    message = source.messages.create!(role: :user, content: "q", streaming_status: :done)
+
+    refute @conversation.forked?
+    refute @conversation.needs_history_replay?
+
+    @conversation.update!(forked_from_message: message)
+    assert @conversation.forked?
+    assert @conversation.needs_history_replay?, "forked, no session, not pending → replay"
+
+    @conversation.update!(fork_pending: true)
+    refute @conversation.needs_history_replay?, "owes a real session copy → no replay"
+
+    @conversation.update!(fork_pending: false, backend_session_id: "sess-1")
+    refute @conversation.needs_history_replay?, "has its own session → no replay"
+  end
+
+  test "forked_from_conversation resolves the source and nils out when it is gone" do
+    source = @user.conversations.create!
+    message = source.messages.create!(role: :user, content: "q", streaming_status: :done)
+    @conversation.update!(forked_from_message: message)
+
+    assert_equal source, @conversation.forked_from_conversation
+
+    source.destroy # cascade-deletes its messages; the FK nullifies our pointer
+    assert_nil @conversation.reload.forked_from_conversation
+    refute @conversation.forked?
+  end
+
   test "model_label reads from settings before a turn runs" do
     conversation = @user.conversations.create!(
       settings: { "provider" => "openai", "model" => "gpt-5.5" }

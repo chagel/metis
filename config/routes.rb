@@ -19,7 +19,9 @@ Rails.application.routes.draw do
       post :share
       delete :share, action: :unshare
     end
-    resources :messages, only: :create
+    resources :messages, only: :create do
+      member { post :fork }
+    end
   end
 
   resources :teams, only: %i[new create] do

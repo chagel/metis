@@ -92,12 +92,32 @@
     </div>
   <% end %>
 
+  <% if @conversation.forked? && !@read_only %>
+    <div class="fork-banner" role="status">
+      <svg class="fork-banner-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+           stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="4" cy="4" r="1.6"/>
+        <circle cx="4" cy="12" r="1.6"/>
+        <circle cx="12" cy="6.5" r="1.6"/>
+        <path d="M4 5.6v4.8"/>
+        <path d="M4 8h4a4 4 0 0 0 4-4"/>
+      </svg>
+      <span class="fork-banner-text">
+        <% if (origin = @conversation.forked_from_conversation) %>
+          Forked from <%= link_to origin.display_title, origin, class: "fork-banner-link" %>.
+        <% else %>
+          Forked from another conversation.
+        <% end %>
+      </span>
+    </div>
+  <% end %>
+
   <div class="stream" data-chat-target="scroll">
     <div id="messages" class="thread" data-chat-target="messages">
       <%# A shared (read-only) view hides the whole activity block —
           reasoning and tool calls — matching the public share template. %>
       <%= render partial: "messages/message", collection: @messages,
-            as: :message, locals: { hide_activity: @read_only } %>
+            as: :message, locals: { hide_activity: @read_only, forkable: !@read_only } %>
     </div>
   </div>
 

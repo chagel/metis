@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_06_002119) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_06_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -79,6 +79,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_06_002119) do
     t.datetime "created_at", null: false
     t.string "daytona_sandbox_id"
     t.string "e2b_sandbox_id"
+    t.boolean "fork_pending", default: false, null: false
+    t.bigint "forked_from_message_id"
     t.bigint "project_id"
     t.jsonb "runtime_state", default: {}, null: false
     t.jsonb "settings", default: {}, null: false
@@ -91,6 +93,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_06_002119) do
     t.index ["archived_at"], name: "index_conversations_on_archived_at"
     t.index ["daytona_sandbox_id"], name: "index_conversations_on_daytona_sandbox_id"
     t.index ["e2b_sandbox_id"], name: "index_conversations_on_e2b_sandbox_id"
+    t.index ["forked_from_message_id"], name: "index_conversations_on_forked_from_message_id"
     t.index ["project_id"], name: "index_conversations_on_project_id"
     t.index ["share_token"], name: "index_conversations_on_share_token", unique: true
     t.index ["starred_at"], name: "index_conversations_on_starred_at"
@@ -271,6 +274,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_06_002119) do
   add_foreign_key "connector_credentials", "connectors"
   add_foreign_key "connector_credentials", "users"
   add_foreign_key "connectors", "teams"
+  add_foreign_key "conversations", "messages", column: "forked_from_message_id", on_delete: :nullify
   add_foreign_key "conversations", "projects"
   add_foreign_key "conversations", "teams"
   add_foreign_key "conversations", "users"

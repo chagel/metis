@@ -2,6 +2,7 @@ class Conversation < ApplicationRecord
   belongs_to :user
   belongs_to :team
   belongs_to :project, optional: true
+  belongs_to :forked_from_message, class_name: "Message", optional: true
   has_many :messages, dependent: :destroy
 
   # A conversation is owned by a team; default it to the creator's
@@ -175,6 +176,26 @@ class Conversation < ApplicationRecord
     scope = messages.conversational
     scope = scope.where("messages.id < ?", current_user_id) if current_user_id
     scope.chronological
+  end
+
+  def forked?
+    forked_from_message_id.present?
+  end
+
+  # The conversation this one branched from, or nil if it wasn't a fork (or
+  # the source was since destroyed — the FK nullifies forked_from_message_id).
+  def forked_from_conversation
+    forked_from_message&.conversation
+  end
+
+  # A cloud-source fork starts with copied history but no pi transcript of its
+  # own, so the agent gets that inherited history the same way a reaped sandbox
+  # is rehydrated — Agent::Identity replays replayable_history into AGENTS.md.
+  # A host-backed fork (fork_pending) instead copies the real pi session on its
+  # first turn (Agent::ForkPreparer), so it must NOT also replay. Once
+  # backend_session_id is set, normal --continue / sandbox resume takes over.
+  def needs_history_replay?
+    forked? && backend_session_id.blank? && !fork_pending?
   end
 
   private
