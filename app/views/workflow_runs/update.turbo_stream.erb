@@ -1,0 +1,3 @@
+<%= turbo_stream.replace "workflow_rail", partial: "workflow_runs/rail", locals: { run: @run } %>
+<%= turbo_stream.replace "workflow_gate", partial: "workflow_runs/gate", locals: { run: @run } %>
+<%= turbo_stream.replace "composer", partial: "workflow_runs/run_status", locals: { run: @run } %>

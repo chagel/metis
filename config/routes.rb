@@ -24,6 +24,13 @@ Rails.application.routes.draw do
     end
   end
 
+  resources :workflow_runs, only: [] do
+    member do
+      post :approve
+      post :reject
+    end
+  end
+
   resources :teams, only: %i[new create] do
     member { post :switch }
   end

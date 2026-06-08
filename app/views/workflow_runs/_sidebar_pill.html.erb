@@ -1,0 +1,16 @@
+<%# Sidebar status marker for a workflow conversation. Always renders one
+    element with the same id so the broadcaster can replace it. For
+    pending/running it stays empty — ChatBroadcaster's running dot covers
+    a live turn. %>
+<% id = dom_id(conversation, :wf_status) %>
+<% case run.status %>
+<% when "awaiting_approval" %>
+  <span class="convo-pill" id="<%= id %>">Needs you</span>
+<% when "completed" %>
+  <svg class="convo-check" id="<%= id %>" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+       stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-label="Done"><path d="M20 6 9 17l-5-5"/></svg>
+<% when "failed", "cancelled" %>
+  <span class="convo-fail" id="<%= id %>" aria-label="<%= run.status %>"></span>
+<% else %>
+  <span id="<%= id %>" hidden></span>
+<% end %>

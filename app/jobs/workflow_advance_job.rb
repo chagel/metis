@@ -8,9 +8,14 @@ class WorkflowAdvanceJob < ApplicationJob
   def perform(workflow_run_id)
     run = WorkflowRun.find(workflow_run_id)
     return unless run.active?
-    return if settle_or_wait(run)
+
+    if settle_or_wait(run)
+      WorkflowBroadcaster.new(run).refresh if run.failed?
+      return
+    end
 
     advance(run)
+    WorkflowBroadcaster.new(run).refresh
   end
 
   private

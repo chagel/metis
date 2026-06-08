@@ -1,4 +1,5 @@
 <% content_for :title, @conversation.display_title %>
+<% workflow_run = @conversation.workflow_run %>
 
 <main class="chat" data-controller="chat">
   <%= turbo_stream_from @conversation %>
@@ -75,6 +76,10 @@
     </div>
   </header>
 
+  <% if workflow_run %>
+    <%= render "workflow_runs/rail", run: workflow_run %>
+  <% end %>
+
   <% if @conversation.archived? && !@read_only %>
     <div class="archived-banner" role="status">
       <svg class="archived-banner-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor"
@@ -119,6 +124,9 @@
       <%= render partial: "messages/message", collection: @messages,
             as: :message, locals: { hide_activity: @read_only, forkable: !@read_only } %>
     </div>
+    <% if workflow_run %>
+      <div class="thread"><%= render "workflow_runs/gate", run: workflow_run %></div>
+    <% end %>
   </div>
 
   <button type="button" class="scroll-to-bottom"
@@ -137,6 +145,8 @@
     <div class="readonly-note">
       Read-only — this conversation was shared with your team by <%= @conversation.user.display_label %>.
     </div>
+  <% elsif workflow_run&.active? %>
+    <%= render "workflow_runs/run_status", run: workflow_run %>
   <% else %>
     <%= render "composer", conversation: @conversation %>
   <% end %>

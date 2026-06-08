@@ -1926,3 +1926,123 @@ body.auth-shell { min-height:100vh; display:grid; place-items:center; padding:24
 
 /* Drawer scroll lock — toggled by the sidebar controller on body. */
 body.drawer-open { overflow:hidden; }
+
+/* ═══════════════════════════════════════════════════════════
+   Workflows — progress rail, gate card, run note, sidebar pill.
+   See docs/workflows.md and docs/mockups/workflows.html.
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --gold-soft:color-mix(in srgb, var(--gold) 16%, var(--card));
+  --gold-line:color-mix(in srgb, var(--gold) 42%, var(--card));
+}
+:root[data-theme="dark"] {
+  --gold-soft:color-mix(in srgb, var(--gold) 20%, var(--card));
+  --gold-line:color-mix(in srgb, var(--gold) 46%, var(--card));
+}
+
+/* progress rail */
+.wf-rail-wrap { border-bottom:1px solid var(--line); background:var(--canvas); }
+.wf-rail {
+  display:flex; align-items:flex-start; gap:0;
+  max-width:760px; margin:0 auto; padding:15px 28px 7px; overflow-x:auto;
+}
+.wf-step { display:flex; flex-direction:column; align-items:center; flex:1; min-width:90px; position:relative; }
+.wf-step:not(:first-child)::before {
+  content:""; position:absolute; top:11px; left:calc(-50% + 11px);
+  width:calc(100% - 22px); height:2px; background:var(--line-2);
+}
+.wf-step.done::before, .wf-step.current::before, .wf-step.running::before { background:var(--accent); }
+.wf-node {
+  width:24px; height:24px; border-radius:50%; flex:none; z-index:1;
+  display:grid; place-items:center; font-family:var(--fm); font-size:11px;
+  background:var(--card); border:2px solid var(--line-2); color:var(--faint);
+}
+.wf-node svg { width:13px; height:13px; }
+.wf-step.done .wf-node { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+.wf-step.running .wf-node { border-color:var(--accent); color:var(--accent-fg); }
+.wf-step.current .wf-node { border-color:var(--gold); background:var(--gold-soft); color:var(--gold); box-shadow:0 0 0 4px var(--gold-soft); }
+.wf-step.failed .wf-node { border-color:var(--danger-line); background:var(--danger-soft); color:var(--danger); }
+.wf-pulse { width:8px; height:8px; border-radius:50%; background:currentColor; animation:convo-pulse 1.6s ease-in-out infinite; }
+.wf-step.running .wf-pulse { background:var(--accent-fg); }
+.wf-step.current .wf-pulse { background:var(--gold); }
+.wf-label {
+  font-family:var(--fm); font-size:10.5px; font-weight:500; margin-top:8px;
+  text-align:center; color:var(--faint); line-height:1.3; max-width:108px;
+}
+.wf-step.done .wf-label, .wf-step.running .wf-label { color:var(--ink-2); }
+.wf-step.current .wf-label { color:var(--ink); font-weight:600; }
+.wf-gate-tag {
+  display:block; margin-top:2px; font-family:var(--fm); font-size:8.5px;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--gold);
+}
+
+/* gate card (in the message thread) */
+.wf-gate-region:empty { display:none; }
+.wf-gate { display:flex; gap:13px; }
+.wf-gate-mark {
+  width:32px; height:32px; border-radius:10px; flex:none; margin-top:1px;
+  display:grid; place-items:center;
+  background:var(--gold-soft); color:var(--gold); border:1px solid var(--gold-line);
+}
+.wf-gate-mark svg { width:16px; height:16px; }
+.wf-gate-card {
+  flex:1; min-width:0; background:var(--card); border:1px solid var(--gold-line);
+  border-radius:6px 16px 16px 16px; box-shadow:var(--sh-md); overflow:hidden;
+}
+.wf-gate-top { padding:14px 18px 4px; }
+.wf-gate-eyebrow {
+  display:inline-flex; align-items:center; gap:6px; font-family:var(--fm);
+  font-size:10px; font-weight:500; letter-spacing:.06em; text-transform:uppercase; color:var(--gold);
+}
+.wf-gate-eyebrow svg { width:12px; height:12px; }
+.wf-gate-title { font-family:var(--fd); font-weight:600; font-size:15.5px; letter-spacing:-.01em; margin:7px 0 2px; }
+.wf-gate-desc { font-size:13.5px; color:var(--ink-2); line-height:1.5; margin:0; }
+.wf-gate-review { margin:12px 18px; border:1px solid var(--line); border-radius:10px; background:var(--bg); }
+.wf-gate-review summary {
+  list-style:none; cursor:pointer; display:flex; align-items:center; gap:7px;
+  padding:9px 12px; font-family:var(--fm); font-size:11px; color:var(--ink-2);
+}
+.wf-gate-review summary::-webkit-details-marker { display:none; }
+.wf-gate-review summary::before {
+  content:""; width:0; height:0; border:4px solid transparent;
+  border-left-color:var(--ink-3); transition:transform .15s;
+}
+.wf-gate-review[open] summary::before { transform:rotate(90deg); }
+.wf-gate-review .body { padding:0 14px 12px; }
+.wf-gate-bar {
+  display:flex; align-items:center; gap:9px; padding:12px 18px;
+  border-top:1px solid var(--line); background:var(--canvas);
+}
+.wf-gate-bar form { margin:0; }
+.wf-gate-meta { flex:1; min-width:0; font-family:var(--fm); font-size:10.5px; color:var(--ink-3); }
+.btn {
+  font:inherit; font-family:var(--fb); font-size:13px; font-weight:600; cursor:pointer;
+  border-radius:10px; padding:8px 15px; border:1px solid transparent;
+  transition:opacity .14s, background .14s, border-color .14s, box-shadow .14s, transform .08s;
+}
+.btn:active { transform:scale(.97); }
+.btn-primary { background:var(--accent); color:var(--on-accent); }
+.btn-primary:hover { opacity:.85; }
+.btn-ghost { background:transparent; color:var(--ink-2); border-color:var(--line-2); }
+.btn-ghost:hover { color:var(--ink); border-color:var(--ink-3); box-shadow:var(--sh-sm); }
+.btn-sm { padding:6px 12px; font-size:12px; border-radius:8px; }
+
+/* composer-slot run note */
+.wf-run-note {
+  display:flex; align-items:center; justify-content:center; gap:9px;
+  max-width:760px; margin:0 auto; padding:14px 16px;
+  font-family:var(--fm); font-size:12px; color:var(--ink-3);
+  background:var(--bg); border:1px dashed var(--line-2); border-radius:14px;
+}
+.wf-run-note svg { width:14px; height:14px; flex:none; }
+.wf-run-dot { width:7px; height:7px; border-radius:50%; background:var(--accent-fg); animation:convo-pulse 1.4s ease-in-out infinite; }
+.wf-run-link { color:var(--accent-fg); text-decoration:underline; text-underline-offset:2px; }
+
+/* sidebar pill */
+.convo-pill {
+  flex:none; margin-left:6px; font-family:var(--fm); font-size:9.5px; font-weight:500;
+  letter-spacing:.03em; text-transform:uppercase; padding:2px 7px; border-radius:999px;
+  background:var(--gold-soft); color:var(--gold); border:1px solid var(--gold-line);
+}
+.convo-check { flex:none; width:13px; height:13px; margin-left:6px; color:var(--ink-3); }
+.convo-fail { flex:none; width:6px; height:6px; border-radius:50%; background:var(--danger); margin-left:6px; }

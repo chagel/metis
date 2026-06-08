@@ -1,0 +1,24 @@
+<%# Request-safe composer slot for a workflow run — depends only on `run`,
+    so the broadcaster can render it outside a request (the full composer
+    can't: it reads current_user). On load, show.html.erb renders the real
+    composer once a run is finished; live, this offers a reload link. %>
+<div id="composer" class="composer-wrap">
+  <div class="composer-inner">
+    <div class="wf-run-note">
+      <% if run.awaiting_approval? %>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        Paused for your approval — see the gate above.
+      <% elsif run.active? %>
+        <span class="wf-run-dot"></span>
+        The agent is running this workflow…
+      <% else %>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+        This workflow is <%= run.status %>.
+        <%= link_to "Continue the conversation", run.conversation,
+              class: "wf-run-link", data: { turbo_frame: "_top" } %>
+      <% end %>
+    </div>
+  </div>
+</div>

@@ -19,6 +19,9 @@
     <%= avatar_for conversation.user, size: 18, css: "convo-avatar" %>
   <% end %>
   <span class="tt" id="<%= dom_id(conversation, :sidebar_title) %>"><%= conversation.display_title %></span>
+  <% if (run = conversation.workflow_run) %>
+    <%= render "workflow_runs/sidebar_pill", conversation: conversation, run: run %>
+  <% end %>
   <% if conversation.turn_in_progress? %>
     <span class="convo-running" id="<%= dom_id(conversation, :running) %>" aria-label="Running"></span>
   <% end %>
