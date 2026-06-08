@@ -1,6 +1,8 @@
 require "test_helper"
 
 class WorkflowRunTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
   setup do
     @user = User.create!(email: "wfr-#{SecureRandom.hex(4)}@example.com", password: "password123")
     @team = @user.personal_team
@@ -57,5 +59,49 @@ class WorkflowRunTest < ActiveSupport::TestCase
 
   test "workflow is optional (ad-hoc run)" do
     assert new_run(workflow: nil).valid?
+  end
+
+  test ".start builds the conversation, tasks, and an active run in a project" do
+    project = @team.projects.create!(name: "R&D")
+    workflow = @team.workflows.create!(name: "Triage")
+    run = WorkflowRun.start(
+      team: @team, user: @user, workflow: workflow, project: project,
+      steps: [
+        { "name" => "spec", "prompt" => "write spec", "gate" => "auto" },
+        { "name" => "review", "gate" => "approval" }
+      ]
+    )
+
+    assert run.pending?
+    assert_equal project, run.conversation.project
+    assert_equal "Triage", run.conversation.title
+    assert_equal @user, run.conversation.user
+    assert_equal %w[spec review], run.tasks.map(&:name)
+    assert run.tasks.first.auto?
+    assert run.tasks.second.approval?
+  end
+
+  test ".start defaults to a workflow's own steps" do
+    workflow = @team.workflows.create!(
+      name: "Two-step",
+      steps: [ { "name" => "a", "prompt" => "a", "gate" => "auto" },
+               { "name" => "b", "prompt" => "b", "gate" => "auto" } ]
+    )
+    run = WorkflowRun.start(team: @team, user: @user, workflow: workflow)
+    assert_equal 2, run.tasks.count
+  end
+
+  test ".signal_turn_finished enqueues an advance only for an active run" do
+    conversation = @user.conversations.create!
+    run = new_run(conversation: conversation)
+
+    assert_enqueued_with(job: WorkflowAdvanceJob) do
+      WorkflowRun.signal_turn_finished(conversation.reload)
+    end
+
+    run.completed!
+    assert_no_enqueued_jobs(only: WorkflowAdvanceJob) do
+      WorkflowRun.signal_turn_finished(conversation.reload)
+    end
   end
 end

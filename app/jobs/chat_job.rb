@@ -24,6 +24,9 @@ class ChatJob < ApplicationJob
     # Even on crash — the runtime already buffered what the agent wrote
     # before the stream raised.
     attach_artifacts(assistant_message, adapter, broadcaster) if adapter
+    # If a workflow drives this conversation, let it advance now that the
+    # turn has settled (done/errored/canceled). No-op for normal chats.
+    WorkflowRun.signal_turn_finished(conversation) if conversation
   end
 
   private

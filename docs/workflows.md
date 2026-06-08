@@ -192,6 +192,44 @@ Why this is safe without new infra:
    and the composer returns. It's an ordinary conversation now: keep
    chatting, fork, share. No special-casing.
 
+## Projects (context vs. process)
+
+A `Project` in Metis is a team-scoped **context object** — `name` + `about`
+free-text that `Agent::Identity` injects into `AGENTS.md` every turn. It
+carries *standing context and standards* (conventions, sources, the repo
+it maps to), not a sandbox binding.
+
+Workflows and projects are orthogonal, and that orthogonality is the
+point — N workflows × M projects, not N×M bespoke things:
+
+- **Workflow = the process** — which steps, which gates, definition of
+  done. Reusable across projects.
+- **Project = the context/standards** — by what rules, against what
+  resources. Reusable across workflows.
+- **Run = process × context** — a Conversation in a project.
+
+Where the link lives:
+
+- **Run level — yes, and nearly free.** A run owns one Conversation, and
+  `Conversation belongs_to :project` already exists. `WorkflowRun.start`
+  takes a `project:` and sets it on the conversation; `Agent::Identity`
+  then feeds that project's `about` into `AGENTS.md` on every step turn —
+  no new identity code. **No `project_id` on `workflow_runs`**:
+  `run.conversation.project` is the single source of truth.
+- **Workflow (template) level — optional default only.** A nullable
+  `Workflow#default_project_id` pre-selects context at launch but is
+  overridable. Keep templates project-agnostic so "Triage Sentry error"
+  works across repos. (Phase 3.)
+- **Task (step) level — no.** One run = one conversation = one
+  `AGENTS.md` = one project context. Switching projects per step would
+  fracture the substrate. If two steps need different contexts, that's two
+  workflows.
+
+So "R&D software dev" vs. "product analysis research" differ on *both*
+axes: different **workflow** (steps/gates) run against a different
+**project** (standards/sources). The template may suggest a default
+project; the operator can override at launch.
+
 ## Build phases
 
 Each phase is independently shippable and testable.
@@ -222,10 +260,15 @@ Each phase is independently shippable and testable.
 
 ### Phase 3 — Authoring + launch
 - `/settings/workflows` CRUD: catalog (index) + editor (steps + gate
-  toggles + trigger choice). Mirrors the Skills settings pattern.
+  toggles + trigger choice + optional default project). Mirrors the Skills
+  settings pattern.
+- `Workflow#default_project_id` (nullable) + project picker in the editor
+  and launch composer; `WorkflowRun.start(project:)` sets it on the
+  conversation (the only schema add of this phase).
 - Composer launcher → `WorkflowRunsController#create` → `WorkflowRun.start`.
 - **"Needs you"** inbox (team-wide `WorkflowRun.awaiting`).
-- **Test**: workflow CRUD; starting a run from the composer.
+- **Test**: workflow CRUD; starting a run from the composer; project context
+  reaches `AGENTS.md`.
 
 ### Phase 4 — Triggers + notifications
 - `WebhooksController` (Sentry/GitHub → `WorkflowRun.start`, no auth,
