@@ -16,6 +16,28 @@
 Rails.application.config.x.agent.runtime =
   ENV.fetch("METIS_AGENT_RUNTIME", "local").to_sym
 
+# Runtimes a deployment exposes in the per-conversation picker. The user
+# picks *where* a chat's agent runs from this menu; a runtime listed here
+# must be fully provisioned (image built, API key set). Runtime keys stay
+# deployment-level — the user selects a configured runtime, never brings
+# their own. The default (config.x.agent.runtime, above) is always usable
+# whether or not it's listed. Default: just the single configured runtime,
+# so existing deployments offer no picker and behave exactly as before. See
+# Agent::Runtime and docs/coding-runtime.md.
+#
+#   METIS_ENABLED_RUNTIMES=docker,e2b   # offer Docker (default) + E2B
+#
+# `local` is NOT an isolation boundary (pi has host shell access), so it is
+# refused on the menu in production unless METIS_ALLOW_LOCAL_RUNTIME=1.
+Rails.application.config.x.agent.enabled_runtimes =
+  ENV.fetch("METIS_ENABLED_RUNTIMES", ENV.fetch("METIS_AGENT_RUNTIME", "local"))
+     .split(",").map { |name| name.strip.to_sym }.reject(&:blank?).uniq
+
+# Escape hatch: allow `local` (host shell access, not isolated) on the
+# runtime picker in production. Off by default.
+Rails.application.config.x.agent.allow_local_runtime =
+  ENV["METIS_ALLOW_LOCAL_RUNTIME"].present?
+
 # E2B template (image) used by the :e2b runtime — should have pi
 # installed. See the e2b:template rake task for the build definition.
 Rails.application.config.x.agent.e2b_template =

@@ -122,6 +122,36 @@ class ConversationTest < ActiveSupport::TestCase
     assert_equal "e2b", @conversation.runtime_label
   end
 
+  test "configured_runtime prefers the conversation's own choice" do
+    @conversation.update!(settings: { "runtime" => "docker" })
+    assert_equal "docker", @conversation.configured_runtime
+  end
+
+  test "configured_runtime falls back to the deployment default" do
+    agent = Rails.application.config.x.agent
+    prev = agent.runtime
+    agent.runtime = :local
+    @conversation.update!(settings: {})
+    assert_equal "local", @conversation.configured_runtime
+  ensure
+    agent.runtime = prev
+  end
+
+  test "runtime_locked? is false on a fresh conversation" do
+    assert_not @conversation.runtime_locked?
+  end
+
+  test "runtime_locked? is true once a sandbox id is set" do
+    @conversation.update!(e2b_sandbox_id: "sbx-1")
+    assert @conversation.runtime_locked?
+  end
+
+  test "runtime_locked? is true once an assistant turn has finished" do
+    @conversation.messages.create!(role: :user, content: "hi")
+    @conversation.messages.create!(role: :assistant, content: "yo", streaming_status: :done)
+    assert @conversation.runtime_locked?
+  end
+
   test "request_cancel! stamps cancel_requested_at" do
     assert_nil @conversation.cancel_requested_at
     @conversation.request_cancel!

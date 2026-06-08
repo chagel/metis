@@ -55,6 +55,22 @@
                 <path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </span>
+
+            <%# Runtime picker — only when the deployment enables more than
+                one runtime, else the chat silently uses the default. %>
+            <% if Agent::Runtime.selectable? %>
+              <span class="runtime-pick">
+                <select name="runtime" aria-label="Runtime">
+                  <% selected_runtime = current_user.preferred_runtime.presence ||
+                                        Agent::Runtime.default.to_s %>
+                  <%= options_for_select(Agent::Runtime.picker_options, selected_runtime) %>
+                </select>
+                <svg class="caret" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                     stroke-width="1.7" aria-hidden="true">
+                  <path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            <% end %>
           <% end %>
 
           <div class="composer-spacer"></div>

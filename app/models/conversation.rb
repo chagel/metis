@@ -147,6 +147,24 @@ class Conversation < ApplicationRecord
     runtime_state["runtime"].presence
   end
 
+  # The runtime Metis runs this conversation on: its own choice (set at
+  # creation, gated to the deployment allow-list) else the deployment
+  # default. The single source for Agent::Runtime.for. See
+  # docs/coding-runtime.md.
+  def configured_runtime
+    settings["runtime"].presence || Rails.application.config.x.agent.runtime.to_s
+  end
+
+  # True once the conversation owns provisioned runtime state \u2014 a finished
+  # turn, or a live sandbox addressed by id. The runtime is fixed from this
+  # point: each runtime persists the working tree in its own store, so
+  # switching would strand it. The composer only offers the picker on new
+  # chats; this is the model-level guard behind that.
+  def runtime_locked?
+    e2b_sandbox_id.present? || daytona_sandbox_id.present? ||
+      messages.where(role: :assistant).where.not(streaming_status: :pending).exists?
+  end
+
   # True while a turn is running — an assistant message is still pending
   # or streaming. Used to refuse a second concurrent turn.
   def turn_in_progress?

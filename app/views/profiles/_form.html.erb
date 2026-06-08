@@ -61,6 +61,15 @@
       <p class="form-hint">Used for new conversations — still overridable per chat.</p>
     </div>
 
+    <% if Agent::Runtime.selectable? %>
+      <div class="form-row">
+        <%= form.label :preferred_runtime, "Default runtime" %>
+        <%= form.select :preferred_runtime,
+              Agent::Runtime.picker_options, include_blank: "Default" %>
+        <p class="form-hint">Where new conversations run — still overridable per chat.</p>
+      </div>
+    <% end %>
+
     <div class="form-row">
       <%= form.label :theme, "Theme" %>
       <%= form.select :theme,

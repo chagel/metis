@@ -115,6 +115,21 @@ class ConversationsController < ApplicationController
   # adapter falls back to deployment defaults.
   def chat_settings
     model = params[:model].presence || current_user.preferred_model.presence
-    { "provider" => model && Agent::Catalog.provider_for(model), "model" => model }.compact
+    {
+      "provider" => model && Agent::Catalog.provider_for(model),
+      "model"    => model,
+      "runtime"  => sanitized_runtime
+    }.compact
+  end
+
+  # Only persist a runtime the deployment enabled, and never the default \u2014
+  # absent means \"use the default\", which keeps settings clean and lets the
+  # default move under the conversation later. Rejects spoofed/disabled ids.
+  def sanitized_runtime
+    name = (params[:runtime].presence || current_user.preferred_runtime.presence)&.to_sym
+    return nil unless name && Agent::Runtime.enabled.include?(name)
+    return nil if name == Agent::Runtime.default
+
+    name.to_s
   end
 end

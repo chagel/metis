@@ -12,7 +12,9 @@ cp .env.example .env
 
 | Variable | Purpose |
 |---|---|
-| `METIS_AGENT_RUNTIME` | `local` (default), `docker`, `e2b`, or `daytona` |
+| `METIS_AGENT_RUNTIME` | default runtime: `local` (default), `docker`, `e2b`, or `daytona` |
+| `METIS_ENABLED_RUNTIMES` | comma-separated runtimes offered in the per-chat picker (e.g. `docker,e2b`). Unset = only the default, no picker. See [Per-conversation runtime](#per-conversation-runtime) |
+| `METIS_ALLOW_LOCAL_RUNTIME` | `1` to allow the non-isolated `local` runtime on the picker in production |
 | `METIS_AGENT_PROVIDER` / `METIS_AGENT_MODEL` | default LLM provider/model for pi |
 | Provider API keys — `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, … | see [Providers](#providers) |
 | `METIS_DOCKER_IMAGE` | image for the `docker` runtime (default `metis-pi`) |
@@ -62,6 +64,32 @@ The runtime decides *where* pi runs. See `coding-runtime.md` and
   ```sh
   rake "daytona:snapshot[metis-pi]"
   ```
+
+### Per-conversation runtime
+
+`METIS_AGENT_RUNTIME` is the deployment **default**. To let users choose
+*where* a chat runs, list the runtimes a deployment offers in
+`METIS_ENABLED_RUNTIMES` (comma-separated):
+
+```sh
+METIS_AGENT_RUNTIME=docker          # the default
+METIS_ENABLED_RUNTIMES=docker,e2b   # the menu the picker shows
+```
+
+- The picker appears in the new-chat composer only when more than one
+  runtime is enabled; a single-runtime deployment shows no picker and
+  behaves exactly as before.
+- A runtime listed here must be fully provisioned (image/template/key).
+  The default is always usable whether or not it is listed.
+- Runtime credentials stay **deployment-level** — the user picks a
+  configured runtime, never brings their own.
+- The choice is **fixed for the conversation's life**: each runtime
+  persists the working tree in its own store, so switching mid-chat
+  would strand it. The picker is new-chat only for that reason.
+- `local` is **not** an isolation boundary, so it is dropped from the
+  picker in production unless `METIS_ALLOW_LOCAL_RUNTIME=1`.
+- Users can set a personal default runtime in their profile
+  (`preferred_runtime`), still overridable per chat.
 
 Every runtime carries the **MCP connector bridge**
 ([`pi-mcp-adapter`](https://github.com/nicobailon/pi-mcp-adapter)):

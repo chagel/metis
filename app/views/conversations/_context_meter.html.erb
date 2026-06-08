@@ -8,8 +8,11 @@
   <% if model["name"].present? %>
     <span class="tag" title="<%= model["provider"] %>"><%= model["name"] %></span>
   <% end %>
-  <% if runtime["runtime"].present? %>
-    <span class="tag rt" title="<%= runtime["sandbox_id"] %>"><%= runtime["runtime"] %></span>
+  <%# Where it ran (after a turn) or where it will run (the chosen runtime).
+      Only worth showing when the deployment offers a choice. %>
+  <% rt_label = runtime["runtime"].presence || (conversation.configured_runtime if Agent::Runtime.selectable?) %>
+  <% if rt_label.present? %>
+    <span class="tag rt" title="<%= runtime["sandbox_id"] %>"><%= rt_label %></span>
   <% end %>
   <%# Only surface usage once it's meaningful (themis convention: ≥40%);
       a near-empty "ctx 2%" is just noise. Tint hot above 80%. %>

@@ -14,10 +14,68 @@ module Agent
   # runs it in a Docker container; Runtime::E2b runs it inside a secure
   # E2B microVM; Runtime::Daytona inside a Daytona elastic sandbox.
   module Runtime
-    # Resolve the runtime for a conversation — a per-deployment choice
-    # (config.x.agent.runtime).
+    # Human labels for the runtime picker, keyed by id. The picker only
+    # shows enabled runtimes (Runtime.enabled); this is the display layer.
+    LABELS = {
+      local:   "Local",
+      docker:  "Docker · isolated",
+      e2b:     "E2B · microVM",
+      daytona: "Daytona · sandbox"
+    }.freeze
+
+    # Resolve the runtime for a conversation. The runtime is a per-deployment
+    # *default* (config.x.agent.runtime) that a conversation may override at
+    # creation via settings["runtime"], gated to the deployment's allow-list
+    # (Runtime.enabled). The choice is fixed for the conversation's life —
+    # each runtime persists the working tree in its own store, so switching
+    # mid-conversation would strand it (see docs/coding-runtime.md).
     def self.for(conversation)
-      runtime_class.new(conversation: conversation)
+      build(conversation, runtime_name_for(conversation))
+    end
+
+    # The runtime a conversation should run on: its own choice when that is
+    # still on the menu, else the deployment default. A *locked*
+    # conversation (one that has already provisioned state) keeps its stored
+    # runtime even if the operator later drops it from the menu — its state
+    # can't be relocated. A turn must never die on a stale settings value,
+    # so an unresolvable choice falls back rather than raising.
+    def self.runtime_name_for(conversation)
+      chosen = conversation.settings["runtime"].presence&.to_sym
+      return default unless chosen
+      return chosen if conversation.runtime_locked? && known?(chosen)
+      enabled.include?(chosen) ? chosen : default
+    end
+
+    # The deployment default runtime.
+    def self.default
+      Rails.application.config.x.agent.runtime
+    end
+
+    # Runtimes offered in the per-conversation picker. The configured
+    # default is always included; `local` is filtered out in production
+    # unless explicitly allowed (it is not an isolation boundary).
+    def self.enabled
+      list = (Rails.application.config.x.agent.enabled_runtimes | [ default ])
+        .select { |name| known?(name) }
+      unless Rails.application.config.x.agent.allow_local_runtime
+        list -= [ :local ] if Rails.env.production? && default != :local
+      end
+      list
+    end
+
+    # Whether the picker should be shown at all (more than one choice).
+    def self.selectable?
+      enabled.size > 1
+    end
+
+    # [[label, id], …] for options_for_select, default first.
+    def self.picker_options
+      enabled.sort_by { |name| name == default ? 0 : 1 }
+              .map { |name| [ LABELS.fetch(name, name.to_s.titleize), name.to_s ] }
+    end
+
+    def self.known?(name)
+      LABELS.key?(name&.to_sym)
     end
 
     def self.build(conversation, name)

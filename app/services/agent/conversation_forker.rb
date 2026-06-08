@@ -2,7 +2,10 @@ module Agent
   # The real pi session copy is deferred to ForkPreparer on the first turn.
   class ConversationForker
     def initialize(message, by:)
-      @plan = ForkPlan.new(message)
+      # The fork inherits the source's settings (runtime included), so its
+      # runtime is the source's configured runtime, not the deployment
+      # default — that is what decides host-backed session copy eligibility.
+      @plan = ForkPlan.new(message, current_runtime: message.conversation.configured_runtime)
       @user = by
     end
 

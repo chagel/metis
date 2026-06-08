@@ -47,6 +47,41 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "gpt-5.5", settings["model"]
   end
 
+  test "stores an enabled, non-default runtime choice on the conversation" do
+    sign_in @user
+    with_runtime(default: :local, enabled: [ :local, :docker ]) do
+      post conversations_path, params: { content: "hi", runtime: "docker" }
+      assert_equal "docker", @user.conversations.last.settings["runtime"]
+    end
+  end
+
+  test "ignores the default runtime so settings stays clean" do
+    sign_in @user
+    with_runtime(default: :local, enabled: [ :local, :docker ]) do
+      post conversations_path, params: { content: "hi", runtime: "local" }
+      assert_nil @user.conversations.last.settings["runtime"]
+    end
+  end
+
+  test "rejects a runtime the deployment did not enable" do
+    sign_in @user
+    with_runtime(default: :local, enabled: [ :local ]) do
+      post conversations_path, params: { content: "hi", runtime: "docker" }
+      assert_nil @user.conversations.last.settings["runtime"]
+    end
+  end
+
+  def with_runtime(default:, enabled:)
+    agent = Rails.application.config.x.agent
+    prev_default, prev_enabled = agent.runtime, agent.enabled_runtimes
+    agent.runtime = default
+    agent.enabled_runtimes = enabled
+    yield
+  ensure
+    agent.runtime = prev_default
+    agent.enabled_runtimes = prev_enabled
+  end
+
   test "new conversation starts with a blank title" do
     sign_in @user
     post conversations_path,

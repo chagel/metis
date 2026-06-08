@@ -72,7 +72,7 @@ class ProfilesController < ApplicationController
 
   def profile_params
     params.require(:user).permit(:display_name, :timezone, :language, :preferred_model,
-                                 :theme, :about_you, :custom_instructions)
+                                 :preferred_runtime, :theme, :about_you, :custom_instructions)
   end
 
   # IANA or Rails-friendly \u2192 Rails-friendly (the form the model validator accepts),

@@ -38,7 +38,8 @@ class User < ApplicationRecord
   # field — keeps a stray space in the form from sneaking past the
   # inclusion/length validators below and causing surprises downstream
   # (a display_name like " " is technically "present" but reads blank).
-  normalizes :display_name, :timezone, :language, :preferred_model, :theme,
+  normalizes :display_name, :timezone, :language, :preferred_model,
+             :preferred_runtime, :theme,
              with: ->(value) { value.is_a?(String) ? value.strip.presence : value }
   normalizes :about_you, :custom_instructions,
              with: ->(value) { value.is_a?(String) ? value.strip.presence : value }
@@ -56,6 +57,7 @@ class User < ApplicationRecord
   validates :about_you, length: { maximum: 2_000 }
   validates :custom_instructions, length: { maximum: 4_000 }
   validate :preferred_model_known
+  validate :preferred_runtime_known
 
   # What to show in the UI for this user — the display name they picked,
   # otherwise the email we have on file (the noreply synth is ugly but
@@ -226,6 +228,13 @@ class User < ApplicationRecord
     return if Agent::Catalog.known_model?(preferred_model)
 
     errors.add(:preferred_model, "is not an available model")
+  end
+
+  def preferred_runtime_known
+    return if preferred_runtime.blank?
+    return if Agent::Runtime.enabled.include?(preferred_runtime.to_sym)
+
+    errors.add(:preferred_runtime, "is not an available runtime")
   end
 
   # Every user gets a personal team (a team of one) at signup.
