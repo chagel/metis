@@ -4,6 +4,8 @@ class Conversation < ApplicationRecord
   belongs_to :project, optional: true
   belongs_to :forked_from_message, class_name: "Message", optional: true
   has_many :messages, dependent: :destroy
+  # nil for a normal chat; present once a workflow drives this conversation.
+  has_one :workflow_run, dependent: :destroy
 
   # A conversation is owned by a team; default it to the creator's
   # personal team unless one was given (docs/tenancy.md).
