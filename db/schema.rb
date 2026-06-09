@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_09_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -260,17 +260,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_120000) do
   create_table "tasks", force: :cascade do |t|
     t.bigint "approved_by_id"
     t.bigint "assistant_message_id"
+    t.bigint "claimed_by_device_id"
     t.datetime "created_at", null: false
     t.datetime "decided_at"
+    t.boolean "delegated", default: false, null: false
+    t.datetime "dispatched_at"
     t.integer "gate", default: 0, null: false
     t.string "name"
     t.integer "position", null: false
+    t.jsonb "progress", default: [], null: false
     t.text "prompt"
+    t.jsonb "result", default: {}, null: false
     t.integer "status", default: 0, null: false
     t.datetime "updated_at", null: false
     t.bigint "workflow_run_id", null: false
     t.index ["approved_by_id"], name: "index_tasks_on_approved_by_id"
     t.index ["assistant_message_id"], name: "index_tasks_on_assistant_message_id"
+    t.index ["claimed_by_device_id"], name: "index_tasks_on_claimed_by_device_id"
     t.index ["workflow_run_id", "position"], name: "index_tasks_on_workflow_run_id_and_position", unique: true
   end
 
@@ -355,6 +361,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_120000) do
   add_foreign_key "skills", "teams"
   add_foreign_key "skills", "users", column: "created_by_id"
   add_foreign_key "skills", "users", column: "updated_by_id"
+  add_foreign_key "tasks", "devices", column: "claimed_by_device_id", on_delete: :nullify
   add_foreign_key "tasks", "messages", column: "assistant_message_id", on_delete: :nullify
   add_foreign_key "tasks", "users", column: "approved_by_id", on_delete: :nullify
   add_foreign_key "tasks", "workflow_runs", on_delete: :cascade

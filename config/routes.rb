@@ -89,5 +89,16 @@ Rails.application.routes.draw do
     end
   end
 
+  # Bridge pull API — enrolled local machines claim delegated workflow
+  # steps and report results (docs/local-bridge.md). Token-authed, not
+  # session-authed.
+  namespace :api do
+    namespace :bridge do
+      get  "tasks/next",       to: "tasks#claim"
+      post "tasks/:id/events", to: "tasks#events"
+      post "tasks/:id/result", to: "tasks#result"
+    end
+  end
+
   root "conversations#index"
 end

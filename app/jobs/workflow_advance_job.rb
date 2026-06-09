@@ -26,6 +26,10 @@ class WorkflowAdvanceJob < ApplicationJob
   def settle(run)
     task = run.tasks.running.first
     return :continue unless task
+    # A dispatched delegated step settles via the pull API's result report
+    # (WorkflowRun#complete_delegated_task!), not here — never fail it for
+    # lacking an assistant message.
+    return :wait if task.delegated?
 
     case task.assistant_message&.streaming_status
     when "done"
@@ -49,6 +53,7 @@ class WorkflowAdvanceJob < ApplicationJob
   def advance(run)
     task = run.tasks.next_pending.first
     return run.completed! if task.nil?
+    return dispatch_step(run, task) if task.delegated?
     return start_step(run, task) if task.prompt.present?
 
     # Blank prompt (only via direct runs — authored steps require one): an
@@ -68,5 +73,13 @@ class WorkflowAdvanceJob < ApplicationJob
     user, assistant = ConversationTurn.start(run.conversation, content: task.prompt, workflow_generated: true)
     task.update!(assistant_message: assistant)
     WorkflowBroadcaster.new(run).append_turn(user, assistant)
+  end
+
+  # Hand the step off to a local machine: mark it dispatched and park the
+  # run. It resumes when a device reports a result via the pull API
+  # (WorkflowRun#complete_delegated_task!). No turn, no ChatJob.
+  def dispatch_step(run, task)
+    task.update!(status: :running, dispatched_at: Time.current)
+    run.awaiting_local!
   end
 end

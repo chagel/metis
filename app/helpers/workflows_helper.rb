@@ -2,6 +2,7 @@ module WorkflowsHelper
   def wf_run_status_label(run)
     case run.status
     when "pending", "running" then "Running"
+    when "awaiting_local"     then "On your machine"
     when "awaiting_approval"  then "Review"
     when "completed"          then "Completed"
     when "failed"             then "Failed"

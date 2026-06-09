@@ -4,6 +4,8 @@
 <% case run.status %>
 <% when "awaiting_approval" %>
   <span class="convo-pill" id="<%= id %>">Review</span>
+<% when "awaiting_local" %>
+  <span class="convo-pill" id="<%= id %>">Local</span>
 <% when "completed" %>
   <svg class="convo-check" id="<%= id %>" viewBox="0 0 24 24" fill="none" stroke="currentColor"
        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-label="Done"><path d="M20 6 9 17l-5-5"/></svg>

@@ -242,7 +242,7 @@ protocol — argued there, not assumed here.
 
 ## Build phases
 
-### Phase 0 — Enrollment + presence (no delegation yet)
+### Phase 0 — Enrollment + presence (no delegation yet) ✅
 - **Migration** `create_devices`: `team_id`, `user_id`, `token_digest`
   (unique index), `name`, `agent_kind:string`, `bindings:jsonb`,
   `last_seen_at`.
@@ -256,7 +256,7 @@ protocol — argued there, not assumed here.
 - **Tests:** model (assoc, `online?` window, digest verify); controller
   (enroll/revoke auth, token resolver accept/reject).
 
-### Phase 1 — Delegation core (REST + engine lifecycle)
+### Phase 1 — Delegation core (REST + engine lifecycle) ✅
 - `WorkflowRun#status += awaiting_local`; `Task` delegation columns +
   `delegated?`.
 - `Api::Bridge::TasksController` — `next` (claim), `events`, `result` —

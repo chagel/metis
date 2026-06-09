@@ -6,13 +6,13 @@ class WorkflowRun < ApplicationRecord
   has_many :tasks, -> { order(:position) }, dependent: :destroy
 
   enum :status, { pending: 0, running: 1, awaiting_approval: 2,
-                  completed: 3, failed: 4, cancelled: 5 }, default: :pending
+                  completed: 3, failed: 4, cancelled: 5, awaiting_local: 6 }, default: :pending
 
-  scope :active,   -> { where(status: %i[pending running awaiting_approval]) }
+  scope :active,   -> { where(status: %i[pending running awaiting_approval awaiting_local]) }
   scope :awaiting, -> { where(status: :awaiting_approval) }
 
   def active?
-    pending? || running? || awaiting_approval?
+    pending? || running? || awaiting_approval? || awaiting_local?
   end
 
   # `input` is the run's subject — folded into the first step's prompt.
@@ -36,7 +36,8 @@ class WorkflowRun < ApplicationRecord
           position: i,
           name: step["name"] || step[:name],
           prompt: prompt,
-          gate: step["gate"] || step[:gate] || :auto
+          gate: step["gate"] || step[:gate] || :auto,
+          delegated: (step["run"] || step[:run]).to_s == "local"
         )
       end
       run
@@ -58,6 +59,30 @@ class WorkflowRun < ApplicationRecord
     task.update!(status: :completed, approved_by: by, decided_at: Time.current)
     running!
     WorkflowAdvanceJob.perform_later(id)
+  end
+
+  # A delegated task's local agent reported back. The settle-equivalent for
+  # a delegated step: failed fails the run; otherwise an approval gate pauses
+  # for review (the agent's PR), an auto step completes and advances — the
+  # same post-step shape WorkflowAdvanceJob#settle runs for a cloud turn.
+  def complete_delegated_task!(task, result:, by_device: nil)
+    return unless task.delegated? && task.running?
+
+    task.update!(result: result, claimed_by_device: by_device || task.claimed_by_device)
+
+    if result.to_h.with_indifferent_access[:status].to_s == "failed"
+      task.failed!
+      failed!
+      WorkflowBroadcaster.new(self).refresh
+    elsif task.approval?
+      task.awaiting_approval!
+      awaiting_approval!
+      WorkflowBroadcaster.new(self).refresh
+    else
+      task.completed!
+      running!
+      WorkflowAdvanceJob.perform_later(id)
+    end
   end
 
   def reject_current_gate!(by: nil)
