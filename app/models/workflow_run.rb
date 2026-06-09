@@ -23,13 +23,15 @@ class WorkflowRun < ApplicationRecord
   # `input` is the operator's subject/context for the run — it's folded into
   # the first step's prompt so the agent knows what to work on.
   def self.start(team:, user:, workflow: nil, project: nil, steps: nil,
-                 input: nil, trigger_summary: "Started by you")
+                 input: nil, settings: {}, trigger_summary: "Started by you")
     steps ||= workflow&.steps || []
     run = transaction do
       # No title — let the normal LLM auto-titling derive one from the first
       # turn (which carries the operator's input), so runs of the same
       # workflow get distinct, meaningful names instead of all the same.
-      conversation = user.conversations.create!(team: team, project: project)
+      conversation = user.conversations.create!(
+        team: team, project: project, settings: settings || {}
+      )
       run = create!(
         team: team, workflow: workflow, conversation: conversation,
         trigger_summary: trigger_summary

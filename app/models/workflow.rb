@@ -10,6 +10,7 @@ class Workflow < ApplicationRecord
 
   validates :name, presence: true
   validate :default_project_in_team
+  validate :steps_have_prompts
 
   scope :enabled, -> { where(enabled: true) }
 
@@ -24,5 +25,17 @@ class Workflow < ApplicationRecord
     return if team&.projects&.exists?(default_project_id)
 
     errors.add(:default_project_id, "is not in this team")
+  end
+
+  # Every step runs its prompt as a turn (a Gate just pauses after), so a
+  # prompt is required — otherwise the step would silently become a
+  # pause-only checkpoint, which surprises authors.
+  def steps_have_prompts
+    Array(steps).each_with_index do |step, i|
+      next if step["prompt"].to_s.strip.present?
+
+      label = step["name"].presence || "Step #{i + 1}"
+      errors.add(:steps, "#{label} needs a prompt")
+    end
   end
 end

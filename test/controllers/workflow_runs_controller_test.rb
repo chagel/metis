@@ -51,7 +51,7 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to run.conversation
   end
 
-  test "create from the composer uses the typed content as the run input" do
+  test "create from the composer uses the typed content as input and the picked model" do
     workflow = @team.workflows.create!(
       name: "Triage", steps: [ { "name" => "spec", "prompt" => "write the spec", "gate" => "approval" } ]
     )
@@ -59,6 +59,7 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     post workflow_runs_path(workflow_id: workflow.id, content: "the launch composer", model: "claude-opus-4-8")
     run = WorkflowRun.last
     assert_match "the launch composer", run.tasks.first.prompt
+    assert_equal "claude-opus-4-8", run.conversation.settings["model"]
     assert_redirected_to run.conversation
   end
 

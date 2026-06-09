@@ -1,0 +1,14 @@
+<%# Workflow identity for the chat-header meta row — name (linked to the
+    template) + live status. Root id is the broadcast/replace target. %>
+<span id="workflow_meta" class="wf-meta">
+  <% if run.workflow %>
+    <%= link_to edit_workflow_path(run.workflow), class: "tag wf-meta-name" do %>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4h5l1 1.5h5M2.5 4v8h11V5.5M2.5 8h11"/></svg>
+      <%= run.workflow.name %>
+    <% end %>
+  <% else %>
+    <span class="tag wf-meta-name">Workflow</span>
+  <% end %>
+  <span class="tag wf-meta-state wf-meta-state--<%= run.status %>"><%= wf_run_status_label(run) %></span>
+</span>

@@ -110,11 +110,4 @@ class ConversationsController < ApplicationController
       format.html { redirect_to @conversation }
     end
   end
-
-  # Composer wins; profile default backs up a scrubbed pick; both blank →
-  # adapter falls back to deployment defaults.
-  def chat_settings
-    model = params[:model].presence || current_user.preferred_model.presence
-    { "provider" => model && Agent::Catalog.provider_for(model), "model" => model }.compact
-  end
 end

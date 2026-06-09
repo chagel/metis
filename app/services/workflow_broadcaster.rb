@@ -12,6 +12,7 @@ class WorkflowBroadcaster
 
   def refresh
     @run.tasks.reload
+    replace("workflow_meta", "workflow_runs/meta")
     replace("workflow_rail", "workflow_runs/rail")
     replace("workflow_gate", "workflow_runs/gate")
     replace("composer", "workflow_runs/run_status")

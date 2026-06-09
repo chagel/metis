@@ -22,7 +22,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
         name: "Sentry fix",
         steps: {
           "0" => { name: "spec", prompt: "write spec", gate: "auto" },
-          "1" => { name: "review", prompt: "", gate: "approval" },
+          "1" => { name: "review", prompt: "review it", gate: "approval" },
           "2" => { name: "", prompt: "", gate: "auto" } # blank → dropped
         }
       } }
@@ -43,6 +43,14 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     workflow.reload
     assert_equal [ "b" ], workflow.steps.map { |s| s["name"] }
     assert_equal "approval", workflow.steps.first["gate"]
+  end
+
+  test "a step without a prompt is rejected" do
+    post workflows_path, params: { workflow: {
+      name: "Bad", steps: { "0" => { name: "say hi again", prompt: "", gate: "approval" } }
+    } }
+    assert_response :unprocessable_entity
+    assert_equal 0, @team.workflows.where(name: "Bad").count
   end
 
   test "a default project from another team is rejected" do

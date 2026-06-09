@@ -1,4 +1,6 @@
 class WorkflowRunsController < ApplicationController
+  include Composing
+
   before_action :set_run, only: %i[approve reject request_changes]
   before_action :set_workflow, only: :create
 
@@ -9,7 +11,8 @@ class WorkflowRunsController < ApplicationController
     project = current_team.projects.find_by(id: params[:project_id]) || @workflow.default_project
     run = WorkflowRun.start(
       team: current_team, user: current_user, workflow: @workflow,
-      project: project, input: params[:input].presence || params[:content]
+      project: project, input: params[:input].presence || params[:content],
+      settings: chat_settings
     )
     redirect_to run.conversation
   end

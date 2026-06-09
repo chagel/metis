@@ -11,6 +11,14 @@ module Composing
     Array(params[:attachments]).reject(&:blank?)
   end
 
+  # The conversation's provider/model from the composer's model picker.
+  # Composer wins; profile default backs up a scrubbed pick; both blank →
+  # the adapter falls back to deployment defaults.
+  def chat_settings
+    model = params[:model].presence || current_user.preferred_model.presence
+    { "provider" => model && Agent::Catalog.provider_for(model), "model" => model }.compact
+  end
+
   # One transaction so a turn-guard collision on the assistant row rolls
   # the user message back too — no orphan. The turn-start core lives in
   # ConversationTurn (shared with the workflow engine); here we only add

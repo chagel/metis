@@ -1942,9 +1942,26 @@ body.drawer-open { overflow:hidden; }
 
 /* progress rail */
 .wf-rail-wrap { border-bottom:1px solid var(--line); background:var(--canvas); }
+
+/* workflow identity in the chat-header meta row */
+.wf-meta { display:inline-flex; align-items:center; gap:9px; }
+.wf-meta-name { display:inline-flex; align-items:center; gap:5px; text-decoration:none; color:var(--ink-2); }
+.wf-meta-name svg { width:11px; height:11px; color:var(--ink-3); }
+.wf-meta-name:hover { color:var(--ink); }
+.wf-meta-state {
+  display:inline-flex; align-items:center; gap:5px; font-weight:600;
+  background:var(--bg); color:var(--ink-3);
+}
+.wf-meta-state::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+.wf-meta-state--running::before, .wf-meta-state--pending::before { animation:convo-pulse 1.6s ease-in-out infinite; }
+.wf-meta-state--running, .wf-meta-state--pending { color:var(--accent-fg); background:var(--accent-soft); }
+.wf-meta-state--awaiting_approval { color:var(--gold); background:var(--gold-soft); }
+.wf-meta-state--completed { color:var(--ok); background:var(--ok-soft); }
+.wf-meta-state--failed { color:var(--danger); background:var(--danger-soft); }
+.wf-meta-state--cancelled { color:var(--ink-3); }
 .wf-rail {
   display:flex; align-items:flex-start; gap:0;
-  max-width:760px; margin:0 auto; padding:15px 28px 7px; overflow-x:auto;
+  max-width:760px; margin:0 auto; padding:11px 28px 7px; overflow-x:auto;
 }
 .wf-step { display:flex; flex-direction:column; align-items:center; flex:1; min-width:90px; position:relative; }
 .wf-step:not(:first-child)::before {

@@ -28,7 +28,7 @@
 
   <div class="field">
     <%= f.label :steps, "Steps" %>
-    <p class="field-hint">Each step is one agent turn. Set a step to <strong>Gate</strong> to pause for your review after it runs.</p>
+    <p class="field-hint">Each step runs its prompt as one agent turn — the name is just a label, the prompt is the instruction. Set a step to <strong>Gate</strong> to pause for your review after it runs.</p>
     <div class="wf-steps" data-controller="workflow-editor">
       <div class="wf-steps-list" data-workflow-editor-target="list"
            data-action="dragover->workflow-editor#dragOver">
