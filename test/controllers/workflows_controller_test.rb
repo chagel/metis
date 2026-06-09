@@ -32,6 +32,24 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 2, workflow.steps.size
     assert_equal %w[spec review], workflow.steps.map { |s| s["name"] }
     assert_equal "approval", workflow.steps.last["gate"]
+    assert_equal %w[cloud cloud], workflow.steps.map { |s| s["run"] }
+  end
+
+  test "create persists a step's run:local delegation choice" do
+    post workflows_path, params: { workflow: {
+      name: "Ship it",
+      steps: {
+        "0" => { name: "plan", prompt: "plan", gate: "auto", run: "cloud" },
+        "1" => { name: "implement", prompt: "build it", gate: "approval", run: "local" }
+      }
+    } }
+    workflow = @team.workflows.find_by(name: "Ship it")
+    assert_equal %w[cloud local], workflow.steps.map { |s| s["run"] }
+
+    # And the run picks it up: the local step becomes a delegated task.
+    run = WorkflowRun.start(team: @team, user: @user, workflow: workflow)
+    assert_not run.tasks.find_by(position: 0).delegated?
+    assert run.tasks.find_by(position: 1).delegated?
   end
 
   test "update edits steps" do

@@ -2116,7 +2116,7 @@ body.drawer-open { overflow:hidden; }
 .wf-step-row.is-dragging { opacity:.5; cursor:grabbing; }
 /* interactive children keep their own cursors */
 .wf-step-name, .wf-step-prompt { cursor:text; }
-.wf-step-gate, .wf-gate-opt input, .wf-step-del { cursor:pointer; }
+.wf-step-gate, .wf-step-run, .wf-gate-opt input, .wf-step-del { cursor:pointer; }
 .wf-step-grip { color:var(--faint); font-size:14px; line-height:1; user-select:none; padding-top:7px; }
 .wf-step-fields { flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
 
@@ -2129,8 +2129,8 @@ body.drawer-open { overflow:hidden; }
 }
 .wf-step-name::placeholder { color:var(--faint); font-weight:500; }
 .wf-step-name:focus { border-bottom-color:var(--line-2); }
-/* Auto | Gate segmented toggle (radios) */
-.wf-step-gate { flex:none; display:inline-flex; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:2px; }
+/* Cloud | Local and Auto | Gate segmented toggles (radios) */
+.wf-step-gate, .wf-step-run { flex:none; display:inline-flex; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:2px; }
 .wf-gate-opt { display:inline-grid; }
 .wf-gate-opt input { grid-area:1/1; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
 .wf-gate-opt span {
@@ -2140,6 +2140,7 @@ body.drawer-open { overflow:hidden; }
 }
 .wf-gate-opt input:checked + span { background:var(--card); color:var(--ink); box-shadow:var(--sh-sm); }
 .wf-gate-opt--gate input:checked + span { color:var(--gold); }
+.wf-gate-opt--local input:checked + span { color:#3fb950; }
 .wf-gate-opt input:focus-visible + span { box-shadow:0 0 0 3px var(--accent-glow); }
 .wf-step-del {
   flex:none; display:grid; place-items:center; width:28px; height:28px;

@@ -53,7 +53,7 @@ class WorkflowsController < ApplicationController
     permitted
   end
 
-  # Steps arrive as workflow[steps][<i>][name|prompt|gate]. Read the raw
+  # Steps arrive as workflow[steps][<i>][name|prompt|gate|run]. Read the raw
   # nested params (only the scalar keys we care about) and drop blank rows.
   def normalized_steps
     rows = params.dig(:workflow, :steps)
@@ -65,7 +65,12 @@ class WorkflowsController < ApplicationController
       prompt = row[:prompt].to_s.strip
       next if name.blank? && prompt.blank?
 
-      { "name" => name, "prompt" => prompt, "gate" => (row[:gate] == "approval" ? "approval" : "auto") }
+      {
+        "name" => name,
+        "prompt" => prompt,
+        "gate" => (row[:gate] == "approval" ? "approval" : "auto"),
+        "run" => (row[:run] == "local" ? "local" : "cloud")
+      }
     end
   end
 end
