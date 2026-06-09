@@ -13,6 +13,7 @@ class User < ApplicationRecord
   has_many :connector_credentials, dependent: :destroy
   has_many :identities, dependent: :destroy
   has_many :oauth_grants, dependent: :destroy
+  has_many :devices, dependent: :destroy
 
   # An uploaded avatar overrides `avatar_url` (the OAuth-cached URL);
   # see `AvatarHelper#avatar_for` for the resolution order.

@@ -69,6 +69,7 @@ Rails.application.routes.draw do
 
     resources :projects, except: :show
     resources :workflows, except: :show
+    resources :bridges, only: %i[index create destroy]
 
     get   "models",                   to: "models#index",           as: :models
     post  "models/refresh",           to: "models#refresh",         as: :refresh_models

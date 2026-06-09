@@ -5,413 +5,300 @@
 > *implementation step* runs on the user's own machine instead of a
 > Metis-operated sandbox.
 
-A **bridge** lets a remote Metis workflow delegate a turn to a coding
+A **bridge** lets a remote Metis workflow **delegate a step** to a coding
 agent running on the **user's own machine** — Claude Code, Codex, pi —
 against their **real working copy**, with their real toolchain, env, and
 (for Claude Code) their **own Claude subscription** rather than Metis's
-API budget. Metis stays the governor: it sequences turns and gates; the
-local agent only executes the turn.
+API budget. Metis stays the governor: it sequences steps and gates, hands
+off the work, and records the result. It does **not** drive the agent.
 
-## Why a fourth place to run
+## The shape: delegation, not a runtime
 
-Metis already abstracts *where* the agent runs (`Runtime::Local`,
-`Docker`, `E2b`, `Daytona` — see [`coding-runtime.md`](coding-runtime.md)).
-All four are runtimes **Metis operates**. The implementation step has the
-opposite requirements:
+The tempting design is a fourth `Runtime` (`Local`/`Docker`/`E2b`/`Daytona`
+→ `Bridge`) that streams the local agent's turn back as an assistant
+`Message`. **We reject it.** Forcing local work through the runtime /
+adapter seam means every local turn has to masquerade as a streamed
+`Message` bound to a `ChatJob`: a blocked Solid Queue worker held open for
+the whole turn, a persistent cloud→laptop stream across NAT, a
+per-conversation runtime flip, and the full `UiEvent` streaming contract
+(`token_totals` shapes, `#artifacts`, cancel-polling) that local work
+doesn't naturally produce. The cloud↔local boundary doesn't behave like
+the cloud sandbox runtimes do, and pretending it does buys impedance, not
+reuse.
 
-- It should edit the user's **actual repo** with their real tools, env,
-  and credentials — not a fresh sandbox scope.
+Instead, **a local step is a [`Task`](workflows.md) handed off — and the
+engine waits for a *report* the same way it already waits for a human
+*approval*.** Metis already has both primitives:
+
+- `Task` — a workflow step instance, with status + audit, *not* tied to a
+  streamed turn.
+- The **gate** — a turn boundary the engine won't cross until an external
+  signal arrives.
+
+A delegated step is simply a **sibling of the approval gate**:
+`awaiting_local → report → advance` instead of `awaiting_approval → click
+→ advance`. No new runtime, no adapter, no streaming contract.
+
+```
+WorkflowAdvanceJob reaches a delegated step
+   → task.dispatched  ·  run.awaiting_local!  ·  notify     (engine STOPS — like a gate)
+                                                            │
+        ── local pulls over a token-authed REST surface ────
+                                                            │
+   GET  next-task        → prompt + context bundle (prior step summaries, project, repo hint)
+   POST progress (opt)   → log lines onto the Task (timeline, NOT a streamed Message)
+   POST result           → { status, summary, artifacts: [pr_url, branch, diff_stat] }
+                                                            │
+   → task.completed! (or awaiting_approval if a review gate follows)
+   → run.running!  ·  WorkflowAdvanceJob.perform_later       (same re-entry as approve_current_gate!)
+```
+
+### What this drops vs. the runtime design
+
+`Adapters::Bridge`, `Conversation#runtime`, the per-turn `UiEvent`
+streaming contract, blocked workers, the SSE long-hold, cancel-polling,
+the `#artifacts` gotcha. **The local work never touches `Adapters.for` /
+`ChatJob`.**
+
+### What it keeps
+
+The `Device` + enrollment token (scopes the pull API), and the
+gate-shaped pause/resume the engine already runs (`approve_current_gate!`
+is the template for `complete_delegated_task!`).
+
+### Outside the conversation
+
+The step stays a workflow `Task` — so sequencing, gates, and audit hold —
+but it lives **outside the conversation message stream**: no streamed
+assistant turn, no runtime binding. The run view renders it as a
+*delegated step card* (status + result), beside the normal step cards. On
+completion Metis may append **one compact summary line** to the timeline
+("🔧 Implemented on `macbook-pro` → PR #123") for coherence — a plain
+message, not a streamed turn. That is the "hand off *outside* the
+conversation" the design calls for.
+
+## Why local at all
+
+- The implementation step should edit the user's **actual repo** with
+  their real tools, env, and credentials — not a fresh sandbox scope.
 - Metis is in the cloud; the laptop is behind NAT. **Only the laptop can
-  dial out.** Nothing inbound-to-laptop is on the table.
-- The workflow invariant must survive: *the engine sequences turns +
-  gates; the agent executes; Rails governs.* (`workflows.md`)
+  dial out** — which is exactly what a *pull* model needs and nothing more.
+- Delegating to local Claude Code uses the user's **own Claude
+  subscription**, moving spend off Metis's API budget.
 
-So the bridge is a new place the agent runs, reached over a channel the
-laptop holds open. Conceptually it is **`Runtime::Local` executed on the
-user's machine over a wire** — the laptop is the durable host filesystem.
+## What the references teach
 
-## What the references teach (they answer different questions)
-
-Two prior projects inform the shape, and the insight is that they answer
-**different layers**:
-
-- **[agentrq](https://github.com/agentrq/agentrq)** — the *deployment
-  shape*. A remote task board hands work to a local agent: a per-workspace
-  **MCP server** the agent connects to, **workspace-id + token** auth, SSE
-  notifications, Claude Code native + Codex/Gemini via ACP/codex gateways.
-  But control sits with the **agent** — it *pulls* (`getNextTask`) and
-  self-manages. That inverts Metis's "Rails governs / engine sequences
-  turns" invariant.
+- **[agentrq](https://github.com/agentrq/agentrq)** — now the **direct
+  model**, not just an influence. A remote task board, a local agent that
+  **pulls** assigned tasks (`getNextTask`), reports status
+  (`updateTaskStatus`), and replies (`reply`); **workspace-id + token**
+  auth; SSE only to *notify*, not to carry the work. This is precisely the
+  delegated-Task + pull-REST shape above. Earlier this was filed under
+  "Mode B, rejected"; the pivot makes it the spine — because for *handing
+  off a discrete step* (vs. driving a live chat turn), agent-pull is the
+  natural fit, and it keeps Metis from having to drive anything.
 - **[ACP](https://agentclientprotocol.com)** (Agent Client Protocol) —
-  the *agent-driving protocol*. JSON-RPC over stdio: `session/new`,
-  `session/prompt`, `session/update` (streamed deltas/tool calls),
-  `session/request_permission`, `fs/*`, `terminal/*`; a turn ends when the
-  agent answers `session/prompt` with a **stop reason**. Control sits with
-  the **client** — exactly what the workflow engine needs. This shape maps
-  one-to-one onto Metis's `UiEvent` vocabulary.
+  demoted to a **daemon-internal detail**. ACP matters only if/when a
+  `metis-bridge` daemon drives a *headless* agent unattended (Phase 3); it
+  normalizes Claude Code / Codex / Gemini / pi behind one stdio protocol.
+  In the lightest v1 (the user's own Claude Code pulls via MCP) there is
+  no ACP — the agent *is* the client.
 
-**Metis wants agentrq's deployment shape with ACP's control model.** So:
+## Transport: pull-based REST core
 
-- **Metis ↔ laptop** (over the network): a thin Metis-owned envelope,
-  agentrq-style enrollment token, but **push/drive, not pull**.
-- **laptop ↔ the local agent** (over stdio): **ACP** as the
-  normalization layer — one bridge drives Claude Code, Codex, Gemini, and
-  pi without N bespoke drivers.
+One token-authed REST surface is the whole core. **Pull, not push:** the
+laptop makes outbound GETs, so NAT is a non-issue, no persistent
+connection is held, no worker blocks, and a laptop offline for hours costs
+Metis zero state. A push-notification (the existing email / in-app "needs
+you" path, or an optional SSE *tickle*) is a later latency optimization —
+the **data path stays pull**. A true bidirectional WebSocket is a Phase-N
+upgrade only if live progress streaming is ever wanted.
 
-## The one decision that shapes every payload
-
-Where to cut the cloud/local serialization boundary:
-
-- **(A) tunnel pi's native rpc frames** — pins the wire to pi's protocol,
-  makes every `get_session_stats` a round-trip, and gives nothing for
-  Claude Code / Codex.
-- **(B) ship `Agent::UiEvent`s** — the laptop runs the full
-  Runtime+Adapter and emits Metis's **canonical** vocabulary up the wire.
-  `UiEvent` exists precisely so the UI "speaks one vocabulary regardless
-  of which agent is running" (`app/services/agent/ui_event.rb`). The wire
-  should speak it too. **This is the cut.**
-
-Boundary B has a clean consequence: **the cloud-side seam is an *adapter*,
-not a runtime.** The "where pi runs" concern moves entirely onto the
-laptop; what remains cloud-side is purely "produce the `UiEvent` stream
-from a remote source" — an adapter's job.
-
-- **Cloud:** `Agent::Adapters.for(conversation)` returns
-  `Adapters::Bridge` — it relays UiEvents off the wire and exposes the
-  same post-turn reads `ChatJob` already calls. Zero new cloud-side
-  translation.
-- **Laptop:** the `metis-bridge` daemon owns the real Runtime+Adapter
-  (pi via the existing logic; Claude Code / Codex via ACP→UiEvent). The
-  wire is uniform across all of them.
-
-## Architecture
+**Layering (the v1 decision):** build only the REST surface. The **MCP
+server** and the **daemon** are both thin clients of it, added later:
 
 ```
-Metis (cloud)
-  WorkflowAdvanceJob → ChatJob → Adapters.for(conv) → Adapters::Bridge
-        (step = a turn, unchanged)                         │
-                                       Metis Bridge Protocol (Action Cable / WS)
-                                                           │
-                ───────────────── NAT boundary (laptop dials out) ─────────────────
-                                                           │
-  Laptop: `metis-bridge` daemon
-     ├─ holds durable WS to Metis + presence heartbeat
-     ├─ on dispatch{prompt, conv_id, settings}: drive the local agent
-     │     ├─ pi:        `pi --mode rpc`     ← reuse pi-agent-rb framing   (v1)
-     │     └─ others:    ACP over stdio      ← claude-code, codex, gemini  (Phase 3)
-     ├─ translate the agent stream → Agent::UiEvent → stream back up
-     ├─ working dir = the user's REAL repo (per-project binding)
-     └─ session continuity: per-conversation, the agent's native resume
+                    ┌───────────────────────────── Metis (cloud) ─────────────┐
+                    │  WorkflowAdvanceJob ──(delegated step)──▶ awaiting_local │
+                    │                                                          │
+   token-authed     │   GET  /api/bridge/tasks/next                           │
+   REST surface ◀───┼──  POST /api/bridge/tasks/:id/events    (progress)      │
+   (the core)       │   POST /api/bridge/tasks/:id/result                     │
+                    └──────────────────────────────────────────────────────────┘
+                              ▲                         ▲
+        ── pulls (outbound) ──┤                         ├── pulls (outbound) ──
+                              │                         │
+        Phase 2: MCP server   │                         │  Phase 3: metis-bridge daemon
+        (user's Claude Code   │                         │  (polls, spawns pi/Claude Code
+         self-pulls via       │                         │   via ACP, reports — unattended)
+         .mcp.json tools)     │                         │
 ```
 
-The streaming stack (`ChatJob`, `ChatBroadcaster`, `UiEvent`, the run UI)
-and the workflow engine are **untouched**. A bridge turn is just another
-producer of `UiEvent`s, and a bridge-backed step is still a turn, still
-one `ChatJob`, still gated at its boundary.
+## The REST surface
 
-## Wire protocol
+All endpoints bearer-authed by a `Device` enrollment token, team-scoped.
 
-### Envelope
+### `GET /api/bridge/tasks/next`
 
-Every frame, both directions:
+Claims and returns the team's next dispatched delegated task (FIFO), or
+`204` if none. Claiming stamps `task.claimed_by_device`.
 
 ```jsonc
+// 200
 {
-  "v": 1,
-  "conversation_id": 4821,     // correlation + continuity key
-  "turn_token": "trn_9f3a…",   // one dispatch = one turn; idempotency + reconnect key
-  "seq": 17,                   // monotonic per (turn_token, direction); gap detection
-  "kind": "dispatch | event | turn_finished | permission_request | permission_response | control | heartbeat",
-  "payload": { … }
+  "task_id": 5521,
+  "run_id": 880,
+  "name": "Implement the retry-budget cap",
+  "prompt": "Implement the retry-budget cap described in the plan…",
+  "context": {
+    "project":  { "name": "metis-api", "about": "Rails 8 API; conventions in…" },
+    "repo_hint": "github.com/acme/metis-api",       // which checkout to bind
+    "prior_steps": [                                  // summaries of the cloud steps so far
+      { "name": "Research", "summary": "Root cause: unbounded retry loop in…" },
+      { "name": "Plan",     "summary": "Cap at 5; add jittered backoff; …" }
+    ],
+    "agents_md": "<rendered AGENTS.md>",              // project context + standards, optional
+    "attachments": [{ "name": "spec.pdf", "url": "https://…signed…" }]
+  },
+  "env": { "GH_TOKEN": "ghu_…" }                      // optional; omit → local uses own creds
 }
 ```
 
-`turn_token` makes dispatch idempotent (a re-delivered dispatch is a
-no-op if that turn already ran). `seq` lets a reconnecting daemon resume
-"after seq N", so a dropped socket mid-turn loses or duplicates nothing.
+The `context` bundle is how prior cloud steps reach the local agent —
+**summaries, not a session.** There is no pi-session continuity across the
+cloud→local boundary (different machines); Metis hands the local agent the
+distilled context (prior step results + project standards), which is what
+it already does for a reaped sandbox via `replayable_history → AGENTS.md`.
 
-### Cloud → local: `dispatch`
+### `POST /api/bridge/tasks/:id/events` (optional progress)
 
-Carries everything `Runtime::Base#run(pi_args:)` would have assembled
-locally — prompt, continuity, settings, the per-turn projected inputs
-Metis renders, and the credential env:
+```jsonc
+{ "kind": "log", "text": "Edited retry.rb; running tests…" }
+```
+
+Appended to the task for the run timeline. Lightweight and optional — a
+client that only reports a final result is fine.
+
+### `POST /api/bridge/tasks/:id/result`
 
 ```jsonc
 {
-  "kind": "dispatch",
-  "payload": {
-    "assistant_message_id": 90211,        // correlate the stream; idempotency
-    "prompt": "Implement the retry-budget cap described above…",
-    "images": [{ "media_type": "image/png", "data": "<base64>" }],
-    "files":  [{ "name": "spec.pdf", "url": "https://…signed…", "sha256": "…" }],
-
-    "settings": { "provider": "anthropic", "model": "claude-opus-4-8" },
-    //  or  { "provider": "local" }  → daemon uses the user's own pi/Claude login
-
-    "continuity": {
-      "backend_session_id": "pi_sess_77c…",  // nil on first turn; daemon resumes this
-      "working_dir_binding": "metis/api"      // which local repo this run is bound to
-    },
-
-    // Metis renders these cloud-side today (identity_content, mcp_config).
-    // Daemon stages them into a Metis-managed --session-dir, NOT over the user's files.
-    "projected": {
-      "agents_md": "<rendered AGENTS.md>",
-      "mcp_json":  "<rendered .mcp.json>",
-      "skills":    [{ "slug": "gws-gmail", "files": { "SKILL.md": "…" } }]
-    },
-
-    // sandbox_env(), projected from the operator's OauthGrants. Optional —
-    // omit entirely to let the local agent use the user's own creds (the
-    // Claude-subscription win). When present, short-lived per-turn bearers.
-    "env": { "GH_TOKEN": "ghu_…", "GIT_AUTHOR_NAME": "chagel", "GIT_AUTHOR_EMAIL": "…" },
-
-    "permission_policy": "auto"  // auto | forward  (ACP request_permission handling)
-  }
+  "status": "completed",            // completed | failed
+  "summary": "Capped retries at 5 with jittered backoff; tests green.",
+  "artifacts": [
+    { "type": "pr",   "url": "https://github.com/acme/metis-api/pull/123" },
+    { "type": "diff", "files_changed": 4, "insertions": 61, "deletions": 12 }
+  ]
 }
 ```
 
-The prompt, projected inputs, and env are **data the daemon applies** to
-its local session — staged into a Metis-owned `--session-dir` so they
-never clobber the user's repo. `working_dir_binding` is the user's real
-checkout; the projected inputs live beside it, not on top of it.
-
-### Local → cloud: the event stream
-
-One frame per event — literally `UiEvent#to_h` on the wire, in order:
-
-```jsonc
-{ "kind": "event", "seq": 4,  "payload": { "type": "message_started",   "data": { "id": "msg_1", "role": "assistant" } } }
-{ "kind": "event", "seq": 5,  "payload": { "type": "text_delta",        "data": { "id": "msg_1", "text": "Looking at the retry…" } } }
-{ "kind": "event", "seq": 8,  "payload": { "type": "tool_call_started",  "data": { "tool_call_id": "tc_2", "name": "edit", "args": {…} } } }
-{ "kind": "event", "seq": 12, "payload": { "type": "tool_call_finished", "data": { "tool_call_id": "tc_2", "output": "…", "is_error": false } } }
-{ "kind": "event", "seq": 20, "payload": { "type": "message_finished",   "data": { "id": "msg_1", "content": "Done — capped at 5 retries." } } }
-```
-
-Cloud-side `Adapters::Bridge#stream` rehydrates each into a real
-`Agent::UiEvent` and yields it to `ChatJob`, which broadcasts and buffers
-exactly as for pi today. `native_ref` rides along untouched.
-
-### Local → cloud: the terminal `turn_finished` frame
-
-The frame with teeth — it carries everything `ChatJob` reads off the
-adapter *after* the stream to persist usage onto the assistant `Message`:
-
-```jsonc
-{
-  "kind": "turn_finished",
-  "seq": 21,
-  "payload": {
-    "stop_reason": "end_turn",                      // ACP stop reason / pi agent_end
-    "native_session_id": "pi_sess_77c…",            // → Conversation#backend_session_id
-    "token_totals":  { "input": 18044, "output": 962, "cache_read": 15001 },
-    "context_usage": { "used": 34000, "window": 200000 },
-    "cost_total": 0.214,                            // USD; null when the agent omits it
-    "model_info": { "provider": "anthropic", "model_key": "claude-opus-4-8" },
-    "runtime_info": { "runtime": "bridge", "device": "macbook-pro", "agent": "claude-code" }
-  }
-}
-```
-
-`Adapters::Bridge` stashes this and exposes it via the **same method
-names** the `Pi` adapter does (`#native_session_id`, `#token_totals`,
-`#cost_total`, `#model_info`, `#runtime_info`) — so `ChatJob`'s
-persistence and the Langfuse export path don't change a line. `#artifacts`
-returns `[]` for bridge: the files live in the user's real repo, uncollected.
-
-### Control & resilience frames
-
-- **`permission_request` (local→cloud):** ACP `session/request_permission`
-  surfaced up. Under `policy: auto` the daemon answers locally and never
-  sends this; under `forward` it becomes a transient gate in the run UI
-  and the cloud replies with a `permission_response` frame.
-- **`heartbeat`:** daemon → cloud ~every 15s; drives `BridgeChannel`
-  presence (the `awaiting_local` parking check).
-- **Reconnect:** daemon sends `{kind:"control", op:"resume", turn_token,
-  last_seq}`; cloud continues from `last_seq+1`. If the daemon died
-  mid-turn and can't resume, the turn reaps like a stalled pi turn and
-  re-dispatches on the next advance, resuming via `backend_session_id`.
-- **Backpressure:** `text_delta` is the hot path; the daemon coalesces
-  sub-frame deltas (as pi already batches) so the channel isn't flooded
-  token-by-token.
-
-### What crosses the boundary — and what doesn't
-
-| Crosses cloud→local | Crosses local→cloud | Never crosses |
-|---|---|---|
-| prompt, settings, continuity id | UiEvent stream (canonical) | the user's source files (stay on laptop) |
-| rendered AGENTS.md / .mcp.json / skills | usage: tokens, cost, model | the user's local provider login (when `provider:"local"`) |
-| optional short-lived per-turn bearers | stop reason + native_session_id | raw pi rpc frames (translated at the edge) |
-
-The wire is **the `UiEvent` vocabulary plus a dispatch frame and a
-terminal stats frame** — nothing pi-specific, which is exactly what lets
-the same channel carry Claude Code and Codex turns in Phase 3.
-
-## Cloud-side shape
-
-`Adapters::Bridge#stream` blocks the worker reading frames off the
-channel — structurally identical to how `Adapters::Pi#stream` blocks
-reading the subprocess today:
-
-```ruby
-def stream(input, images: [], files:, &block)
-  dispatch!(input, images:, files:)              # send the dispatch frame
-  BridgeChannel.events_for(turn_token).each do |frame|
-    case frame.kind
-    when :event              then block.call(UiEvent.new(frame[:type], data: frame[:data], native_ref: frame[:native_ref]))
-    when :permission_request then handle_permission(frame)   # auto-ack, or forward as a transient gate
-    when :turn_finished      then capture_terminal(frame); break
-    when :error              then block.call(UiEvent.new(:error, data: { message: frame[:message] }))
-    end
-  end
-ensure
-  @session_terminal ||= :disconnected   # daemon dropped → reap path, resume next turn
-end
-```
-
-Holding a worker thread blocked on the channel for the whole turn is the
-**same shape** Metis already runs for every pi turn (the worker blocks on
-the pi subprocess stream). Give bridge turns a dedicated Solid Queue queue
-so they can't starve chat.
-
-## Transport: Action Cable
-
-Use **Action Cable** — Metis already runs it on Solid Cable, it's
-bidirectional, and the laptop dialing out solves NAT for free.
-
-- `BridgeChannel`, scoped to `team + enrolled device`. Presence via the
-  subscription lifecycle drives the "is a local agent available?" check.
-- **Down:** `dispatch`, `cancel`, `permission_response`.
-- **Up:** `event`, `turn_finished`, `permission_request`, `heartbeat`,
-  `control` (resume).
-
-If per-token Action Cable chatter proves heavy, split the high-rate event
-path to a streaming HTTP ingest endpoint and keep only control on the
-cable. Start simple; measure first.
+Metis records the result on the `Task`, optionally appends the timeline
+summary line, sets the task `completed` (or `awaiting_approval` if the step
+carries a review gate), flips the run back to `running`, and enqueues
+`WorkflowAdvanceJob` — the exact re-entry `approve_current_gate!` uses.
 
 ## Auth & enrollment
 
-Borrow agentrq's token model, bootstrap with OAuth:
-
 - `metis bridge login` on the laptop → device-code / browser flow →
-  laptop receives a long-lived, **revocable per-user+team bridge token**
-  stored in the OS keychain.
-- Token scopes: open the channel, receive dispatches for that team's
-  runs, post events. Revocable from `/settings/bridge`.
+  laptop receives a long-lived, **revocable per-device enrollment token**
+  (a `Device` row, team + user scoped) stored in the OS keychain / a
+  `.mcp.json` entry for MCP mode.
+- Token scopes: pull dispatched tasks for that team's runs, post
+  progress + results. Revocable from `/settings/bridge`.
 - **Provider keys:** the local agent uses the **user's own** credentials
-  by default — Claude Code uses their Claude subscription, local pi uses
-  their configured keys. Metis sends no provider key unless `env` is
-  populated (configurable to pass a scoped one). Delegation moves spend
-  off Metis's budget onto the user's plan.
+  by default; Metis sends a scoped `env` bearer only if configured.
 
 ## Workflow-engine integration
 
-One genuinely new state. The laptop can be **offline** when a step is
-ready — neither a failure nor an approval gate, but *waiting on
-connectivity*:
+- **`WorkflowRun#status`** gains `awaiting_local` (sibling of
+  `awaiting_approval`; included in `active`).
+- **A step is marked delegated** in the workflow's `steps` jsonb (e.g.
+  `"run": "local"`); `Task` carries it (a `delegated` boolean / an
+  `execution` enum) plus delegation state: `claimed_by_device_id`,
+  `result:jsonb`, `dispatched_at`.
+- **`WorkflowAdvanceJob`**, on a delegated next task:
+  `task.update!(status: :running, dispatched_at: …)`, `run.awaiting_local!`,
+  notify, **stop**. (No `ConversationTurn.start`, no `ChatJob`.)
+- **`WorkflowRun#complete_delegated_task!(task, result, by_device:)`** —
+  records the result, advances exactly like `approve_current_gate!`. A
+  delegated step may *also* carry an approval gate: the agent reports →
+  `awaiting_approval` → human reviews the PR → advance.
+- **Offline is just latency.** A dispatched task sits in `awaiting_local`
+  until a device pulls it; `Device#online?` (heartbeat-stamped
+  `last_seen_at`) only drives *notification* ("your laptop is offline"),
+  never blocks the engine.
 
-- Add `awaiting_local` to `WorkflowRun#status` (sibling of
-  `awaiting_approval`).
-- `WorkflowAdvanceJob`, before a bridge-backed turn, checks
-  `BridgeChannel` presence. Absent → park in `awaiting_local`, notify
-  ("Your laptop is offline — connect `metis-bridge` to continue"). A
-  `BridgeConnected` event re-triggers `WorkflowAdvanceJob`. Mirrors the
-  existing gate mechanics.
-- Present → dispatch and run the turn as a normal blocking `ChatJob`.
+## VISION posture — cleaner than the runtime design
 
-**Permissions — two layers, kept distinct:**
-
-- *Workflow gate* (coarse, turn boundary): the human checkpoint Metis
-  already has — review the diff before the next step or before push.
-- *In-turn permission* (fine, per tool call): ACP
-  `session/request_permission`. v1 bridge **auto-approves within a
-  declared policy** (autonomy is the point of delegation); forwarding each
-  tool call up to remote Metis would be slow and chatty. Configurable later.
-
-## Session continuity & the real working copy
-
-For the implementation step, the daemon runs the agent in the user's
-**actual repo directory** (a per-device binding: Metis `Project` /
-workflow-run → local path), not a fresh scope. The agent edits the real
-working tree with the real toolchain; the workflow gate then lets the
-human review the diff *in their own checkout* before it proceeds or
-pushes. That is why local delegation beats the remote sandbox — and why
-the bridge resembles `Runtime::Local` (laptop filesystem is durable)
-rather than the sandbox runtimes. Continuity is the agent's native resume
-(pi `--continue`, Claude Code session id) keyed off the conversation, in
-that bound directory.
-
-## VISION tension — flag it, don't bury it
-
-[`VISION.md`](../VISION.md) holds **no second agent backend**, and
-`Agent::Adapters` is "not a multi-backend seam." Driving the user's Claude
-Code / Codex brushes against that. The argument it holds, to make on the PR:
-
-1. These are the **user's tools on the user's machine** — a delegation /
-   connector boundary, not a backend Metis hosts, ships, or operates.
-2. **ACP keeps Metis at one normalized seam** — `Adapters::Bridge` relays
-   one canonical vocabulary; the agent zoo lives *on the laptop* behind
-   one protocol, not as N Metis backends.
-3. **v1 is pi-only**, so the guardrail stays literally intact while the
-   transport proves out; ACP multi-agent is an explicit, argued Phase 3.
+[`VISION.md`](../VISION.md) holds **no second agent backend**. The
+delegation model honors it more cleanly than a runtime would: **Metis
+hands off a task and records a result — it never drives the agent.** There
+is no second adapter, no second streaming path, no Metis-operated agent
+process. The local agent is the **user's own tool on the user's own
+machine**, reached through a task API that looks like any other connector.
+v1 needs no ACP at all (the user's Claude Code self-pulls); ACP only
+appears inside an optional daemon in Phase 3, behind one normalized stdio
+protocol — argued there, not assumed here.
 
 ## Build phases
 
-Each phase is independently shippable and testable.
+### Phase 0 — Enrollment + presence (no delegation yet)
+- **Migration** `create_devices`: `team_id`, `user_id`, `token_digest`
+  (unique index), `name`, `agent_kind:string`, `bindings:jsonb`,
+  `last_seen_at`.
+- **`Device` model:** `belongs_to :team, :user`; `scope :online`; token
+  mint (plaintext shown once) + digest verify; `online?`. `Team`/`User`
+  `has_many :devices`.
+- **`/settings/bridge`** (`BridgesController`, `layout "settings"`,
+  `current_team`-scoped, `require_team_admin!` for write): list devices +
+  online dot, enroll (token shown once), revoke. Mirrors `SkillsController`.
+- **`metis bridge login`** device-code flow issuing the token.
+- **Tests:** model (assoc, `online?` window, digest verify); controller
+  (enroll/revoke auth, token resolver accept/reject).
 
-### Phase 0 — Enrollment + presence
-- `Device` (or `Bridge`) model: team + user, hashed token, `last_seen_at`,
-  `agent_kind`, working-dir bindings (jsonb).
-- `BridgeChannel` with presence; `/settings/bridge` UI (enroll, list
-  devices, revoke); `metis bridge login` device-code flow.
-- **Test:** enrollment token issue/revoke; channel auth; presence
-  transitions. No turns yet.
+### Phase 1 — Delegation core (REST + engine lifecycle)
+- `WorkflowRun#status += awaiting_local`; `Task` delegation columns +
+  `delegated?`.
+- `Api::Bridge::TasksController` — `next` (claim), `events`, `result` —
+  bearer-authed by `Device`.
+- `WorkflowAdvanceJob` delegated-step branch;
+  `WorkflowRun#complete_delegated_task!`.
+- Run-view delegated-step card; optional timeline summary line.
+- **Tests:** a delegated workflow dispatches → `awaiting_local`; a posted
+  result advances the run; a `failed` result fails the step; an
+  approval-gated delegated step routes to `awaiting_approval`; token auth
+  scoping (a device can't pull another team's task).
 
-### Phase 1 — `Adapters::Bridge` (pi-only)
-- `Adapters::Bridge#stream` + the dispatch / event / terminal frames; the
-  `metis-bridge` daemon driving `pi --mode rpc` and emitting UiEvents.
-- `Agent::Adapters.for` returns it when the conversation's runtime is
-  `bridge`.
-- **Test:** a one-shot bridge turn end-to-end through `ChatJob`; events
-  render identically to a pi turn; usage persists from the terminal frame.
+### Phase 2 — MCP client (lightest local surface)
+- An MCP server exposing `get_next_task` / `report_progress` /
+  `submit_result` as thin wrappers over the REST surface; `.mcp.json`
+  carries the device token. The user's own Claude Code / Codex self-pulls.
+- **Test:** the MCP tools drive the same lifecycle end-to-end.
 
-### Phase 2 — Workflow integration
-- `awaiting_local` status + presence pre-check + reconnect re-trigger; a
-  `runtime: bridge` step; the diff-review gate.
-- **Test:** a gated bridge workflow parks when offline, resumes on
-  connect, finishes; mid-turn disconnect reaps and re-dispatches.
+### Phase 3 — Daemon + ACP (unattended)
+- `metis-bridge` daemon polls the REST surface, spawns the agent
+  (`pi --mode rpc`, or Claude Code / Codex via ACP over stdio), reports
+  back. For hands-off automation and non-pi agents.
 
-### Phase 3 — ACP normalization
-- ACP→`UiEvent` in the daemon; drive `claude-code-acp` / codex / gemini
-  over stdio. Delivers "Claude Code, Codex, pi etc."
-- **Test:** the same workflow runs unchanged against a non-pi agent.
-
-### Phase 4 — Permission policy + notifications
-- Configurable in-turn permission forwarding (`policy: forward`);
-  offline / needs-you notifications (in-app, email, Slack).
-
-## Alternative considered — agentrq-exact "pull" mode
-
-Metis exposes a per-run MCP server; the user launches their own Claude
-Code pointed at a Metis-rendered `.mcp.json` (Metis already renders one
-per turn via `Agent::McpConfig`); the agent calls `getNextTask` /
-`updateTaskStatus` / `reply`. **Cheap to add, rejected as the primary**
-because it inverts control to the agent — breaking "engine sequences turns
-/ Rails governs", losing uniform cost/token/transcript capture, and
-forcing the user to manually launch + point the agent each time. A fine
-*Mode B* for terminal-resident power users; not the spine.
+### Phase 4 — Notifications + live progress
+- Push-notify dispatched tasks (in-app, email, Slack); optional SSE tickle
+  to cut poll latency; optional progress streaming into the run card.
 
 ## Open questions
 
-- **Working-dir staging.** Metis's `AGENTS.md` next to the user's repo vs.
-  a separate `--session-dir`: how aggressively to project Metis identity
-  over a real checkout without surprising the user. Leaning separate
-  session-dir, repo as cwd.
-- **Multi-device.** One user, two laptops both enrolled — which receives
-  the dispatch? Bind a run to the device that started it; fall back to
-  any-present with a notice.
-- **Event-path transport.** Action Cable for everything vs. HTTP ingest
-  for the hot stream. Start all-cable; measure token-rate chatter.
-- **Daemon distribution.** Ruby (reuse pi-agent-rb framing) vs. a
-  cross-platform binary (Go/Rust, like agentrq). Ruby first for v1's
-  pi-only path; revisit for Phase 3.
+- **Context handoff fidelity.** Summaries of prior cloud steps vs. the
+  full `replayable_history` in the `next-task` bundle — how much context
+  the local agent needs to do the implementation well. Start with step
+  summaries + project standards; widen if it underperforms.
+- **Result trust.** Metis records what the local agent reports
+  (`pr_url`, diff stat) without verifying it. A later step can verify
+  (CI, a cloud review turn), but v1 trusts the report. Worth a note in the
+  gate copy.
+- **Claim contention.** Two online devices both `GET next-task` — FIFO
+  claim with a single-claim DB guard; a run may also pin to the device
+  that a prior step used (via `Task#claimed_by_device`).
+- **Repo binding.** How `repo_hint` resolves to a local checkout — a
+  `Device#bindings` map (project → path), or the daemon/agent's own cwd.
+- **Mid-flight loss.** A device claims a task then never reports
+  (laptop dies). A reclaim window: `dispatched_at` past a TTL returns the
+  task to the unclaimed pool.

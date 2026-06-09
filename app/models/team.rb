@@ -11,6 +11,7 @@ class Team < ApplicationRecord
   has_many :workflows, dependent: :destroy
   has_many :workflow_runs, dependent: :destroy
   has_many :invitations, dependent: :destroy
+  has_many :devices, dependent: :destroy
 
   validates :name, presence: true
 

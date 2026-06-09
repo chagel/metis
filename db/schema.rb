@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_08_120004) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_09_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -99,6 +99,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_08_120004) do
     t.index ["starred_at"], name: "index_conversations_on_starred_at"
     t.index ["team_id"], name: "index_conversations_on_team_id"
     t.index ["user_id"], name: "index_conversations_on_user_id"
+  end
+
+  create_table "devices", force: :cascade do |t|
+    t.string "agent_kind"
+    t.jsonb "bindings", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "last_seen_at"
+    t.string "name", null: false
+    t.bigint "team_id", null: false
+    t.string "token_digest", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["team_id"], name: "index_devices_on_team_id"
+    t.index ["token_digest"], name: "index_devices_on_token_digest", unique: true
+    t.index ["user_id"], name: "index_devices_on_user_id"
   end
 
   create_table "identities", force: :cascade do |t|
@@ -324,6 +339,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_08_120004) do
   add_foreign_key "conversations", "projects"
   add_foreign_key "conversations", "teams"
   add_foreign_key "conversations", "users"
+  add_foreign_key "devices", "teams", on_delete: :cascade
+  add_foreign_key "devices", "users", on_delete: :cascade
   add_foreign_key "identities", "users"
   add_foreign_key "invitations", "teams"
   add_foreign_key "invitations", "users", column: "invited_by_id"

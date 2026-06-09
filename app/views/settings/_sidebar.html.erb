@@ -85,6 +85,14 @@
       </svg>
       <span>Models</span>
     <% end %>
+    <%= link_to bridges_path,
+          class: "nav-item#{' on' if controller_name == 'bridges'}" do %>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M2 8h3M11 8h3M5 5.5h6v5h-6zM8 2v3.5M8 10.5V14"/>
+      </svg>
+      <span>Bridge</span>
+    <% end %>
   </nav>
 
   <%= render "shared/user_menu" %>
