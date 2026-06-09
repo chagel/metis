@@ -136,9 +136,23 @@ class ApplicationController < ActionController::Base
     @sidebar_filter = SIDEBAR_FILTERS.include?(params[:filter]) ? params[:filter] : "active"
     # No "shared" scope in a team of one — there's nobody to share with.
     @sidebar_filter = "active" if @sidebar_filter == "shared" && current_team.personal?
+    @needs_you = needs_you_conversations
     @sidebar_pagy, @conversations = pagy(
-      :countless, sidebar_scope(@sidebar_filter), limit: SIDEBAR_PAGE_SIZE
+      :countless,
+      sidebar_scope(@sidebar_filter).where.not(id: @needs_you.map(&:id)),
+      limit: SIDEBAR_PAGE_SIZE
     )
+  end
+
+  # Runs awaiting the operator's approval — pinned above the recency list so a
+  # gate doesn't get lost in it, and excluded from it so they don't double.
+  # Only in the personal "active" scope for now; team-wide needs the deferred
+  # team-visibility work (docs/workflows.md).
+  def needs_you_conversations
+    return [] unless @sidebar_filter == "active"
+
+    current_user.conversations.for_team(current_team).active
+      .joins(:workflow_run).merge(WorkflowRun.awaiting).recent.to_a
   end
 
   # "shared" spans the whole team (every member's shared conversations);

@@ -46,6 +46,15 @@
         <%= link_to "Starred", conversations_path(filter: "starred"), class: sidebar_tab_class("starred") %>
       </div>
 
+      <% if @needs_you.present? %>
+        <div class="convos-pinned">
+          <div class="grp-label">Needs you</div>
+          <% @needs_you.each do |conversation| %>
+            <%= render "conversations/convo", conversation: conversation %>
+          <% end %>
+        </div>
+      <% end %>
+
       <div id="convos-list">
         <% if @conversations.any? %>
           <%= render "conversations/convo_items",

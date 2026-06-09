@@ -149,6 +149,9 @@ turbo-frame#convos { display:contents; }
 
 .convos { flex:1; overflow-y:auto; padding:6px 8px 4px; min-height:0; scrollbar-width:none; }
 .convos::-webkit-scrollbar { display:none; }
+/* Gates awaiting the operator, pinned above the recency list. */
+.convos-pinned { padding-bottom:6px; margin-bottom:2px; border-bottom:1px solid var(--line); }
+.convos-pinned .grp-label:first-child { padding-top:6px; }
 .grp-label {
   font-family:var(--fm); font-size:10px; font-weight:500; letter-spacing:.1em;
   color:var(--faint); text-transform:uppercase; padding:14px 8px 6px;

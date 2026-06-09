@@ -19,6 +19,20 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     run
   end
 
+  test "the sidebar pins awaiting-approval runs and lifts them out of the recency list" do
+    @user.conversations.create!(title: "ZZ normal chat")
+    gated = @user.conversations.create!(title: "ZZ gated run")
+    run = @team.workflow_runs.create!(conversation: gated, status: :awaiting_approval)
+    run.tasks.create!(position: 0, gate: :approval, status: :awaiting_approval)
+
+    get conversations_path
+    assert_response :success
+    assert_select ".convos-pinned .convo", text: /gated run/i
+    # pinned, not duplicated in the recency list
+    assert_select "#convos-list .convo", text: /gated run/i, count: 0
+    assert_select "#convos-list .convo", text: /normal chat/i
+  end
+
   test "the new-chat composer feeds workflows to the slash-command palette" do
     @team.workflows.create!(name: "Triage", steps: [ { "name" => "a", "prompt" => "a", "gate" => "auto" } ])
     get conversations_path
