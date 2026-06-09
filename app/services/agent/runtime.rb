@@ -71,7 +71,7 @@ module Agent
     # [[label, id], …] for options_for_select, default first.
     def self.picker_options
       enabled.sort_by { |name| name == default ? 0 : 1 }
-              .map { |name| [ LABELS.fetch(name, name.to_s.titleize), name.to_s ] }
+        .map { |name| [ LABELS.fetch(name, name.to_s.titleize), name.to_s ] }
     end
 
     def self.known?(name)
