@@ -2,7 +2,7 @@ module WorkflowsHelper
   def wf_run_status_label(run)
     case run.status
     when "pending", "running" then "Running"
-    when "awaiting_approval"  then "Needs you"
+    when "awaiting_approval"  then "Review"
     when "completed"          then "Completed"
     when "failed"             then "Failed"
     when "cancelled"          then "Cancelled"
