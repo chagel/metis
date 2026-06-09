@@ -1,6 +1,4 @@
-# See docs/workflows.md. A saved, multi-step recipe the agent runs on its
-# own, pausing at gates for human approval. The template; WorkflowRun is
-# an execution of it.
+# See docs/workflows.md.
 class Workflow < ApplicationRecord
   belongs_to :team
   belongs_to :default_project, class_name: "Project", optional: true
@@ -27,9 +25,7 @@ class Workflow < ApplicationRecord
     errors.add(:default_project_id, "is not in this team")
   end
 
-  # Every step runs its prompt as a turn (a Gate just pauses after), so a
-  # prompt is required — otherwise the step would silently become a
-  # pause-only checkpoint, which surprises authors.
+  # A blank prompt would silently become a pause-only checkpoint; require one.
   def steps_have_prompts
     Array(steps).each_with_index do |step, i|
       next if step["prompt"].to_s.strip.present?

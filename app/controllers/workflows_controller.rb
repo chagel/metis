@@ -1,6 +1,5 @@
-# Workflow templates — the team-scoped catalog and editor, mirroring
-# ProjectsController/SkillsController. Runs are launched via
-# WorkflowRunsController; this is authoring only.
+# Authoring for workflow templates (catalog + editor). Runs launch via
+# WorkflowRunsController.
 class WorkflowsController < ApplicationController
   layout "settings"
 

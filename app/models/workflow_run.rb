@@ -1,6 +1,4 @@
-# See docs/workflows.md. One execution of a Workflow. Owns the Conversation
-# that is its execution substrate (transcript, sandbox scope); its Tasks are
-# the steps. A gate is a turn boundary the engine won't cross until approved.
+# See docs/workflows.md.
 class WorkflowRun < ApplicationRecord
   belongs_to :team
   belongs_to :workflow, optional: true            # nil = ad-hoc run
@@ -17,18 +15,13 @@ class WorkflowRun < ApplicationRecord
     pending? || running? || awaiting_approval?
   end
 
-  # Create a run (its Conversation + Tasks) from a template or an explicit
-  # step list, then hand off to the engine. `steps` entries are
-  # { "name", "prompt", "gate" }; gate defaults to auto.
-  # `input` is the operator's subject/context for the run — it's folded into
-  # the first step's prompt so the agent knows what to work on.
+  # `input` is the run's subject — folded into the first step's prompt.
   def self.start(team:, user:, workflow: nil, project: nil, steps: nil,
                  input: nil, settings: {}, trigger_summary: "Started by you")
     steps ||= workflow&.steps || []
     run = transaction do
-      # No title — let the normal LLM auto-titling derive one from the first
-      # turn (which carries the operator's input), so runs of the same
-      # workflow get distinct, meaningful names instead of all the same.
+      # No title — auto-titling names each run from its first turn, so runs
+      # of one workflow get distinct names.
       conversation = user.conversations.create!(
         team: team, project: project, settings: settings || {}
       )
@@ -52,8 +45,7 @@ class WorkflowRun < ApplicationRecord
     run
   end
 
-  # Called from ChatJob once a turn settles. Enqueues an advance only when a
-  # workflow is driving this conversation. No-op for normal chats.
+  # ChatJob calls this when a turn settles; no-op for a normal chat.
   def self.signal_turn_finished(conversation)
     run = conversation.workflow_run
     WorkflowAdvanceJob.perform_later(run.id) if run&.active?
@@ -76,9 +68,8 @@ class WorkflowRun < ApplicationRecord
     cancelled!
   end
 
-  # Send the gate's step back for another pass with the human's feedback as
-  # the turn's prompt. The step re-runs in the same session and gates again
-  # when it finishes — so the reviewer can iterate instead of only approving.
+  # Re-run the gated step with the human's feedback as the prompt; it gates
+  # again when done, so the reviewer can iterate instead of only approving.
   def request_changes!(feedback, by: nil)
     return if feedback.blank?
 

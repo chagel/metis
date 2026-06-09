@@ -1,5 +1,4 @@
-<%# Workflow identity for the chat-header meta row — name (linked to the
-    template) + live status. Root id is the broadcast/replace target. %>
+<%# Root id is the broadcast/replace target. %>
 <span id="workflow_meta" class="wf-meta">
   <% if run.workflow %>
     <%= link_to edit_workflow_path(run.workflow), class: "tag wf-meta-name" do %>

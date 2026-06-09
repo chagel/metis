@@ -1,7 +1,5 @@
-<%# Sidebar status marker for a workflow conversation. Always renders one
-    element with the same id so the broadcaster can replace it. For
-    pending/running it stays empty — ChatBroadcaster's running dot covers
-    a live turn. %>
+<%# One element with a stable id so the broadcaster can replace it. Empty for
+    pending/running — ChatBroadcaster's running dot covers a live turn. %>
 <% id = dom_id(conversation, :wf_status) %>
 <% case run.status %>
 <% when "awaiting_approval" %>

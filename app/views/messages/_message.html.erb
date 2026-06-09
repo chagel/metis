@@ -1,6 +1,5 @@
 <% if message.user? && message.workflow_generated? %>
-  <%# A workflow step prompt the engine injected — a muted instruction
-      block, not a "you typed this" bubble. %>
+  <%# An engine-injected step prompt — a muted instruction, not a user bubble. %>
   <div id="<%= dom_id(message) %>" class="msg-step">
     <span class="msg-step-tag">Step</span>
     <div class="chat-content"><%= markdown(message.content) %></div>

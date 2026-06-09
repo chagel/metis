@@ -1,5 +1,4 @@
 module WorkflowsHelper
-  # A short, human label for a run's status (shown on the rail header).
   def wf_run_status_label(run)
     case run.status
     when "pending", "running" then "Running"
@@ -10,7 +9,6 @@ module WorkflowsHelper
     end
   end
 
-  # Maps a task's status onto the progress-rail node state.
   def wf_step_state(task)
     case task.status
     when "completed"                 then "done"
@@ -21,9 +19,8 @@ module WorkflowsHelper
     end
   end
 
-  # The assistant turn a gate is reviewing — the gate step's own turn if it
-  # ran one, else the most recent prior step that did. nil for a pure
-  # checkpoint with no preceding work.
+  # The turn a gate reviews: the gate step's own, else the most recent prior
+  # step that produced one.
   def wf_gated_work(run, gate_task)
     gate_task.assistant_message ||
       run.tasks

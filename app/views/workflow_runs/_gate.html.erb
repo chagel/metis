@@ -1,6 +1,5 @@
-<%# Inline approval card — empty unless the run is paused at a gate. Root id
-    is the broadcast/replace target. Team members can act regardless of the
-    conversation's read-only state; the controller authorizes by team. %>
+<%# Root id is the broadcast/replace target. Actionable by any team member
+    regardless of the conversation's read-only state — the controller authorizes. %>
 <div id="workflow_gate" class="wf-gate-region">
   <% if run.awaiting_approval? && (task = run.tasks.awaiting_approval.first) %>
     <% work = wf_gated_work(run, task) %>

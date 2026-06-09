@@ -1,10 +1,8 @@
-# Creates the user + pending-assistant message pair for one turn and
-# enqueues ChatJob. The single place a turn is born — shared by the chat
-# composer (Composing) and the workflow engine (WorkflowAdvanceJob).
+# The single place a turn is born — shared by the composer (Composing) and
+# the workflow engine (WorkflowAdvanceJob).
 module ConversationTurn
-  # Yields the user message inside the transaction so the caller can attach
-  # uploads before the pending assistant row is created. Returns the pair.
-  # workflow_generated flags an engine-injected step prompt (not human input).
+  # Yields the user message in the txn so the caller can attach uploads.
+  # workflow_generated marks an engine-injected step prompt, not human input.
   def self.start(conversation, content:, workflow_generated: false)
     user_message = assistant_message = nil
     conversation.transaction do

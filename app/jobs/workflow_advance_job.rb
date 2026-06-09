@@ -1,11 +1,6 @@
-# The workflow engine: a thin state machine that decides whether — and with
-# what prompt — to fire the next turn. It never decides what the agent does
-# inside a turn (see docs/workflows.md). Re-entered after each turn settles
-# (via WorkflowRun.signal_turn_finished) and after a gate is approved.
-#
-# A step runs its prompt as a turn, and `approval` means "pause for review
-# *after* that turn" — so a gated step does its work, then waits. A step
-# with no prompt is a pure checkpoint (gate) or a no-op (auto, skipped).
+# The workflow engine: a thin state machine that sequences turns and gates.
+# It decides whether — and with what prompt — to fire the next turn, never
+# what the agent does inside one. See docs/workflows.md.
 class WorkflowAdvanceJob < ApplicationJob
   queue_as :default
 
@@ -27,11 +22,7 @@ class WorkflowAdvanceJob < ApplicationJob
 
   private
 
-  # Resolve the step whose turn is in flight.
-  #   :continue — its turn finished cleanly (or none was running); advance
-  #   :gate     — it finished and asks for approval; pause here
-  #   :failed   — its turn errored/canceled; the run is dead
-  #   :wait     — still streaming; do nothing until the next signal
+  # Resolve the running step's turn: :continue / :gate / :failed / :wait.
   def settle(run)
     task = run.tasks.running.first
     return :continue unless task
@@ -58,18 +49,16 @@ class WorkflowAdvanceJob < ApplicationJob
   def advance(run)
     task = run.tasks.next_pending.first
     return run.completed! if task.nil?
+    return start_step(run, task) if task.prompt.present?
 
-    if task.prompt.blank?
-      # A pure checkpoint pauses with no work; an empty auto step is a no-op.
-      if task.approval?
-        task.awaiting_approval!
-        run.awaiting_approval!
-      else
-        task.skipped!
-        advance(run)
-      end
+    # Blank prompt (only via direct runs — authored steps require one): an
+    # approval step is a pure checkpoint, an auto step is a no-op.
+    if task.approval?
+      task.awaiting_approval!
+      run.awaiting_approval!
     else
-      start_step(run, task)
+      task.skipped!
+      advance(run)
     end
   end
 

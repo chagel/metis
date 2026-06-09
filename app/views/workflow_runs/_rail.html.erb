@@ -1,5 +1,4 @@
-<%# Progress rail — one node per task. Root id is the broadcast/replace
-    target. See docs/workflows.md. %>
+<%# Root id is the broadcast/replace target. %>
 <div id="workflow_rail" class="wf-rail-wrap" data-status="<%= run.status %>">
   <div class="wf-rail">
     <% run.tasks.each_with_index do |task, i| %>

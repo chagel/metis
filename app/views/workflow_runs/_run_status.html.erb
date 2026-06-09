@@ -1,7 +1,5 @@
-<%# Request-safe composer slot for a workflow run — depends only on `run`,
-    so the broadcaster can render it outside a request (the full composer
-    can't: it reads current_user). On load, show.html.erb renders the real
-    composer once a run is finished; live, this offers a reload link. %>
+<%# Request-safe: depends only on `run`, so the broadcaster can render it
+    outside a request — the full composer can't (it reads current_user). %>
 <div id="composer" class="composer-wrap">
   <div class="composer-inner">
     <div class="wf-run-note">

@@ -4,9 +4,6 @@ class WorkflowRunsController < ApplicationController
   before_action :set_run, only: %i[approve reject request_changes]
   before_action :set_workflow, only: :create
 
-  # Launch a run from a template (from the new-chat composer), with the
-  # operator's input folded into the first step, in the chosen (or default)
-  # project.
   def create
     project = current_team.projects.find_by(id: params[:project_id]) || @workflow.default_project
     run = WorkflowRun.start(
@@ -43,8 +40,8 @@ class WorkflowRunsController < ApplicationController
     @workflow = current_team.workflows.find(params[:workflow_id])
   end
 
-  # The actor gets the regions back directly (reliable); the engine's
-  # broadcaster pushes the same to any co-viewers and the owner's sidebar.
+  # Actor gets the regions back directly; the broadcaster pushes them to
+  # co-viewers and the owner's sidebar.
   def respond_to_decision
     WorkflowBroadcaster.new(@run).refresh
     respond_to do |format|
