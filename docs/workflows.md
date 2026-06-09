@@ -1,7 +1,8 @@
-# Workflows (dev plan)
+# Workflows
 
-> Status: **design + build plan**, not yet implemented. UI mockups live
-> at `docs/mockups/workflows.html` (git-ignored, local-only).
+> Status: **shipped through Phase 3** (PR #55); Phase 4 (triggers +
+> notifications) deferred. UI mockups live at
+> `docs/mockups/workflows.html` (git-ignored, local-only).
 
 A **workflow** is a saved, multi-step recipe the agent runs on its own,
 pausing at **gates** where a human decides before it crosses to the next
@@ -51,14 +52,16 @@ that ties a run to its conversation lives on `workflow_runs`, so the hot
 # app/models/workflow.rb — the template (authored in UI; repo-import later)
 class Workflow < ApplicationRecord
   belongs_to :team
+  belongs_to :default_project, class_name: "Project", optional: true  # launch default
   has_many :workflow_runs, dependent: :nullify
 
   enum :trigger_source, { manual: 0, webhook: 1, schedule: 2, api: 3 }, default: :manual
 
   scope :enabled, -> { where(enabled: true) }
 
-  # steps: jsonb array — [{ "key", "name", "prompt", "gate" }, ...]
-  # trigger_config: jsonb — { "secret", "source" } | { "cron" }
+  # steps: jsonb array — [{ "name", "prompt", "gate" }, ...]; every step
+  # requires a prompt (a blank one would silently become a pause-only gate).
+  # trigger_config: jsonb (Phase 4).
 end
 
 # app/models/workflow_run.rb — one execution; owns one Conversation
@@ -104,8 +107,9 @@ model, and the rendered transcript already live on `Message` (see
 messages.
 
 Step prompts are persisted as ordinary `role: :user` messages (so
-`replayable_history` and the transcript stay coherent); the run view
-renders them with a "Step N" treatment instead of a user bubble.
+`replayable_history` and the transcript stay coherent), flagged
+`workflow_generated` so the run view renders them as a muted `STEP`
+boundary instead of a user bubble.
 
 ## The engine
 
@@ -116,7 +120,7 @@ controller and the engine share it.
 # 1. Extract from Composing#start_turn → a service both callers use.
 #    app/services/conversation_turn.rb
 module ConversationTurn
-  def self.start(conversation, content:, attachments: [])
+  def self.start(conversation, content:, workflow_generated: false)
     # ... the existing transaction + ChatJob.perform_later ...
     [ user_message, assistant_message ]
   end
@@ -234,6 +238,48 @@ axes: different **workflow** (steps/gates) run against a different
 **project** (standards/sources). The template may suggest a default
 project; the operator can override at launch.
 
+## Success metrics
+
+North star: **operator calm — fewer open loops the human has to carry.**
+Chat-everything makes the operator the router across sprawling threads, each
+an open loop held in their head. Workflows make the *system* the router —
+state lives on the rail, steps self-sequence, and "Needs you" pulls the human
+in only at gates. The win is shape-of-attention, not raw throughput: from
+*juggling N conversations* to *triaging a queue of decisions*. So we measure
+how little the operator must hold and chase, and that nothing rots.
+
+**Dashboard three:**
+- **Attention directed** — share of operator actions initiated from the
+  "Needs you" pin vs. hunting the conversation list. Is the system routing
+  attention, or is the human still the router?
+- **Open loops per operator** — runs in-flight that silently need their input.
+  Should stay flat or fall as usage grows, not sprawl.
+- **Cracks** — gated runs left unactioned past a threshold. Lower = the system
+  is keeping work on track, not dropping it.
+
+**Supporting metrics:**
+- *Leverage* — steps automated per decision (`tasks.count / gates_acted_on`):
+  agent work bought per human touch.
+- *Trust* — gate approval rate vs. reject/request-changes; request-changes
+  iterations per gate (the steering tax); failure rate and the failing step.
+- *Throughput* — completion rate (completed ÷ started), runs/week, gate dwell
+  time (`decided_at − awaiting_since`).
+- *Economics* — cost per run and per completed outcome (Σ `Message#cost`).
+
+**Measurable today** from the schema: run/task/gate states + transitions,
+`approved_by`, `decided_at`, and per-turn cost/tokens/model on `Message` —
+so open loops (active `awaiting` runs per user), cracks (awaiting runs older
+than _t_), completion rate, gate-outcome mix, and cost-per-run are computable
+now (per-turn cost/model already export to Langfuse/OTel).
+
+**Cheap to add:** an `awaiting_since` stamp (true dwell time), a
+request-changes counter per task, and a launch-/action-source tag (to measure
+attention directed via the "Needs you" pin).
+
+**Needs an external signal (the real ROI proof):** outcome quality — did the
+PR get reverted, the refund disputed, the Sentry error recur. This is exactly
+what **Phase 4 triggers** close the loop on.
+
 ## Build phases
 
 Each phase is independently shippable and testable. **Phases 0–3 are
@@ -264,8 +310,12 @@ deferred.
 - `Workflow#default_project_id`; the new-chat composer launcher
   (`workflow-launch`) → `WorkflowRunsController#create` → `WorkflowRun.start`,
   folding the typed subject into step 1; optional per-launch project override.
-- Runs are created **untitled** so the LLM auto-titler names each from its
-  subject. **"Needs you"** section on the catalog lists `WorkflowRun.awaiting`.
+- Runs are created **untitled** (the LLM auto-titler names each from the
+  first turn) and use the **model picked in the composer**. Every step
+  requires a prompt.
+- **Run identity**: the workflow name (linked) + live status show in the
+  chat-header meta row; runs awaiting approval are pinned to a **"Needs you"**
+  group at the top of the sidebar. Settings stays authoring-only.
 - **Run-UX refinements** (driven out by dogfooding): gate runs-then-pauses;
   the **request-changes loop** (re-run a step with feedback); engine-started
   turns broadcast their message rows to the live thread; injected step
@@ -284,11 +334,11 @@ deferred.
 ## Open questions / known gaps
 
 - **Team visibility of run conversations** (deferred). A run is a team
-  operation — the "Needs you" inbox and the gate's "routed to your team"
-  copy are team-wide — but `conversations#show` only authorizes the owner
-  (or an explicitly-shared conversation), so a teammate can't yet open
-  another member's run. Decide whether a workflow-run conversation should be
-  team-readable, then relax `show` auth accordingly. (No issue in a personal
-  team-of-one.)
+  operation — the gate's "routed to your team" copy implies any member can
+  act — but `conversations#show` only authorizes the owner (or an explicitly
+  shared conversation), and the sidebar **"Needs you"** pin currently shows
+  only your own runs. Decide whether a workflow-run conversation should be
+  team-readable, then widen `show` auth and the pin accordingly. (No issue in
+  a personal team-of-one.)
 - One trigger per workflow (inline `trigger_source`/`trigger_config`) vs. a
   `Trigger` model for many-per-workflow. Inline for now; extract if needed.
