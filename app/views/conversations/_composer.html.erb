@@ -40,6 +40,13 @@
                 <span data-workflow-launch-target="chipName"></span>
                 <button type="button" class="auto-chip-x" data-action="workflow-launch#clear" aria-label="Clear workflow">✕</button>
               </span>
+              <% if current_team.projects.any? %>
+                <%# Blank = use the workflow's default project. %>
+                <select name="project_id" class="wf-launch-project" aria-label="Project">
+                  <option value="">Default project</option>
+                  <%= options_from_collection_for_select(current_team.projects.recent, :id, :name) %>
+                </select>
+              <% end %>
             </div>
           <% end %>
           <textarea name="content" rows="2"

@@ -1,5 +1,6 @@
 <div class="wf-step-row" data-workflow-editor-target="row">
-  <div class="wf-step-grip" aria-hidden="true">⋮⋮</div>
+  <div class="wf-step-grip" draggable="true" title="Drag to reorder" aria-label="Drag to reorder"
+       data-action="dragstart->workflow-editor#dragStart dragend->workflow-editor#dragEnd">⋮⋮</div>
   <div class="wf-step-fields">
     <input type="text" name="workflow[steps][<%= index %>][name]"
            value="<%= step["name"] %>" placeholder="Step name" class="team-input">

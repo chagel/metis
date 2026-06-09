@@ -31,7 +31,8 @@
     <p class="field-hint">Each step runs its prompt as one agent turn. Mark a step "Pause for approval" to stop the run for a human after that turn finishes. (A step with no prompt is a pure checkpoint.)</p>
     <p class="field-hint">Make steps produce durable output — the sandbox is discarded after the run. Prefer "open a PR against owner/repo" or "write the result to <code>artifacts/</code>" over prompts that leave work only in the workspace.</p>
     <div class="wf-steps" data-controller="workflow-editor">
-      <div class="wf-steps-list" data-workflow-editor-target="list">
+      <div class="wf-steps-list" data-workflow-editor-target="list"
+           data-action="dragover->workflow-editor#dragOver">
         <% workflow.steps.each_with_index do |step, i| %>
           <%= render "step_row", index: i, step: step %>
         <% end %>

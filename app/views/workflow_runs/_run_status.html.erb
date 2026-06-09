@@ -15,7 +15,8 @@
       <% else %>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-        This workflow is <%= run.status %>.
+        <% cost = run.conversation.messages.sum(:cost) %>
+        Workflow <%= run.status %> · <%= pluralize(run.tasks.count, "step") %><%= " · $#{format('%.2f', cost)}" if cost&.positive? %>.
         <%= link_to "Continue the conversation", run.conversation,
               class: "wf-run-link", data: { turbo_frame: "_top" } %>
       <% end %>

@@ -130,43 +130,46 @@ WorkflowRun.signal_turn_finished(conversation)   # no-op unless an active run
 ```
 
 ```ruby
-# 3. app/jobs/workflow_advance_job.rb — the whole state machine
+# 3. app/jobs/workflow_advance_job.rb — the whole state machine.
+#    A step RUNS its prompt as a turn; `approval` means "pause AFTER that
+#    turn for review" (not "pause instead of running"). So settle() — not
+#    advance() — is where a gate happens, once the step's turn is done.
 class WorkflowAdvanceJob < ApplicationJob
   def perform(workflow_run_id)
     run = WorkflowRun.find(workflow_run_id)
     return unless run.active?
 
-    settle_running_task(run)        # link msg; complete or fail it
-    return if run.failed?
-
-    case (task = run.tasks.next_pending.first)
-    in nil
-      run.completed!; broadcast_done(run)
-    in Task if task.approval?
-      task.awaiting_approval!; run.awaiting_approval!
-      notify_gate(run, task)        # broadcast gate card + notify; STOP
-    else
-      task.running!; run.running!
-      user, asst = ConversationTurn.start(run.conversation, content: task.prompt)
-      task.update!(assistant_message: asst)
-      # ChatJob completion → signal_turn_finished → re-enters this job
-    end
+    case settle(run)                # the running step's turn just settled
+    when :wait        then return                       # still streaming
+    when :gate, :failed then return broadcast(run)      # paused / dead
+    end                                                  # :continue → advance
+    advance(run); broadcast(run)
   end
+
+  # done + approval → :gate (awaiting_approval); done + auto → :continue;
+  # errored/canceled → :failed; still streaming → :wait.
+  def settle(run); end
+
+  # next pending step: nil → completed; blank prompt → pure checkpoint
+  # (approval) or skip (auto); else start its turn.
+  def advance(run); end
 end
 ```
 
 ```ruby
-# 4. Approve / reject — WorkflowApprovalsController#update
-#    approve: task.completed!; run.running!; WorkflowAdvanceJob.perform_later(run.id)
-#             → next turn resumes the SAME sandbox via backend_session_id
-#    reject : task.rejected!; run.cancelled!   (v1; request-changes loop = later phase)
+# 4. Gate decisions — WorkflowRunsController + WorkflowRun
+#    approve:         task.completed!; run.running!; advance   → next turn
+#                     resumes the SAME sandbox via backend_session_id
+#    reject:          task.rejected!; run.cancelled!
+#    request_changes: re-run the SAME step with the human's feedback as the
+#                     turn prompt, in the same session, then gate again
 ```
 
 ```ruby
-# 5. Start a run — WorkflowRun.start(workflow:, team:, input:, trigger:)
-#    creates Conversation (settings from template/defaults) + run + tasks,
-#    then WorkflowAdvanceJob.perform_later(run.id). One creator, three callers
-#    (composer, catalog button, trigger).
+# 5. Start a run — WorkflowRun.start(workflow:, team:, user:, project:, input:)
+#    creates an untitled Conversation (auto-titled from the first turn) +
+#    run + tasks, folds `input` into step 1, then enqueues the advance job.
+#    Callers: the new-chat composer launcher and (Phase 4) triggers.
 ```
 
 Why this is safe without new infra:
@@ -185,12 +188,13 @@ Why this is safe without new infra:
 
 ## Lifecycle of the conversation
 
-1. **Born** — created with the run; provider/model seeded from template.
+1. **Born** — created untitled with the run, in the chosen project; the
+   LLM auto-titler names it from the first turn.
 2. **Workflow-driven** — while `active?`, turns are engine-driven; the
-   composer is replaced by the gate card / running state.
-3. **Free** — on `completed`/`cancelled`, the rail collapses to a summary
-   and the composer returns. It's an ordinary conversation now: keep
-   chatting, fork, share. No special-casing.
+   composer is replaced by the run-status note / gate card.
+3. **Free** — on `completed`/`cancelled`/`failed`, the run-status slot shows
+   a one-line summary (steps + cost) and the composer returns on reload.
+   It's an ordinary conversation now: keep chatting, fork, share.
 
 ## Projects (context vs. process)
 
@@ -232,62 +236,59 @@ project; the operator can override at launch.
 
 ## Build phases
 
-Each phase is independently shippable and testable.
+Each phase is independently shippable and testable. **Phases 0–3 are
+shipped** (the engine, run UI, authoring, and composer launch); Phase 4 is
+deferred.
 
-### Phase 0 — Data + invariant (no behavior)
+### Phase 0 — Data + invariant (no behavior) ✅
 - Migrations: `workflows`, `workflow_runs` (unique index on
   `conversation_id`), `tasks` (index on `[workflow_run_id, position]`).
 - Models + enums + scopes; `Conversation has_one :workflow_run`.
 - **Test**: model specs for associations, enums, `active`/`next_pending`.
 - Ships nothing user-visible; pure foundation.
 
-### Phase 1 — Engine
+### Phase 1 — Engine ✅
 - `ConversationTurn` extraction (refactor `Composing#start_turn`); the
   `ChatJob` hook; `WorkflowAdvanceJob`; `WorkflowRun.start`.
-- **Test**: a 2-step auto workflow runs end to end; a gated workflow
-  pauses at the gate; approve resumes and finishes; reject cancels; an
-  errored turn fails the run. Exercise via job tests + `rails console`.
-- No bespoke UI yet — verified by tests.
 
-### Phase 2 — Run UI
+### Phase 2 — Run UI ✅
 - Run view (conversation `show` when `workflow_run` present): progress
-  rail, step stamps, inline **gate card**.
-- `WorkflowApprovalsController` (approve / reject).
-- Sidebar status pills (`Needs you` / `Running` / done / failed) +
-  `ChatBroadcaster` extensions to push rail + gate changes live.
-- **Test**: controller tests for approve/reject auth (team membership);
-  system test of the gate round-trip.
+  rail + inline **gate card** + a run-status composer slot.
+- `WorkflowRunsController#approve/#reject`; `WorkflowBroadcaster` pushes
+  rail/gate/composer to the conversation stream and the sidebar pill.
 
-### Phase 3 — Authoring + launch
-- `/settings/workflows` CRUD: catalog (index) + editor (steps + gate
-  toggles + trigger choice + optional default project). Mirrors the Skills
-  settings pattern.
-- `Workflow#default_project_id` (nullable) + project picker in the editor
-  and launch composer; `WorkflowRun.start(project:)` sets it on the
-  conversation (the only schema add of this phase).
-- Composer launcher → `WorkflowRunsController#create` → `WorkflowRun.start`.
-- **"Needs you"** inbox (team-wide `WorkflowRun.awaiting`).
-- **Test**: workflow CRUD; starting a run from the composer; project context
-  reaches `AGENTS.md`.
+### Phase 3 — Authoring + launch ✅
+- `/settings/workflows` CRUD: catalog + editor (drag-orderable steps, each
+  an auto turn or approval gate, optional default project). Settings is
+  authoring-only — launch lives in the composer.
+- `Workflow#default_project_id`; the new-chat composer launcher
+  (`workflow-launch`) → `WorkflowRunsController#create` → `WorkflowRun.start`,
+  folding the typed subject into step 1; optional per-launch project override.
+- Runs are created **untitled** so the LLM auto-titler names each from its
+  subject. **"Needs you"** section on the catalog lists `WorkflowRun.awaiting`.
+- **Run-UX refinements** (driven out by dogfooding): gate runs-then-pauses;
+  the **request-changes loop** (re-run a step with feedback); engine-started
+  turns broadcast their message rows to the live thread; injected step
+  prompts render as a `STEP` boundary (`messages.workflow_generated`).
 
-### Phase 4 — Triggers + notifications
+### Phase 4 — Triggers + notifications (deferred)
 - `WebhooksController` (Sentry/GitHub → `WorkflowRun.start`, no auth,
   signature-verified). Scheduled triggers via Solid Queue recurring.
 - Gate notifications: in-app + email (Slack later).
-- **Test**: webhook signature + run creation; scheduled enqueue.
 
-### Phase 5 — Deferred
-- Request-changes loop (re-run a step with human feedback as input).
+### Phase 5 — Later
 - Promote-a-chat-to-a-workflow.
 - Structured-outcome branching (declared labels only).
 - Project memory — separate effort, not here.
 
-## Open questions
+## Open questions / known gaps
 
-- One trigger per workflow (inline `trigger_source`/`trigger_config`) vs.
-  a `Trigger` model for many-per-workflow. Plan assumes inline for v1;
-  extract if multi-trigger demand appears.
-- Should step-prompt user messages be visually hidden in the run view, or
-  shown as "Step N" cards? Leaning "Step N" cards (Phase 2 view work).
-- Reject semantics in v1: cancel the run (current plan) vs. always offer
-  request-changes. Cancel now; request-changes in Phase 5.
+- **Team visibility of run conversations** (deferred). A run is a team
+  operation — the "Needs you" inbox and the gate's "routed to your team"
+  copy are team-wide — but `conversations#show` only authorizes the owner
+  (or an explicitly-shared conversation), so a teammate can't yet open
+  another member's run. Decide whether a workflow-run conversation should be
+  team-readable, then relax `show` auth accordingly. (No issue in a personal
+  team-of-one.)
+- One trigger per workflow (inline `trigger_source`/`trigger_config`) vs. a
+  `Trigger` model for many-per-workflow. Inline for now; extract if needed.
