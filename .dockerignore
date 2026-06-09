@@ -56,3 +56,6 @@
 /.remember
 /.ruby-lsp
 .DS_Store
+
+# Local design mockups — never part of the image.
+/docs/mockups/

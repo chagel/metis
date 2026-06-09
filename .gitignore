@@ -48,6 +48,9 @@
 /.pi/skills/
 /.claude/skills/
 
+# Local design mockups — kept on the author's machine, not shared in-repo.
+/docs/mockups/
+
 # Ignore key files for decrypting credentials and more.
 /config/credentials/*.key
 
