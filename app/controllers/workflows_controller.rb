@@ -9,7 +9,6 @@ class WorkflowsController < ApplicationController
 
   def index
     @workflows = current_team.workflows.order(:name)
-    @awaiting = current_team.workflow_runs.awaiting.includes(:conversation, :workflow).order(updated_at: :desc)
   end
 
   def new

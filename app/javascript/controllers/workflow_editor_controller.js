@@ -22,10 +22,15 @@ export default class extends Controller {
     event.target.closest("[data-workflow-editor-target='row']").remove()
   }
 
-  // Drag-reorder, driven by the row's grip handle (only the grip is
-  // draggable, so inputs stay selectable).
+  // Drag-reorder. The whole row is draggable, but a drag that begins on an
+  // interactive element is cancelled so typing, text selection, and the
+  // toggle/delete keep working — you grab the card anywhere else.
   dragStart(event) {
-    this.dragging = event.target.closest("[data-workflow-editor-target='row']")
+    if (event.target.closest("input, textarea, select, button")) {
+      event.preventDefault()
+      return
+    }
+    this.dragging = event.currentTarget
     this.dragging.classList.add("is-dragging")
     event.dataTransfer.effectAllowed = "move"
   }

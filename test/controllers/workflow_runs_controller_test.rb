@@ -19,12 +19,14 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     run
   end
 
-  test "the new-chat composer shows a workflow launcher when workflows exist" do
+  test "the new-chat composer feeds workflows to the slash-command palette" do
     @team.workflows.create!(name: "Triage", steps: [ { "name" => "a", "prompt" => "a", "gate" => "auto" } ])
     get conversations_path
     assert_response :success
-    assert_select ".wf-launch"
-    assert_select ".wf-launch-item", text: /Triage/
+    # Workflows ride in the skill-palette controller's data value (the popup
+    # is rendered client-side from it) and the form wires the launch event.
+    assert_select "[data-skill-palette-workflows-value*=?]", "Triage"
+    assert_select "form[data-action*=?]", "workflow-launch#selectFromPalette"
   end
 
   test "create launches a run, folds input into step 1, and lands on its conversation" do

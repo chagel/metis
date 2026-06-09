@@ -9,17 +9,11 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     sign_in @user
   end
 
-  test "index lists templates and a Needs-you section" do
+  test "index lists templates" do
     @team.workflows.create!(name: "Triage")
-    run = @team.workflow_runs.create!(conversation: @user.conversations.create!(title: "Paused run"),
-                                      status: :awaiting_approval)
-    run.tasks.create!(position: 0, gate: :approval, status: :awaiting_approval)
-
     get workflows_path
     assert_response :success
     assert_match "Triage", response.body
-    assert_match "Needs you", response.body
-    assert_match "Paused run", response.body
   end
 
   test "create normalizes steps and drops blank rows" do

@@ -1,18 +1,17 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Slash-command palette over the composer textarea. Lists installed
-// skills (team + built-in) the operator can trigger by name.
+// Slash-command palette over the composer. Type `/` to list commands:
+//   • skills    — inserts `/<slug> ` into the message (a discovery
+//                 affordance; the message is sent verbatim and AGENTS.md
+//                 interprets a leading `/<slug>` as a skill trigger)
+//   • workflows — (new chat only) launches a gated run; dispatches
+//                 skill-palette:launch, which the form's workflow-launch
+//                 controller handles (chip + flips the submit target)
 //
-// Open: type `/` at the start of an empty composer.
-// Filter: keep typing — the popup narrows by slug substring.
-// Pick: ↑ ↓ navigate, Enter or Tab inserts `/<slug> ` and closes.
-// Dismiss: Esc, click outside, or Backspace past the leading `/`.
-//
-// The popup is purely a discovery affordance — the chat message is
-// sent verbatim; AGENTS.md teaches the agent to interpret a leading
-// `/<slug>` as a trigger for that skill.
+// Open: type `/` at the start of an empty composer. Filter as you type.
+// Pick: ↑ ↓ navigate, Enter/Tab/click. Dismiss: Esc or click outside.
 export default class extends Controller {
-  static values = { skills: { type: Array, default: [] } }
+  static values = { skills: { type: Array, default: [] }, workflows: { type: Array, default: [] } }
   static targets = ["popup"]
 
   get textarea() {
@@ -23,6 +22,18 @@ export default class extends Controller {
     this._open = false
     this._activeIndex = 0
     this._filtered = []
+    this._commands = [
+      ...this.workflowsValue.map((w) => ({
+        kind: "workflow", key: String(w.name).toLowerCase(),
+        name: w.name, id: w.id, meta: `${w.steps} steps · ${w.gates} gates`,
+        description: w.description || "", intro: w.intro || ""
+      })),
+      ...this.skillsValue.map((s) => ({
+        kind: "skill", key: String(s.slug).toLowerCase(),
+        slug: s.slug, description: s.description || "",
+        meta: s.source === "builtin" ? "built-in" : "team"
+      }))
+    ]
     this._docClick = (e) => { if (!this.element.contains(e.target)) this._close() }
     document.addEventListener("click", this._docClick)
   }
@@ -34,10 +45,9 @@ export default class extends Controller {
   onInput() {
     const value = this.textarea.value
     if (value.startsWith("/")) {
-      const query = value.slice(1).split(/\s/, 1)[0].toLowerCase()
-      // Close once a space is typed — the slug has been chosen, the rest is the ask.
+      // Close once a space is typed — the command has been chosen, the rest is the ask.
       if (/\s/.test(value)) { this._close(); return }
-      this._filter(query)
+      this._filter(value.slice(1).toLowerCase())
       this._open ? this._render() : this._show()
     } else {
       this._close()
@@ -48,27 +58,24 @@ export default class extends Controller {
     if (!this._open) return
     switch (event.key) {
       case "ArrowDown":
-        event.preventDefault()
-        this._move(1); this._render(); return
+        event.preventDefault(); this._move(1); this._render(); return
       case "ArrowUp":
-        event.preventDefault()
-        this._move(-1); this._render(); return
+        event.preventDefault(); this._move(-1); this._render(); return
       case "Enter":
       case "Tab":
         if (this._filtered.length === 0) return
-        event.preventDefault()
-        event.stopPropagation()
-        this._pick(this._filtered[this._activeIndex])
-        return
+        // stopImmediatePropagation, not stopPropagation: composer#submitOnEnter
+        // is a sibling keydown listener on the same textarea — Enter must pick
+        // here, not send the message.
+        event.preventDefault(); event.stopImmediatePropagation()
+        this._pick(this._filtered[this._activeIndex]); return
       case "Escape":
-        event.preventDefault()
-        this._close()
+        event.preventDefault(); this._close()
     }
   }
 
   pickFromClick(event) {
-    const slug = event.currentTarget.dataset.slug
-    const entry = this.skillsValue.find((s) => s.slug === slug)
+    const entry = this._filtered[Number(event.currentTarget.dataset.index)]
     if (entry) this._pick(entry)
   }
 
@@ -76,8 +83,8 @@ export default class extends Controller {
 
   _filter(query) {
     this._filtered = query
-      ? this.skillsValue.filter((s) => s.slug.toLowerCase().includes(query))
-      : this.skillsValue.slice()
+      ? this._commands.filter((c) => c.key.includes(query))
+      : this._commands.slice()
     this._activeIndex = 0
   }
 
@@ -102,30 +109,42 @@ export default class extends Controller {
 
   _render() {
     if (this._filtered.length === 0) { this._close(); return }
-    this.popupTarget.innerHTML = this._filtered.map((s, i) => `
-      <button type="button" class="skill-palette-row ${i === this._activeIndex ? "is-active" : ""}"
-              data-slug="${this._escape(s.slug)}"
-              data-action="mousedown->skill-palette#pickFromClick">
-        <div class="skill-palette-name">
-          /${this._escape(s.slug)}
-          <span class="skill-palette-source">${s.source === "builtin" ? "built-in" : "team"}</span>
-        </div>
-        <div class="skill-palette-desc">${this._escape(s.description || "")}</div>
-      </button>
-    `).join("")
+    let lastKind = null
+    this.popupTarget.innerHTML = this._filtered.map((c, i) => {
+      let header = ""
+      if (c.kind !== lastKind) {
+        header = `<div class="skill-palette-group">${c.kind === "workflow" ? "Workflows" : "Skills"}</div>`
+        lastKind = c.kind
+      }
+      const active = i === this._activeIndex ? "is-active" : ""
+      const name = c.kind === "workflow"
+        ? `${this._escape(c.name)}<span class="skill-palette-source">${c.meta}</span>`
+        : `/${this._escape(c.slug)}<span class="skill-palette-source">${c.meta}</span>`
+      const desc = c.kind === "workflow" ? (c.description || c.intro || c.meta) : c.description
+      return `${header}
+        <button type="button" class="skill-palette-row ${active}" data-index="${i}"
+                data-action="mousedown->skill-palette#pickFromClick">
+          <div class="skill-palette-name">${name}</div>
+          <div class="skill-palette-desc">${this._escape(desc)}</div>
+        </button>`
+    }).join("")
   }
 
   _pick(entry) {
-    const value = this.textarea.value
-    // Replace the partial `/foo` token with `/<slug> ` so the user can keep typing.
+    if (entry.kind === "workflow") {
+      this.dispatch("launch", { detail: { id: entry.id, name: entry.name, description: entry.description, intro: entry.intro } })
+      // Drop the `/token` — it was the trigger, not part of the run's input.
+      this.textarea.value = this.textarea.value.replace(/^\/[^\s]*\s?/, "")
+      this._close()
+      this.textarea.focus()
+      this.textarea.dispatchEvent(new Event("input", { bubbles: true }))
+      return
+    }
     const inserted = `/${entry.slug} `
-    this.textarea.value = value.replace(/^\/[^\s]*/, inserted)
+    this.textarea.value = this.textarea.value.replace(/^\/[^\s]*/, inserted)
     this._close()
     this.textarea.focus()
-    // Position the cursor just after the inserted slug.
-    const pos = inserted.length
-    this.textarea.setSelectionRange(pos, pos)
-    // Re-trigger autoResize via the existing composer controller's listener.
+    this.textarea.setSelectionRange(inserted.length, inserted.length)
     this.textarea.dispatchEvent(new Event("input", { bubbles: true }))
   }
 

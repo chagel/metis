@@ -28,8 +28,7 @@
 
   <div class="field">
     <%= f.label :steps, "Steps" %>
-    <p class="field-hint">Each step runs its prompt as one agent turn. Mark a step "Pause for approval" to stop the run for a human after that turn finishes. (A step with no prompt is a pure checkpoint.)</p>
-    <p class="field-hint">Make steps produce durable output — the sandbox is discarded after the run. Prefer "open a PR against owner/repo" or "write the result to <code>artifacts/</code>" over prompts that leave work only in the workspace.</p>
+    <p class="field-hint">Each step is one agent turn. Set a step to <strong>Gate</strong> to pause for your review after it runs.</p>
     <div class="wf-steps" data-controller="workflow-editor">
       <div class="wf-steps-list" data-workflow-editor-target="list"
            data-action="dragover->workflow-editor#dragOver">
@@ -40,7 +39,11 @@
       <template data-workflow-editor-target="template">
         <%= render "step_row", index: "NEW_RECORD", step: {} %>
       </template>
-      <button type="button" class="btn btn-ghost btn-sm" data-action="workflow-editor#add">Add step</button>
+      <button type="button" class="wf-step-add" data-action="workflow-editor#add">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>
+        Add step
+      </button>
     </div>
   </div>
 
