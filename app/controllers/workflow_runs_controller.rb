@@ -1,5 +1,18 @@
 class WorkflowRunsController < ApplicationController
-  before_action :set_run
+  before_action :set_run, only: %i[approve reject request_changes]
+  before_action :set_workflow, only: :create
+
+  # Launch a run from a template (from the new-chat composer), with the
+  # operator's input folded into the first step, in the chosen (or default)
+  # project.
+  def create
+    project = current_team.projects.find_by(id: params[:project_id]) || @workflow.default_project
+    run = WorkflowRun.start(
+      team: current_team, user: current_user, workflow: @workflow,
+      project: project, input: params[:input].presence || params[:content]
+    )
+    redirect_to run.conversation
+  end
 
   def approve
     @run.approve_current_gate!(by: current_user)
@@ -11,11 +24,20 @@ class WorkflowRunsController < ApplicationController
     respond_to_decision
   end
 
+  def request_changes
+    @run.request_changes!(params[:feedback], by: current_user)
+    respond_to_decision
+  end
+
   private
 
   # Scoped to the teams the user belongs to — a run in another team 404s.
   def set_run
     @run = WorkflowRun.where(team_id: current_user.teams.select(:id)).find(params[:id])
+  end
+
+  def set_workflow
+    @workflow = current_team.workflows.find(params[:workflow_id])
   end
 
   # The actor gets the regions back directly (reliable); the engine's

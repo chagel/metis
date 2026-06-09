@@ -2,6 +2,15 @@
 <% conversation = local_assigns[:conversation] %>
 <% new_chat = conversation.nil? %>
 <% post_url = new_chat ? conversations_path : conversation_messages_path(conversation) %>
+<%# A new chat can instead launch a workflow: pick one and the composer
+    posts to workflow_runs#create with the text as the run's input. %>
+<% launchable = new_chat ? current_team.workflows.order(:name).to_a : [] %>
+<% form_data = new_chat ? { turbo_frame: "_top" } : {} %>
+<% if launchable.any?
+     form_data.merge!(controller: "workflow-launch",
+                      workflow_launch_runs_path_value: workflow_runs_path,
+                      workflow_launch_chat_path_value: conversations_path)
+   end %>
 <div id="composer" class="composer-wrap"
      data-controller="file-upload"
      data-action="dragover->file-upload#dragOver dragleave->file-upload#dragLeave drop->file-upload#drop paste->file-upload#paste">
@@ -14,8 +23,7 @@
         reloads and the freshly-created conversation appears in the list.
         Message submissions stay frame-bound — the controller responds
         with turbo_stream, which Turbo applies regardless of frame. %>
-    <%= form_with url: post_url, method: :post, multipart: true,
-          data: (new_chat ? { turbo_frame: "_top" } : {}) do |form| %>
+    <%= form_with url: post_url, method: :post, multipart: true, data: form_data do |form| %>
       <div data-file-upload-target="previews" class="previews"></div>
 
       <div class="composer-shell"
@@ -23,6 +31,17 @@
            data-skill-palette-skills-value="<%= chat_skill_palette.to_json %>">
         <div hidden class="skill-palette" data-skill-palette-target="popup"></div>
         <div class="composer">
+          <% if launchable.any? %>
+            <input type="hidden" name="workflow_id" data-workflow-launch-target="field">
+            <div class="composer-wf-chip" data-workflow-launch-target="chip" hidden>
+              <span class="auto-chip">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4h5l1 1.5h5M2.5 4v8h11V5.5M2.5 8h11"/></svg>
+                <span data-workflow-launch-target="chipName"></span>
+                <button type="button" class="auto-chip-x" data-action="workflow-launch#clear" aria-label="Clear workflow">✕</button>
+              </span>
+            </div>
+          <% end %>
           <textarea name="content" rows="2"
                     data-controller="composer"
                     data-action="keydown->skill-palette#onKeydown keydown->composer#submitOnEnter input->skill-palette#onInput input->composer#autoResize"
@@ -55,6 +74,27 @@
                 <path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </span>
+          <% end %>
+
+          <% if launchable.any? %>
+            <div class="wf-launch">
+              <button type="button" class="wf-launch-btn" data-action="workflow-launch#toggle"
+                      title="Run a workflow" aria-label="Run a workflow">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4h5l1 1.5h5M2.5 4v8h11V5.5M2.5 8h11"/></svg>
+                <span>Workflow</span>
+              </button>
+              <div class="wf-launch-menu" data-workflow-launch-target="menu" hidden>
+                <div class="pal-group">Run a workflow</div>
+                <% launchable.each do |wf| %>
+                  <button type="button" class="wf-launch-item" data-action="workflow-launch#select"
+                          data-id="<%= wf.id %>" data-name="<%= wf.name %>">
+                    <span class="wf-launch-name"><%= wf.name %></span>
+                    <span class="wf-launch-meta"><%= pluralize(wf.steps.size, "step") %> · <%= pluralize(wf.gate_count, "gate") %></span>
+                  </button>
+                <% end %>
+              </div>
+            </div>
           <% end %>
 
           <div class="composer-spacer"></div>

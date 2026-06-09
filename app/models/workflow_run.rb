@@ -20,22 +20,27 @@ class WorkflowRun < ApplicationRecord
   # Create a run (its Conversation + Tasks) from a template or an explicit
   # step list, then hand off to the engine. `steps` entries are
   # { "name", "prompt", "gate" }; gate defaults to auto.
+  # `input` is the operator's subject/context for the run — it's folded into
+  # the first step's prompt so the agent knows what to work on.
   def self.start(team:, user:, workflow: nil, project: nil, steps: nil,
-                 trigger_summary: "Started by you")
+                 input: nil, trigger_summary: "Started by you")
     steps ||= workflow&.steps || []
     run = transaction do
-      conversation = user.conversations.create!(
-        team: team, project: project, title: workflow&.name
-      )
+      # No title — let the normal LLM auto-titling derive one from the first
+      # turn (which carries the operator's input), so runs of the same
+      # workflow get distinct, meaningful names instead of all the same.
+      conversation = user.conversations.create!(team: team, project: project)
       run = create!(
         team: team, workflow: workflow, conversation: conversation,
         trigger_summary: trigger_summary
       )
       steps.each_with_index do |step, i|
+        prompt = step["prompt"] || step[:prompt]
+        prompt = [ input, prompt ].compact_blank.join("\n\n") if i.zero? && input.present?
         run.tasks.create!(
           position: i,
           name: step["name"] || step[:name],
-          prompt: step["prompt"] || step[:prompt],
+          prompt: prompt,
           gate: step["gate"] || step[:gate] || :auto
         )
       end
@@ -67,5 +72,21 @@ class WorkflowRun < ApplicationRecord
 
     task.update!(status: :rejected, approved_by: by, decided_at: Time.current)
     cancelled!
+  end
+
+  # Send the gate's step back for another pass with the human's feedback as
+  # the turn's prompt. The step re-runs in the same session and gates again
+  # when it finishes — so the reviewer can iterate instead of only approving.
+  def request_changes!(feedback, by: nil)
+    return if feedback.blank?
+
+    task = tasks.awaiting_approval.first
+    return unless task
+
+    task.update!(status: :running, approved_by: by)
+    running!
+    user, assistant = ConversationTurn.start(conversation, content: feedback)
+    task.update!(assistant_message: assistant)
+    WorkflowBroadcaster.new(self).append_turn(user, assistant)
   end
 end

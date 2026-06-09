@@ -10,12 +10,14 @@ module WorkflowsHelper
     end
   end
 
-  # The assistant turn a gate is reviewing — the most recent prior step that
-  # produced one. nil for a gate with no preceding work.
+  # The assistant turn a gate is reviewing — the gate step's own turn if it
+  # ran one, else the most recent prior step that did. nil for a pure
+  # checkpoint with no preceding work.
   def wf_gated_work(run, gate_task)
-    run.tasks
-       .where("position < ?", gate_task.position)
-       .where.not(assistant_message_id: nil)
-       .order(:position).last&.assistant_message
+    gate_task.assistant_message ||
+      run.tasks
+         .where("position < ?", gate_task.position)
+         .where.not(assistant_message_id: nil)
+         .order(:position).last&.assistant_message
   end
 end

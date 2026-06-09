@@ -27,11 +27,18 @@
             <div class="body chat-content"><%= markdown(work.content) %></div>
           </details>
         <% end %>
-        <div class="wf-gate-bar">
-          <span class="wf-gate-meta">Routed to your team</span>
-          <%= button_to "Reject", reject_workflow_run_path(run), class: "btn btn-ghost btn-sm" %>
-          <%= button_to "Approve & continue", approve_workflow_run_path(run), class: "btn btn-primary btn-sm" %>
-        </div>
+        <%= form_with url: approve_workflow_run_path(run), method: :post, class: "wf-gate-form" do %>
+          <textarea name="feedback" rows="2" class="wf-gate-input"
+                    placeholder="Optional — tell the agent what to change, then Request changes."></textarea>
+          <div class="wf-gate-bar">
+            <span class="wf-gate-meta">Routed to your team</span>
+            <button type="submit" formaction="<%= reject_workflow_run_path(run) %>"
+                    class="btn btn-ghost btn-sm">Cancel run</button>
+            <button type="submit" formaction="<%= request_changes_workflow_run_path(run) %>"
+                    class="btn btn-ghost btn-sm">Request changes</button>
+            <button type="submit" class="btn btn-primary btn-sm">Approve &amp; continue</button>
+          </div>
+        <% end %>
       </div>
     </div>
   <% end %>

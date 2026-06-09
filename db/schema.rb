@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_08_120002) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_08_120004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -193,6 +193,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_08_120002) do
     t.string "tool_call_id"
     t.jsonb "tool_calls", default: [], null: false
     t.datetime "updated_at", null: false
+    t.boolean "workflow_generated", default: false, null: false
     t.index ["conversation_id"], name: "index_messages_on_conversation_id"
     t.index ["conversation_id"], name: "index_messages_on_one_in_progress_turn", unique: true, where: "((role = 1) AND (streaming_status = ANY (ARRAY[0, 1])))"
   end
@@ -301,6 +302,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_08_120002) do
 
   create_table "workflows", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.bigint "default_project_id"
     t.string "description"
     t.boolean "enabled", default: true, null: false
     t.string "name", null: false
@@ -309,6 +311,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_08_120002) do
     t.jsonb "trigger_config", default: {}, null: false
     t.integer "trigger_source", default: 0, null: false
     t.datetime "updated_at", null: false
+    t.index ["default_project_id"], name: "index_workflows_on_default_project_id"
     t.index ["team_id"], name: "index_workflows_on_team_id"
   end
 
@@ -341,5 +344,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_08_120002) do
   add_foreign_key "workflow_runs", "conversations", on_delete: :cascade
   add_foreign_key "workflow_runs", "teams"
   add_foreign_key "workflow_runs", "workflows", on_delete: :nullify
+  add_foreign_key "workflows", "projects", column: "default_project_id", on_delete: :nullify
   add_foreign_key "workflows", "teams"
 end

@@ -1,0 +1,17 @@
+<div class="wf-step-row" data-workflow-editor-target="row">
+  <div class="wf-step-grip" aria-hidden="true">⋮⋮</div>
+  <div class="wf-step-fields">
+    <input type="text" name="workflow[steps][<%= index %>][name]"
+           value="<%= step["name"] %>" placeholder="Step name" class="team-input">
+    <textarea name="workflow[steps][<%= index %>][prompt]" rows="2"
+              placeholder="Prompt to the agent (blank for a pure approval gate)"
+              class="team-input wf-step-prompt"><%= step["prompt"] %></textarea>
+    <div class="wf-step-foot">
+      <select name="workflow[steps][<%= index %>][gate]" class="team-input wf-step-gate">
+        <option value="auto" <%= "selected" unless step["gate"] == "approval" %>>Continue automatically</option>
+        <option value="approval" <%= "selected" if step["gate"] == "approval" %>>Pause for approval after</option>
+      </select>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="workflow-editor#remove">Remove</button>
+    </div>
+  </div>
+</div>

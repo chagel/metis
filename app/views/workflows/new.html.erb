@@ -1,0 +1,15 @@
+<% content_for :title, "New workflow" %>
+
+<main class="pane">
+  <header class="pane-head">
+    <h1 class="pane-title">New workflow</h1>
+    <div style="flex:1"></div>
+    <%= link_to "Cancel", workflows_path, class: "btn btn-ghost" %>
+  </header>
+
+  <div class="pane-body">
+    <div class="pane-inner">
+      <%= render "form", workflow: @workflow %>
+    </div>
+  </div>
+</main>

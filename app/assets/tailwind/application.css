@@ -1978,7 +1978,9 @@ body.drawer-open { overflow:hidden; }
 
 /* gate card (in the message thread) */
 .wf-gate-region:empty { display:none; }
-.wf-gate { display:flex; gap:13px; }
+/* Match the thread's inter-message gap — the gate lives in a sibling
+   .thread, so it doesn't inherit that spacing. */
+.wf-gate { display:flex; gap:13px; margin-top:20px; }
 .wf-gate-mark {
   width:32px; height:32px; border-radius:10px; flex:none; margin-top:1px;
   display:grid; place-items:center;
@@ -2046,3 +2048,82 @@ body.drawer-open { overflow:hidden; }
 }
 .convo-check { flex:none; width:13px; height:13px; margin-left:6px; color:var(--ink-3); }
 .convo-fail { flex:none; width:6px; height:6px; border-radius:50%; background:var(--danger); margin-left:6px; }
+
+/* workflow catalog + editor (settings) */
+.conn-actions { display:flex; align-items:center; gap:6px; flex:none; }
+.conn-actions form { margin:0; }
+.wf-steps { display:flex; flex-direction:column; gap:10px; margin-top:4px; }
+.wf-steps-list { display:flex; flex-direction:column; gap:10px; }
+.wf-step-row {
+  display:flex; gap:10px; align-items:flex-start;
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:12px; box-shadow:var(--sh-sm);
+}
+.wf-step-grip { color:var(--faint); font-size:14px; line-height:1.4; cursor:default; user-select:none; padding-top:6px; }
+.wf-step-fields { flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
+.wf-step-fields .team-input { width:100%; }
+.wf-step-prompt { font-family:var(--fm); font-size:12.5px; line-height:1.5; resize:vertical; }
+.wf-step-foot { display:flex; align-items:center; gap:8px; }
+.wf-step-gate { flex:none; width:auto; min-width:150px; cursor:pointer; }
+.wf-step-foot .btn { margin-left:auto; }
+
+/* new-chat composer workflow launcher */
+.wf-launch { position:relative; display:inline-flex; }
+.wf-launch-btn {
+  display:inline-flex; align-items:center; gap:6px; cursor:pointer;
+  font-family:var(--fb); font-size:12.5px; font-weight:500; color:var(--ink-2);
+  background:var(--bg); border:none; border-radius:9px; padding:6px 10px;
+  transition:background-color .13s, color .13s;
+}
+.wf-launch-btn:hover { background:var(--accent-soft); color:var(--accent-fg); }
+.wf-launch-btn svg { width:14px; height:14px; }
+.wf-launch-menu {
+  position:absolute; left:0; bottom:calc(100% + 6px); z-index:20;
+  min-width:240px; max-height:280px; overflow-y:auto; padding:4px;
+  background:var(--card); border:1px solid var(--line-2); border-radius:12px;
+  box-shadow:var(--sh-lg);
+}
+.wf-launch-item {
+  display:flex; flex-direction:column; gap:2px; width:100%; text-align:left;
+  background:none; border:none; border-radius:8px; padding:8px 10px; cursor:pointer; color:var(--ink);
+}
+.wf-launch-item:hover { background:var(--bg); }
+.wf-launch-name { font-family:var(--fm); font-size:12.5px; font-weight:600; }
+.wf-launch-meta { font-family:var(--fm); font-size:10.5px; color:var(--ink-3); }
+
+.composer-wf-chip { padding:10px 12px 0; }
+.auto-chip {
+  display:inline-flex; align-items:center; gap:7px;
+  font-family:var(--fm); font-size:11px; font-weight:500; color:var(--gold);
+  background:var(--gold-soft); border:1px solid var(--gold-line); border-radius:999px; padding:4px 10px;
+}
+.auto-chip svg { width:12px; height:12px; }
+.auto-chip-x { background:none; border:none; color:var(--gold); cursor:pointer; opacity:.7; padding:0; font-size:11px; line-height:1; }
+.auto-chip-x:hover { opacity:1; }
+
+/* gate feedback box */
+.wf-gate-form { margin:0; }
+.wf-gate-input {
+  width:100%; box-sizing:border-box; margin:12px 18px 0; width:calc(100% - 36px);
+  font-family:var(--fm); font-size:12.5px; line-height:1.5; color:var(--ink);
+  background:var(--bg); border:1px solid var(--line); border-radius:9px;
+  padding:9px 11px; outline:none; resize:vertical; min-height:42px;
+  transition:border-color .14s, box-shadow .14s;
+}
+.wf-gate-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); }
+.wf-gate-input::placeholder { color:var(--faint); }
+
+/* workflow step-prompt instruction — a step boundary, not a user bubble
+   and not a toggle (the old chevron read as an expandable disclosure). */
+.msg-step {
+  display:flex; align-items:baseline; gap:11px;
+  max-width:80%; align-self:flex-start; margin-left:45px;
+  padding:7px 0 7px 13px; border-left:2px solid var(--line-2);
+}
+.msg-step-tag {
+  flex:none; font-family:var(--fm); font-size:9px; font-weight:600;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--faint);
+}
+.msg-step .chat-content { font-size:13px; color:var(--ink-2); }
+.msg-step .chat-content p { margin:0 0 .35rem; }
+.msg-step .chat-content > :last-child { margin-bottom:0; }

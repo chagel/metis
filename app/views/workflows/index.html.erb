@@ -1,0 +1,44 @@
+<% content_for :title, "Workflows" %>
+
+<main class="pane">
+  <header class="pane-head">
+    <h1 class="pane-title">Workflows</h1>
+    <div style="flex:1"></div>
+    <% if team_manager? %>
+      <%= link_to "New", new_workflow_path, class: "btn btn-ghost" %>
+    <% end %>
+  </header>
+
+  <div class="pane-body">
+    <div class="pane-inner">
+      <% if @awaiting.any? %>
+        <div class="grp-label">Needs you</div>
+        <div class="conn-list">
+          <% @awaiting.each do |run| %>
+            <%= link_to run.conversation, class: "conn-row" do %>
+              <div class="conn-main">
+                <div class="conn-name"><%= run.conversation.display_title %></div>
+                <div class="conn-sub">
+                  Paused for approval<%= " · #{run.workflow.name}" if run.workflow %>
+                </div>
+              </div>
+              <span class="convo-pill">Needs you</span>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+
+      <% if @workflows.any? %>
+        <div class="grp-label">Templates</div>
+        <div class="conn-list"><%= render @workflows %></div>
+      <% elsif @awaiting.empty? %>
+        <div class="pane-empty">
+          <p>No workflows yet. A workflow is a saved recipe the agent runs on its own, pausing at gates for your approval.</p>
+          <% if team_manager? %>
+            <%= link_to "Create your first workflow", new_workflow_path, class: "btn btn-primary" %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</main>

@@ -18,7 +18,23 @@ class WorkflowBroadcaster
     refresh_sidebar
   end
 
+  # Append an engine-started turn's message rows to the live thread. The
+  # normal chat path does this in the controller's create.turbo_stream; an
+  # engine-started turn has no controller, so ChatBroadcaster's streaming
+  # would otherwise have no DOM to land in until a refresh.
+  def append_turn(user_message, assistant_message)
+    append_message(user_message, forkable: false)
+    append_message(assistant_message, forkable: true)
+  end
+
   private
+
+  def append_message(message, forkable:)
+    Turbo::StreamsChannel.broadcast_append_to(
+      @conversation, target: "messages",
+      partial: "messages/message", locals: { message: message, forkable: forkable }
+    )
+  end
 
   def replace(target, partial, extra = {})
     Turbo::StreamsChannel.broadcast_replace_to(

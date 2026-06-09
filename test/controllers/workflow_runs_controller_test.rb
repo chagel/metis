@@ -19,6 +19,54 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     run
   end
 
+  test "the new-chat composer shows a workflow launcher when workflows exist" do
+    @team.workflows.create!(name: "Triage", steps: [ { "name" => "a", "prompt" => "a", "gate" => "auto" } ])
+    get conversations_path
+    assert_response :success
+    assert_select ".wf-launch"
+    assert_select ".wf-launch-item", text: /Triage/
+  end
+
+  test "create launches a run, folds input into step 1, and lands on its conversation" do
+    project = @team.projects.create!(name: "R&D")
+    workflow = @team.workflows.create!(
+      name: "Triage", default_project: project,
+      steps: [ { "name" => "spec", "prompt" => "write the spec", "gate" => "approval" } ]
+    )
+
+    assert_difference -> { WorkflowRun.count }, 1 do
+      assert_enqueued_with(job: WorkflowAdvanceJob) do
+        post workflow_runs_path(workflow_id: workflow.id, input: "for the launch composer feature")
+      end
+    end
+
+    run = WorkflowRun.last
+    assert_equal workflow, run.workflow
+    assert_equal project, run.conversation.project
+    first = run.tasks.first
+    assert_match "for the launch composer feature", first.prompt
+    assert_match "write the spec", first.prompt
+    assert_redirected_to run.conversation
+  end
+
+  test "create from the composer uses the typed content as the run input" do
+    workflow = @team.workflows.create!(
+      name: "Triage", steps: [ { "name" => "spec", "prompt" => "write the spec", "gate" => "approval" } ]
+    )
+    # The composer posts `content` (not `input`) alongside workflow_id + model.
+    post workflow_runs_path(workflow_id: workflow.id, content: "the launch composer", model: "claude-opus-4-8")
+    run = WorkflowRun.last
+    assert_match "the launch composer", run.tasks.first.prompt
+    assert_redirected_to run.conversation
+  end
+
+  test "create honors a project override" do
+    other = @team.projects.create!(name: "Override")
+    workflow = @team.workflows.create!(name: "W", steps: [ { "name" => "a", "prompt" => "a", "gate" => "auto" } ])
+    post workflow_runs_path(workflow_id: workflow.id, project_id: other.id)
+    assert_equal other, WorkflowRun.last.conversation.project
+  end
+
   test "approve completes the gate, resumes the run, and enqueues an advance" do
     run = gated_run
     assert_enqueued_with(job: WorkflowAdvanceJob) do
@@ -37,6 +85,26 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert run.reload.cancelled?
     assert run.tasks.find_by(position: 1).rejected?
+  end
+
+  test "request_changes re-runs the gated step with the feedback" do
+    run = gated_run
+    post request_changes_workflow_run_path(run), params: { feedback: "open a PR too" }, as: :turbo_stream
+    assert_response :success
+    assert run.reload.running?
+    assert run.tasks.find_by(position: 1).running?
+    assert_equal "open a PR too", run.conversation.messages.user.order(:created_at).last.content
+  end
+
+  test "an injected step prompt renders as a step instruction, not a user bubble" do
+    run = gated_run
+    run.conversation.messages.create!(
+      role: :user, content: "implement the spec", streaming_status: :done, workflow_generated: true
+    )
+    get conversation_path(run.conversation)
+    assert_response :success
+    assert_select ".msg-step", text: /implement the spec/
+    assert_select ".msg-user .bubble", text: /implement the spec/, count: 0
   end
 
   test "a run in another team is not reachable" do

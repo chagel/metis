@@ -1,4 +1,11 @@
-<% if message.user? %>
+<% if message.user? && message.workflow_generated? %>
+  <%# A workflow step prompt the engine injected — a muted instruction
+      block, not a "you typed this" bubble. %>
+  <div id="<%= dom_id(message) %>" class="msg-step">
+    <span class="msg-step-tag">Step</span>
+    <div class="chat-content"><%= markdown(message.content) %></div>
+  </div>
+<% elsif message.user? %>
   <%# User: a contained bubble on the accent fill, aligned right. %>
   <div id="<%= dom_id(message) %>" class="msg-user">
     <div class="bubble">

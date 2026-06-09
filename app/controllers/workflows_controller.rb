@@ -1,0 +1,73 @@
+# Workflow templates — the team-scoped catalog and editor, mirroring
+# ProjectsController/SkillsController. Runs are launched via
+# WorkflowRunsController; this is authoring only.
+class WorkflowsController < ApplicationController
+  layout "settings"
+
+  before_action :set_workflow, only: %i[edit update destroy]
+  before_action :require_team_admin!, except: :index
+
+  def index
+    @workflows = current_team.workflows.order(:name)
+    @awaiting = current_team.workflow_runs.awaiting.includes(:conversation, :workflow).order(updated_at: :desc)
+  end
+
+  def new
+    @workflow = current_team.workflows.new
+  end
+
+  def create
+    @workflow = current_team.workflows.new(workflow_params)
+    if @workflow.save
+      redirect_to edit_workflow_path(@workflow), notice: "Workflow created."
+    else
+      render :new, status: :unprocessable_entity
+    end
+  end
+
+  def edit
+  end
+
+  def update
+    if @workflow.update(workflow_params)
+      redirect_to edit_workflow_path(@workflow), notice: "Workflow saved."
+    else
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
+  def destroy
+    name = @workflow.name
+    @workflow.destroy
+    redirect_to workflows_path, notice: "#{name} deleted."
+  end
+
+  private
+
+  def set_workflow
+    @workflow = current_team.workflows.find(params[:id])
+  end
+
+  def workflow_params
+    permitted = params.require(:workflow).permit(:name, :description, :default_project_id, :trigger_source)
+    permitted[:default_project_id] = nil if permitted[:default_project_id].blank?
+    permitted[:steps] = normalized_steps
+    permitted
+  end
+
+  # Steps arrive as workflow[steps][<i>][name|prompt|gate]. Read the raw
+  # nested params (only the scalar keys we care about) and drop blank rows.
+  def normalized_steps
+    rows = params.dig(:workflow, :steps)
+    return [] if rows.blank?
+
+    rows = rows.values if rows.respond_to?(:values)
+    rows.filter_map do |row|
+      name = row[:name].to_s.strip
+      prompt = row[:prompt].to_s.strip
+      next if name.blank? && prompt.blank?
+
+      { "name" => name, "prompt" => prompt, "gate" => (row[:gate] == "approval" ? "approval" : "auto") }
+    end
+  end
+end

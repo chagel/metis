@@ -1,0 +1,49 @@
+<%= form_with model: workflow, url: workflow.persisted? ? workflow_path(workflow) : workflows_path, class: "conn-form" do |f| %>
+  <% if workflow.errors.any? %>
+    <div class="flash error"><%= workflow.errors.full_messages.to_sentence %></div>
+  <% end %>
+
+  <div class="field">
+    <%= f.label :name %>
+    <%= f.text_field :name, placeholder: "Triage & fix Sentry error", autocomplete: "off" %>
+  </div>
+
+  <div class="field">
+    <%= f.label :description %>
+    <%= f.text_field :description, placeholder: "Investigate an incoming error, draft a fix, gate, ship." %>
+  </div>
+
+  <div class="field">
+    <%= f.label :default_project_id, "Default project" %>
+    <%= f.collection_select :default_project_id, current_team.projects.recent, :id, :name,
+          { include_blank: "None" }, class: "team-input" %>
+    <p class="field-hint">Suggested context at launch — its standards reach the agent via AGENTS.md. Overridable per run.</p>
+  </div>
+
+  <div class="field">
+    <%= f.label :trigger_source, "Trigger" %>
+    <%= f.select :trigger_source, Workflow.trigger_sources.keys.map { |k| [ k.humanize, k ] }, {}, class: "team-input" %>
+    <p class="field-hint">Manual runs from the catalog. Webhook and schedule triggers activate in a later release.</p>
+  </div>
+
+  <div class="field">
+    <%= f.label :steps, "Steps" %>
+    <p class="field-hint">Each step runs its prompt as one agent turn. Mark a step "Pause for approval" to stop the run for a human after that turn finishes. (A step with no prompt is a pure checkpoint.)</p>
+    <p class="field-hint">Make steps produce durable output — the sandbox is discarded after the run. Prefer "open a PR against owner/repo" or "write the result to <code>artifacts/</code>" over prompts that leave work only in the workspace.</p>
+    <div class="wf-steps" data-controller="workflow-editor">
+      <div class="wf-steps-list" data-workflow-editor-target="list">
+        <% workflow.steps.each_with_index do |step, i| %>
+          <%= render "step_row", index: i, step: step %>
+        <% end %>
+      </div>
+      <template data-workflow-editor-target="template">
+        <%= render "step_row", index: "NEW_RECORD", step: {} %>
+      </template>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="workflow-editor#add">Add step</button>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <%= f.submit(workflow.persisted? ? "Save" : "Create workflow", class: "btn btn-primary") %>
+  </div>
+<% end %>

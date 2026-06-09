@@ -74,7 +74,7 @@ class WorkflowRunTest < ActiveSupport::TestCase
 
     assert run.pending?
     assert_equal project, run.conversation.project
-    assert_equal "Triage", run.conversation.title
+    assert_nil run.conversation.title, "untitled at start so auto-titling can name it from the first turn"
     assert_equal @user, run.conversation.user
     assert_equal %w[spec review], run.tasks.map(&:name)
     assert run.tasks.first.auto?

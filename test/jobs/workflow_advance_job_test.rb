@@ -46,6 +46,38 @@ class WorkflowAdvanceJobTest < ActiveSupport::TestCase
     assert run.tasks.find_by(position: 1).completed?
   end
 
+  test "an approval step runs its prompt as a turn, then pauses for review" do
+    run = start([ { "name" => "spec", "prompt" => "write the spec", "gate" => GATE } ])
+
+    advance(run)                                   # starts the spec turn
+    spec = run.tasks.find_by(position: 0)
+    assert spec.running?, "the gated step should run its turn first, not pause immediately"
+    assert run.running?
+    assert_equal 1, run.conversation.messages.assistant.count
+
+    finish_turn(run, 0)
+    advance(run)                                   # turn done + approval → gate now
+    assert run.awaiting_approval?
+    assert spec.reload.awaiting_approval?
+  end
+
+  test "a prompt-less approval step is a pure checkpoint — pauses with no turn" do
+    run = start([ { "name" => "sign-off", "gate" => GATE } ])
+    advance(run)
+    assert run.awaiting_approval?
+    assert_equal 0, run.conversation.messages.count
+  end
+
+  test "a prompt-less auto step is skipped" do
+    run = start([
+      { "name" => "noop", "gate" => AUTO },
+      { "name" => "real", "prompt" => "do it", "gate" => AUTO }
+    ])
+    advance(run)
+    assert run.tasks.find_by(position: 0).skipped?
+    assert run.tasks.find_by(position: 1).running?
+  end
+
   test "an approval gate pauses the run; approving resumes it" do
     run = start([
       { "name" => "spec", "prompt" => "write spec", "gate" => AUTO },
@@ -70,6 +102,36 @@ class WorkflowAdvanceJobTest < ActiveSupport::TestCase
     finish_turn(run, 2)
     advance(run)
     assert run.completed?
+  end
+
+  test "request changes re-runs the step with feedback, then gates again" do
+    user = @user
+    run = start([ { "name" => "spec", "prompt" => "write the spec", "gate" => GATE } ])
+    advance(run)
+    finish_turn(run, 0)
+    advance(run)
+    assert run.awaiting_approval?
+
+    run.request_changes!("actually, open a PR too", by: user)
+    spec = run.tasks.find_by(position: 0)
+    assert spec.reload.running?, "the step re-runs rather than cancelling"
+    assert run.reload.running?
+    feedback = run.conversation.messages.user.order(:created_at).last
+    assert_equal "actually, open a PR too", feedback.content
+    refute feedback.workflow_generated?, "the human's feedback is a real user message"
+
+    finish_turn(run, 0)
+    advance(run)
+    assert run.awaiting_approval?, "the revised step gates again for re-review"
+  end
+
+  test "request changes with blank feedback is a no-op" do
+    run = start([ { "name" => "spec", "prompt" => "write the spec", "gate" => GATE } ])
+    advance(run)
+    finish_turn(run, 0)
+    advance(run)
+    run.request_changes!("  ", by: @user)
+    assert run.awaiting_approval?
   end
 
   test "rejecting a gate cancels the run" do
