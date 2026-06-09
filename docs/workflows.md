@@ -330,6 +330,9 @@ deferred.
 - Promote-a-chat-to-a-workflow.
 - Structured-outcome branching (declared labels only).
 - Project memory — separate effort, not here.
+- **Local delegation** — run a step's turn on the user's own machine
+  (Claude Code / Codex / pi against their real repo) via the bridge.
+  Separate effort; see [`local-bridge.md`](local-bridge.md).
 
 ## Open questions / known gaps
 
