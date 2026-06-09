@@ -11,12 +11,11 @@ class ModelsController < ApplicationController
   end
 
   def refresh
-    result = Agent::ModelCatalogSync.call
-    if result[:ok]
-      redirect_to models_path, notice: "Synced #{result[:models]} models from pi."
-    else
-      redirect_to models_path, alert: "Couldn't reach pi — the catalog was not changed."
-    end
+    # Run off the request — the sync spins up a pi control session (a
+    # Docker/gVisor container in prod), which 504s if done inline.
+    RefreshModelCatalogJob.perform_later
+    redirect_to models_path,
+      notice: "Refreshing the catalog from pi in the background — reload in a moment."
   end
 
   def update_provider
