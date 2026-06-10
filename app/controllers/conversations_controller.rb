@@ -100,7 +100,7 @@ class ConversationsController < ApplicationController
   # Flip in-app team visibility — separate from the public share link.
   def toggle_visibility
     @conversation.update!(visibility: @conversation.visibility_team? ? :personal : :team)
-    @conversation.broadcast_shared_to_team! if @conversation.visibility_team? && !@conversation.team.personal?
+    @conversation.broadcast_team_tab_dot! if @conversation.visibility_team? && !@conversation.team.personal?
     respond_with_panel "conversations/share"
   end
 

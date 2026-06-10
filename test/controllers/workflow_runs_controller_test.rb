@@ -65,7 +65,7 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     join_as_teammate(team)
     get conversations_path
     assert_select ".convos-pinned .convo", text: /team run/i
-    get conversations_path(filter: "shared")
+    get conversations_path(filter: "team")
     assert_select "#convos-list .convo", text: /team run/i
   end
 

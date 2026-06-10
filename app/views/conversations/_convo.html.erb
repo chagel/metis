@@ -13,9 +13,9 @@
               active_link_target: "link",
               turbo_frame: "main",
               title: conversation.display_title } do %>
-  <%# In the Shared scope the list spans the whole team, so show whose
+  <%# In the Team scope the list spans the whole team, so show whose
       conversation each row is. %>
-  <% if @sidebar_filter == "shared" %>
+  <% if @sidebar_filter == "team" %>
     <%= avatar_for conversation.user, size: 18, css: "convo-avatar" %>
   <% end %>
   <span class="tt" id="<%= dom_id(conversation, :sidebar_title) %>"><%= conversation.display_title %></span>

@@ -128,14 +128,14 @@ class ApplicationController < ActionController::Base
 
   # Archived lives on its own page (conversations#archived), not as a sidebar
   # scope — it's deliberately kept out of the high-level list.
-  SIDEBAR_FILTERS = %w[active shared starred].freeze
+  SIDEBAR_FILTERS = %w[active team starred].freeze
 
   # :countless (LIMIT+1 probe, no COUNT). Don't switch to headless: true —
   # that drops the probe and `@sidebar_pagy.next` goes nil.
   def set_sidebar
     @sidebar_filter = SIDEBAR_FILTERS.include?(params[:filter]) ? params[:filter] : "active"
-    # No "shared" scope in a team of one — there's nobody to share with.
-    @sidebar_filter = "active" if @sidebar_filter == "shared" && current_team.personal?
+    # No "team" scope in a team of one — there's nobody to share with.
+    @sidebar_filter = "active" if @sidebar_filter == "team" && current_team.personal?
     @needs_you = needs_you_conversations
     @sidebar_pagy, @conversations = pagy(
       :countless,
@@ -156,13 +156,13 @@ class ApplicationController < ActionController::Base
     ).active.joins(:workflow_run).merge(WorkflowRun.awaiting).recent.to_a
   end
 
-  # "shared" spans the whole team (every member's team-visible
+  # "team" spans the whole team (every member's team-visible
   # conversations); "active" and "starred" are the signed-in user's own,
   # archived excluded. All ordered by recency for the same bucketed list.
   def sidebar_scope(filter)
     mine = current_user.conversations.for_team(current_team)
     case filter
-    when "shared"  then current_team.conversations.visibility_team.active.recent
+    when "team"    then current_team.conversations.visibility_team.active.recent
     when "starred" then mine.starred.active.recent
     else                mine.active.recent
     end

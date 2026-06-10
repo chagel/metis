@@ -186,7 +186,7 @@ module ApplicationHelper
   end
 
   SIDEBAR_EMPTY_MESSAGES = {
-    "shared" => "No conversations shared with your team yet.",
+    "team" => "No team conversations yet — open one to your team to start.",
     "starred" => "No starred conversations yet — star one to keep it handy.",
     "active" => "No conversations yet — start one on the right."
   }.freeze

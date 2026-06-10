@@ -332,7 +332,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "active"), text: "Mine"
     assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "starred"), text: "Starred"
-    assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "shared"), count: 0
+    assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "team"), count: 0
     assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "archived"), count: 0
     assert_select ".convo-tab.on", text: "Mine"
   end
@@ -345,8 +345,8 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
 
     get conversations_path
     assert_response :success
-    assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "shared")
-    assert_select ".convo-tabs a.convo-tab #shared-tab-dot[hidden]"
+    assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "team")
+    assert_select ".convo-tabs a.convo-tab #team-tab-dot[hidden]"
   end
 
   test "opening to the team broadcasts the shared-tab dot; a public link does not" do
@@ -382,7 +382,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in @user
     post switch_team_path(team), headers: { "HTTP_REFERER" => root_path }
-    get conversations_path(filter: "shared")
+    get conversations_path(filter: "team")
 
     assert_response :success
     assert_select "#convos-list .convo .tt", text: "Teammate shared"
@@ -390,7 +390,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_select "#convos-list .convo .tt", text: "Teammate private", count: 0
     assert_select "#convos-list .convo .tt", text: "Teammate linked", count: 0
     assert_select "#convos-list .convo .convo-avatar"
-    assert_select ".convo-tab.on", text: "Shared"
+    assert_select ".convo-tab.on", text: "Team"
   end
 
   test "the shared filter routes every row to the in-app chat view" do
@@ -402,7 +402,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in @user
     post switch_team_path(team), headers: { "HTTP_REFERER" => root_path }
-    get conversations_path(filter: "shared")
+    get conversations_path(filter: "team")
 
     assert_response :success
     assert_select "#convos-list .convo[href=?][data-turbo-frame=main]", conversation_path(shared)
@@ -484,7 +484,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in @user
     post switch_team_path(team), headers: { "HTTP_REFERER" => root_path }
-    get conversations_path(filter: "shared")
+    get conversations_path(filter: "team")
 
     assert_response :success
     assert_select "#convos-list .convo", count: 0

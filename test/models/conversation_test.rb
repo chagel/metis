@@ -277,13 +277,13 @@ class ConversationTest < ActiveSupport::TestCase
     assert_equal [ shared ], Conversation.shared.to_a
   end
 
-  test "broadcast_shared_to_team! lights the shared tab on the team stream" do
+  test "broadcast_team_tab_dot! lights the Team tab on the team stream" do
     team = Team.create!(name: "Acme")
     @user.memberships.create!(team: team, role: :owner)
     conversation = @user.conversations.create!(team: team, title: "Shared")
 
     assert_turbo_stream_broadcasts(team, count: 1) do
-      conversation.broadcast_shared_to_team!
+      conversation.broadcast_team_tab_dot!
     end
   end
 

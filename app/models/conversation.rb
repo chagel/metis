@@ -54,14 +54,14 @@ class Conversation < ApplicationRecord
     update!(share_token: nil)
   end
 
-  # Light up the "Shared" tab for every teammate currently in this team —
+  # Light up the "Team" tab for every teammate currently in this team —
   # they share the team's Turbo stream (see chat layout). Cleared when
   # their sidebar tab bar next re-renders.
-  def broadcast_shared_to_team!
+  def broadcast_team_tab_dot!
     broadcast_replace_to(
       team,
-      target: "shared-tab-dot",
-      partial: "conversations/shared_tab_dot",
+      target: "team-tab-dot",
+      partial: "conversations/team_tab_dot",
       locals: { active: true }
     )
   end
