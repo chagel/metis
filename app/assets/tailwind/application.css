@@ -2235,3 +2235,5 @@ body.drawer-open { overflow:hidden; }
 .msg-step .chat-content { font-size:13px; color:var(--ink-2); }
 .msg-step .chat-content p { margin:0 0 .35rem; }
 .msg-step .chat-content > :last-child { margin-bottom:0; }
+.msg-step--local { border-left-color:var(--gold); }
+.msg-step--local .msg-step-tag { color:var(--gold); }

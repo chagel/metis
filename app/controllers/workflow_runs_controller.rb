@@ -41,8 +41,11 @@ class WorkflowRunsController < ApplicationController
   end
 
   # Actor gets the regions back directly; the broadcaster pushes them to
-  # co-viewers and the owner's sidebar.
+  # co-viewers and the owner's sidebar. Reload first: the enqueued advance
+  # job may already have moved the run (e.g. dispatched a delegated step),
+  # and a stale render here would overwrite its fresher broadcast.
   def respond_to_decision
+    @run.reload
     WorkflowBroadcaster.new(@run).refresh
     respond_to do |format|
       format.turbo_stream { render "workflow_runs/update" }

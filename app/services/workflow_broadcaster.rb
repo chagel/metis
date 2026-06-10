@@ -25,6 +25,11 @@ class WorkflowBroadcaster
     append_message(assistant_message, forkable: true)
   end
 
+  # A delegated step's report line (WorkflowRun#append_local_report).
+  def append_report(message)
+    append_message(message, forkable: false)
+  end
+
   private
 
   def append_message(message, forkable:)

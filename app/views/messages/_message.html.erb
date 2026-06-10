@@ -4,6 +4,12 @@
     <span class="msg-step-tag">Step</span>
     <div class="chat-content"><%= markdown(message.content) %></div>
   </div>
+<% elsif message.assistant? && message.workflow_generated? %>
+  <%# A delegated step's report — a plain record line, not a streamed turn. %>
+  <div id="<%= dom_id(message) %>" class="msg-step msg-step--local">
+    <span class="msg-step-tag">Local</span>
+    <div class="chat-content"><%= markdown(message.content) %></div>
+  </div>
 <% elsif message.user? %>
   <%# User: a contained bubble on the accent fill, aligned right. %>
   <div id="<%= dom_id(message) %>" class="msg-user">

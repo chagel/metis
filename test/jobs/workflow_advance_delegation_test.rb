@@ -62,19 +62,26 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
   test "an auto delegated step completes on result and advances to the next step" do
     run = start([ LOCAL, { "name" => "after", "prompt" => "next", "gate" => "auto" } ])
     advance(run)                                  # dispatch step 0
-    task = Task.claim_next_for(@user)
+    task = Task.claim_next_for(@user, client: "macbook")
 
-    run.complete_delegated_task!(task, result: { "status" => "completed", "summary" => "did it" })
+    run.complete_delegated_task!(task, result: {
+      "status" => "completed", "summary" => "did it",
+      "artifacts" => [ { "type" => "pr", "url" => "http://x/1" } ]
+    })
     run.reload
     assert run.running?
     assert run.tasks.find_by(position: 0).completed?
     assert_equal "did it", run.tasks.find_by(position: 0).result["summary"]
 
+    report = run.conversation.messages.where(role: :assistant, workflow_generated: true).last
+    assert_equal "Done on macbook — did it → http://x/1", report.content
+    assert report.done?
+
     advance(run)                                  # start the cloud step 1
     assert run.tasks.find_by(position: 1).running?
   end
 
-  test "a failed result fails the run" do
+  test "a failed result fails the run and leaves a failure report line" do
     run = start([ LOCAL ])
     advance(run)
     task = Task.claim_next_for(@user)
@@ -82,6 +89,8 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
     run.reload
     assert run.failed?
     assert run.tasks.first.failed?
+    report = run.conversation.messages.where(role: :assistant, workflow_generated: true).last
+    assert_equal "Failed on local agent — broke", report.content
   end
 
   test "an approval-gated delegated step pauses for review after the report" do
