@@ -2,13 +2,13 @@
 # the workflow engine (WorkflowAdvanceJob).
 module ConversationTurn
   # Yields the user message in the txn so the caller can attach uploads.
-  # workflow_generated marks an engine-injected step prompt, not human input.
-  def self.start(conversation, content:, workflow_generated: false)
+  # kind renders the user message as a workflow marker instead of a chat
+  # bubble (Message#kind) — the engine's step prompts and gate feedback.
+  def self.start(conversation, content:, kind: :chat)
     user_message = assistant_message = nil
     conversation.transaction do
       user_message = conversation.messages.create!(
-        role: :user, content: content, streaming_status: :done,
-        workflow_generated: workflow_generated
+        role: :user, content: content, streaming_status: :done, kind: kind
       )
       yield user_message if block_given?
       # Stamped at send time so duration spans the queue wait too.

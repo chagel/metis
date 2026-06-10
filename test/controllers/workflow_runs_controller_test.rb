@@ -170,6 +170,8 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     gate = run.tasks.find_by(position: 1)
     assert gate.completed?
     assert_equal @user, gate.approved_by
+    review = run.conversation.messages.where(kind: :review).last
+    assert_equal %(#{@user.display_label} approved "review"), review.content
   end
 
   test "reject cancels the run" do
@@ -186,13 +188,15 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert run.reload.running?
     assert run.tasks.find_by(position: 1).running?
-    assert_equal "open a PR too", run.conversation.messages.user.order(:created_at).last.content
+    feedback = run.conversation.messages.user.order(:created_at).last
+    assert feedback.review?
+    assert_equal "#{@user.display_label} requested changes — open a PR too", feedback.content
   end
 
   test "an injected step prompt renders as a step instruction, not a user bubble" do
     run = gated_run
     run.conversation.messages.create!(
-      role: :user, content: "implement the spec", streaming_status: :done, workflow_generated: true
+      role: :user, content: "implement the spec", streaming_status: :done, kind: :step_prompt
     )
     get conversation_path(run.conversation)
     assert_response :success

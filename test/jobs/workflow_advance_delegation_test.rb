@@ -75,7 +75,7 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
     assert run.tasks.find_by(position: 0).completed?
     assert_equal "did it", run.tasks.find_by(position: 0).result["summary"]
 
-    report = run.conversation.messages.where(role: :assistant, workflow_generated: true).last
+    report = run.conversation.messages.where(kind: :local_report).last
     assert_equal "Done on Bob's macbook — did it → http://x/1", report.content
     assert report.done?
 
@@ -85,7 +85,7 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
 
     # The local result never entered the agent session, so the next cloud
     # prompt must carry it.
-    step_prompt = run.conversation.messages.where(role: :user, workflow_generated: true).last.content
+    step_prompt = run.conversation.messages.where(kind: :step_prompt).last.content
     assert_includes step_prompt, %(Step "impl" ran on the user's machine and reported: did it (http://x/1))
     assert_includes step_prompt, "next"
   end
@@ -98,7 +98,7 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
     run.reload
     assert run.failed?
     assert run.tasks.first.failed?
-    report = run.conversation.messages.where(role: :assistant, workflow_generated: true).last
+    report = run.conversation.messages.where(kind: :local_report).last
     assert_equal "Failed on Bob's machine — broke", report.content
   end
 
@@ -128,6 +128,8 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
     assert_nil task.claimed_by_user, "back in the claim queue"
     assert_match "Requested changes: speak chinese", task.prompt
     assert_empty task.result
+    review = run.conversation.messages.where(kind: :review).last
+    assert_equal "Bob requested changes — speak chinese", review.content
 
     # The loop closes: re-claim, re-report, gate again.
     reclaimed = Task.claim_next_for(@user, client: "macbook")

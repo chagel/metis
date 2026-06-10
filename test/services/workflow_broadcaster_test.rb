@@ -20,7 +20,7 @@ class WorkflowBroadcasterTest < ActiveSupport::TestCase
 
   test "append_turn renders the injected prompt and pending assistant rows" do
     user = @run.conversation.messages.create!(
-      role: :user, content: "implement the spec", streaming_status: :done, workflow_generated: true
+      role: :user, content: "implement the spec", streaming_status: :done, kind: :step_prompt
     )
     assistant = @run.conversation.messages.create!(
       role: :assistant, content: "", streaming_status: :pending, started_at: Time.current

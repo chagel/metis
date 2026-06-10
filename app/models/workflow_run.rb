@@ -62,6 +62,7 @@ class WorkflowRun < ApplicationRecord
     return unless task
 
     task.update!(status: :completed, approved_by: by, decided_at: Time.current)
+    append_review %(#{reviewer(by)} approved "#{task.name.presence || "the step"}")
     running!
     WorkflowAdvanceJob.perform_later(id)
   end
@@ -94,6 +95,7 @@ class WorkflowRun < ApplicationRecord
     return unless task
 
     task.update!(status: :rejected, approved_by: by, decided_at: Time.current)
+    append_review %(#{reviewer(by)} rejected "#{task.name.presence || "the step"}" and cancelled the run)
     cancelled!
   end
 
@@ -114,12 +116,15 @@ class WorkflowRun < ApplicationRecord
         claimed_by: nil, claimed_by_user: nil, result: {},
         prompt: "#{task.prompt}\n\nRequested changes: #{feedback}"
       )
+      append_review "#{reviewer(by)} requested changes — #{feedback}"
       awaiting_local!
       WorkflowBroadcaster.new(self).refresh
     else
       task.update!(status: :running, approved_by: by)
       running!
-      user, assistant = ConversationTurn.start(conversation, content: feedback)
+      user, assistant = ConversationTurn.start(
+        conversation, content: "#{reviewer(by)} requested changes — #{feedback}", kind: :review
+      )
       task.update!(assistant_message: assistant)
       WorkflowBroadcaster.new(self).append_turn(user, assistant)
     end
@@ -136,8 +141,20 @@ class WorkflowRun < ApplicationRecord
     line += " → #{url}" if url
 
     message = conversation.messages.create!(
-      role: :assistant, content: line, streaming_status: :done, workflow_generated: true
+      role: :assistant, content: line, streaming_status: :done, kind: :local_report
     )
     WorkflowBroadcaster.new(self).append_report(message)
+  end
+
+  # A gate decision's timeline trace — a plain message, never a turn.
+  def append_review(text)
+    message = conversation.messages.create!(
+      role: :user, content: text, streaming_status: :done, kind: :review
+    )
+    WorkflowBroadcaster.new(self).append_report(message)
+  end
+
+  def reviewer(by)
+    by&.display_label || "The reviewer"
   end
 end

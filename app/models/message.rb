@@ -1,6 +1,10 @@
 class Message < ApplicationRecord
   enum :role, { user: 0, assistant: 1, tool: 2, system: 3 }
   enum :streaming_status, { pending: 0, streaming: 1, done: 2, errored: 3, canceled: 4 }
+  # Workflow timeline records render as markers, not chat bubbles:
+  # step_prompt (engine-injected instruction), local_report (a delegated
+  # step's outcome), review (a gate decision).
+  enum :kind, { chat: 0, step_prompt: 1, local_report: 2, review: 3 }
 
   belongs_to :conversation, touch: true
 

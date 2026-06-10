@@ -2275,3 +2275,5 @@ body.drawer-open { overflow:hidden; }
 .msg-step .chat-content > :last-child { margin-bottom:0; }
 .msg-step--local { border-left-color:var(--gold); }
 .msg-step--local .msg-step-tag { color:var(--gold); }
+.msg-step--review { border-left-color:var(--accent); }
+.msg-step--review .msg-step-tag { color:var(--accent-fg); }

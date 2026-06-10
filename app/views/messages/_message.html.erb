@@ -1,8 +1,11 @@
-<% if message.workflow_generated? %>
-  <%# Engine-injected step records, not chat bubbles: a user message is a
-      step prompt, an assistant one a delegated step's report. %>
-  <div id="<%= dom_id(message) %>" class="msg-step<%= " msg-step--local" if message.assistant? %>">
-    <span class="msg-step-tag"><%= message.assistant? ? "Local" : "Step" %></span>
+<% if !message.chat? %>
+  <%# Workflow timeline records, not chat bubbles: the engine's step
+      prompts, delegated steps' reports, and gate decisions. %>
+  <% modifier, tag = { "step_prompt" => [ "", "Step" ],
+                       "local_report" => [ " msg-step--local", "Local" ],
+                       "review" => [ " msg-step--review", "Review" ] }.fetch(message.kind) %>
+  <div id="<%= dom_id(message) %>" class="msg-step<%= modifier %>">
+    <span class="msg-step-tag"><%= tag %></span>
     <div class="chat-content"><%= markdown(message.content) %></div>
   </div>
 <% elsif message.user? %>

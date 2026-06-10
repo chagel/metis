@@ -117,8 +117,8 @@ class WorkflowAdvanceJobTest < ActiveSupport::TestCase
     assert spec.reload.running?, "the step re-runs rather than cancelling"
     assert run.reload.running?
     feedback = run.conversation.messages.user.order(:created_at).last
-    assert_equal "actually, open a PR too", feedback.content
-    refute feedback.workflow_generated?, "the human's feedback is a real user message"
+    assert feedback.review?, "the feedback is a review record in the timeline"
+    assert_includes feedback.content, "requested changes — actually, open a PR too"
 
     finish_turn(run, 0)
     advance(run)
