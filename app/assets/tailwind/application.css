@@ -1980,10 +1980,9 @@ body.drawer-open { overflow:hidden; }
 .wf-rail-wrap { border-bottom:1px solid var(--line); background:var(--canvas); }
 
 /* workflow identity in the chat-header meta row */
-/* The header's right column: action buttons with the run's meta cluster
-   aligned beneath them, clear of the conversation meta. */
-.chat-head-side { display:flex; flex-direction:column; align-items:flex-end; gap:11px; flex:none; }
-.wf-meta { display:inline-flex; align-items:center; gap:9px; }
+/* The run's own cluster, kept apart from the conversation meta at the
+   row's trailing edge (its own right-aligned line when wrapped). */
+.wf-meta { display:inline-flex; align-items:center; gap:9px; margin-left:auto; padding-left:11px; }
 .wf-meta-name { display:inline-flex; align-items:center; gap:5px; text-decoration:none; color:var(--ink-2); }
 .wf-meta-name svg { width:11px; height:11px; color:var(--ink-3); }
 .wf-meta-name:hover { color:var(--ink); }
