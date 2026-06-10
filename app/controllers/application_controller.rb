@@ -156,13 +156,13 @@ class ApplicationController < ActionController::Base
     ).active.joins(:workflow_run).merge(WorkflowRun.awaiting).recent.to_a
   end
 
-  # "shared" spans the whole team (every member's shared or team-visible
+  # "shared" spans the whole team (every member's team-visible
   # conversations); "active" and "starred" are the signed-in user's own,
   # archived excluded. All ordered by recency for the same bucketed list.
   def sidebar_scope(filter)
     mine = current_user.conversations.for_team(current_team)
     case filter
-    when "shared"  then current_team.conversations.team_readable.active.recent
+    when "shared"  then current_team.conversations.visibility_team.active.recent
     when "starred" then mine.starred.active.recent
     else                mine.active.recent
     end

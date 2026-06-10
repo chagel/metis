@@ -29,8 +29,6 @@ class Conversation < ApplicationRecord
   scope :starred, -> { where.not(starred_at: nil) }
   scope :shared, -> { where.not(share_token: nil) }
   scope :for_team, ->(team) { where(team: team) }
-  # Everything a teammate may open: explicitly shared or team-visible.
-  scope :team_readable, -> { shared.or(visibility_team) }
 
   def archived?
     archived_at.present?

@@ -32,13 +32,14 @@ class ConversationsController < ApplicationController
     redirect_to conversation
   end
 
-  # Own conversations open normally; a teammate's shared or team-visible
-  # conversation (e.g. a workflow run) opens read-only (same chat view, no
-  # composer). Mutating actions still go through the owner-scoped
-  # set_conversation, so read-only here can't be escalated.
+  # Own conversations open normally; a teammate's team-visible conversation
+  # opens read-only (same chat view, no composer). The public share link is
+  # a separate door (shared_conversations#show). Mutating actions still go
+  # through the owner-scoped set_conversation, so read-only here can't be
+  # escalated.
   def show
     @conversation = current_user.conversations.find_by(id: params[:id]) ||
-                    current_team.conversations.team_readable.find(params[:id])
+                    current_team.conversations.visibility_team.find(params[:id])
     @read_only = @conversation.user_id != current_user.id
     @messages = @conversation.messages.chronological
   end
@@ -87,9 +88,7 @@ class ConversationsController < ApplicationController
   end
 
   def share
-    newly_shared = !@conversation.shared?
     @conversation.generate_share_token!
-    @conversation.broadcast_shared_to_team! if newly_shared && !@conversation.team.personal?
     respond_with_panel "conversations/share"
   end
 
