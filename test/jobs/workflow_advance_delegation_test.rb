@@ -112,6 +112,24 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
     assert run.tasks.first.awaiting_approval?
   end
 
+  test "a run parked on an unresponsive local step can be cancelled" do
+    run = start([ LOCAL ])
+    advance(run)
+    assert run.awaiting_local?
+
+    run.reject_current_gate!(by: @user)
+    run.reload
+    assert run.cancelled?
+    assert run.tasks.first.rejected?
+    review = run.conversation.messages.where(kind: :review).last
+    assert_equal %(Bob cancelled the run while "impl" waited on a machine), review.content
+
+    # The task left the claim queue, and a straggler result no-ops.
+    assert_nil Task.claim_next_for(@user)
+    run.complete_delegated_task!(run.tasks.first, result: { "status" => "completed", "summary" => "late" })
+    assert run.reload.cancelled?
+  end
+
   test "request-changes on a delegated step re-dispatches to the machine, not the cloud" do
     run = start([ LOCAL.merge("gate" => "approval") ])
     advance(run)

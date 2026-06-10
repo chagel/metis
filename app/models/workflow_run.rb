@@ -90,12 +90,20 @@ class WorkflowRun < ApplicationRecord
     end
   end
 
+  # Cancels at a gate, or while a delegated step sits waiting for (or on)
+  # a machine — a parked run must always be killable. A result reported
+  # after the cancel no-ops (complete_delegated_task! requires running).
   def reject_current_gate!(by: nil)
-    task = tasks.awaiting_approval.first
+    task = tasks.awaiting_approval.first || tasks.dispatched.first
     return unless task
 
+    waited_on_local = task.running?
     task.update!(status: :rejected, approved_by: by, decided_at: Time.current)
-    append_review %(#{reviewer(by)} rejected "#{task.name.presence || "the step"}" and cancelled the run)
+    append_review(if waited_on_local
+      %(#{reviewer(by)} cancelled the run while "#{task.name.presence || "the step"}" waited on a machine)
+    else
+      %(#{reviewer(by)} rejected "#{task.name.presence || "the step"}" and cancelled the run)
+    end)
     cancelled!
   end
 

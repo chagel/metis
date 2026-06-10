@@ -2128,6 +2128,11 @@ body.drawer-open { overflow:hidden; }
 .wf-run-note svg { width:14px; height:14px; flex:none; }
 .wf-run-dot { width:7px; height:7px; border-radius:50%; background:var(--accent-fg); animation:convo-pulse 1.4s ease-in-out infinite; }
 .wf-run-link { color:var(--accent-fg); text-decoration:underline; text-underline-offset:2px; }
+.wf-run-cancel {
+  font:inherit; color:var(--ink-3); background:none; border:none; cursor:pointer;
+  text-decoration:underline; text-underline-offset:2px; padding:0;
+}
+.wf-run-cancel:hover { color:var(--danger); }
 
 /* sidebar pill */
 .convo-pill {

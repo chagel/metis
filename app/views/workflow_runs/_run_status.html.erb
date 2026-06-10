@@ -15,6 +15,8 @@
         <% else %>
           Delegated — waiting for a machine with a bridge token to pick it up.
         <% end %>
+        <%= button_to "Cancel run", reject_workflow_run_path(run), method: :post,
+              class: "wf-run-cancel", form: { class: "inline-form", data: { turbo_stream: true } } %>
       <% elsif run.active? %>
         <span class="wf-run-dot"></span>
         The agent is running this workflow…
