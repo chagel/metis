@@ -163,23 +163,25 @@ requested id is no longer claimable. Claiming stamps `task.claimed_by`
   "prompt": "Implement the retry-budget cap described in the plan…",
   "context": {
     "project":  { "name": "metis-api", "about": "Rails 8 API; conventions in…" },
-    "repo_hint": "github.com/acme/metis-api",       // which checkout to bind
-    "prior_steps": [                                  // summaries of the cloud steps so far
-      { "name": "Research", "summary": "Root cause: unbounded retry loop in…" },
-      { "name": "Plan",     "summary": "Cap at 5; add jittered backoff; …" }
-    ],
-    "agents_md": "<rendered AGENTS.md>",              // project context + standards, optional
-    "attachments": [{ "name": "spec.pdf", "url": "https://…signed…" }]
+    "prior_steps": [                       // the cloud steps so far, in full
+      {
+        "name": "spec",
+        "content": "<the step's full output — a delegated step's result summary, or the whole assistant turn, untruncated>",
+        "artifacts": [{ "name": "spec.md", "url": "https://…/files/blobs/…signed…" }]
+      }
+    ]
   },
-  "env": { "GH_TOKEN": "ghu_…" }                      // optional; omit → local uses own creds
+  "env": { "GH_TOKEN": "ghu_…" }           // optional; omit → local uses own creds
 }
 ```
 
-The `context` bundle is how prior cloud steps reach the local agent —
-**summaries, not a session.** There is no pi-session continuity across the
-cloud→local boundary (different machines); Metis hands the local agent the
-distilled context (prior step results + project standards), which is what
-it already does for a reaped sandbox via `replayable_history → AGENTS.md`.
+The `context` bundle is how prior cloud steps reach the local agent — full
+step outputs plus signed URLs for any files they published, but **not a
+session.** There is no pi-session continuity across the cloud→local
+boundary (different machines); this bundle is the local agent's entire
+brief, which is why nothing in it is truncated. (`repo_hint` and a
+rendered `agents_md` stay future work — projects don't yet carry a repo
+binding.)
 
 ### `POST /api/bridge/tasks/:id/events` (optional progress)
 
@@ -314,10 +316,12 @@ protocol — argued there, not assumed here.
 
 ## Open questions
 
-- **Context handoff fidelity.** Summaries of prior cloud steps vs. the
-  full `replayable_history` in the `next-task` bundle — how much context
-  the local agent needs to do the implementation well. Start with step
-  summaries + project standards; widen if it underperforms.
+- **Context handoff fidelity.** Settled one notch past the original
+  plan: the bundle carries prior steps' *full* outputs + artifact URLs
+  (the first dogfood run showed a 400-char truncation starves the
+  implementer of its spec). Still open: whether the full
+  `replayable_history` or a rendered `agents_md` ever needs to ride
+  along too.
 - **Result trust.** Metis records what the local agent reports
   (`pr_url`, diff stat) without verifying it. A later step can verify
   (CI, a cloud review turn), but v1 trusts the report. Worth a note in the

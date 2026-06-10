@@ -33,6 +33,28 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     assert_response :no_content
   end
 
+  test "claim payload carries prior steps' full content and artifact urls" do
+    run = WorkflowRun.start(team: @team, user: @user, steps: [
+      { "name" => "spec", "prompt" => "write the spec" }, LOCAL
+    ])
+    WorkflowAdvanceJob.perform_now(run.id)        # starts the cloud spec step
+    spec = run.tasks.find_by(position: 0)
+    long_content = "## Spec\n#{"All the details. " * 60}"   # > the old 400-char cap
+    spec.assistant_message.update!(content: long_content, streaming_status: :done)
+    spec.assistant_message.artifacts.attach(
+      io: StringIO.new("# Spec file"), filename: "spec.md", content_type: "text/markdown"
+    )
+    WorkflowAdvanceJob.perform_now(run.id)        # settles spec, dispatches the local step
+
+    get "/api/bridge/tasks/next", headers: auth
+    assert_response :success
+    prior = JSON.parse(response.body).dig("context", "prior_steps").first
+    assert_equal "spec", prior["name"]
+    assert_equal long_content, prior["content"], "full content, untruncated"
+    assert_equal "spec.md", prior["artifacts"].first["name"]
+    assert_match %r{^http.+/files/blobs/}, prior["artifacts"].first["url"]
+  end
+
   test "index lists the claim queue without claiming" do
     workflow = @team.workflows.create!(name: "Ship it", steps: [ LOCAL ])
     run = WorkflowRun.start(team: @team, user: @user, workflow: workflow)

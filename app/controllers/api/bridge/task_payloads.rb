@@ -53,17 +53,33 @@ module Api
         { name: project.name, about: project.about }
       end
 
-      # Distilled context for the local agent — completed prior steps'
-      # outcomes, not a pi session (no continuity across machines).
+      # Context for the local agent — completed prior steps' full output
+      # plus signed URLs for any files they published. Distilled, not a pi
+      # session (no continuity across machines); this bundle is the local
+      # agent's entire brief, so nothing is truncated.
       def prior_step_summaries(run, task)
-        run.tasks.completed.where("position < ?", task.position).order(:position).filter_map do |prior|
-          summary = step_summary(prior)
-          { name: prior.name, summary: summary } if summary.present?
+        run.tasks.completed.where(position: ...task.position).order(:position).filter_map do |prior|
+          content = step_content(prior)
+          next if content.blank?
+
+          entry = { name: prior.name, content: content }
+          artifacts = step_artifacts(prior)
+          entry[:artifacts] = artifacts if artifacts.any?
+          entry
         end
       end
 
-      def step_summary(task)
-        task.result["summary"].presence || task.assistant_message&.content.to_s.truncate(400).presence
+      def step_content(task)
+        task.result["summary"].presence || task.assistant_message&.content.presence
+      end
+
+      def step_artifacts(task)
+        attachments = task.assistant_message&.artifacts
+        return [] unless attachments&.attached?
+
+        attachments.map do |artifact|
+          { name: artifact.filename.to_s, url: rails_blob_url(artifact, host: request.base_url) }
+        end
       end
     end
   end
