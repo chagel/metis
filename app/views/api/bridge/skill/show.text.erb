@@ -1,0 +1,65 @@
+---
+name: metis-bridge
+description: Pull and work delegated Metis workflow tasks on this machine — set up the Metis bridge MCP connection, claim a task from the queue, implement it in the local checkout, and report the result. Use when the user asks to pick up, work on, or check Metis tasks, or to set up the Metis bridge.
+---
+
+# Metis bridge — work delegated tasks on this machine
+
+Metis (<%= base_url %>) runs gated, multi-step agent workflows in the
+cloud. A step marked **Local** is delegated to this machine: you pull it,
+do the work in the real checkout with the user's own tools and
+credentials, and report the result. Metis never drives this machine —
+you pull, you report, the workflow resumes.
+
+## One-time setup
+
+1. `claude mcp list` — if `metis-bridge` is already configured, skip to
+   "Working a task".
+2. Ask the user for their bridge token (`mbt_…`), generated at
+   <%= base_url %>/settings/account → **Local bridge**.
+3. Register the server (user scope, so it works from any repo):
+
+   ```bash
+   claude mcp add --transport http --scope user metis-bridge \
+     <%= base_url %>/api/bridge/mcp \
+     --header "Authorization: Bearer <token>" \
+     --header "X-Bridge-Client: $(hostname -s)"
+   ```
+
+4. Reconnect MCP servers (or restart the session). You now have four
+   tools: `list_tasks`, `get_next_task`, `report_progress`,
+   `submit_result`.
+
+## Working a task
+
+1. **List before claiming.** Call `list_tasks` and pick the task whose
+   project or prompt matches the repository you are in; ask the user
+   when it's ambiguous. Claim it with `get_next_task` + `task_id`.
+   Only call bare `get_next_task` when the queue holds a single task.
+2. **The claim is your entire brief.** It carries the step prompt plus
+   `context.prior_steps` — the full text of the workflow's earlier steps
+   (e.g. the approved spec) and signed URLs for files they published.
+   Fetch artifact URLs when the prompt refers to them. There is no other
+   shared state; if the brief is insufficient, say so via a failed
+   result rather than guessing.
+3. **Never switch this checkout's branch.** If the working copy serves
+   any other duty (a running dev server, a branch mid-work), do the task
+   in an isolated `git worktree add` (or a fresh clone) and clean up
+   after.
+4. **Work like a teammate.** Follow the repo's own conventions
+   (CLAUDE.md / AGENTS.md), run its lint and tests before committing,
+   use a feature branch, and open a PR when the task asks for one.
+5. Optionally post `report_progress` at milestones — one line each; they
+   land in the run's timeline.
+6. **`submit_result` exactly once, when done**: `status`
+   (`completed` | `failed`), a one-or-two-sentence `summary`, and
+   `artifacts` such as `[{"type": "pr", "url": "…"}]`. The workflow
+   resumes in Metis immediately — a cloud step may review your PR next,
+   and the user approves the run at its gates.
+
+## When blocked
+
+Missing repo, tests you cannot make pass, a spec that contradicts the
+code — submit `status: "failed"` with a precise reason. That fails the
+run visibly so the user can revise and re-dispatch. Never leave a
+claimed task silent.

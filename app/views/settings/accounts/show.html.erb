@@ -105,8 +105,9 @@
         <% if @new_bridge_token.present? %>
           <div class="bridge-token">
             <p class="bridge-token-hint">
-              Copy it now — it won't be shown again. On your machine:
-              <code>export METIS_BRIDGE_TOKEN=…</code>
+              Copy it now — it won't be shown again. Then teach your coding agent the bridge:
+              <code>curl -fsSL --create-dirs <%= api_bridge_skill_url %> -o ~/.claude/skills/metis-bridge/SKILL.md</code>
+              and tell it "set up the metis bridge" with this token.
             </p>
             <div class="token-row">
               <code class="token"><%= @new_bridge_token %></code>

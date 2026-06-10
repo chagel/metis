@@ -304,6 +304,15 @@ protocol — argued there, not assumed here.
   calls `list_tasks`, picks the task whose project matches its checkout
   (or asks), claims it by id, works, then `submit_result` — the run
   resumes in Metis.
+- `GET /api/bridge/skill` — the client-side skill (SKILL.md, served
+  unauthenticated with the deployment URL baked in) that teaches a local
+  agent that loop: MCP setup, list-before-claim, the worktree-isolation
+  rule, submit-once etiquette, failure reporting. One install:
+
+  ```bash
+  curl -fsSL --create-dirs https://your-metis-host/api/bridge/skill \
+    -o ~/.claude/skills/metis-bridge/SKILL.md
+  ```
 
 ### Phase 3 — Daemon + ACP (unattended)
 - `metis-bridge` daemon polls the REST surface, spawns the agent
