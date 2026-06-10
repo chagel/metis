@@ -19,6 +19,17 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     run
   end
 
+  test "the gate on the final step reads finish, mid-run reads continue" do
+    run = gated_run
+    get conversation_path(run.conversation)
+    assert_select ".wf-gate .btn-primary", text: "Approve & finish"
+    assert_match "your sign-off completes the run", response.body
+
+    run.tasks.create!(position: 2, name: "ship", gate: :auto, status: :pending)
+    get conversation_path(run.conversation)
+    assert_select ".wf-gate .btn-primary", text: "Approve & continue"
+  end
+
   test "the sidebar pins awaiting-approval runs and lifts them out of the recency list" do
     @user.conversations.create!(title: "ZZ normal chat")
     gated = @user.conversations.create!(title: "ZZ gated run")

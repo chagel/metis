@@ -39,6 +39,10 @@ class Task < ApplicationRecord
     update!(progress: progress + [ entry ])
   end
 
+  def final_step?
+    workflow_run.tasks.where("position > ?", position).none?
+  end
+
   # The result jsonb ({ "status", "summary", "artifacts" }) is read only
   # through these.
   def result_failed?

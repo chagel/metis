@@ -18,7 +18,13 @@
             Review needed
           </span>
           <h3 class="wf-gate-title"><%= task.name.presence || "Approval needed" %></h3>
-          <p class="wf-gate-desc">The agent paused here on purpose. Approve to let it continue, or reject to stop the run.</p>
+          <p class="wf-gate-desc">
+            <% if task.final_step? %>
+              This is the workflow's last step — your sign-off completes the run.
+            <% else %>
+              The agent paused here on purpose. Approve to let it continue, or reject to stop the run.
+            <% end %>
+          </p>
         </div>
         <% if work&.content.present? %>
           <details class="wf-gate-review">
@@ -35,7 +41,9 @@
                     class="btn btn-ghost btn-sm">Cancel run</button>
             <button type="submit" formaction="<%= request_changes_workflow_run_path(run) %>"
                     class="btn btn-ghost btn-sm">Request changes</button>
-            <button type="submit" class="btn btn-primary btn-sm">Approve &amp; continue</button>
+            <button type="submit" class="btn btn-primary btn-sm">
+              <%= task.final_step? ? "Approve & finish" : "Approve & continue" %>
+            </button>
           </div>
         <% end %>
       </div>
