@@ -5,12 +5,10 @@ module Api
     module TaskPayloads
       private
 
-      # Scoped to delegated tasks in the caller's teams — a token from
-      # another team can't reach this task.
+      # Scoped to the caller's teams — a token from another team can't
+      # reach this task.
       def find_delegated_task(id)
-        Task.joins(:workflow_run)
-            .where(delegated: true, workflow_runs: { team_id: current_bridge_user.team_ids })
-            .find(id)
+        Task.delegated_for(current_bridge_user).find(id)
       end
 
       def claim_queue
@@ -58,7 +56,9 @@ module Api
       # session (no continuity across machines); this bundle is the local
       # agent's entire brief, so nothing is truncated.
       def prior_step_summaries(run, task)
-        run.tasks.completed.where(position: ...task.position).order(:position).filter_map do |prior|
+        run.tasks.completed.where(position: ...task.position).order(:position)
+           .includes(assistant_message: { artifacts_attachments: :blob })
+           .filter_map do |prior|
           content = step_content(prior)
           next if content.blank?
 
@@ -70,7 +70,7 @@ module Api
       end
 
       def step_content(task)
-        task.result["summary"].presence || task.assistant_message&.content.presence
+        task.result_summary || task.assistant_message&.content.presence
       end
 
       def step_artifacts(task)

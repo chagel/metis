@@ -1,13 +1,8 @@
-<% if message.user? && message.workflow_generated? %>
-  <%# An engine-injected step prompt — a muted instruction, not a user bubble. %>
-  <div id="<%= dom_id(message) %>" class="msg-step">
-    <span class="msg-step-tag">Step</span>
-    <div class="chat-content"><%= markdown(message.content) %></div>
-  </div>
-<% elsif message.assistant? && message.workflow_generated? %>
-  <%# A delegated step's report — a plain record line, not a streamed turn. %>
-  <div id="<%= dom_id(message) %>" class="msg-step msg-step--local">
-    <span class="msg-step-tag">Local</span>
+<% if message.workflow_generated? %>
+  <%# Engine-injected step records, not chat bubbles: a user message is a
+      step prompt, an assistant one a delegated step's report. %>
+  <div id="<%= dom_id(message) %>" class="msg-step<%= " msg-step--local" if message.assistant? %>">
+    <span class="msg-step-tag"><%= message.assistant? ? "Local" : "Step" %></span>
     <div class="chat-content"><%= markdown(message.content) %></div>
   </div>
 <% elsif message.user? %>

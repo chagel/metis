@@ -71,7 +71,7 @@ class WorkflowRun < ApplicationRecord
     task.update!(result: result)
     append_local_report(task)
 
-    if result.to_h.with_indifferent_access[:status].to_s == "failed"
+    if task.result_failed?
       task.failed!
       failed!
       WorkflowBroadcaster.new(self).refresh
@@ -114,11 +114,10 @@ class WorkflowRun < ApplicationRecord
   # The delegated step's trace in the timeline: one compact plain message
   # — never a streamed turn (docs/local-bridge.md).
   def append_local_report(task)
-    result = task.result.with_indifferent_access
-    line = result[:status].to_s == "failed" ? "Failed" : "Done"
+    line = task.result_failed? ? "Failed" : "Done"
     line += " on #{task.claimed_by.presence || "your machine"}"
-    line += " — #{result[:summary]}" if result[:summary].present?
-    url = Array(result[:artifacts]).filter_map { |a| a.with_indifferent_access[:url] }.first
+    line += " — #{task.result_summary}" if task.result_summary
+    url = task.result_artifact_urls.first
     line += " → #{url}" if url
 
     message = conversation.messages.create!(

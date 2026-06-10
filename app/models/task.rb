@@ -17,10 +17,12 @@ class Task < ApplicationRecord
   # Dispatched and waiting for a local agent to pull it.
   scope :dispatched, -> { running.where(delegated: true) }
   scope :unclaimed, -> { where(claimed_by: nil) }
-  # The user's claim queue: dispatched, unclaimed, across their teams.
-  scope :claimable_by, ->(user) {
-    joins(:workflow_run).where(workflow_runs: { team_id: user.team_ids }).dispatched.unclaimed
+  # Delegated tasks a user's bridge token may touch — their teams only.
+  scope :delegated_for, ->(user) {
+    joins(:workflow_run).where(delegated: true, workflow_runs: { team_id: user.team_ids })
   }
+  # The user's claim queue: dispatched, unclaimed, across their teams.
+  scope :claimable_by, ->(user) { delegated_for(user).running.unclaimed }
 
   # Claim the next dispatched task across the user's teams (FIFO), or a
   # specific one via `id` — nil if nothing is claimable. SKIP LOCKED so two
@@ -39,5 +41,19 @@ class Task < ApplicationRecord
 
   def log_progress!(entry)
     update!(progress: progress + [ entry ])
+  end
+
+  # Readers for the result jsonb ({ "status", "summary", "artifacts" }) —
+  # the one place its shape is known.
+  def result_failed?
+    result["status"] == "failed"
+  end
+
+  def result_summary
+    result["summary"].presence
+  end
+
+  def result_artifact_urls
+    Array(result["artifacts"]).filter_map { |a| a["url"] }
   end
 end

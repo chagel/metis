@@ -85,9 +85,8 @@ class WorkflowAdvanceJob < ApplicationJob
   end
 
   def delegated_report(task)
-    result = task.result.with_indifferent_access
-    line = %(Step "#{task.name}" ran on the user's machine and reported: #{result[:summary].presence || result[:status]})
-    urls = Array(result[:artifacts]).filter_map { |a| a.with_indifferent_access[:url] }
+    line = %(Step "#{task.name}" ran on the user's machine and reported: #{task.result_summary || task.result["status"]})
+    urls = task.result_artifact_urls
     line += " (#{urls.join(", ")})" if urls.any?
     line
   end
