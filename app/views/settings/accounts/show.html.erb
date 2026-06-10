@@ -104,9 +104,16 @@
 
         <% if @new_bridge_token.present? %>
           <% bridge_setup = <<~TEXT.strip
-            Set up the Metis bridge on this machine:
+            Set up the Metis bridge on this machine. The worked example is Claude Code —
+            if you are a different coding agent (pi, Codex, …), adapt: the bridge is a
+            streamable-HTTP MCP server, and its guide also documents the same API as plain REST.
 
-            1. Install the skill:
+            MCP server: #{api_bridge_mcp_url}
+            Headers:    Authorization: Bearer #{@new_bridge_token}
+                        X-Bridge-Client: <this machine's hostname>
+
+            1. Install the guide where your agent discovers skills
+               (Claude Code: ~/.claude/skills, pi: .pi/skills):
                curl -fsSL --create-dirs #{api_bridge_skill_url} -o ~/.claude/skills/metis-bridge/SKILL.md
             2. Register the MCP server:
                claude mcp add --transport http --scope user metis-bridge #{api_bridge_mcp_url} --header "Authorization: Bearer #{@new_bridge_token}" --header "X-Bridge-Client: $(hostname -s)"

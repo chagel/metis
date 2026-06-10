@@ -30,6 +30,18 @@ you pull, you report, the workflow resumes.
    tools: `list_tasks`, `get_next_task`, `report_progress`,
    `submit_result`.
 
+**Not Claude Code?** Adapt the same facts to your agent: save this file
+where your agent discovers skills (pi: `.pi/skills/metis-bridge/SKILL.md`),
+and register `<%= base_url %>/api/bridge/mcp` with the same two headers in
+your MCP config (pi: `.mcp.json` via the pi-mcp-adapter extension; Codex:
+its MCP server config). No MCP support at all? The same API is plain REST,
+bearer-authed with the token:
+
+- `GET  <%= base_url %>/api/bridge/tasks` — the claim queue
+- `GET  <%= base_url %>/api/bridge/tasks/next[?id=<id-or-ref>]` — claim
+- `POST <%= base_url %>/api/bridge/tasks/:id/events` — `{kind: "log", text}`
+- `POST <%= base_url %>/api/bridge/tasks/:id/result` — `{status, summary, artifacts}`
+
 ## Working a task
 
 1. **List before claiming.** Call `list_tasks` and pick the task whose
