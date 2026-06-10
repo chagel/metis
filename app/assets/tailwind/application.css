@@ -318,6 +318,10 @@ img.avatar { background:none; object-fit:cover; }
   font-weight:600; font-size:13px; line-height:1.3;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
+.user-menu .tm {
+  font-size:11px; color:var(--ink-3); line-height:1.3;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
 .user-menu-chev {
   width:14px; height:14px; color:var(--ink-3); flex:none;
   transition:transform .15s;
@@ -344,6 +348,10 @@ img.avatar { background:none; object-fit:cover; }
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .user-menu-email {
+  font-size:12px; color:var(--ink-3); line-height:1.3;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.user-menu-team {
   font-size:12px; color:var(--ink-3); line-height:1.3;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }

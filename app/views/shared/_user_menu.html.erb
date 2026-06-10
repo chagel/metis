@@ -13,7 +13,10 @@
           data-action="click->user-menu#toggle"
           aria-haspopup="true" aria-label="Open user menu">
     <%= avatar_for current_user, size: 32 %>
-    <div class="who"><div class="nm"><%= current_user.display_label %></div></div>
+    <div class="who">
+      <div class="nm"><%= current_user.display_label %></div>
+      <div class="tm"><%= current_team.display_name %></div>
+    </div>
     <svg class="user-menu-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor"
          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M4 6l4 4 4-4"/>
@@ -26,6 +29,7 @@
       <div class="user-menu-id-text">
         <div class="user-menu-name"><%= current_user.display_label %></div>
         <div class="user-menu-email"><%= current_user.email %></div>
+        <div class="user-menu-team"><%= current_team.display_name %></div>
       </div>
       <button type="button" class="theme-toggle"
               data-action="click->user-menu#cycleTheme"
