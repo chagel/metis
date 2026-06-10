@@ -53,10 +53,8 @@ class WorkflowsController < ApplicationController
     permitted
   end
 
-  # Steps arrive as workflow[steps][<i>][name|prompt|run], interleaved with
-  # break rows (kind=break). A break folds into the previous step as
-  # gate=approval — the editor shows breaks as list items, but the persisted
-  # shape stays gate-on-step. Leading breaks and blank rows are dropped.
+  # Breaks are editor-only rows: a kind=break row folds into the previous
+  # step as gate=approval; blank rows and leading breaks are dropped.
   def normalized_steps
     rows = params.dig(:workflow, :steps)
     return [] if rows.blank?

@@ -17,18 +17,14 @@ class Task < ApplicationRecord
   # Dispatched and waiting for a local agent to pull it.
   scope :dispatched, -> { running.where(delegated: true) }
   scope :unclaimed, -> { where(claimed_by: nil) }
-  # Delegated tasks a user's bridge token may touch — their teams only.
   scope :delegated_for, ->(user) {
     joins(:workflow_run).where(delegated: true, workflow_runs: { team_id: user.team_ids })
   }
-  # The user's claim queue: dispatched, unclaimed, across their teams.
   scope :claimable_by, ->(user) { delegated_for(user).running.unclaimed }
 
-  # Claim the next dispatched task across the user's teams (FIFO), or a
-  # specific one via `id` — nil if nothing is claimable. SKIP LOCKED so two
-  # clients polling at once each get a distinct task instead of blocking or
-  # double-claiming. `client` is the machine's self-reported name, kept for
-  # the run timeline.
+  # FIFO claim (or by id) across the user's teams; nil when nothing is
+  # claimable. SKIP LOCKED so concurrent pollers each get a distinct task
+  # instead of blocking or double-claiming.
   def self.claim_next_for(user, client: nil, id: nil)
     transaction do
       scope = claimable_by(user)
@@ -43,8 +39,8 @@ class Task < ApplicationRecord
     update!(progress: progress + [ entry ])
   end
 
-  # Readers for the result jsonb ({ "status", "summary", "artifacts" }) —
-  # the one place its shape is known.
+  # The result jsonb ({ "status", "summary", "artifacts" }) is read only
+  # through these.
   def result_failed?
     result["status"] == "failed"
   end

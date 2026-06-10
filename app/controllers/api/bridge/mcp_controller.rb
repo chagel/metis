@@ -1,15 +1,7 @@
 module Api
   module Bridge
-    # MCP facade over the bridge pull surface (docs/local-bridge.md,
-    # Phase 2): a stateless streamable-HTTP MCP server, so a coding agent
-    # needs only this URL and the bridge token —
-    #
-    #   claude mcp add --transport http metis-bridge \
-    #     https://<host>/api/bridge/mcp \
-    #     --header "Authorization: Bearer mbt_…"
-    #
-    # Rails *serves* its own task API here; it still never *consumes* MCP
-    # (connectors stay bridged into pi — see VISION.md).
+    # MCP facade over the bridge pull surface (docs/local-bridge.md): a
+    # stateless streamable-HTTP server, one JSON-RPC message per POST.
     class McpController < BaseController
       include TaskPayloads
 
@@ -70,7 +62,6 @@ module Api
         }
       ].freeze
 
-      # POST /api/bridge/mcp — one JSON-RPC message per request.
       def handle
         message = JSON.parse(request.raw_post)
         return head :accepted if message["id"].nil? # notification

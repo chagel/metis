@@ -26,9 +26,8 @@ class WorkflowAdvanceJob < ApplicationJob
   def settle(run)
     task = run.tasks.running.first
     return :continue unless task
-    # A dispatched delegated step settles via the pull API's result report
-    # (WorkflowRun#complete_delegated_task!), not here — never fail it for
-    # lacking an assistant message.
+    # A delegated step settles via the pull API's result report, not here
+    # — never fail it for lacking an assistant message.
     return :wait if task.delegated?
 
     case task.assistant_message&.streaming_status
@@ -75,9 +74,8 @@ class WorkflowAdvanceJob < ApplicationJob
     WorkflowBroadcaster.new(run).append_turn(user, assistant)
   end
 
-  # A delegated step's outcome never enters the agent session (it wasn't a
-  # turn), so fold the reports of the delegated steps immediately before
-  # this one into its prompt — like `input` folds into the first step's.
+  # A delegated step's outcome never enters the agent session, so the
+  # reports of the delegated steps just before this one fold into its prompt.
   def step_prompt(run, task)
     reports = run.tasks.completed.where(position: ...task.position).order(position: :desc)
                  .take_while(&:delegated?).reverse.map { |prior| delegated_report(prior) }
@@ -91,9 +89,8 @@ class WorkflowAdvanceJob < ApplicationJob
     line
   end
 
-  # Hand the step off to a local machine: mark it dispatched and park the
-  # run. It resumes when the local agent reports a result via the pull API
-  # (WorkflowRun#complete_delegated_task!). No turn, no ChatJob.
+  # Park the run for a local machine — no turn, no ChatJob. It resumes
+  # when a result is reported (WorkflowRun#complete_delegated_task!).
   def dispatch_step(run, task)
     task.update!(status: :running, dispatched_at: Time.current)
     run.awaiting_local!

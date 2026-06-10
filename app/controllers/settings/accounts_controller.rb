@@ -10,8 +10,7 @@ class Settings::AccountsController < ApplicationController
   def show
   end
 
-  # Generate (or rotate) the bridge token (docs/local-bridge.md) — the
-  # plaintext is shown once and never stored.
+  # The plaintext is shown once and never stored.
   def bridge_token
     @new_bridge_token = @user.generate_bridge_token!
     flash.now[:notice] = "Bridge token generated. Copy it now — it won't be shown again."

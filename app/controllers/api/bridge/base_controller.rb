@@ -1,9 +1,7 @@
 module Api
   module Bridge
-    # Base for the bridge pull API. Authenticated by the user's bridge
-    # token (Authorization: Bearer <token>), not a Devise session — the
-    # caller is a local agent, not a browser. Each authenticated call
-    # doubles as a presence heartbeat.
+    # Base for the bridge pull API: bearer-authed by the user's bridge
+    # token, and every authenticated call doubles as a presence heartbeat.
     class BaseController < ActionController::API
       before_action :authenticate_bridge_user!
 
@@ -22,7 +20,7 @@ module Api
         request.headers["Authorization"].to_s[/\ABearer (.+)\z/, 1]
       end
 
-      # The machine's self-reported name ("mikes-mbp") — display only.
+      # Self-reported machine name, display only.
       def bridge_client_name
         request.headers["X-Bridge-Client"].to_s.strip.first(80).presence
       end

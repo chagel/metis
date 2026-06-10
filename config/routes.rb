@@ -98,9 +98,7 @@ Rails.application.routes.draw do
       get  "tasks/next",       to: "tasks#claim"
       post "tasks/:id/events", to: "tasks#events"
       post "tasks/:id/result", to: "tasks#result"
-      # MCP facade over the same surface — streamable HTTP, stateless.
       post "mcp",              to: "mcp#handle"
-      # The client-side skill, served with the deployment URL baked in.
       get  "skill",            to: "skill#show"
     end
   end

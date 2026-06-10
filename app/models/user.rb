@@ -82,11 +82,9 @@ class User < ApplicationRecord
     teams.find_by(personal: true)
   end
 
-  # The bridge token (docs/local-bridge.md): a per-user PAT a local agent
-  # presents to pull delegated workflow tasks. Only the digest is stored;
-  # the plaintext is returned once here. Regenerating revokes the old one.
-  # update_column: an internally minted digest must not be blocked by
-  # unrelated profile validations (e.g. a stale preferred_model).
+  # The bridge token (docs/local-bridge.md): digest stored, plaintext
+  # returned once, regenerating revokes. update_column — an internally
+  # minted digest must not be blocked by unrelated profile validations.
   def generate_bridge_token!
     token = "mbt_#{SecureRandom.urlsafe_base64(32)}"
     update_column(:bridge_token_digest, self.class.bridge_token_digest(token))
@@ -103,8 +101,7 @@ class User < ApplicationRecord
     Digest::SHA256.hexdigest(token)
   end
 
-  # Stamped on every authenticated bridge pull — drives only the "is your
-  # machine connected" hint, never the engine.
+  # Presence stamp — drives only the "is your machine connected" hint.
   def bridge_seen!
     update_column(:bridge_seen_at, Time.current)
   end

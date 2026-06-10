@@ -61,10 +61,8 @@ class WorkflowRun < ApplicationRecord
     WorkflowAdvanceJob.perform_later(id)
   end
 
-  # A delegated task's local agent reported back. The settle-equivalent for
-  # a delegated step: failed fails the run; otherwise an approval gate pauses
-  # for review (the agent's PR), an auto step completes and advances — the
-  # same post-step shape WorkflowAdvanceJob#settle runs for a cloud turn.
+  # The local agent reported back — the settle-equivalent for a delegated
+  # step, mirroring the post-step shape WorkflowAdvanceJob#settle runs.
   def complete_delegated_task!(task, result:)
     return unless task.delegated? && task.running?
 
@@ -111,8 +109,7 @@ class WorkflowRun < ApplicationRecord
 
   private
 
-  # The delegated step's trace in the timeline: one compact plain message
-  # — never a streamed turn (docs/local-bridge.md).
+  # The delegated step's timeline trace — a plain message, never a turn.
   def append_local_report(task)
     line = task.result_failed? ? "Failed" : "Done"
     line += " on #{task.claimed_by.presence || "your machine"}"

@@ -5,8 +5,6 @@ module Api
     module TaskPayloads
       private
 
-      # Scoped to the caller's teams — a token from another team can't
-      # reach this task.
       def find_delegated_task(id)
         Task.delegated_for(current_bridge_user).find(id)
       end
@@ -51,10 +49,8 @@ module Api
         { name: project.name, about: project.about }
       end
 
-      # Context for the local agent — completed prior steps' full output
-      # plus signed URLs for any files they published. Distilled, not a pi
-      # session (no continuity across machines); this bundle is the local
-      # agent's entire brief, so nothing is truncated.
+      # Prior steps' full output + artifact URLs. This bundle is the local
+      # agent's entire brief (no session crosses machines) — never truncate it.
       def prior_step_summaries(run, task)
         run.tasks.completed.where(position: ...task.position).order(:position)
            .includes(assistant_message: { artifacts_attachments: :blob })
