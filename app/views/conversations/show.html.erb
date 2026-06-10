@@ -12,8 +12,8 @@
         </h1>
         <div class="chat-sub">
           <span>Shared by <%= @conversation.user.display_label %></span>
-          <% if workflow_run %><%= render "workflow_runs/meta", run: workflow_run %><% end %>
           <%= render "context_meter", conversation: @conversation %>
+          <% if workflow_run %><%= render "workflow_runs/meta", run: workflow_run %><% end %>
         </div>
       <% else %>
         <h1 class="chat-title"
@@ -30,8 +30,8 @@
         </h1>
         <div class="chat-sub">
           <span>Started <%= time_ago_in_words(@conversation.created_at) %> ago</span>
-          <% if workflow_run %><%= render "workflow_runs/meta", run: workflow_run %><% end %>
           <%= render "context_meter", conversation: @conversation %>
+          <% if workflow_run %><%= render "workflow_runs/meta", run: workflow_run %><% end %>
         </div>
       <% end %>
     </div>
