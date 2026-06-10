@@ -53,22 +53,29 @@ class WorkflowsController < ApplicationController
     permitted
   end
 
-  # Steps arrive as workflow[steps][<i>][name|prompt|gate|run]. Read the raw
-  # nested params (only the scalar keys we care about) and drop blank rows.
+  # Steps arrive as workflow[steps][<i>][name|prompt|run], interleaved with
+  # break rows (kind=break). A break folds into the previous step as
+  # gate=approval — the editor shows breaks as list items, but the persisted
+  # shape stays gate-on-step. Leading breaks and blank rows are dropped.
   def normalized_steps
     rows = params.dig(:workflow, :steps)
     return [] if rows.blank?
 
     rows = rows.values if rows.respond_to?(:values)
-    rows.filter_map do |row|
+    rows.each_with_object([]) do |row, steps|
+      if row[:kind] == "break"
+        steps.last&.store("gate", "approval")
+        next
+      end
+
       name = row[:name].to_s.strip
       prompt = row[:prompt].to_s.strip
       next if name.blank? && prompt.blank?
 
-      {
+      steps << {
         "name" => name,
         "prompt" => prompt,
-        "gate" => (row[:gate] == "approval" ? "approval" : "auto"),
+        "gate" => "auto",
         "run" => (row[:run] == "local" ? "local" : "cloud")
       }
     end

@@ -2113,10 +2113,24 @@ body.drawer-open { overflow:hidden; }
   padding:12px; box-shadow:var(--sh-sm);
 }
 .wf-step-row:active { cursor:grabbing; }
-.wf-step-row.is-dragging { opacity:.5; cursor:grabbing; }
+.wf-step-row.is-dragging, .wf-break-row.is-dragging { opacity:.5; cursor:grabbing; }
 /* interactive children keep their own cursors */
 .wf-step-name, .wf-step-prompt { cursor:text; }
-.wf-step-gate, .wf-step-run, .wf-gate-opt input, .wf-step-del { cursor:pointer; }
+.wf-step-run, .wf-gate-opt input, .wf-step-del { cursor:pointer; }
+
+/* break: a first-class list item that pauses the run for approval */
+.wf-break-row {
+  display:flex; align-items:center; gap:8px; cursor:grab;
+  font-family:var(--fm); font-size:12px; font-weight:600; color:var(--gold);
+  background:var(--gold-soft); border:1px solid var(--gold); border-radius:10px;
+  padding:6px 12px;
+}
+.wf-break-row:active { cursor:grabbing; }
+.wf-break-row .wf-step-grip { padding-top:0; color:var(--gold); opacity:.55; }
+.wf-break-ico { width:14px; height:14px; flex:none; }
+.wf-break-text { flex:1; min-width:0; }
+.wf-break-row .wf-step-del { color:var(--gold); opacity:.7; }
+.wf-break-row .wf-step-del:hover { opacity:1; }
 .wf-step-grip { color:var(--faint); font-size:14px; line-height:1; user-select:none; padding-top:7px; }
 .wf-step-fields { flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
 
@@ -2129,8 +2143,8 @@ body.drawer-open { overflow:hidden; }
 }
 .wf-step-name::placeholder { color:var(--faint); font-weight:500; }
 .wf-step-name:focus { border-bottom-color:var(--line-2); }
-/* Cloud | Local and Auto | Gate segmented toggles (radios) */
-.wf-step-gate, .wf-step-run { flex:none; display:inline-flex; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:2px; }
+/* Cloud | Local segmented toggle (radios) */
+.wf-step-run { flex:none; display:inline-flex; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:2px; }
 .wf-gate-opt { display:inline-grid; }
 .wf-gate-opt input { grid-area:1/1; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
 .wf-gate-opt span {
@@ -2139,7 +2153,6 @@ body.drawer-open { overflow:hidden; }
   padding:4px 11px; border-radius:6px; transition:background-color .12s, color .12s;
 }
 .wf-gate-opt input:checked + span { background:var(--card); color:var(--ink); box-shadow:var(--sh-sm); }
-.wf-gate-opt--gate input:checked + span { color:var(--gold); }
 .wf-gate-opt--local input:checked + span { color:#3fb950; }
 .wf-gate-opt input:focus-visible + span { box-shadow:0 0 0 3px var(--accent-glow); }
 .wf-step-del {
@@ -2158,15 +2171,17 @@ body.drawer-open { overflow:hidden; }
 .wf-step-prompt::placeholder { color:var(--faint); }
 .wf-step-prompt:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); }
 
-/* add-step: a dashed "new card" affordance matching the step cards */
+/* add buttons: dashed "new card" affordances matching the step cards */
+.wf-step-adds { display:flex; gap:10px; }
 .wf-step-add {
-  display:flex; align-items:center; justify-content:center; gap:7px; width:100%;
+  flex:1; display:flex; align-items:center; justify-content:center; gap:7px;
   padding:12px; cursor:pointer; font:inherit; font-family:var(--fb);
   font-size:13px; font-weight:600; color:var(--ink-3);
   background:none; border:1px dashed var(--line-2); border-radius:12px;
   transition:border-color .13s, color .13s, background-color .13s;
 }
 .wf-step-add:hover { border-color:var(--accent); color:var(--ink); background:var(--card); }
+.wf-step-add--break:hover { border-color:var(--gold); color:var(--gold); background:var(--gold-soft); }
 .wf-step-add:active { transform:scale(.99); }
 .wf-step-add svg { width:15px; height:15px; }
 

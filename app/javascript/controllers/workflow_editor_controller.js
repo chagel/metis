@@ -5,7 +5,7 @@ import { Controller } from "@hotwired/stimulus"
 // DOM order, so indices only need to be unique — we count up from the rows
 // already present, and reordering rows in the DOM is enough to reorder steps.
 export default class extends Controller {
-  static targets = ["list", "template"]
+  static targets = ["list", "template", "breakTemplate"]
 
   connect() {
     this.index = this.listTarget.querySelectorAll("[data-workflow-editor-target='row']").length
@@ -13,7 +13,8 @@ export default class extends Controller {
 
   add(event) {
     event.preventDefault()
-    const html = this.templateTarget.innerHTML.replace(/NEW_RECORD/g, this.index++)
+    const template = event.params.kind === "break" ? this.breakTemplateTarget : this.templateTarget
+    const html = template.innerHTML.replace(/NEW_RECORD/g, this.index++)
     this.listTarget.insertAdjacentHTML("beforeend", html)
   }
 

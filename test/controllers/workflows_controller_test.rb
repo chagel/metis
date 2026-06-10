@@ -16,14 +16,15 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Triage", response.body
   end
 
-  test "create normalizes steps and drops blank rows" do
+  test "create folds break rows into the previous step's gate and drops blank rows" do
     assert_difference -> { @team.workflows.count }, 1 do
       post workflows_path, params: { workflow: {
         name: "Sentry fix",
         steps: {
-          "0" => { name: "spec", prompt: "write spec", gate: "auto" },
-          "1" => { name: "review", prompt: "review it", gate: "approval" },
-          "2" => { name: "", prompt: "", gate: "auto" } # blank → dropped
+          "0" => { name: "spec", prompt: "write spec" },
+          "1" => { name: "review", prompt: "review it" },
+          "2" => { kind: "break" },
+          "3" => { name: "", prompt: "" } # blank → dropped
         }
       } }
     end
@@ -31,16 +32,29 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to edit_workflow_path(workflow)
     assert_equal 2, workflow.steps.size
     assert_equal %w[spec review], workflow.steps.map { |s| s["name"] }
-    assert_equal "approval", workflow.steps.last["gate"]
+    assert_equal %w[auto approval], workflow.steps.map { |s| s["gate"] }
     assert_equal %w[cloud cloud], workflow.steps.map { |s| s["run"] }
+  end
+
+  test "a leading break has no step to fold into and is dropped" do
+    post workflows_path, params: { workflow: {
+      name: "Leading break",
+      steps: {
+        "0" => { kind: "break" },
+        "1" => { name: "spec", prompt: "write spec" }
+      }
+    } }
+    workflow = @team.workflows.find_by(name: "Leading break")
+    assert_equal [ "auto" ], workflow.steps.map { |s| s["gate"] }
   end
 
   test "create persists a step's run:local delegation choice" do
     post workflows_path, params: { workflow: {
       name: "Ship it",
       steps: {
-        "0" => { name: "plan", prompt: "plan", gate: "auto", run: "cloud" },
-        "1" => { name: "implement", prompt: "build it", gate: "approval", run: "local" }
+        "0" => { name: "plan", prompt: "plan", run: "cloud" },
+        "1" => { name: "implement", prompt: "build it", run: "local" },
+        "2" => { kind: "break" }
       }
     } }
     workflow = @team.workflows.find_by(name: "Ship it")
@@ -55,7 +69,7 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   test "update edits steps" do
     workflow = @team.workflows.create!(name: "W", steps: [ { "name" => "a", "prompt" => "a", "gate" => "auto" } ])
     patch workflow_path(workflow), params: { workflow: {
-      name: "W", steps: { "0" => { name: "b", prompt: "do b", gate: "approval" } }
+      name: "W", steps: { "0" => { name: "b", prompt: "do b" }, "1" => { kind: "break" } }
     } }
     assert_redirected_to edit_workflow_path(workflow)
     workflow.reload
@@ -91,8 +105,10 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     )
     get edit_workflow_path(workflow)
     assert_response :success
-    # Scope past the inert <template> row to the live list.
-    assert_select ".wf-steps-list [data-workflow-editor-target='row']", 1
+    # Scope past the inert <template> rows to the live list; the gated step
+    # renders as a prompt card followed by a break row.
+    assert_select ".wf-steps-list [data-workflow-editor-target='row']", 2
+    assert_select ".wf-steps-list .wf-break-row", 1
     assert_match "spec", response.body
   end
 

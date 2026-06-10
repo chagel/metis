@@ -3,7 +3,7 @@
     <div class="conn-name"><%= workflow.name %></div>
     <div class="conn-sub">
       <%= pluralize(workflow.steps.size, "step") %> ·
-      <%= pluralize(workflow.gate_count, "gate") %> ·
+      <%= pluralize(workflow.gate_count, "break") %> ·
       <%= workflow.trigger_source %>
       <%= "· #{workflow.default_project.name}" if workflow.default_project %>
     </div>

@@ -2,7 +2,6 @@
      data-action="dragstart->workflow-editor#dragStart dragend->workflow-editor#dragEnd">
   <div class="wf-step-grip" aria-hidden="true">⋮⋮</div>
   <div class="wf-step-fields">
-    <% gated = step["gate"] == "approval" %>
     <% local = step["run"] == "local" %>
     <div class="wf-step-head">
       <input type="text" name="workflow[steps][<%= index %>][name]"
@@ -15,16 +14,6 @@
         <label class="wf-gate-opt wf-gate-opt--local">
           <input type="radio" name="workflow[steps][<%= index %>][run]" value="local" <%= "checked" if local %>>
           <span title="Delegate this step to your enrolled machine">Local</span>
-        </label>
-      </div>
-      <div class="wf-step-gate" role="radiogroup" aria-label="After this step">
-        <label class="wf-gate-opt">
-          <input type="radio" name="workflow[steps][<%= index %>][gate]" value="auto" <%= "checked" unless gated %>>
-          <span>Auto</span>
-        </label>
-        <label class="wf-gate-opt wf-gate-opt--gate">
-          <input type="radio" name="workflow[steps][<%= index %>][gate]" value="approval" <%= "checked" if gated %>>
-          <span title="Pause for approval after this step">Gate</span>
         </label>
       </div>
       <button type="button" class="wf-step-del" data-action="workflow-editor#remove"

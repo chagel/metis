@@ -28,22 +28,37 @@
 
   <div class="field">
     <%= f.label :steps, "Steps" %>
-    <p class="field-hint">Each step runs its prompt as one agent turn — the name is just a label, the prompt is the instruction. Set a step to <strong>Gate</strong> to pause for your review after it runs, or to <strong>Local</strong> to delegate it to an enrolled machine (see <%= link_to "Bridge", bridges_path %>).</p>
+    <p class="field-hint">Each prompt step runs as one agent turn — the name is just a label, the prompt is the instruction. Add a <strong>break</strong> where the run should pause for your approval (approve to continue, or request changes to re-run the step above it). Set a step to <strong>Local</strong> to delegate it to an enrolled machine (see <%= link_to "Bridge", bridges_path %>).</p>
     <div class="wf-steps" data-controller="workflow-editor">
       <div class="wf-steps-list" data-workflow-editor-target="list"
            data-action="dragover->workflow-editor#dragOver">
-        <% workflow.steps.each_with_index do |step, i| %>
-          <%= render "step_row", index: i, step: step %>
+        <% row_index = -1 %>
+        <% workflow.steps.each do |step| %>
+          <%= render "step_row", index: (row_index += 1), step: step %>
+          <% if step["gate"] == "approval" %>
+            <%= render "break_row", index: (row_index += 1) %>
+          <% end %>
         <% end %>
       </div>
       <template data-workflow-editor-target="template">
         <%= render "step_row", index: "NEW_RECORD", step: {} %>
       </template>
-      <button type="button" class="wf-step-add" data-action="workflow-editor#add">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>
-        Add step
-      </button>
+      <template data-workflow-editor-target="breakTemplate">
+        <%= render "break_row", index: "NEW_RECORD" %>
+      </template>
+      <div class="wf-step-adds">
+        <button type="button" class="wf-step-add" data-action="workflow-editor#add">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>
+          Add prompt step
+        </button>
+        <button type="button" class="wf-step-add wf-step-add--break" data-action="workflow-editor#add"
+                data-workflow-editor-kind-param="break">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 3.5v9M10.5 3.5v9"/></svg>
+          Add break
+        </button>
+      </div>
     </div>
   </div>
 

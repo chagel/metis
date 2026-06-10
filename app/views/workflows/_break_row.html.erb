@@ -1,0 +1,18 @@
+<div class="wf-break-row" data-workflow-editor-target="row" draggable="true"
+     data-action="dragstart->workflow-editor#dragStart dragend->workflow-editor#dragEnd"
+     title="The run pauses here — approve to continue, or request changes to re-run the step above">
+  <input type="hidden" name="workflow[steps][<%= index %>][kind]" value="break">
+  <div class="wf-step-grip" aria-hidden="true">⋮⋮</div>
+  <svg class="wf-break-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M5.5 3.5v9M10.5 3.5v9"/>
+  </svg>
+  <span class="wf-break-text">Break — waits for your approval</span>
+  <button type="button" class="wf-step-del" data-action="workflow-editor#remove"
+          title="Remove break" aria-label="Remove break">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M3 4.5h10M6.5 4.5V3.5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1m1.5 0v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-8"/>
+    </svg>
+  </button>
+</div>
