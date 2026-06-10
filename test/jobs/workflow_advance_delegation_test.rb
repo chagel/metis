@@ -78,7 +78,14 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
     assert report.done?
 
     advance(run)                                  # start the cloud step 1
-    assert run.tasks.find_by(position: 1).running?
+    next_task = run.tasks.find_by(position: 1)
+    assert next_task.running?
+
+    # The local result never entered the agent session, so the next cloud
+    # prompt must carry it.
+    step_prompt = run.conversation.messages.where(role: :user, workflow_generated: true).last.content
+    assert_includes step_prompt, %(Step "impl" ran on the user's machine and reported: did it (http://x/1))
+    assert_includes step_prompt, "next"
   end
 
   test "a failed result fails the run and leaves a failure report line" do

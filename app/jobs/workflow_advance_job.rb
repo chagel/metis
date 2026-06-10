@@ -70,9 +70,26 @@ class WorkflowAdvanceJob < ApplicationJob
   def start_step(run, task)
     task.running!
     run.running! unless run.running?
-    user, assistant = ConversationTurn.start(run.conversation, content: task.prompt, workflow_generated: true)
+    user, assistant = ConversationTurn.start(run.conversation, content: step_prompt(run, task), workflow_generated: true)
     task.update!(assistant_message: assistant)
     WorkflowBroadcaster.new(run).append_turn(user, assistant)
+  end
+
+  # A delegated step's outcome never enters the agent session (it wasn't a
+  # turn), so fold the reports of the delegated steps immediately before
+  # this one into its prompt — like `input` folds into the first step's.
+  def step_prompt(run, task)
+    reports = run.tasks.completed.where(position: ...task.position).order(position: :desc)
+                 .take_while(&:delegated?).reverse.map { |prior| delegated_report(prior) }
+    [ *reports, task.prompt ].join("\n\n")
+  end
+
+  def delegated_report(task)
+    result = task.result.with_indifferent_access
+    line = %(Step "#{task.name}" ran on the user's machine and reported: #{result[:summary].presence || result[:status]})
+    urls = Array(result[:artifacts]).filter_map { |a| a.with_indifferent_access[:url] }
+    line += " (#{urls.join(", ")})" if urls.any?
+    line
   end
 
   # Hand the step off to a local machine: mark it dispatched and park the
