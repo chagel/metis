@@ -427,7 +427,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     # The public share link stays available (read-only), but not owner controls.
     assert_select ".chat-actions .share .share-panel-url[value=?]",
                   shared_conversation_url(token: shared.share_token)
-    assert_select ".chat-actions .share-panel-revoke", count: 0
+    assert_select ".chat-actions .access-switch", count: 0
     assert_select ".chat-actions form[action=?]", archive_conversation_path(shared), count: 0
     # A shared view hides the whole activity block (reasoning + tool calls),
     # like the public share template; the answer text remains.

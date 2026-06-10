@@ -1,37 +1,63 @@
-<%# Inline share panel for the chat header. Rendered into #conversation_share
-    on the initial page and on every share/unshare request (Turbo Stream and
-    full-page fallback both reuse this partial). %>
-<%# can_manage: owner controls (create/revoke). A read-only team viewer
-    gets the copyable link only. %>
+<%# Inline access panel for the chat header: who can see this chat, as an
+    access ladder — team (in-app, read-only) and public link — each a row
+    with a state switch. Re-rendered whole on every toggle (Turbo Stream
+    and full-page fallback both reuse this partial). %>
+<%# can_manage: owner controls (switches). A read-only team viewer gets
+    the copyable link only. %>
 <% can_manage = local_assigns.fetch(:can_manage, true) %>
 <div id="<%= dom_id(conversation, :share) %>"
      class="share-panel"
      data-share-target="panel"
      data-shared="<%= conversation.shared? %>">
   <% if can_manage && !conversation.team.personal? %>
-    <div class="share-panel-team">
-      <p class="share-panel-label">
-        <% if conversation.visibility_team? %>
-          Your team can open this conversation read-only.
-        <% else %>
-          Only you can open this conversation.
-        <% end %>
-      </p>
-      <%= button_to (conversation.visibility_team? ? "Make it just yours" : "Open it to your team"),
-            visibility_conversation_path(conversation),
-            method: :patch,
-            class: (conversation.visibility_team? ? "share-panel-revoke" : "share-panel-create"),
-            form: { data: { turbo_stream: true } } %>
+    <div class="access-row">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="5.5" cy="5" r="2.3"/><path d="M1.5 13.5c0-2.2 1.8-4 4-4s4 1.8 4 4"/>
+        <circle cx="11.5" cy="5.5" r="1.9"/><path d="M11 9.6c1.9.2 3.5 1.9 3.5 3.9"/>
+      </svg>
+      <div class="access-text">
+        <span class="access-title">Team access</span>
+        <span class="access-desc">Members can open this chat, read-only.</span>
+      </div>
+      <%= button_to visibility_conversation_path(conversation), method: :patch,
+            class: "access-switch#{" on" if conversation.visibility_team?}",
+            role: "switch", "aria-checked": conversation.visibility_team?.to_s,
+            "aria-label": "Team access",
+            form: { data: { turbo_stream: true } } do %>
+        <span class="access-knob"></span>
+      <% end %>
     </div>
   <% end %>
+
+  <% if can_manage %>
+    <div class="access-row">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6.5 9.5a3 3 0 0 0 4.4.2l2.2-2.2a3 3 0 0 0-4.2-4.2L7.7 4.5"/>
+        <path d="M9.5 6.5a3 3 0 0 0-4.4-.2L2.9 8.5a3 3 0 0 0 4.2 4.2l1.2-1.2"/>
+      </svg>
+      <div class="access-text">
+        <span class="access-title">Public link</span>
+        <span class="access-desc">Anyone with the link can view this chat.</span>
+      </div>
+      <%= button_to share_conversation_path(conversation),
+            method: conversation.shared? ? :delete : :post,
+            class: "access-switch#{" on" if conversation.shared?}",
+            role: "switch", "aria-checked": conversation.shared?.to_s,
+            "aria-label": "Public link",
+            form: { data: { turbo_stream: true } } do %>
+        <span class="access-knob"></span>
+      <% end %>
+    </div>
+  <% end %>
+
   <% if conversation.shared? %>
-    <% url = shared_conversation_url(token: conversation.share_token) %>
-    <p class="share-panel-label">Anyone with this link can view the conversation. It also appears in your team’s shared list.</p>
     <div class="share-panel-row">
       <input type="text"
              class="share-panel-url"
              readonly
-             value="<%= url %>"
+             value="<%= shared_conversation_url(token: conversation.share_token) %>"
              data-share-target="url"
              data-action="focus->share#selectAll">
       <button type="button"
@@ -39,19 +65,5 @@
               data-action="click->share#copy"
               data-share-target="copyButton">Copy</button>
     </div>
-    <% if can_manage %>
-      <%= button_to "Revoke link",
-            share_conversation_path(conversation),
-            method: :delete,
-            class: "share-panel-revoke",
-            form: { data: { turbo_stream: true } } %>
-    <% end %>
-  <% elsif can_manage %>
-    <p class="share-panel-label">Create a public link so anyone can view this conversation — and share it with your team.</p>
-    <%= button_to "Create share link",
-          share_conversation_path(conversation),
-          method: :post,
-          class: "share-panel-create",
-          form: { data: { turbo_stream: true } } %>
   <% end %>
 </div>

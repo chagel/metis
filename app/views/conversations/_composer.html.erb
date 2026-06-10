@@ -89,16 +89,25 @@
               </svg>
             </span>
             <% unless current_team.personal? %>
-              <span class="model-pick">
-                <select name="visibility" aria-label="Who can see this chat">
-                  <option value="personal">Only me</option>
-                  <option value="team">Team</option>
-                </select>
-                <svg class="caret" viewBox="0 0 16 16" fill="none" stroke="currentColor"
-                     stroke-width="1.7" aria-hidden="true">
-                  <path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </span>
+              <label class="vis-chip" title="Who can open this chat — click to toggle">
+                <input type="hidden" name="visibility" value="personal">
+                <input type="checkbox" name="visibility" value="team" class="vis-check">
+                <span class="vis-opt vis-opt--me">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+                       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3.5" y="7" width="9" height="6" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>
+                  </svg>
+                  Only me
+                </span>
+                <span class="vis-opt vis-opt--team">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+                       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="5.5" cy="5" r="2.3"/><path d="M1.5 13.5c0-2.2 1.8-4 4-4s4 1.8 4 4"/>
+                    <circle cx="11.5" cy="5.5" r="1.9"/><path d="M11 9.6c1.9.2 3.5 1.9 3.5 3.9"/>
+                  </svg>
+                  Team
+                </span>
+              </label>
             <% end %>
           <% end %>
 

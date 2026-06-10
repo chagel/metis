@@ -943,6 +943,24 @@ img.avatar { background:none; object-fit:cover; }
   width:11px; height:11px; color:var(--ink-3); pointer-events:none;
 }
 .model-pick:hover .caret { color:var(--accent-fg); }
+
+/* Visibility chip: a self-labeling toggle (lock = only me, people = team),
+   not a dropdown — the icon is the state. */
+.vis-chip { display:inline-grid; cursor:pointer; }
+.vis-chip .vis-check { grid-area:1/1; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
+.vis-opt {
+  grid-area:1/1; display:inline-flex; align-items:center; gap:5px; pointer-events:none;
+  font-family:var(--fb); font-size:12.5px; font-weight:500; color:var(--ink-2);
+  background:var(--bg); border-radius:9px; padding:6px 11px;
+  transition:background-color .13s, color .13s;
+}
+.vis-opt svg { width:13px; height:13px; }
+.vis-chip:hover .vis-opt { background:var(--accent-soft); color:var(--accent-fg); }
+.vis-opt--team, .vis-check:checked ~ .vis-opt--me { visibility:hidden; }
+.vis-check:checked ~ .vis-opt--team {
+  visibility:visible; background:var(--accent-soft); color:var(--accent-fg);
+}
+.vis-check:focus-visible ~ .vis-opt { box-shadow:0 0 0 3px var(--accent-glow); }
 .previews { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
 .previews:empty { display:none; }
 
@@ -1680,10 +1698,27 @@ body.auth-shell { min-height:100vh; display:grid; place-items:center; padding:24
   display:none; flex-direction:column; gap:10px; z-index:20;
 }
 .share.share-open .share-panel { display:flex; }
-.share-panel-team {
-  display:flex; flex-direction:column; gap:8px; align-items:flex-start;
-  padding-bottom:12px; border-bottom:1px solid var(--line);
+
+/* Access rows: icon · name + consequence · state switch. */
+.access-row { display:flex; align-items:center; gap:11px; }
+.access-row > svg { width:16px; height:16px; color:var(--ink-3); flex:none; }
+.access-text { flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+.access-title { font-size:13px; font-weight:600; color:var(--ink); }
+.access-desc { font-size:11.5px; color:var(--ink-3); line-height:1.35; }
+.access-row form { margin:0; flex:none; }
+.access-switch {
+  display:flex; align-items:center; width:34px; height:20px; padding:2px;
+  border:none; border-radius:999px; background:var(--line-2); cursor:pointer;
+  transition:background-color .15s;
 }
+.access-knob {
+  width:16px; height:16px; border-radius:50%; background:var(--card);
+  box-shadow:var(--sh-sm); transition:transform .15s;
+}
+.access-switch.on { background:var(--accent); }
+.access-switch.on .access-knob { transform:translateX(14px); }
+.access-switch:focus-visible { outline:none; box-shadow:0 0 0 3px var(--accent-glow); }
+
 .share-panel-label { margin:0; font-size:12.5px; color:var(--ink-2); line-height:1.45; }
 .share-panel-row { display:flex; gap:6px; }
 .share-panel-url {
