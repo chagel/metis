@@ -103,18 +103,27 @@
         </p>
 
         <% if @new_bridge_token.present? %>
+          <% bridge_setup = <<~TEXT.strip
+            Set up the Metis bridge on this machine:
+
+            1. Install the skill:
+               curl -fsSL --create-dirs #{api_bridge_skill_url} -o ~/.claude/skills/metis-bridge/SKILL.md
+            2. Register the MCP server:
+               claude mcp add --transport http --scope user metis-bridge #{api_bridge_mcp_url} --header "Authorization: Bearer #{@new_bridge_token}" --header "X-Bridge-Client: $(hostname -s)"
+
+            Then reconnect MCP servers and verify by calling the list_tasks tool.
+          TEXT
+          %>
           <div class="bridge-token">
             <p class="bridge-token-hint">
-              Copy it now — it won't be shown again. Then teach your coding agent the bridge:
-              <code>curl -fsSL --create-dirs <%= api_bridge_skill_url %> -o ~/.claude/skills/metis-bridge/SKILL.md</code>
-              and tell it "set up the metis bridge" with this token.
+              Shown once — paste this whole thing into the coding agent on your machine:
             </p>
             <div class="token-row">
-              <code class="token"><%= @new_bridge_token %></code>
-              <button type="button" class="token-copy" title="Copy token"
-                      aria-label="Copy token to clipboard"
+              <pre class="token bridge-paste"><%= bridge_setup %></pre>
+              <button type="button" class="token-copy" title="Copy setup instructions"
+                      aria-label="Copy setup instructions to clipboard"
                       data-controller="copy"
-                      data-copy-text-value="<%= @new_bridge_token %>"
+                      data-copy-text-value="<%= bridge_setup %>"
                       data-action="copy#copy">
                 <svg class="ico-copy" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

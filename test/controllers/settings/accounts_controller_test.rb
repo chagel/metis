@@ -18,11 +18,14 @@ class Settings::AccountsControllerTest < ActionDispatch::IntegrationTest
     post account_bridge_token_path
     assert_response :success
     assert @user.reload.bridge_token_digest.present?
-    assert_select ".bridge-token code.token", /\Ambt_/
+    # The paste-into-your-agent blob carries skill install, mcp add, and token.
+    assert_select ".bridge-token .bridge-paste", /mbt_/
+    assert_select ".bridge-token .bridge-paste", /claude mcp add/
+    assert_select ".bridge-token .bridge-paste", %r{api/bridge/skill}
 
-    # Token shown only on the generating response, never again.
+    # Shown only on the generating response, never again.
     get account_path
-    assert_select ".bridge-token code.token", count: 0
+    assert_select ".bridge-token .bridge-paste", count: 0
   end
 
   test "bridge_token regenerates and rotates the digest" do
