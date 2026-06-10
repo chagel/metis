@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_10_120001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -90,6 +90,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
     t.string "title"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.integer "visibility", default: 0, null: false
     t.index ["archived_at"], name: "index_conversations_on_archived_at"
     t.index ["daytona_sandbox_id"], name: "index_conversations_on_daytona_sandbox_id"
     t.index ["e2b_sandbox_id"], name: "index_conversations_on_e2b_sandbox_id"
@@ -246,6 +247,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
     t.bigint "approved_by_id"
     t.bigint "assistant_message_id"
     t.string "claimed_by"
+    t.bigint "claimed_by_user_id"
     t.datetime "created_at", null: false
     t.datetime "decided_at"
     t.boolean "delegated", default: false, null: false
@@ -261,6 +263,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
     t.bigint "workflow_run_id", null: false
     t.index ["approved_by_id"], name: "index_tasks_on_approved_by_id"
     t.index ["assistant_message_id"], name: "index_tasks_on_assistant_message_id"
+    t.index ["claimed_by_user_id"], name: "index_tasks_on_claimed_by_user_id"
     t.index ["workflow_run_id", "position"], name: "index_tasks_on_workflow_run_id_and_position", unique: true
   end
 
@@ -348,6 +351,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
   add_foreign_key "skills", "users", column: "updated_by_id"
   add_foreign_key "tasks", "messages", column: "assistant_message_id", on_delete: :nullify
   add_foreign_key "tasks", "users", column: "approved_by_id", on_delete: :nullify
+  add_foreign_key "tasks", "users", column: "claimed_by_user_id", on_delete: :nullify
   add_foreign_key "tasks", "workflow_runs", on_delete: :cascade
   add_foreign_key "workflow_runs", "conversations", on_delete: :cascade
   add_foreign_key "workflow_runs", "teams"

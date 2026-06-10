@@ -5,7 +5,8 @@ require "test_helper"
 # a result report rather than a cloud turn.
 class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
   setup do
-    @user = User.create!(email: "wfd-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    @user = User.create!(email: "wfd-#{SecureRandom.hex(4)}@example.com", password: "password123",
+                         display_name: "Bob")
     @team = @user.personal_team
   end
 
@@ -49,6 +50,7 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
     claimed = Task.claim_next_for(@user, client: "macbook")
     assert_equal run.tasks.first, claimed
     assert_equal "macbook", claimed.reload.claimed_by
+    assert_equal @user, claimed.claimed_by_user
     assert_nil Task.claim_next_for(@user), "an already-claimed task is not handed out twice"
   end
 
@@ -74,7 +76,7 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
     assert_equal "did it", run.tasks.find_by(position: 0).result["summary"]
 
     report = run.conversation.messages.where(role: :assistant, workflow_generated: true).last
-    assert_equal "Done on macbook — did it → http://x/1", report.content
+    assert_equal "Done on Bob's macbook — did it → http://x/1", report.content
     assert report.done?
 
     advance(run)                                  # start the cloud step 1
@@ -97,7 +99,7 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
     assert run.failed?
     assert run.tasks.first.failed?
     report = run.conversation.messages.where(role: :assistant, workflow_generated: true).last
-    assert_equal "Failed on local agent — broke", report.content
+    assert_equal "Failed on Bob's machine — broke", report.content
   end
 
   test "an approval-gated delegated step pauses for review after the report" do

@@ -9,7 +9,8 @@ class WorkflowRun < ApplicationRecord
                   completed: 3, failed: 4, cancelled: 5, awaiting_local: 6 }, default: :pending
 
   scope :active,   -> { where(status: %i[pending running awaiting_approval awaiting_local]) }
-  scope :awaiting, -> { where(status: :awaiting_approval) }
+  # Runs a human (or their machine) must act on for the run to move.
+  scope :awaiting, -> { where(status: %i[awaiting_approval awaiting_local]) }
 
   def active?
     pending? || running? || awaiting_approval? || awaiting_local?
@@ -22,8 +23,10 @@ class WorkflowRun < ApplicationRecord
     run = transaction do
       # No title — auto-titling names each run from its first turn, so runs
       # of one workflow get distinct names.
+      # A run executes a team workflow, so its chat is team-visible: any
+      # member can open it, act on its gates, and claim its local steps.
       conversation = user.conversations.create!(
-        team: team, project: project, settings: settings || {}
+        team: team, project: project, settings: settings || {}, visibility: :team
       )
       run = create!(
         team: team, workflow: workflow, conversation: conversation,
@@ -112,7 +115,7 @@ class WorkflowRun < ApplicationRecord
   # The delegated step's timeline trace — a plain message, never a turn.
   def append_local_report(task)
     line = task.result_failed? ? "Failed" : "Done"
-    line += " on #{task.claimed_by.presence || "your machine"}"
+    line += " on #{task.claimed_label.presence || "a local machine"}"
     line += " — #{task.result_summary}" if task.result_summary
     url = task.result_artifact_urls.first
     line += " → #{url}" if url

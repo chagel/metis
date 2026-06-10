@@ -10,7 +10,11 @@
       <% elsif run.awaiting_local? %>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="11" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
-        Delegated to your machine — a local agent with your bridge token will pick it up.
+        <% if (worker = run.tasks.dispatched.first&.claimed_label) %>
+          <%= worker %> is working on this step.
+        <% else %>
+          Delegated — waiting for a machine with a bridge token to pick it up.
+        <% end %>
       <% elsif run.active? %>
         <span class="wf-run-dot"></span>
         The agent is running this workflow…

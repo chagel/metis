@@ -144,24 +144,25 @@ class ApplicationController < ActionController::Base
     )
   end
 
-  # Runs awaiting the operator's approval — pinned above the recency list so a
-  # gate doesn't get lost in it, and excluded from it so they don't double.
-  # Only in the personal "active" scope for now; team-wide needs the deferred
-  # team-visibility work (docs/workflows.md).
+  # Runs awaiting someone's action — a gate to review or a local step to
+  # claim — pinned above the recency list so they don't get lost in it,
+  # and excluded from it so they don't double. Team-visible runs pin for
+  # every member: their gates are the team's to act on.
   def needs_you_conversations
     return [] unless @sidebar_filter == "active"
 
-    current_user.conversations.for_team(current_team).active
-      .joins(:workflow_run).merge(WorkflowRun.awaiting).recent.to_a
+    current_team.conversations.where(user: current_user).or(
+      current_team.conversations.visibility_team
+    ).active.joins(:workflow_run).merge(WorkflowRun.awaiting).recent.to_a
   end
 
-  # "shared" spans the whole team (every member's shared conversations);
-  # "active" and "starred" are the signed-in user's own, archived excluded.
-  # All ordered by recency for the same bucketed sidebar list.
+  # "shared" spans the whole team (every member's shared or team-visible
+  # conversations); "active" and "starred" are the signed-in user's own,
+  # archived excluded. All ordered by recency for the same bucketed list.
   def sidebar_scope(filter)
     mine = current_user.conversations.for_team(current_team)
     case filter
-    when "shared"  then current_team.conversations.shared.active.recent
+    when "shared"  then current_team.conversations.team_readable.active.recent
     when "starred" then mine.starred.active.recent
     else                mine.active.recent
     end

@@ -336,12 +336,14 @@ deferred.
 
 ## Open questions / known gaps
 
-- **Team visibility of run conversations** (deferred). A run is a team
-  operation — the gate's "routed to your team" copy implies any member can
-  act — but `conversations#show` only authorizes the owner (or an explicitly
-  shared conversation), and the sidebar **"Needs you"** pin currently shows
-  only your own runs. Decide whether a workflow-run conversation should be
-  team-readable, then widen `show` auth and the pin accordingly. (No issue in
-  a personal team-of-one.)
+- ~~**Team visibility of run conversations**~~ — settled and built. A run
+  executes a team workflow, so its conversation is created
+  `visibility: :team` (distinct from the public `share_token`): any member
+  opens it read-only, acts on its gates, claims its local steps, and sees
+  it pinned under **"Needs you"** (which now also covers `awaiting_local`)
+  and in the **Shared** tab. Delegated claims are stamped with the
+  claiming user (`Task#claimed_by_user`), so timelines read
+  "Done on Bob's Apollo". Ownership (composer, archive, public link)
+  stays with the launcher.
 - One trigger per workflow (inline `trigger_source`/`trigger_config`) vs. a
   `Trigger` model for many-per-workflow. Inline for now; extract if needed.

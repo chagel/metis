@@ -19,6 +19,62 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     run
   end
 
+  def shared_team
+    team = Team.create!(name: "Acme")
+    team.memberships.create!(user: @user, role: :owner)
+    team
+  end
+
+  # Sign in a fresh member of `team` and switch their session into it.
+  def join_as_teammate(team)
+    mate = User.create!(email: "mate-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    team.memberships.create!(user: mate, role: :member)
+    sign_in mate
+    post switch_team_path(team)
+  end
+
+  test "a run's conversation is team-visible: a teammate opens it read-only" do
+    team = shared_team
+    run = WorkflowRun.start(team: team, user: @user, steps: [ { "name" => "a", "prompt" => "a" } ])
+    assert run.conversation.visibility_team?
+    chat = @user.conversations.create!(team: team)
+
+    join_as_teammate(team)
+    get conversation_path(run.conversation)
+    assert_response :success
+    assert_match "Read-only", response.body
+
+    # A plain chat stays private to its owner.
+    get conversation_path(chat)
+    assert_response :not_found
+  end
+
+  test "an awaiting run pins in a teammate's sidebar and shared tab" do
+    team = shared_team
+    conversation = @user.conversations.create!(team: team, visibility: :team, title: "ZZ team run")
+    run = team.workflow_runs.create!(conversation: conversation, status: :awaiting_approval)
+    run.tasks.create!(position: 0, gate: :approval, status: :awaiting_approval)
+
+    join_as_teammate(team)
+    get conversations_path
+    assert_select ".convos-pinned .convo", text: /team run/i
+    get conversations_path(filter: "shared")
+    assert_select "#convos-list .convo", text: /team run/i
+  end
+
+  test "the run note names the claimer once a delegated task is claimed" do
+    conversation = @user.conversations.create!(team: @team)
+    run = @team.workflow_runs.create!(conversation: conversation, status: :awaiting_local)
+    task = run.tasks.create!(position: 0, name: "impl", status: :running, delegated: true)
+
+    get conversation_path(conversation)
+    assert_match "waiting for a machine with a bridge token", response.body
+
+    task.update!(claimed_by_user: @user, claimed_by: "Apollo")
+    get conversation_path(conversation)
+    assert_match "#{@user.display_label}&#39;s Apollo is working on this step", response.body
+  end
+
   test "the gate on the final step reads finish, mid-run reads continue" do
     run = gated_run
     get conversation_path(run.conversation)
