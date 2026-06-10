@@ -944,8 +944,7 @@ img.avatar { background:none; object-fit:cover; }
 }
 .model-pick:hover .caret { color:var(--accent-fg); }
 
-/* Visibility chip: a self-labeling toggle (lock = only me, people = team),
-   not a dropdown — the icon is the state. */
+/* Visibility chip: one eye icon, the text toggles (Only me / Team). */
 .vis-chip { display:inline-grid; cursor:pointer; }
 .vis-chip .vis-check { grid-area:1/1; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
 .vis-opt {
@@ -956,10 +955,9 @@ img.avatar { background:none; object-fit:cover; }
 }
 .vis-opt svg { width:13px; height:13px; }
 .vis-chip:hover .vis-opt { background:var(--accent-soft); color:var(--accent-fg); }
-.vis-opt--team, .vis-check:checked ~ .vis-opt--me { visibility:hidden; }
-.vis-check:checked ~ .vis-opt--team {
-  visibility:visible; background:var(--accent-soft); color:var(--accent-fg);
-}
+.vis-label--team, .vis-check:checked ~ .vis-opt .vis-label--me { display:none; }
+.vis-check:checked ~ .vis-opt .vis-label--team { display:inline; }
+.vis-check:checked ~ .vis-opt { background:var(--accent-soft); color:var(--accent-fg); }
 .vis-check:focus-visible ~ .vis-opt { box-shadow:0 0 0 3px var(--accent-glow); }
 .previews { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
 .previews:empty { display:none; }
