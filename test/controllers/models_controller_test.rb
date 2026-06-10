@@ -52,13 +52,12 @@ class ModelsControllerTest < ActionDispatch::IntegrationTest
     assert_not @model.reload.enabled?
   end
 
-  test "refresh surfaces an unreachable pi" do
+  test "refresh enqueues a background sync and redirects (no inline pi call)" do
     sign_in @superuser
-    with_stub(PiAgent, :session, ->(*, **) { raise "no pi" }) do
+    assert_enqueued_with(job: RefreshModelCatalogJob) do
       post refresh_models_path
     end
-
     assert_redirected_to models_path
-    assert_equal "Couldn't reach pi — the catalog was not changed.", flash[:alert]
+    assert_match "Refreshing the catalog", flash[:notice]
   end
 end

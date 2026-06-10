@@ -18,6 +18,13 @@ module Agent
     # defaults in config.x.agent. All unset -> pi falls back to its own
     # configuration.
     #
+    # Project trust: Metis stages .pi/skills/ and AGENTS.md into pi's
+    # workspace each turn. pi ≥ 0.79.0 gates project-local inputs behind
+    # a trust decision; --approve tells pi to load them in non-interactive
+    # RPC mode (the only mode Metis uses). Without it, pi would ignore
+    # staged skills and context files when defaultProjectTrust is "ask"
+    # (the default). See https://pi.dev/docs/latest/usage#project-trust.
+    #
     # Attachments: images are sent inline via pi's vision protocol
     # (prompt images:); other files are projected into pi's
     # workspace/uploads/ by the runtime, and a note in the prompt tells
@@ -107,6 +114,7 @@ module Agent
       # pi CLI arguments for this conversation's run.
       def pi_args
         [ "--mode", "rpc", "--session-dir", @runtime.session_dir.to_s,
+          "--approve",   # trust project-local inputs in non-interactive mode (pi ≥ 0.79.0)
           *resume_args, *credential_args, *extension_args ]
       end
 
