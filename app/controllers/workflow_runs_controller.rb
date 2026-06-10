@@ -31,9 +31,12 @@ class WorkflowRunsController < ApplicationController
 
   private
 
-  # Scoped to the teams the user belongs to — a run in another team 404s.
+  # Gate actions follow visibility: the launcher always, teammates only on
+  # team-visible runs — a personal run's gates are not the team's to act on.
   def set_run
     @run = WorkflowRun.where(team_id: current_user.teams.select(:id)).find(params[:id])
+    head :not_found unless @run.conversation.user_id == current_user.id ||
+                           @run.conversation.visibility_team?
   end
 
   def set_workflow

@@ -17,7 +17,9 @@ class Task < ApplicationRecord
   scope :next_pending, -> { pending.order(:position) }
   # Dispatched and waiting for a local agent to pull it.
   scope :dispatched, -> { running.where(delegated: true) }
-  scope :unclaimed, -> { where(claimed_by_user_id: nil) }
+  # Both nil: tasks claimed before claimed_by_user existed must not
+  # re-enter the queue mid-deploy.
+  scope :unclaimed, -> { where(claimed_by_user_id: nil, claimed_by: nil) }
   scope :delegated_for, ->(user) {
     joins(:workflow_run).where(delegated: true, workflow_runs: { team_id: user.team_ids })
   }

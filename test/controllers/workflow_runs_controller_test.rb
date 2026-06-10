@@ -50,6 +50,23 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "a teammate cannot act on a personal run's gate" do
+    team = shared_team
+    conversation = @user.conversations.create!(team: team)
+    run = team.workflow_runs.create!(conversation: conversation, status: :awaiting_approval)
+    run.tasks.create!(position: 0, gate: :approval, status: :awaiting_approval)
+
+    join_as_teammate(team)
+    post approve_workflow_run_path(run), as: :turbo_stream
+    assert_response :not_found
+    assert run.reload.awaiting_approval?
+
+    conversation.update!(visibility: :team)
+    post approve_workflow_run_path(run), as: :turbo_stream
+    assert_response :success
+    assert run.reload.running?
+  end
+
   test "the composer's visibility pick reaches the run conversation" do
     workflow = @team.workflows.create!(name: "W", steps: [ { "name" => "a", "prompt" => "a" } ])
     post workflow_runs_path, params: { workflow_id: workflow.id, content: "go", visibility: "team" }

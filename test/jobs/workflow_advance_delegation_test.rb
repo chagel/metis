@@ -54,6 +54,14 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
     assert_nil Task.claim_next_for(@user), "an already-claimed task is not handed out twice"
   end
 
+  test "a task claimed before claimed_by_user existed stays out of the queue" do
+    run = start([ LOCAL ])
+    advance(run)
+    # Pre-deploy shape: hostname stamped, no user.
+    run.tasks.first.update!(claimed_by: "old-laptop", claimed_by_user: nil)
+    assert_nil Task.claim_next_for(@user)
+  end
+
   test "claim_next_for is scoped to the user's teams" do
     run = start([ LOCAL ])
     advance(run)
