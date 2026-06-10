@@ -96,9 +96,13 @@ have considered and rejected.
   have. A second agent is not a new adapter — it's a second set of those
   subsystems plus a driver gem per agent. That's a different product, and
   the focus is making pi excellent, not making the harness swappable.
-- **A Rails-side MCP runtime.** Metis is the **host** — it holds
-  credentials and stages `.mcp.json` per turn. pi speaks the protocol.
-  Re-implementing MCP in Rails duplicates pi.
+- **A Rails-side MCP client.** Metis is the **host** — it holds
+  credentials and stages `.mcp.json` per turn; pi speaks the protocol.
+  Rails never *consumes* an MCP server (re-implementing that client side
+  duplicates pi). *Serving* Metis's own task API over MCP is different
+  and allowed: `/api/bridge/mcp` is a thin facade over the bridge REST
+  surface so external coding agents can pull delegated steps
+  (docs/local-bridge.md) — it speaks for Metis, it never reaches out.
 - **Per-user provider API keys.** Provider keys live in
   `config.x.agent.api_keys` and are paid for by the deployment. Users
   pick provider + model; they do not bring their own keys.

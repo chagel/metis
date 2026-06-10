@@ -283,22 +283,25 @@ protocol — argued there, not assumed here.
   approval-gated delegated step routes to `awaiting_approval`; token auth
   scoping (a token can't reach another team's task).
 
-### Phase 2 — MCP client (lightest local surface) ✅
-- `clients/metis-bridge-mcp` — a single-file stdio MCP server (Ruby
-  stdlib only, no gems) exposing `list_tasks` / `get_next_task` /
-  `report_progress` / `submit_result` as thin wrappers over the REST
-  surface. Lives on the laptop, never in Rails (VISION: no Rails-side
-  MCP runtime). Setup:
+### Phase 2 — hosted MCP facade (lightest local surface) ✅
+- `POST /api/bridge/mcp` — a stateless streamable-HTTP MCP server in
+  Rails, exposing `list_tasks` / `get_next_task` / `report_progress` /
+  `submit_result` over the same models as the REST surface (same bearer
+  auth, same team scoping). Nothing to install on the laptop; a coding
+  agent needs one URL and the token:
 
   ```bash
-  export METIS_URL=https://your-metis-host
-  export METIS_BRIDGE_TOKEN=mbt_…   # from /settings/account
-  claude mcp add metis-bridge -- /path/to/metis-bridge-mcp
+  claude mcp add --transport http metis-bridge \
+    https://your-metis-host/api/bridge/mcp \
+    --header "Authorization: Bearer mbt_…"   # from /settings/account
   ```
 
-  The intended loop: the agent calls `list_tasks`, picks the task whose
-  project matches its checkout (or asks), claims it by id, works, then
-  `submit_result` — the run resumes in Metis.
+  Serving our own task API over MCP does not breach VISION's "no
+  Rails-side MCP client" line — Rails answers here, it never consumes
+  an MCP server (that stays pi's job). The intended loop: the agent
+  calls `list_tasks`, picks the task whose project matches its checkout
+  (or asks), claims it by id, works, then `submit_result` — the run
+  resumes in Metis.
 
 ### Phase 3 — Daemon + ACP (unattended)
 - `metis-bridge` daemon polls the REST surface, spawns the agent
