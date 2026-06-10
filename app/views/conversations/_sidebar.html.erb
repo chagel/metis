@@ -36,7 +36,7 @@
         the server re-renders their active state on each swap. %>
     <turbo-frame id="convos">
       <div class="convo-tabs" role="tablist">
-        <%= link_to "Mine", conversations_path(filter: "active"), class: sidebar_tab_class("active") %>
+        <%= link_to "Me", conversations_path(filter: "active"), class: sidebar_tab_class("active") %>
         <%# A personal workspace is a team of one — nothing to share with. %>
         <% unless current_team.personal? %>
           <%= link_to conversations_path(filter: "team"), class: sidebar_tab_class("team") do %>

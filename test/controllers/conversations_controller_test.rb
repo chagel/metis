@@ -330,11 +330,11 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     get conversations_path
 
     assert_response :success
-    assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "active"), text: "Mine"
+    assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "active"), text: "Me"
     assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "starred"), text: "Starred"
     assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "team"), count: 0
     assert_select ".convo-tabs a.convo-tab[href=?]", conversations_path(filter: "archived"), count: 0
-    assert_select ".convo-tab.on", text: "Mine"
+    assert_select ".convo-tab.on", text: "Me"
   end
 
   test "a shared team shows the Shared tab" do
@@ -501,7 +501,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "#convos-list .convo .tt", text: "Live"
     assert_select "#convos-list .convo .tt", text: "Done", count: 0
-    assert_select ".convo-tab.on", text: "Mine"
+    assert_select ".convo-tab.on", text: "Me"
   end
 
   test "star marks a conversation as starred via turbo stream" do
