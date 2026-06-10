@@ -111,4 +111,28 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
     assert run.awaiting_approval?
     assert run.tasks.first.awaiting_approval?
   end
+
+  test "request-changes on a delegated step re-dispatches to the machine, not the cloud" do
+    run = start([ LOCAL.merge("gate" => "approval") ])
+    advance(run)
+    task = Task.claim_next_for(@user, client: "macbook")
+    run.complete_delegated_task!(task, result: { "status" => "completed", "summary" => "v1" })
+
+    assert_no_difference -> { Message.where(streaming_status: :pending).count } do
+      run.request_changes!("speak chinese", by: @user)
+    end
+    run.reload
+    task.reload
+    assert run.awaiting_local?
+    assert task.running?
+    assert_nil task.claimed_by_user, "back in the claim queue"
+    assert_match "Requested changes: speak chinese", task.prompt
+    assert_empty task.result
+
+    # The loop closes: re-claim, re-report, gate again.
+    reclaimed = Task.claim_next_for(@user, client: "macbook")
+    assert_equal task, reclaimed
+    run.complete_delegated_task!(task, result: { "status" => "completed", "summary" => "你好" })
+    assert run.reload.awaiting_approval?
+  end
 end

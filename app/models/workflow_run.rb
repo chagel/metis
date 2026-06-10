@@ -97,19 +97,32 @@ class WorkflowRun < ApplicationRecord
     cancelled!
   end
 
-  # Re-run the gated step with the human's feedback as the prompt; it gates
-  # again when done, so the reviewer can iterate instead of only approving.
+  # Re-run the gated step with the human's feedback; it gates again when
+  # done, so the reviewer can iterate instead of only approving. A cloud
+  # step re-runs as a turn with the feedback as its prompt; a delegated
+  # step re-dispatches to the machine with the feedback folded in — never
+  # as a cloud turn (the engine would wait forever for a local report).
   def request_changes!(feedback, by: nil)
     return if feedback.blank?
 
     task = tasks.awaiting_approval.first
     return unless task
 
-    task.update!(status: :running, approved_by: by)
-    running!
-    user, assistant = ConversationTurn.start(conversation, content: feedback)
-    task.update!(assistant_message: assistant)
-    WorkflowBroadcaster.new(self).append_turn(user, assistant)
+    if task.delegated?
+      task.update!(
+        status: :running, approved_by: by, dispatched_at: Time.current,
+        claimed_by: nil, claimed_by_user: nil, result: {},
+        prompt: "#{task.prompt}\n\nRequested changes: #{feedback}"
+      )
+      awaiting_local!
+      WorkflowBroadcaster.new(self).refresh
+    else
+      task.update!(status: :running, approved_by: by)
+      running!
+      user, assistant = ConversationTurn.start(conversation, content: feedback)
+      task.update!(assistant_message: assistant)
+      WorkflowBroadcaster.new(self).append_turn(user, assistant)
+    end
   end
 
   private
