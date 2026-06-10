@@ -329,3 +329,9 @@ protocol — argued there, not assumed here.
 - **Mid-flight loss.** A client claims a task then never reports
   (laptop dies). A reclaim window: `dispatched_at` past a TTL returns the
   task to the unclaimed pool.
+- **Worktree isolation.** Learned live: a delegated task whose target
+  repo's checkout is doing other duty (serving the dev instance, holding
+  a feature branch mid-work) must not switch that checkout's branch —
+  the first dogfood run briefly knocked the bridge API off the dev
+  server it was reporting to. The Phase 3 daemon should run tasks in a
+  `git worktree`; until then the coding-step prompt should say so.
