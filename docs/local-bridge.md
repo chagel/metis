@@ -140,10 +140,19 @@ All endpoints bearer-authed by the user's bridge token, scoped to the
 user's teams. An optional `X-Bridge-Client` header names the machine
 ("mikes-mbp") for the run timeline — display only, no registry behind it.
 
+### `GET /api/bridge/tasks`
+
+The claim queue, read-only: dispatched, unclaimed tasks across the
+user's teams (`task_id`, `name`, `prompt`, `workflow`, `project`,
+`dispatched_at`). Lets a client show the queue and pick — e.g. match a
+task's project to its cwd — instead of blind-claiming FIFO.
+
 ### `GET /api/bridge/tasks/next`
 
-Claims and returns the team's next dispatched delegated task (FIFO), or
-`204` if none. Claiming stamps `task.claimed_by` (the client name).
+Claims and returns the next dispatched delegated task (FIFO), or a
+specific one via `?id=` — `204` when the queue is empty, `409` when the
+requested id is no longer claimable. Claiming stamps `task.claimed_by`
+(the client name).
 
 ```jsonc
 // 200
@@ -274,11 +283,22 @@ protocol — argued there, not assumed here.
   approval-gated delegated step routes to `awaiting_approval`; token auth
   scoping (a token can't reach another team's task).
 
-### Phase 2 — MCP client (lightest local surface)
-- An MCP server exposing `get_next_task` / `report_progress` /
-  `submit_result` as thin wrappers over the REST surface; `.mcp.json`
-  carries the bridge token. The user's own Claude Code / Codex self-pulls.
-- **Test:** the MCP tools drive the same lifecycle end-to-end.
+### Phase 2 — MCP client (lightest local surface) ✅
+- `clients/metis-bridge-mcp` — a single-file stdio MCP server (Ruby
+  stdlib only, no gems) exposing `list_tasks` / `get_next_task` /
+  `report_progress` / `submit_result` as thin wrappers over the REST
+  surface. Lives on the laptop, never in Rails (VISION: no Rails-side
+  MCP runtime). Setup:
+
+  ```bash
+  export METIS_URL=https://your-metis-host
+  export METIS_BRIDGE_TOKEN=mbt_…   # from /settings/account
+  claude mcp add metis-bridge -- /path/to/metis-bridge-mcp
+  ```
+
+  The intended loop: the agent calls `list_tasks`, picks the task whose
+  project matches its checkout (or asks), claims it by id, works, then
+  `submit_result` — the run resumes in Metis.
 
 ### Phase 3 — Daemon + ACP (unattended)
 - `metis-bridge` daemon polls the REST surface, spawns the agent

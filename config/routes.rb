@@ -94,6 +94,7 @@ Rails.application.routes.draw do
   # token, not a session.
   namespace :api do
     namespace :bridge do
+      get  "tasks",            to: "tasks#index"
       get  "tasks/next",       to: "tasks#claim"
       post "tasks/:id/events", to: "tasks#events"
       post "tasks/:id/result", to: "tasks#result"

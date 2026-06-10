@@ -17,19 +17,21 @@ class Task < ApplicationRecord
   # Dispatched and waiting for a local agent to pull it.
   scope :dispatched, -> { running.where(delegated: true) }
   scope :unclaimed, -> { where(claimed_by: nil) }
+  # The user's claim queue: dispatched, unclaimed, across their teams.
+  scope :claimable_by, ->(user) {
+    joins(:workflow_run).where(workflow_runs: { team_id: user.team_ids }).dispatched.unclaimed
+  }
 
-  # Claim the next dispatched task across the user's teams, or nil. SKIP
-  # LOCKED so two clients polling at once each get a distinct task instead
-  # of blocking or double-claiming. `client` is the machine's self-reported
-  # name, kept for the run timeline.
-  def self.claim_next_for(user, client: nil)
+  # Claim the next dispatched task across the user's teams (FIFO), or a
+  # specific one via `id` — nil if nothing is claimable. SKIP LOCKED so two
+  # clients polling at once each get a distinct task instead of blocking or
+  # double-claiming. `client` is the machine's self-reported name, kept for
+  # the run timeline.
+  def self.claim_next_for(user, client: nil, id: nil)
     transaction do
-      task = joins(:workflow_run)
-               .where(workflow_runs: { team_id: user.team_ids })
-               .dispatched.unclaimed
-               .order(:dispatched_at)
-               .lock("FOR UPDATE SKIP LOCKED")
-               .first
+      scope = claimable_by(user)
+      scope = scope.where(id: id) if id.present?
+      task = scope.order(:dispatched_at).lock("FOR UPDATE SKIP LOCKED").first
       task&.update!(claimed_by: client.presence || "local agent")
       task
     end

@@ -33,6 +33,56 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     assert_response :no_content
   end
 
+  test "index lists the claim queue without claiming" do
+    workflow = @team.workflows.create!(name: "Ship it", steps: [ LOCAL ])
+    run = WorkflowRun.start(team: @team, user: @user, workflow: workflow)
+    WorkflowAdvanceJob.perform_now(run.id)
+
+    get "/api/bridge/tasks", headers: auth
+    assert_response :success
+    tasks = JSON.parse(response.body)["tasks"]
+    assert_equal [ run.tasks.first.id ], tasks.map { |t| t["task_id"] }
+    assert_equal "impl", tasks.first["name"]
+    assert_equal "Ship it", tasks.first["workflow"]
+    assert_nil run.tasks.first.reload.claimed_by, "listing must not claim"
+  end
+
+  test "index excludes claimed tasks and other teams' tasks" do
+    dispatch_run
+    Task.claim_next_for(@user)
+    stranger = User.create!(email: "z-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    get "/api/bridge/tasks", headers: { "Authorization" => "Bearer #{stranger.generate_bridge_token!}" }
+    assert_equal [], JSON.parse(response.body)["tasks"]
+    get "/api/bridge/tasks", headers: auth
+    assert_equal [], JSON.parse(response.body)["tasks"]
+  end
+
+  test "claim with id picks that task over the older one" do
+    older = dispatch_run
+    newer = dispatch_run
+    target = newer.tasks.first
+    get "/api/bridge/tasks/next", params: { id: target.id }, headers: auth
+    assert_response :success
+    assert_equal target.id, JSON.parse(response.body)["task_id"]
+    assert_nil older.tasks.first.reload.claimed_by
+  end
+
+  test "claim with an unavailable id returns 409" do
+    run = dispatch_run
+    Task.claim_next_for(@user)   # someone else got there first
+    get "/api/bridge/tasks/next", params: { id: run.tasks.first.id }, headers: auth
+    assert_response :conflict
+  end
+
+  test "claim with another team's task id returns 409, not the task" do
+    run = dispatch_run
+    stranger = User.create!(email: "w-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    get "/api/bridge/tasks/next", params: { id: run.tasks.first.id },
+        headers: { "Authorization" => "Bearer #{stranger.generate_bridge_token!}" }
+    assert_response :conflict
+    assert_nil run.tasks.first.reload.claimed_by
+  end
+
   test "unauthorized without a valid token" do
     get "/api/bridge/tasks/next", headers: { "Authorization" => "Bearer nope" }
     assert_response :unauthorized

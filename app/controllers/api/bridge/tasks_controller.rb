@@ -6,12 +6,24 @@ module Api
     class TasksController < BaseController
       before_action :set_task, only: %i[events result]
 
-      # GET /api/bridge/tasks/next
-      def claim
-        task = Task.claim_next_for(current_bridge_user, client: bridge_client_name)
-        return head :no_content unless task
+      # GET /api/bridge/tasks — the claim queue, read-only. Lets a client
+      # show the user what's waiting and pick (e.g. by matching a task's
+      # project to its cwd) instead of blind-claiming FIFO.
+      def index
+        tasks = Task.claimable_by(current_bridge_user)
+                    .order(:dispatched_at)
+                    .includes(workflow_run: [ :workflow, { conversation: :project } ])
+        render json: { tasks: tasks.map { |task| index_entry(task) } }
+      end
 
-        render json: claim_payload(task)
+      # GET /api/bridge/tasks/next — claim FIFO, or a specific task via
+      # ?id=. 409 when the requested task is gone (claimed, settled, or
+      # never yours).
+      def claim
+        task = Task.claim_next_for(current_bridge_user, client: bridge_client_name, id: params[:id])
+        return render json: claim_payload(task) if task
+
+        params[:id].present? ? head(:conflict) : head(:no_content)
       end
 
       # POST /api/bridge/tasks/:id/events
@@ -39,6 +51,19 @@ module Api
 
       def result_params
         params.permit(:status, :summary, artifacts: [ :type, :url, :files_changed, :insertions, :deletions ]).to_h
+      end
+
+      def index_entry(task)
+        run = task.workflow_run
+        {
+          task_id: task.id,
+          run_id: run.id,
+          name: task.name,
+          prompt: task.prompt,
+          workflow: run.workflow&.name,
+          project: run.conversation.project&.name,
+          dispatched_at: task.dispatched_at&.iso8601
+        }
       end
 
       def claim_payload(task)

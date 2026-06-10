@@ -1,0 +1,231 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Metis bridge MCP server (docs/local-bridge.md, Phase 2): a stdio MCP
+# server your local coding agent (Claude Code, Codex, …) loads from
+# .mcp.json. It is a thin client of the bridge pull REST surface — Metis
+# never drives this machine; the agent pulls a delegated workflow step,
+# does the work in your real checkout, and reports the result.
+#
+# Setup:
+#   export METIS_URL=https://your-metis-host
+#   export METIS_BRIDGE_TOKEN=mbt_…   # from /settings/account
+#   claude mcp add metis-bridge -- /path/to/metis-bridge-mcp
+
+require "json"
+require "net/http"
+require "socket"
+require "uri"
+
+module MetisBridge
+  PROTOCOL_VERSION = "2025-03-26"
+
+  TOOLS = [
+    {
+      name: "list_tasks",
+      description: "List the delegated Metis workflow tasks waiting to be claimed " \
+                   "(read-only). Use it to pick the task matching the repo you are in.",
+      inputSchema: { type: "object", properties: {}, required: [] }
+    },
+    {
+      name: "get_next_task",
+      description: "Claim a delegated Metis workflow task and receive its prompt and " \
+                   "context. Claims the oldest task, or a specific one via task_id " \
+                   "(prefer list_tasks + task_id when several are waiting).",
+      inputSchema: {
+        type: "object",
+        properties: {
+          task_id: { type: "integer", description: "Claim this specific task instead of the oldest" }
+        },
+        required: []
+      }
+    },
+    {
+      name: "report_progress",
+      description: "Post a short progress note onto a claimed Metis task (optional, " \
+                   "shows up in the run timeline).",
+      inputSchema: {
+        type: "object",
+        properties: {
+          task_id: { type: "integer" },
+          text: { type: "string", description: "One line of progress, e.g. 'tests green, opening PR'" }
+        },
+        required: %w[task_id text]
+      }
+    },
+    {
+      name: "submit_result",
+      description: "Report a claimed Metis task finished. The workflow run resumes " \
+                   "immediately, so call this exactly once, when the work is done.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          task_id: { type: "integer" },
+          status: { type: "string", enum: %w[completed failed] },
+          summary: { type: "string", description: "One or two sentences on the outcome" },
+          artifacts: {
+            type: "array",
+            description: "Links produced by the work, e.g. [{\"type\":\"pr\",\"url\":\"…\"}]",
+            items: {
+              type: "object",
+              properties: { type: { type: "string" }, url: { type: "string" } }
+            }
+          }
+        },
+        required: %w[task_id status summary]
+      }
+    }
+  ].freeze
+
+  class Api
+    def initialize(base_url, token)
+      @base = URI(base_url)
+      @token = token
+    end
+
+    def call_tool(name, args)
+      case name
+      when "list_tasks"      then list_tasks
+      when "get_next_task"   then get_next_task(args["task_id"])
+      when "report_progress" then report_progress(args.fetch("task_id"), args.fetch("text"))
+      when "submit_result"   then submit_result(args)
+      else error("Unknown tool: #{name}")
+      end
+    rescue KeyError => e
+      error("Missing argument: #{e.message}")
+    rescue StandardError => e
+      error("Bridge request failed: #{e.class}: #{e.message}")
+    end
+
+    private
+
+    def list_tasks
+      res = get("/api/bridge/tasks")
+      return http_error(res) unless res.is_a?(Net::HTTPSuccess)
+
+      tasks = JSON.parse(res.body)["tasks"]
+      return text("No delegated tasks waiting.") if tasks.empty?
+
+      text(JSON.pretty_generate(tasks))
+    end
+
+    def get_next_task(task_id)
+      path = "/api/bridge/tasks/next"
+      path += "?id=#{Integer(task_id)}" if task_id
+      res = get(path)
+      case res
+      when Net::HTTPSuccess   then text(JSON.pretty_generate(JSON.parse(res.body)))
+      when Net::HTTPNoContent then text("No delegated tasks waiting.")
+      when Net::HTTPConflict  then error("Task #{task_id} is no longer claimable (already claimed or settled). Run list_tasks for the current queue.")
+      else http_error(res)
+      end
+    end
+
+    def report_progress(task_id, line)
+      res = post("/api/bridge/tasks/#{Integer(task_id)}/events", { kind: "log", text: line })
+      res.is_a?(Net::HTTPSuccess) ? text("Progress recorded.") : http_error(res)
+    end
+
+    def submit_result(args)
+      payload = {
+        status: args.fetch("status"),
+        summary: args.fetch("summary"),
+        artifacts: args["artifacts"]
+      }.compact
+      res = post("/api/bridge/tasks/#{Integer(args.fetch("task_id"))}/result", payload)
+      res.is_a?(Net::HTTPSuccess) ? text("Result submitted — the run resumes in Metis.") : http_error(res)
+    end
+
+    def get(path)
+      request(Net::HTTP::Get.new(URI.join(@base, path)))
+    end
+
+    def post(path, body)
+      req = Net::HTTP::Post.new(URI.join(@base, path))
+      req["Content-Type"] = "application/json"
+      req.body = JSON.generate(body)
+      request(req)
+    end
+
+    def request(req)
+      req["Authorization"] = "Bearer #{@token}"
+      req["X-Bridge-Client"] = Socket.gethostname.split(".").first
+      Net::HTTP.start(@base.host, @base.port, use_ssl: @base.scheme == "https") { |http| http.request(req) }
+    end
+
+    def text(message)
+      { content: [ { type: "text", text: message } ], isError: false }
+    end
+
+    def error(message)
+      { content: [ { type: "text", text: message } ], isError: true }
+    end
+
+    def http_error(res)
+      error("Bridge returned HTTP #{res.code}: #{res.body.to_s[0, 200]}")
+    end
+  end
+
+  # Newline-delimited JSON-RPC 2.0 over stdio — the MCP stdio transport.
+  class Server
+    def initialize(api)
+      @api = api
+    end
+
+    def run
+      $stdout.sync = true
+      while (line = $stdin.gets)
+        line = line.strip
+        next if line.empty?
+
+        handle(JSON.parse(line))
+      end
+    end
+
+    private
+
+    def handle(msg)
+      id = msg["id"]
+      case msg["method"]
+      when "initialize"
+        reply(id, {
+          protocolVersion: msg.dig("params", "protocolVersion") || PROTOCOL_VERSION,
+          capabilities: { tools: {} },
+          serverInfo: { name: "metis-bridge", version: "1.0.0" }
+        })
+      when "ping"
+        reply(id, {})
+      when "tools/list"
+        reply(id, { tools: TOOLS })
+      when "tools/call"
+        reply(id, @api.call_tool(msg.dig("params", "name"), msg.dig("params", "arguments") || {}))
+      else
+        # Notifications (no id) expect no reply; unknown requests get an error.
+        reply_error(id, -32_601, "Method not found: #{msg["method"]}") unless id.nil?
+      end
+    end
+
+    def reply(id, result)
+      emit({ jsonrpc: "2.0", id: id, result: result })
+    end
+
+    def reply_error(id, code, message)
+      emit({ jsonrpc: "2.0", id: id, error: { code: code, message: message } })
+    end
+
+    def emit(payload)
+      $stdout.puts(JSON.generate(payload))
+    end
+  end
+end
+
+if __FILE__ == $PROGRAM_NAME
+  url = ENV["METIS_URL"].to_s
+  token = ENV["METIS_BRIDGE_TOKEN"].to_s
+  if url.empty? || token.empty?
+    warn "metis-bridge-mcp: set METIS_URL and METIS_BRIDGE_TOKEN (see /settings/account)"
+    exit 1
+  end
+
+  MetisBridge::Server.new(MetisBridge::Api.new(url, token)).run
+end
