@@ -2,12 +2,19 @@ module WorkflowsHelper
   def wf_run_status_label(run)
     case run.status
     when "pending", "running" then "Running"
-    when "awaiting_local"     then "On your machine"
+    when "awaiting_local"     then wf_local_label(run)
     when "awaiting_approval"  then "Review"
     when "completed"          then "Completed"
     when "failed"             then "Failed"
     when "cancelled"          then "Cancelled"
     end
+  end
+
+  # Viewer-neutral: the run chat is team-visible, so "your machine" would
+  # lie to everyone but the claimer.
+  def wf_local_label(run)
+    claimer = run.tasks.dispatched.first&.claimed_by_user
+    claimer ? "On #{claimer.display_label}'s machine" : "Waiting for a machine"
   end
 
   def wf_step_state(task)
