@@ -62,9 +62,9 @@ the `#artifacts` gotcha. **The local work never touches `Adapters.for` /
 
 ### What it keeps
 
-The `Device` + enrollment token (scopes the pull API), and the
-gate-shaped pause/resume the engine already runs (`approve_current_gate!`
-is the template for `complete_delegated_task!`).
+The per-user bridge token (scopes the pull API), and the gate-shaped
+pause/resume the engine already runs (`approve_current_gate!` is the
+template for `complete_delegated_task!`).
 
 ### Outside the conversation
 
@@ -136,12 +136,14 @@ server** and the **daemon** are both thin clients of it, added later:
 
 ## The REST surface
 
-All endpoints bearer-authed by a `Device` enrollment token, team-scoped.
+All endpoints bearer-authed by the user's bridge token, scoped to the
+user's teams. An optional `X-Bridge-Client` header names the machine
+("mikes-mbp") for the run timeline — display only, no registry behind it.
 
 ### `GET /api/bridge/tasks/next`
 
 Claims and returns the team's next dispatched delegated task (FIFO), or
-`204` if none. Claiming stamps `task.claimed_by_device`.
+`204` if none. Claiming stamps `task.claimed_by` (the client name).
 
 ```jsonc
 // 200
@@ -197,14 +199,23 @@ summary line, sets the task `completed` (or `awaiting_approval` if the step
 carries a review gate), flips the run back to `running`, and enqueues
 `WorkflowAdvanceJob` — the exact re-entry `approve_current_gate!` uses.
 
-## Auth & enrollment
+## Auth — a per-user token, no device registry
 
-- `metis bridge login` on the laptop → device-code / browser flow →
-  laptop receives a long-lived, **revocable per-device enrollment token**
-  (a `Device` row, team + user scoped) stored in the OS keychain / a
-  `.mcp.json` entry for MCP mode.
-- Token scopes: pull dispatched tasks for that team's runs, post
-  progress + results. Revocable from `/settings/bridge`.
+The credential is a **per-user bridge token** — the PAT model, the same
+shape Claude Code's remote control uses (the credential *is* the pairing;
+no machine enrollment). Generate it on `/settings/account`, plaintext
+shown once (`mbt_…`, digest stored on `users.bridge_token_digest`), then
+`export METIS_BRIDGE_TOKEN=…` (or put it in an `.mcp.json` header for MCP
+mode). Regenerating revokes the old token — that *is* revocation; there
+is no `Device` row, no enrollment flow, no `metis bridge login` CLI.
+
+- Token scopes: pull dispatched tasks across the user's teams, post
+  progress + results.
+- Presence is one column: `users.bridge_seen_at`, stamped on every
+  authenticated pull — drives the "is your machine connected" hint only.
+- Machine identity is self-reported per request (`X-Bridge-Client`) and
+  kept on the task as a display string. A device *registry* returns only
+  if multi-device-per-user ever demands it — with evidence, not upfront.
 - **Provider keys:** the local agent uses the **user's own** credentials
   by default; Metis sends a scoped `env` bearer only if configured.
 
@@ -213,20 +224,19 @@ carries a review gate), flips the run back to `running`, and enqueues
 - **`WorkflowRun#status`** gains `awaiting_local` (sibling of
   `awaiting_approval`; included in `active`).
 - **A step is marked delegated** in the workflow's `steps` jsonb (e.g.
-  `"run": "local"`); `Task` carries it (a `delegated` boolean / an
-  `execution` enum) plus delegation state: `claimed_by_device_id`,
+  `"run": "local"`); `Task` carries it (a `delegated` boolean) plus
+  delegation state: `claimed_by` (client-reported machine name),
   `result:jsonb`, `dispatched_at`.
 - **`WorkflowAdvanceJob`**, on a delegated next task:
   `task.update!(status: :running, dispatched_at: …)`, `run.awaiting_local!`,
   notify, **stop**. (No `ConversationTurn.start`, no `ChatJob`.)
-- **`WorkflowRun#complete_delegated_task!(task, result, by_device:)`** —
+- **`WorkflowRun#complete_delegated_task!(task, result:)`** —
   records the result, advances exactly like `approve_current_gate!`. A
   delegated step may *also* carry an approval gate: the agent reports →
   `awaiting_approval` → human reviews the PR → advance.
 - **Offline is just latency.** A dispatched task sits in `awaiting_local`
-  until a device pulls it; `Device#online?` (heartbeat-stamped
-  `last_seen_at`) only drives *notification* ("your laptop is offline"),
-  never blocks the engine.
+  until a client pulls it; `users.bridge_seen_at` only drives
+  *notification* ("your laptop is offline"), never blocks the engine.
 
 ## VISION posture — cleaner than the runtime design
 
@@ -242,37 +252,32 @@ protocol — argued there, not assumed here.
 
 ## Build phases
 
-### Phase 0 — Enrollment + presence (no delegation yet) ✅
-- **Migration** `create_devices`: `team_id`, `user_id`, `token_digest`
-  (unique index), `name`, `agent_kind:string`, `bindings:jsonb`,
-  `last_seen_at`.
-- **`Device` model:** `belongs_to :team, :user`; `scope :online`; token
-  mint (plaintext shown once) + digest verify; `online?`. `Team`/`User`
-  `has_many :devices`.
-- **`/settings/bridge`** (`BridgesController`, `layout "settings"`,
-  `current_team`-scoped, `require_team_admin!` for write): list devices +
-  online dot, enroll (token shown once), revoke. Mirrors `SkillsController`.
-- **`metis bridge login`** device-code flow issuing the token.
-- **Tests:** model (assoc, `online?` window, digest verify); controller
-  (enroll/revoke auth, token resolver accept/reject).
+### Phase 0 — Token + presence (no delegation yet) ✅
+- **Migration**: `users.bridge_token_digest` (unique index) +
+  `users.bridge_seen_at`. No devices table.
+- **`User`**: `generate_bridge_token!` (plaintext shown once),
+  `.authenticate_bridge_token`, `bridge_seen!`.
+- **`/settings/account` → Local bridge card**: generate/regenerate +
+  copy, last-connected hint.
+- **Tests:** token mint/rotate/verify; account action auth.
 
 ### Phase 1 — Delegation core (REST + engine lifecycle) ✅
 - `WorkflowRun#status += awaiting_local`; `Task` delegation columns +
   `delegated?`.
 - `Api::Bridge::TasksController` — `next` (claim), `events`, `result` —
-  bearer-authed by `Device`.
+  bearer-authed by the user's bridge token.
 - `WorkflowAdvanceJob` delegated-step branch;
   `WorkflowRun#complete_delegated_task!`.
 - Run-view delegated-step card; optional timeline summary line.
 - **Tests:** a delegated workflow dispatches → `awaiting_local`; a posted
   result advances the run; a `failed` result fails the step; an
   approval-gated delegated step routes to `awaiting_approval`; token auth
-  scoping (a device can't pull another team's task).
+  scoping (a token can't reach another team's task).
 
 ### Phase 2 — MCP client (lightest local surface)
 - An MCP server exposing `get_next_task` / `report_progress` /
   `submit_result` as thin wrappers over the REST surface; `.mcp.json`
-  carries the device token. The user's own Claude Code / Codex self-pulls.
+  carries the bridge token. The user's own Claude Code / Codex self-pulls.
 - **Test:** the MCP tools drive the same lifecycle end-to-end.
 
 ### Phase 3 — Daemon + ACP (unattended)
@@ -294,11 +299,10 @@ protocol — argued there, not assumed here.
   (`pr_url`, diff stat) without verifying it. A later step can verify
   (CI, a cloud review turn), but v1 trusts the report. Worth a note in the
   gate copy.
-- **Claim contention.** Two online devices both `GET next-task` — FIFO
-  claim with a single-claim DB guard; a run may also pin to the device
-  that a prior step used (via `Task#claimed_by_device`).
-- **Repo binding.** How `repo_hint` resolves to a local checkout — a
-  `Device#bindings` map (project → path), or the daemon/agent's own cwd.
-- **Mid-flight loss.** A device claims a task then never reports
+- **Claim contention.** Two clients both `GET next-task` — FIFO claim
+  with a single-claim DB guard (SKIP LOCKED).
+- **Repo binding.** How `repo_hint` resolves to a local checkout — the
+  daemon/agent's own cwd, or a client-side config map (project → path).
+- **Mid-flight loss.** A client claims a task then never reports
   (laptop dies). A reclaim window: `dispatched_at` past a TTL returns the
   task to the unclaimed pool.

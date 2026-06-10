@@ -65,10 +65,10 @@ class WorkflowRun < ApplicationRecord
   # a delegated step: failed fails the run; otherwise an approval gate pauses
   # for review (the agent's PR), an auto step completes and advances — the
   # same post-step shape WorkflowAdvanceJob#settle runs for a cloud turn.
-  def complete_delegated_task!(task, result:, by_device: nil)
+  def complete_delegated_task!(task, result:)
     return unless task.delegated? && task.running?
 
-    task.update!(result: result, claimed_by_device: by_device || task.claimed_by_device)
+    task.update!(result: result)
 
     if result.to_h.with_indifferent_access[:status].to_s == "failed"
       task.failed!

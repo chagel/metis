@@ -4,8 +4,7 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
   setup do
     @user = User.create!(email: "abt-#{SecureRandom.hex(4)}@example.com", password: "password123")
     @team = @user.personal_team
-    @device = @team.devices.create!(user: @user, name: "macbook")
-    @token = @device.plaintext_token
+    @token = @user.generate_bridge_token!
   end
 
   def auth = { "Authorization" => "Bearer #{@token}" }
@@ -18,14 +17,15 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     run.reload
   end
 
-  test "claim returns the dispatched task and stamps presence" do
+  test "claim returns the dispatched task, stamps presence and client name" do
     run = dispatch_run
-    get "/api/bridge/tasks/next", headers: auth
+    get "/api/bridge/tasks/next", headers: auth.merge("X-Bridge-Client" => "mikes-mbp")
     assert_response :success
     body = JSON.parse(response.body)
     assert_equal run.tasks.first.id, body["task_id"]
     assert_equal "implement", body["prompt"]
-    assert @device.reload.online?
+    assert_equal "mikes-mbp", run.tasks.first.reload.claimed_by
+    assert @user.reload.bridge_seen_at.present?
   end
 
   test "claim returns 204 when nothing is dispatched" do
@@ -37,6 +37,13 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     get "/api/bridge/tasks/next", headers: { "Authorization" => "Bearer nope" }
     assert_response :unauthorized
     get "/api/bridge/tasks/next"
+    assert_response :unauthorized
+  end
+
+  test "a regenerated token revokes the old one" do
+    old = @token
+    @user.generate_bridge_token!
+    get "/api/bridge/tasks/next", headers: { "Authorization" => "Bearer #{old}" }
     assert_response :unauthorized
   end
 
@@ -55,22 +62,21 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     assert run.reload.running?   # single step → completion runs via the enqueued advance
   end
 
-  test "a device cannot post to a task it didn't claim" do
+  test "a token from outside the team cannot post to its tasks" do
     run = dispatch_run
-    task = Task.claim_next_for(@device)
+    task = Task.claim_next_for(@user)
     stranger = User.create!(email: "y-#{SecureRandom.hex(4)}@example.com", password: "password123")
-    other = stranger.personal_team.devices.create!(user: stranger, name: "theirs")
 
     post "/api/bridge/tasks/#{task.id}/result",
          params: { status: "completed" },
-         headers: { "Authorization" => "Bearer #{other.plaintext_token}" }
+         headers: { "Authorization" => "Bearer #{stranger.generate_bridge_token!}" }
     assert_response :not_found
     assert task.reload.running?
   end
 
   test "events appends a progress entry" do
     dispatch_run
-    task = Task.claim_next_for(@device)
+    task = Task.claim_next_for(@user)
     post "/api/bridge/tasks/#{task.id}/events",
          params: { kind: "log", text: "running tests" }, headers: auth
     assert_response :accepted

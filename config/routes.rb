@@ -57,6 +57,7 @@ Rails.application.routes.draw do
     end
 
     resource :account, only: %i[show update destroy], controller: "settings/accounts"
+    post "account/bridge_token", to: "settings/accounts#bridge_token", as: :account_bridge_token
     resource :profile, only: %i[show update]
 
     post  "profile/detect_timezone", to: "profiles#detect_timezone", as: :detect_timezone_profile
@@ -69,7 +70,6 @@ Rails.application.routes.draw do
 
     resources :projects, except: :show
     resources :workflows, except: :show
-    resources :bridges, only: %i[index create destroy]
 
     get   "models",                   to: "models#index",           as: :models
     post  "models/refresh",           to: "models#refresh",         as: :refresh_models
@@ -89,9 +89,9 @@ Rails.application.routes.draw do
     end
   end
 
-  # Bridge pull API — enrolled local machines claim delegated workflow
-  # steps and report results (docs/local-bridge.md). Token-authed, not
-  # session-authed.
+  # Bridge pull API — a local agent claims delegated workflow steps and
+  # reports results (docs/local-bridge.md). Authed by the user's bridge
+  # token, not a session.
   namespace :api do
     namespace :bridge do
       get  "tasks/next",       to: "tasks#claim"

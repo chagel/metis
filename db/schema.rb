@@ -101,21 +101,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
     t.index ["user_id"], name: "index_conversations_on_user_id"
   end
 
-  create_table "devices", force: :cascade do |t|
-    t.string "agent_kind"
-    t.jsonb "bindings", default: {}, null: false
-    t.datetime "created_at", null: false
-    t.datetime "last_seen_at"
-    t.string "name", null: false
-    t.bigint "team_id", null: false
-    t.string "token_digest", null: false
-    t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
-    t.index ["team_id"], name: "index_devices_on_team_id"
-    t.index ["token_digest"], name: "index_devices_on_token_digest", unique: true
-    t.index ["user_id"], name: "index_devices_on_user_id"
-  end
-
   create_table "identities", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "provider", null: false
@@ -260,7 +245,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
   create_table "tasks", force: :cascade do |t|
     t.bigint "approved_by_id"
     t.bigint "assistant_message_id"
-    t.bigint "claimed_by_device_id"
+    t.string "claimed_by"
     t.datetime "created_at", null: false
     t.datetime "decided_at"
     t.boolean "delegated", default: false, null: false
@@ -276,7 +261,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
     t.bigint "workflow_run_id", null: false
     t.index ["approved_by_id"], name: "index_tasks_on_approved_by_id"
     t.index ["assistant_message_id"], name: "index_tasks_on_assistant_message_id"
-    t.index ["claimed_by_device_id"], name: "index_tasks_on_claimed_by_device_id"
     t.index ["workflow_run_id", "position"], name: "index_tasks_on_workflow_run_id_and_position", unique: true
   end
 
@@ -290,6 +274,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
   create_table "users", force: :cascade do |t|
     t.text "about_you"
     t.string "avatar_url"
+    t.datetime "bridge_seen_at"
+    t.string "bridge_token_digest"
     t.datetime "created_at", null: false
     t.text "custom_instructions"
     t.string "display_name"
@@ -304,6 +290,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
     t.string "theme"
     t.string "timezone"
     t.datetime "updated_at", null: false
+    t.index ["bridge_token_digest"], name: "index_users_on_bridge_token_digest", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
@@ -345,8 +332,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
   add_foreign_key "conversations", "projects"
   add_foreign_key "conversations", "teams"
   add_foreign_key "conversations", "users"
-  add_foreign_key "devices", "teams", on_delete: :cascade
-  add_foreign_key "devices", "users", on_delete: :cascade
   add_foreign_key "identities", "users"
   add_foreign_key "invitations", "teams"
   add_foreign_key "invitations", "users", column: "invited_by_id"
@@ -361,7 +346,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
   add_foreign_key "skills", "teams"
   add_foreign_key "skills", "users", column: "created_by_id"
   add_foreign_key "skills", "users", column: "updated_by_id"
-  add_foreign_key "tasks", "devices", column: "claimed_by_device_id", on_delete: :nullify
   add_foreign_key "tasks", "messages", column: "assistant_message_id", on_delete: :nullify
   add_foreign_key "tasks", "users", column: "approved_by_id", on_delete: :nullify
   add_foreign_key "tasks", "workflow_runs", on_delete: :cascade

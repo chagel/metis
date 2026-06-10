@@ -5,9 +5,17 @@
 class Settings::AccountsController < ApplicationController
   layout "settings"
 
-  before_action :set_user, only: %i[show update]
+  before_action :set_user, only: %i[show update bridge_token]
 
   def show
+  end
+
+  # Generate (or rotate) the bridge token (docs/local-bridge.md) — the
+  # plaintext is shown once and never stored.
+  def bridge_token
+    @new_bridge_token = @user.generate_bridge_token!
+    flash.now[:notice] = "Bridge token generated. Copy it now — it won't be shown again."
+    render :show
   end
 
   def update

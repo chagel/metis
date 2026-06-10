@@ -14,6 +14,30 @@ class Settings::AccountsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form.account-form"
   end
 
+  test "bridge_token generates a token and shows it once" do
+    post account_bridge_token_path
+    assert_response :success
+    assert @user.reload.bridge_token_digest.present?
+    assert_select ".bridge-token code.token", /\Ambt_/
+
+    # Token shown only on the generating response, never again.
+    get account_path
+    assert_select ".bridge-token code.token", count: 0
+  end
+
+  test "bridge_token regenerates and rotates the digest" do
+    post account_bridge_token_path
+    first_digest = @user.reload.bridge_token_digest
+    post account_bridge_token_path
+    assert_not_equal first_digest, @user.reload.bridge_token_digest
+  end
+
+  test "bridge_token requires a signed-in user" do
+    sign_out @user
+    post account_bridge_token_path
+    assert_redirected_to new_user_session_path
+  end
+
   test "update changes the email with the correct current password" do
     new_email = "moved-#{SecureRandom.hex(4)}@example.com"
     patch account_path, params: { user: {

@@ -1,13 +1,12 @@
 require "test_helper"
 
 # The engine's delegated-step path (docs/local-bridge.md): a step marked
-# run:local is dispatched to a device and parked, then settled by a result
-# report rather than a cloud turn.
+# run:local is dispatched to the user's machine and parked, then settled by
+# a result report rather than a cloud turn.
 class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
   setup do
     @user = User.create!(email: "wfd-#{SecureRandom.hex(4)}@example.com", password: "password123")
     @team = @user.personal_team
-    @device = @team.devices.create!(user: @user, name: "macbook")
   end
 
   def start(steps)
@@ -31,7 +30,7 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
     assert task.running?
     assert task.delegated?
     assert task.dispatched_at.present?
-    assert_nil task.claimed_by_device
+    assert_nil task.claimed_by
     assert_nil task.assistant_message
   end
 
@@ -43,31 +42,29 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
     assert run.tasks.first.running?
   end
 
-  test "claim_next_for hands the dispatched task to a device exactly once" do
+  test "claim_next_for hands the dispatched task out exactly once" do
     run = start([ LOCAL ])
     advance(run)
-    other = @team.devices.create!(user: @user, name: "other")
 
-    claimed = Task.claim_next_for(@device)
+    claimed = Task.claim_next_for(@user, client: "macbook")
     assert_equal run.tasks.first, claimed
-    assert_equal @device, claimed.reload.claimed_by_device
-    assert_nil Task.claim_next_for(other), "an already-claimed task is not handed out twice"
+    assert_equal "macbook", claimed.reload.claimed_by
+    assert_nil Task.claim_next_for(@user), "an already-claimed task is not handed out twice"
   end
 
-  test "claim_next_for is team-scoped" do
+  test "claim_next_for is scoped to the user's teams" do
     run = start([ LOCAL ])
     advance(run)
     stranger = User.create!(email: "x-#{SecureRandom.hex(4)}@example.com", password: "password123")
-    foreign = stranger.personal_team.devices.create!(user: stranger, name: "theirs")
-    assert_nil Task.claim_next_for(foreign)
+    assert_nil Task.claim_next_for(stranger)
   end
 
   test "an auto delegated step completes on result and advances to the next step" do
     run = start([ LOCAL, { "name" => "after", "prompt" => "next", "gate" => "auto" } ])
     advance(run)                                  # dispatch step 0
-    task = Task.claim_next_for(@device)
+    task = Task.claim_next_for(@user)
 
-    run.complete_delegated_task!(task, result: { "status" => "completed", "summary" => "did it" }, by_device: @device)
+    run.complete_delegated_task!(task, result: { "status" => "completed", "summary" => "did it" })
     run.reload
     assert run.running?
     assert run.tasks.find_by(position: 0).completed?
@@ -80,7 +77,7 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
   test "a failed result fails the run" do
     run = start([ LOCAL ])
     advance(run)
-    task = Task.claim_next_for(@device)
+    task = Task.claim_next_for(@user)
     run.complete_delegated_task!(task, result: { "status" => "failed", "summary" => "broke" })
     run.reload
     assert run.failed?
@@ -90,7 +87,7 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
   test "an approval-gated delegated step pauses for review after the report" do
     run = start([ LOCAL.merge("gate" => "approval") ])
     advance(run)
-    task = Task.claim_next_for(@device)
+    task = Task.claim_next_for(@user)
     run.complete_delegated_task!(task, result: { "status" => "completed", "summary" => "PR #1" })
     run.reload
     assert run.awaiting_approval?

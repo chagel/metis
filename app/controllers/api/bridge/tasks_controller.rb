@@ -1,14 +1,14 @@
 module Api
   module Bridge
-    # The pull surface: a device claims the next dispatched delegated task,
-    # optionally streams progress, and reports a result. See
+    # The pull surface: a local agent claims the next dispatched delegated
+    # task, optionally streams progress, and reports a result. See
     # docs/local-bridge.md.
     class TasksController < BaseController
       before_action :set_task, only: %i[events result]
 
       # GET /api/bridge/tasks/next
       def claim
-        task = Task.claim_next_for(current_device)
+        task = Task.claim_next_for(current_bridge_user, client: bridge_client_name)
         return head :no_content unless task
 
         render json: claim_payload(task)
@@ -23,17 +23,18 @@ module Api
 
       # POST /api/bridge/tasks/:id/result
       def result
-        @task.workflow_run.complete_delegated_task!(
-          @task, result: result_params, by_device: current_device
-        )
+        @task.workflow_run.complete_delegated_task!(@task, result: result_params)
         head :ok
       end
 
       private
 
-      # Only the device that claimed it may post to a delegated task.
+      # Scoped to delegated tasks in the caller's teams — a token from
+      # another team can't reach this task.
       def set_task
-        @task = Task.where(delegated: true, claimed_by_device: current_device).find(params[:id])
+        @task = Task.joins(:workflow_run)
+                    .where(delegated: true, workflow_runs: { team_id: current_bridge_user.team_ids })
+                    .find(params[:id])
       end
 
       def result_params

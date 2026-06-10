@@ -1,25 +1,30 @@
 module Api
   module Bridge
-    # Base for the bridge pull API. Authenticated by a Device enrollment
+    # Base for the bridge pull API. Authenticated by the user's bridge
     # token (Authorization: Bearer <token>), not a Devise session — the
-    # caller is a daemon / MCP client, not a browser. Each authenticated
-    # call doubles as a presence heartbeat.
+    # caller is a local agent, not a browser. Each authenticated call
+    # doubles as a presence heartbeat.
     class BaseController < ActionController::API
-      before_action :authenticate_device!
+      before_action :authenticate_bridge_user!
 
       private
 
-      attr_reader :current_device
+      attr_reader :current_bridge_user
 
-      def authenticate_device!
-        @current_device = Device.authenticate(bearer_token)
-        return head :unauthorized unless @current_device
+      def authenticate_bridge_user!
+        @current_bridge_user = User.authenticate_bridge_token(bearer_token)
+        return head :unauthorized unless @current_bridge_user
 
-        @current_device.seen!
+        @current_bridge_user.bridge_seen!
       end
 
       def bearer_token
         request.headers["Authorization"].to_s[/\ABearer (.+)\z/, 1]
+      end
+
+      # The machine's self-reported name ("mikes-mbp") — display only.
+      def bridge_client_name
+        request.headers["X-Bridge-Client"].to_s.strip.first(80).presence
       end
     end
   end

@@ -1,11 +1,11 @@
 class AddDelegationToTasks < ActiveRecord::Migration[8.1]
   def change
-    # A delegated step runs on a user's enrolled machine (docs/local-bridge.md)
+    # A delegated step runs on the user's own machine (docs/local-bridge.md)
     # instead of as a cloud ChatJob turn.
     add_column :tasks, :delegated, :boolean, null: false, default: false
-    # The device that claimed this delegated task off the pull API.
-    add_reference :tasks, :claimed_by_device, null: true,
-                  foreign_key: { to_table: :devices, on_delete: :nullify }
+    # Client-reported name of the machine that claimed the task ("mikes-mbp")
+    # — display/audit only, no registry behind it.
+    add_column :tasks, :claimed_by, :string
     # The local agent's reported outcome: { status, summary, artifacts }.
     add_column :tasks, :result, :jsonb, null: false, default: {}
     # Optional progress log lines posted while the local agent works.

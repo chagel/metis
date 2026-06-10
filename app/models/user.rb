@@ -13,7 +13,6 @@ class User < ApplicationRecord
   has_many :connector_credentials, dependent: :destroy
   has_many :identities, dependent: :destroy
   has_many :oauth_grants, dependent: :destroy
-  has_many :devices, dependent: :destroy
 
   # An uploaded avatar overrides `avatar_url` (the OAuth-cached URL);
   # see `AvatarHelper#avatar_for` for the resolution order.
@@ -81,6 +80,33 @@ class User < ApplicationRecord
   # resources (docs/tenancy.md).
   def personal_team
     teams.find_by(personal: true)
+  end
+
+  # The bridge token (docs/local-bridge.md): a per-user PAT a local agent
+  # presents to pull delegated workflow tasks. Only the digest is stored;
+  # the plaintext is returned once here. Regenerating revokes the old one.
+  # update_column: an internally minted digest must not be blocked by
+  # unrelated profile validations (e.g. a stale preferred_model).
+  def generate_bridge_token!
+    token = "mbt_#{SecureRandom.urlsafe_base64(32)}"
+    update_column(:bridge_token_digest, self.class.bridge_token_digest(token))
+    token
+  end
+
+  def self.authenticate_bridge_token(token)
+    return if token.blank?
+
+    find_by(bridge_token_digest: bridge_token_digest(token))
+  end
+
+  def self.bridge_token_digest(token)
+    Digest::SHA256.hexdigest(token)
+  end
+
+  # Stamped on every authenticated bridge pull — drives only the "is your
+  # machine connected" hint, never the engine.
+  def bridge_seen!
+    update_column(:bridge_seen_at, Time.current)
   end
 
   NOREPLY_EMAIL_SUFFIX = ".users.noreply.metis".freeze

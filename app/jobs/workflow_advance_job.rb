@@ -76,7 +76,7 @@ class WorkflowAdvanceJob < ApplicationJob
   end
 
   # Hand the step off to a local machine: mark it dispatched and park the
-  # run. It resumes when a device reports a result via the pull API
+  # run. It resumes when the local agent reports a result via the pull API
   # (WorkflowRun#complete_delegated_task!). No turn, no ChatJob.
   def dispatch_step(run, task)
     task.update!(status: :running, dispatched_at: Time.current)

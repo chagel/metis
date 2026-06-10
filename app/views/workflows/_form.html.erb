@@ -28,7 +28,7 @@
 
   <div class="field">
     <%= f.label :steps, "Steps" %>
-    <p class="field-hint">Each prompt step runs as one agent turn — the name is just a label, the prompt is the instruction. Add a <strong>break</strong> where the run should pause for your approval (approve to continue, or request changes to re-run the step above it). Set a step to <strong>Local</strong> to delegate it to an enrolled machine (see <%= link_to "Bridge", bridges_path %>).</p>
+    <p class="field-hint">Each prompt step runs as one agent turn — the name is just a label, the prompt is the instruction. Add a <strong>break</strong> where the run should pause for your approval (approve to continue, or request changes to re-run the step above it). Set a step to <strong>Local</strong> to run it on your own machine (<%= link_to "bridge token", account_path %>).</p>
     <div class="wf-steps" data-controller="workflow-editor">
       <div class="wf-steps-list" data-workflow-editor-target="list"
            data-action="dragover->workflow-editor#dragOver">
