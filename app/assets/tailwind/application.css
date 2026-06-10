@@ -1347,13 +1347,16 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
   background:var(--card); border:1px solid var(--line); border-radius:7px;
   padding:9px 11px; color:var(--ink);
 }
-.token-row { display:flex; gap:8px; align-items:stretch; }
+.token-row { display:flex; gap:8px; align-items:flex-start; }
 .token-row .token { flex:1; min-width:0; }
-.bridge-paste { margin:0; white-space:pre-wrap; word-break:break-word; font-size:11.5px; line-height:1.55; }
+.bridge-token .token.bridge-paste {
+  margin:0; white-space:pre-wrap; overflow-wrap:break-word; word-break:normal;
+  font-size:11.5px; line-height:1.6; padding:12px 14px;
+}
 .token-copy {
   flex:none; display:inline-flex; align-items:center; gap:6px;
   font-size:12px; font-weight:600; color:var(--ink-2); cursor:pointer;
-  background:var(--card); border:1px solid var(--line); border-radius:7px; padding:0 12px;
+  background:var(--card); border:1px solid var(--line); border-radius:7px; padding:8px 12px;
 }
 .token-copy:hover { border-color:var(--line-2); color:var(--ink); }
 .token-copy svg { width:14px; height:14px; }
