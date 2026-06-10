@@ -17,16 +17,18 @@ class WorkflowRun < ApplicationRecord
   end
 
   # `input` is the run's subject — folded into the first step's prompt.
+  # `visibility` is the launcher's choice from the composer: a team-visible
+  # run is openable by any member, who can act on its gates and claim its
+  # local steps.
   def self.start(team:, user:, workflow: nil, project: nil, steps: nil,
-                 input: nil, settings: {}, trigger_summary: "Started by you")
+                 input: nil, settings: {}, visibility: :personal,
+                 trigger_summary: "Started by you")
     steps ||= workflow&.steps || []
     run = transaction do
       # No title — auto-titling names each run from its first turn, so runs
       # of one workflow get distinct names.
-      # A run executes a team workflow, so its chat is team-visible: any
-      # member can open it, act on its gates, and claim its local steps.
       conversation = user.conversations.create!(
-        team: team, project: project, settings: settings || {}, visibility: :team
+        team: team, project: project, settings: settings || {}, visibility: visibility
       )
       run = create!(
         team: team, workflow: workflow, conversation: conversation,

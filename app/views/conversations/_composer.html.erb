@@ -88,6 +88,18 @@
                 <path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </span>
+            <% unless current_team.personal? %>
+              <span class="model-pick">
+                <select name="visibility" aria-label="Who can see this chat">
+                  <option value="personal">Only me</option>
+                  <option value="team">Team</option>
+                </select>
+                <svg class="caret" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                     stroke-width="1.7" aria-hidden="true">
+                  <path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            <% end %>
           <% end %>
 
           <div class="composer-spacer"></div>

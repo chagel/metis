@@ -18,6 +18,7 @@ Rails.application.routes.draw do
       delete :star, action: :unstar
       post :share
       delete :share, action: :unshare
+      patch :visibility, action: :toggle_visibility
     end
     resources :messages, only: :create do
       member { post :fork }

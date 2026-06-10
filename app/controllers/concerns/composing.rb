@@ -19,6 +19,12 @@ module Composing
     { "provider" => model && Agent::Catalog.provider_for(model), "model" => model }.compact
   end
 
+  # The composer's visibility pick; anything but an explicit "team" stays
+  # personal.
+  def composed_visibility
+    params[:visibility] == "team" ? :team : :personal
+  end
+
   # One transaction so a turn-guard collision on the assistant row rolls
   # the user message back too — no orphan. The turn-start core lives in
   # ConversationTurn (shared with the workflow engine); here we only add

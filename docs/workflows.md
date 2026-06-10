@@ -336,14 +336,16 @@ deferred.
 
 ## Open questions / known gaps
 
-- ~~**Team visibility of run conversations**~~ — settled and built. A run
-  executes a team workflow, so its conversation is created
-  `visibility: :team` (distinct from the public `share_token`): any member
-  opens it read-only, acts on its gates, claims its local steps, and sees
-  it pinned under **"Needs you"** (which now also covers `awaiting_local`)
-  and in the **Shared** tab. Delegated claims are stamped with the
-  claiming user (`Task#claimed_by_user`), so timelines read
-  "Done on Bob's Apollo". Ownership (composer, archive, public link)
-  stays with the launcher.
+- ~~**Team visibility of run conversations**~~ — settled and built.
+  Visibility is the launcher's choice: the new-chat composer carries an
+  "Only me / Team" pick (it rides along whether the form starts a chat or
+  launches a workflow), and the share panel toggles it later — in-app
+  team access, distinct from the public `share_token`. A team-visible
+  conversation opens read-only for any member, who can act on its gates,
+  claim its local steps, and sees it pinned under **"Needs you"** (which
+  now also covers `awaiting_local`) and in the **Shared** tab. Delegated
+  claims are stamped with the claiming user (`Task#claimed_by_user`), so
+  timelines read "Done on Bob's Apollo". Ownership (composer, archive,
+  public link) stays with the launcher.
 - One trigger per workflow (inline `trigger_source`/`trigger_config`) vs. a
   `Trigger` model for many-per-workflow. Inline for now; extract if needed.

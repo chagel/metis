@@ -8,6 +8,22 @@
      class="share-panel"
      data-share-target="panel"
      data-shared="<%= conversation.shared? %>">
+  <% if can_manage && !conversation.team.personal? %>
+    <div class="share-panel-team">
+      <p class="share-panel-label">
+        <% if conversation.visibility_team? %>
+          Your team can open this conversation read-only.
+        <% else %>
+          Only you can open this conversation.
+        <% end %>
+      </p>
+      <%= button_to (conversation.visibility_team? ? "Make it just yours" : "Open it to your team"),
+            visibility_conversation_path(conversation),
+            method: :patch,
+            class: (conversation.visibility_team? ? "share-panel-revoke" : "share-panel-create"),
+            form: { data: { turbo_stream: true } } %>
+    </div>
+  <% end %>
   <% if conversation.shared? %>
     <% url = shared_conversation_url(token: conversation.share_token) %>
     <p class="share-panel-label">Anyone with this link can view the conversation. It also appears in your team’s shared list.</p>

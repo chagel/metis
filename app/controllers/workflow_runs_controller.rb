@@ -9,7 +9,7 @@ class WorkflowRunsController < ApplicationController
     run = WorkflowRun.start(
       team: current_team, user: current_user, workflow: @workflow,
       project: project, input: params[:input].presence || params[:content],
-      settings: chat_settings
+      settings: chat_settings, visibility: composed_visibility
     )
     redirect_to run.conversation
   end

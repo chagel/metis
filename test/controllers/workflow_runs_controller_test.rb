@@ -33,20 +33,27 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     post switch_team_path(team)
   end
 
-  test "a run's conversation is team-visible: a teammate opens it read-only" do
+  test "a team-visible run opens read-only for a teammate; personal stays private" do
     team = shared_team
-    run = WorkflowRun.start(team: team, user: @user, steps: [ { "name" => "a", "prompt" => "a" } ])
-    assert run.conversation.visibility_team?
-    chat = @user.conversations.create!(team: team)
+    open_run = WorkflowRun.start(team: team, user: @user, visibility: :team,
+                                 steps: [ { "name" => "a", "prompt" => "a" } ])
+    private_run = WorkflowRun.start(team: team, user: @user,
+                                    steps: [ { "name" => "a", "prompt" => "a" } ])
+    assert private_run.conversation.visibility_personal?, "personal is the default"
 
     join_as_teammate(team)
-    get conversation_path(run.conversation)
+    get conversation_path(open_run.conversation)
     assert_response :success
     assert_match "Read-only", response.body
 
-    # A plain chat stays private to its owner.
-    get conversation_path(chat)
+    get conversation_path(private_run.conversation)
     assert_response :not_found
+  end
+
+  test "the composer's visibility pick reaches the run conversation" do
+    workflow = @team.workflows.create!(name: "W", steps: [ { "name" => "a", "prompt" => "a" } ])
+    post workflow_runs_path, params: { workflow_id: workflow.id, content: "go", visibility: "team" }
+    assert WorkflowRun.order(:id).last.conversation.visibility_team?
   end
 
   test "an awaiting run pins in a teammate's sidebar and shared tab" do

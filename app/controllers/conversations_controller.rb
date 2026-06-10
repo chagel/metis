@@ -3,7 +3,7 @@ class ConversationsController < ApplicationController
 
   layout "chat"
 
-  before_action :set_conversation, only: %i[cancel archive unarchive star unstar update share unshare]
+  before_action :set_conversation, only: %i[cancel archive unarchive star unstar update share unshare toggle_visibility]
   before_action :set_sidebar, only: %i[index show archived]
 
   def index
@@ -25,7 +25,9 @@ class ConversationsController < ApplicationController
       return render_composer_error(nil, error)
     end
 
-    conversation = current_user.conversations.create!(team: current_team, settings: chat_settings)
+    conversation = current_user.conversations.create!(
+      team: current_team, settings: chat_settings, visibility: composed_visibility
+    )
     start_turn(conversation, content, uploads)
     redirect_to conversation
   end
@@ -93,6 +95,13 @@ class ConversationsController < ApplicationController
 
   def unshare
     @conversation.revoke_share!
+    respond_with_panel "conversations/share"
+  end
+
+  # Flip in-app team visibility — separate from the public share link.
+  def toggle_visibility
+    @conversation.update!(visibility: @conversation.visibility_team? ? :personal : :team)
+    @conversation.broadcast_shared_to_team! if @conversation.visibility_team? && !@conversation.team.personal?
     respond_with_panel "conversations/share"
   end
 

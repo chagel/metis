@@ -63,6 +63,31 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  test "the composer's visibility pick sets the conversation's visibility" do
+    sign_in @user
+    post conversations_path, params: { content: "hi team", visibility: "team" }
+    assert Conversation.order(:id).last.visibility_team?
+
+    post conversations_path, params: { content: "hi me" }
+    assert Conversation.order(:id).last.visibility_personal?
+  end
+
+  test "toggle_visibility flips team access and is owner-only" do
+    conversation = @user.conversations.create!(title: "mine")
+    sign_in @user
+
+    patch visibility_conversation_path(conversation), as: :turbo_stream
+    assert conversation.reload.visibility_team?
+    patch visibility_conversation_path(conversation), as: :turbo_stream
+    assert conversation.reload.visibility_personal?
+
+    stranger = User.create!(email: "x-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    sign_in stranger
+    patch visibility_conversation_path(conversation), as: :turbo_stream
+    assert_response :not_found
+    assert conversation.reload.visibility_personal?
+  end
+
   test "share mints a token and renders the panel via turbo stream" do
     conversation = @user.conversations.create!(title: "to share")
     sign_in @user
