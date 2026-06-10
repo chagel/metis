@@ -143,9 +143,12 @@ user's teams. An optional `X-Bridge-Client` header names the machine
 ### `GET /api/bridge/tasks`
 
 The claim queue, read-only: dispatched, unclaimed tasks across the
-user's teams (`task_id`, `name`, `prompt`, `workflow`, `project`,
-`dispatched_at`). Lets a client show the queue and pick — e.g. match a
-task's project to its cwd — instead of blind-claiming FIFO.
+user's teams (`task_id`, `ref`, `name`, `prompt`, `workflow`,
+`project`, `dispatched_at`). Lets a client show the queue and pick —
+e.g. match a task's project to its cwd — instead of blind-claiming
+FIFO. `ref` is a Sentry-style short reference ("CHEESE-1G", the
+workflow slug + base36 id) accepted anywhere a task id is — claim
+`?id=`, events, result, and the MCP tools.
 
 ### `GET /api/bridge/tasks/next`
 

@@ -23,17 +23,30 @@ class Task < ApplicationRecord
   }
   scope :claimable_by, ->(user) { delegated_for(user).running.unclaimed }
 
-  # FIFO claim (or by id) across the user's teams; nil when nothing is
+  # FIFO claim (or by id/ref) across the user's teams; nil when nothing is
   # claimable. SKIP LOCKED so concurrent pollers each get a distinct task
   # instead of blocking or double-claiming.
   def self.claim_next_for(user, client: nil, id: nil)
     transaction do
       scope = claimable_by(user)
-      scope = scope.where(id: id) if id.present?
+      scope = scope.where(id: dereference(id)) if id.present?
       task = scope.order(:dispatched_at).lock("FOR UPDATE SKIP LOCKED").first
       task&.update!(claimed_by_user: user, claimed_by: client.presence)
       task
     end
+  end
+
+  # The Sentry-style short reference ("CHEESE-1G") clients quote instead
+  # of a bare id. Derived from the id, so it needs no column and never
+  # collides; dereference accepts either form.
+  def ref
+    slug = (workflow_run.workflow&.name || "RUN").parameterize.upcase.first(12)
+    "#{slug}-#{id.to_s(36).upcase}"
+  end
+
+  def self.dereference(ref_or_id)
+    value = ref_or_id.to_s.strip
+    value.include?("-") ? value.split("-").last.to_i(36) : value.to_i
   end
 
   def log_progress!(entry)

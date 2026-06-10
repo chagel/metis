@@ -5,8 +5,8 @@ module Api
     module TaskPayloads
       private
 
-      def find_delegated_task(id)
-        Task.delegated_for(current_bridge_user).find(id)
+      def find_delegated_task(ref_or_id)
+        Task.delegated_for(current_bridge_user).find(Task.dereference(ref_or_id))
       end
 
       def claim_queue
@@ -19,6 +19,7 @@ module Api
         run = task.workflow_run
         {
           task_id: task.id,
+          ref: task.ref,
           run_id: run.id,
           name: task.name,
           prompt: task.prompt,
@@ -32,6 +33,7 @@ module Api
         run = task.workflow_run
         {
           task_id: task.id,
+          ref: task.ref,
           run_id: run.id,
           name: task.name,
           prompt: task.prompt,

@@ -20,7 +20,8 @@ module Api
           inputSchema: {
             type: "object",
             properties: {
-              task_id: { type: "integer", description: "Claim this specific task instead of the oldest" }
+              task_id: { type: %w[integer string],
+                         description: "A task id or its ref (e.g. CHEESE-1G) to claim instead of the oldest" }
             },
             required: []
           }
@@ -32,7 +33,7 @@ module Api
           inputSchema: {
             type: "object",
             properties: {
-              task_id: { type: "integer" },
+              task_id: { type: %w[integer string], description: "Task id or ref" },
               text: { type: "string", description: "One line of progress, e.g. 'tests green, opening PR'" }
             },
             required: %w[task_id text]
@@ -45,7 +46,7 @@ module Api
           inputSchema: {
             type: "object",
             properties: {
-              task_id: { type: "integer" },
+              task_id: { type: %w[integer string], description: "Task id or ref" },
               status: { type: "string", enum: %w[completed failed] },
               summary: { type: "string", description: "One or two sentences on the outcome" },
               artifacts: {

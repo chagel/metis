@@ -89,6 +89,24 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     assert_nil older.tasks.first.reload.claimed_by
   end
 
+  test "tasks carry a ref, claimable and reportable by it" do
+    run = dispatch_run
+    task = run.tasks.first
+    get "/api/bridge/tasks", headers: auth
+    ref = JSON.parse(response.body)["tasks"].first["ref"]
+    assert_equal task.ref, ref
+    assert_match(/\ARUN-[0-9A-Z]+\z/, ref)
+
+    get "/api/bridge/tasks/next", params: { id: ref }, headers: auth
+    assert_response :success
+    assert_equal task.id, JSON.parse(response.body)["task_id"]
+
+    post "/api/bridge/tasks/#{ref}/result",
+         params: { status: "completed", summary: "done by ref" }, headers: auth
+    assert_response :ok
+    assert task.reload.completed?
+  end
+
   test "claim with an unavailable id returns 409" do
     run = dispatch_run
     Task.claim_next_for(@user)   # someone else got there first
