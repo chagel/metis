@@ -23,7 +23,15 @@ class Users::RegistrationsController < Devise::RegistrationsController
   end
 
   def deny_registration
-    redirect_to new_user_session_path,
-                alert: "Metis is invite-only — ask a team admin to invite you."
+    redirect_to new_user_session_path, alert: deny_registration_alert
+  end
+
+  def deny_registration_alert
+    if allowed_domains.any?
+      domains = allowed_domains.map { |domain| "@#{domain}" }.to_sentence
+      "Metis is invite-only — only #{domains} emails may register without an invitation."
+    else
+      "Metis is invite-only — ask a team admin to invite you."
+    end
   end
 end

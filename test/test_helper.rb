@@ -39,6 +39,16 @@ module ActiveSupport
       Rails.application.config.x.registration_mode = previous
     end
 
+    # Run a block with the invite-only domain allowlist set (default empty).
+    # Domains are stored downcased, as the initializer does at boot.
+    def with_allowed_domains(*domains)
+      previous = Rails.application.config.x.allowed_domains
+      Rails.application.config.x.allowed_domains = domains.map(&:downcase).freeze
+      yield
+    ensure
+      Rails.application.config.x.allowed_domains = previous
+    end
+
     # Idempotently create one enabled catalog model and return its key —
     # for tests needing a valid preferred_model now that the catalog is
     # DB-backed (Agent::Catalog has no hardcoded fallback).

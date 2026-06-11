@@ -99,18 +99,31 @@ class ApplicationController < ActionController::Base
     Rails.configuration.x.registration_mode == :open
   end
 
-  # Whether to even show the sign-up form: open, the bootstrap, or someone
-  # mid-acceptance of an invite.
+  # Whether to even show the sign-up form: open, the bootstrap, someone
+  # mid-acceptance of an invite, or a deployment with an allowed-domains
+  # list — a domain-eligible visitor proves they belong at submission time.
   def registration_offered?
-    registration_open? || User.none? || pending_invitation.present?
+    registration_open? || User.none? || pending_invitation.present? || allowed_domains.any?
   end
 
   # Whether `email` may actually create an account — the invite gate. The
   # invited email must match so one invite link mints one account, not many.
   def registration_allowed_for?(email)
     return true if registration_open? || User.none?
+    return true if pending_invitation.present? && pending_invitation.email == email.to_s.strip.downcase
 
-    pending_invitation.present? && pending_invitation.email == email.to_s.strip.downcase
+    domain_allowed?(email)
+  end
+
+  # Exact-suffix match (no subdomains): "acme.com" matches bob@acme.com,
+  # not bob@sub.acme.com.
+  def domain_allowed?(email)
+    normalized = email.to_s.strip.downcase
+    allowed_domains.any? { |domain| normalized.end_with?("@#{domain}") }
+  end
+
+  def allowed_domains
+    Rails.configuration.x.allowed_domains
   end
 
   def with_user_locale(&block)

@@ -63,6 +63,80 @@ class Users::RegistrationsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "invite-only with allowed_domains lets a domain-matching email register without an invitation" do
+    with_registration_mode(:invite_only) do
+      with_allowed_domains("acme.com") do
+        assert_difference("User.count", 1) do
+          post user_registration_path, params: signup_params("newhire@acme.com")
+        end
+      end
+    end
+  end
+
+  test "invite-only with allowed_domains rejects an email with a non-matching domain" do
+    with_registration_mode(:invite_only) do
+      with_allowed_domains("acme.com") do
+        assert_no_difference("User.count") do
+          post user_registration_path, params: signup_params("rando@example.com")
+        end
+        assert_redirected_to new_user_session_path
+      end
+    end
+  end
+
+  test "invite-only with allowed_domains shows the sign-up form without a pending invitation" do
+    with_registration_mode(:invite_only) do
+      with_allowed_domains("acme.com") do
+        get new_user_registration_path
+        assert_response :success
+      end
+    end
+  end
+
+  test "invite-only with allowed_domains matches case-insensitively" do
+    with_registration_mode(:invite_only) do
+      with_allowed_domains("ACME.COM") do
+        assert_difference("User.count", 1) do
+          post user_registration_path, params: signup_params("Bob@acme.com")
+        end
+      end
+    end
+  end
+
+  test "invite-only with allowed_domains does not match a subdomain of an allowed domain" do
+    with_registration_mode(:invite_only) do
+      with_allowed_domains("acme.com") do
+        assert_no_difference("User.count") do
+          post user_registration_path, params: signup_params("bob@eng.acme.com")
+        end
+        assert_redirected_to new_user_session_path
+      end
+    end
+  end
+
+  test "invite-only with allowed_domains still lets an invitee register regardless of domain" do
+    with_registration_mode(:invite_only) do
+      with_allowed_domains("acme.com") do
+        get invitation_path(@invitation.token)
+
+        assert_difference("User.count", 1) do
+          post user_registration_path, params: signup_params(@invitation.email)
+        end
+      end
+    end
+  end
+
+  test "invite-only with allowed_domains shows domain-aware rejection message when email doesn't match" do
+    with_registration_mode(:invite_only) do
+      with_allowed_domains("acme.com") do
+        post user_registration_path, params: signup_params("rando@example.com")
+
+        assert_includes flash[:alert], "@acme.com"
+        assert_not_includes flash[:alert], "ask a team admin"
+      end
+    end
+  end
+
   test "the legacy account-edit route redirects to the settings account page" do
     sign_in @inviter
     get edit_user_registration_path

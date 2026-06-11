@@ -65,6 +65,34 @@ class Users::OmniauthCallbacksControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_user_session_path
   end
 
+  test "invite-only with allowed_domains lets a domain-matching OAuth email create an account" do
+    User.create!(email: "existing@example.com", password: "password123") # past the bootstrap
+    mock_github(uid: "newhire", email: "newhire@acme.com")
+
+    with_registration_mode(:invite_only) do
+      with_allowed_domains("acme.com") do
+        assert_difference([ "User.count", "Identity.count" ], 1) do
+          get user_github_omniauth_callback_path
+        end
+      end
+    end
+    assert_equal "newhire@acme.com", Identity.find_by(provider: "github", uid: "newhire").user.email
+  end
+
+  test "invite-only with allowed_domains still blocks a non-matching OAuth email" do
+    User.create!(email: "existing@example.com", password: "password123") # past the bootstrap
+    mock_github(uid: "outsider", email: "outsider@example.com")
+
+    with_registration_mode(:invite_only) do
+      with_allowed_domains("acme.com") do
+        assert_no_difference([ "User.count", "Identity.count" ]) do
+          get user_github_omniauth_callback_path
+        end
+      end
+    end
+    assert_redirected_to new_user_session_path
+  end
+
   test "first GitHub sign-in creates a user, records the identity, and records an OauthGrant — no connector yet" do
     email = mock_github(uid: "42", login: "mgc")
 
