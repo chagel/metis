@@ -18,6 +18,17 @@ class WorkflowBroadcasterTest < ActiveSupport::TestCase
     assert_nothing_raised { WorkflowBroadcaster.new(@run).refresh }
   end
 
+  test "refresh renders the timeline with a decided gate outside a request" do
+    message = @run.conversation.messages.create!(
+      role: :assistant, content: "the spec", streaming_status: :done,
+      started_at: 2.minutes.ago, finished_at: 1.minute.ago,
+      model_key: "claude-opus-4-8", input_tokens: 1200, output_tokens: 300, cost: 0.01
+    )
+    @run.tasks.create!(position: 0, name: "spec", gate: :approval, status: :completed,
+                       assistant_message: message, approved_by: @user, decided_at: Time.current)
+    assert_nothing_raised { WorkflowBroadcaster.new(@run).refresh }
+  end
+
   test "append_turn renders the injected prompt and pending assistant rows" do
     user = @run.conversation.messages.create!(
       role: :user, content: "implement the spec", streaming_status: :done, kind: :step_prompt

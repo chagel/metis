@@ -1,6 +1,8 @@
 <%# The run page's audit timeline: one card per event — trigger, each
     step's turn, and each gate decision. "view turn →" jumps into the
-    transcript anchored at that step's message. %>
+    transcript anchored at that step's message. Root id is the
+    broadcast/replace target; request-safe (run + conversation only). %>
+<div id="workflow_timeline">
 <div class="wf-tl">
   <div class="wf-tl-item">
     <div class="wf-tl-node done">
@@ -95,4 +97,17 @@
       </div>
     <% end %>
   <% end %>
+</div>
+
+<div class="wf-tl-totals">
+  Total: <b><%= pluralize(run.tasks.size, "step") %></b>
+  · <b><%= pluralize(run.tasks.approval.count, "gate") %></b>
+  · agent time <b><%= wf_compact_duration(run.agent_seconds) %></b>
+  <% if run.settled_at %>
+    · wall clock <b><%= wf_compact_duration(run.settled_at - run.created_at) %></b>
+  <% end %>
+  <% if run.total_cost.positive? %>
+    · cost <b><%= format_cost(run.total_cost) %></b>
+  <% end %>
+</div>
 </div>
