@@ -25,7 +25,7 @@
   <% run.tasks.each_with_index do |task, index| %>
     <% message = task.assistant_message %>
     <% state = wf_step_state(task) %>
-    <div class="wf-tl-item<%= " #{state}" if state.present? %>">
+    <div class="wf-tl-item <%= state.presence || "pending" %>">
       <div class="wf-tl-node <%= state %>">
         <% case state %>
         <% when "done" %>

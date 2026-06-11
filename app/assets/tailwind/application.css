@@ -2092,6 +2092,10 @@ body.drawer-open { overflow:hidden; }
 .wf-tl-live { margin-top:8px; }
 .wf-tl-live .chat-content { max-height:280px; overflow-y:auto; font-size:13.5px; }
 
+/* Steps that haven't happened yet recede; they brighten as the run
+   reaches them. */
+.wf-tl-item.pending { opacity:.55; }
+
 /* The step being worked right now reads as the page's live element:
    a glow flowing around the card, pulsing badge in its time slot. The
    gold treatment stays reserved for gates. */
