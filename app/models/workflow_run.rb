@@ -62,7 +62,7 @@ class WorkflowRun < ApplicationRecord
     return unless task
 
     task.update!(status: :completed, approved_by: by, decided_at: Time.current)
-    append_review %(#{reviewer(by)} approved "#{task.name.presence || "the step"}")
+    append_review %(#{reviewer(by)} approved "#{task.name.presence || "the step"}"), sender: by
     running!
     WorkflowAdvanceJob.perform_later(id)
   end
@@ -99,11 +99,11 @@ class WorkflowRun < ApplicationRecord
 
     waited_on_local = task.running?
     task.update!(status: :rejected, approved_by: by, decided_at: Time.current)
-    append_review(if waited_on_local
+    append_review((if waited_on_local
       %(#{reviewer(by)} cancelled the run while "#{task.name.presence || "the step"}" waited on a machine)
-    else
+                   else
       %(#{reviewer(by)} rejected "#{task.name.presence || "the step"}" and cancelled the run)
-    end)
+                   end), sender: by)
     cancelled!
   end
 
@@ -124,14 +124,14 @@ class WorkflowRun < ApplicationRecord
         claimed_by: nil, claimed_by_user: nil, result: {},
         prompt: "#{task.prompt}\n\nRequested changes: #{feedback}"
       )
-      append_review "#{reviewer(by)} requested changes — #{feedback}"
+      append_review "#{reviewer(by)} requested changes — #{feedback}", sender: by
       awaiting_local!
       WorkflowBroadcaster.new(self).refresh
     else
       task.update!(status: :running, approved_by: by)
       running!
       user, assistant = ConversationTurn.start(
-        conversation, content: "#{reviewer(by)} requested changes — #{feedback}", kind: :review
+        conversation, content: "#{reviewer(by)} requested changes — #{feedback}", kind: :review, sender: by
       )
       task.update!(assistant_message: assistant)
       WorkflowBroadcaster.new(self).append_turn(user, assistant)
@@ -155,9 +155,9 @@ class WorkflowRun < ApplicationRecord
   end
 
   # A gate decision's timeline trace — a plain message, never a turn.
-  def append_review(text)
+  def append_review(text, sender: nil)
     message = conversation.messages.create!(
-      role: :user, content: text, streaming_status: :done, kind: :review
+      role: :user, content: text, streaming_status: :done, kind: :review, sender: sender
     )
     WorkflowBroadcaster.new(self).append_report(message)
   end

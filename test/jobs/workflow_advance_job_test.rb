@@ -119,6 +119,7 @@ class WorkflowAdvanceJobTest < ActiveSupport::TestCase
     feedback = run.conversation.messages.user.order(:created_at).last
     assert feedback.review?, "the feedback is a review record in the timeline"
     assert_includes feedback.content, "requested changes — actually, open a PR too"
+    assert_equal user, feedback.sender, "gate feedback is attributed to the reviewer"
 
     finish_turn(run, 0)
     advance(run)

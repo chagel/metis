@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_10_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_11_035049) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -190,6 +190,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_10_130000) do
     t.integer "output_tokens"
     t.text "reasoning"
     t.integer "role", null: false
+    t.bigint "sender_id"
     t.datetime "started_at"
     t.integer "streaming_status", default: 0, null: false
     t.string "tool_call_id"
@@ -197,6 +198,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_10_130000) do
     t.datetime "updated_at", null: false
     t.index ["conversation_id"], name: "index_messages_on_conversation_id"
     t.index ["conversation_id"], name: "index_messages_on_one_in_progress_turn", unique: true, where: "((role = 1) AND (streaming_status = ANY (ARRAY[0, 1])))"
+    t.index ["sender_id"], name: "index_messages_on_sender_id"
   end
 
   create_table "oauth_grants", force: :cascade do |t|
@@ -342,6 +344,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_10_130000) do
   add_foreign_key "memberships", "teams"
   add_foreign_key "memberships", "users"
   add_foreign_key "messages", "conversations"
+  add_foreign_key "messages", "users", column: "sender_id"
   add_foreign_key "oauth_grants", "users"
   add_foreign_key "projects", "teams"
   add_foreign_key "projects", "users", column: "created_by_id"

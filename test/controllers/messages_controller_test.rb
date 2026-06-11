@@ -22,6 +22,14 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert @conversation.messages.exists?(role: :assistant, streaming_status: :pending)
   end
 
+  test "stamps the signed-in user as the user message's sender" do
+    post conversation_messages_path(@conversation),
+         params: { content: "Hello agent" }, as: :turbo_stream
+
+    assert_response :success
+    assert_equal @user, @conversation.messages.find_by(role: :user).sender
+  end
+
   test "the create stream renders no fork action yet" do
     post conversation_messages_path(@conversation),
          params: { content: "Hello agent" }, as: :turbo_stream

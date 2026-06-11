@@ -9,8 +9,14 @@
     <div class="chat-content"><%= markdown(message.content) %></div>
   </div>
 <% elsif message.user? %>
-  <%# User: a contained bubble on the accent fill, aligned right. %>
+  <%# User: a contained bubble on the accent fill, aligned right.
+      Sender falls back to the owner for rows from before it was recorded. %>
+  <% sender = message.sender || message.conversation.user %>
   <div id="<%= dom_id(message) %>" class="msg-user">
+    <div class="msg-sender">
+      <%= avatar_for sender, size: 16, css: "msg-sender-avatar" %>
+      <span class="msg-sender-name"><%= sender.display_label %></span>
+    </div>
     <div class="bubble">
       <% if message.attachments? %>
         <%= render "messages/attachments", message: message %>

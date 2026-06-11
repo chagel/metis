@@ -30,7 +30,7 @@ module Composing
   # ConversationTurn (shared with the workflow engine); here we only add
   # the composer's upload handling.
   def start_turn(conversation, content, uploads)
-    ConversationTurn.start(conversation, content: content) do |user_message|
+    ConversationTurn.start(conversation, content: content, sender: current_user) do |user_message|
       attach_uploads(user_message, uploads)
     end
   end

@@ -14,6 +14,22 @@ class ConversationTest < ActiveSupport::TestCase
     assert_equal @user.personal_team, @conversation.team
   end
 
+  test "participants is just the owner when nobody else has spoken" do
+    @conversation.messages.create!(role: :user, content: "hi", streaming_status: :done, sender: @user)
+    @conversation.messages.create!(role: :user, content: "engine prompt", streaming_status: :done) # no sender
+
+    assert_equal [ @user ], @conversation.participants
+  end
+
+  test "participants lists the owner first, then each distinct other sender" do
+    teammate = User.create!(email: "teammate@example.com", password: "password123")
+    @conversation.messages.create!(role: :user, content: "feedback", streaming_status: :done, sender: teammate)
+    @conversation.messages.create!(role: :user, content: "more", streaming_status: :done, sender: teammate)
+    @conversation.messages.create!(role: :user, content: "mine", streaming_status: :done, sender: @user)
+
+    assert_equal [ @user, teammate ], @conversation.participants
+  end
+
   test "turn_in_progress? is false with no in-flight assistant message" do
     refute @conversation.turn_in_progress?
   end
