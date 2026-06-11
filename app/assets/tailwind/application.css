@@ -2087,6 +2087,11 @@ body.drawer-open { overflow:hidden; }
 .wf-tl-meta .tag { font-family:var(--fm); font-size:10.5px; }
 .wf-tl-turnlink { font-family:var(--fm); font-size:11px; color:var(--accent-fg); text-decoration:none; }
 .wf-tl-turnlink:hover { text-decoration:underline; }
+/* A running step's live turn, embedded in its card. Capped — the full
+   stream lives in the transcript. */
+.wf-tl-live { margin-top:8px; }
+.wf-tl-live .chat-content { max-height:280px; overflow-y:auto; font-size:13.5px; }
+
 /* The gate partial inline on the timeline: the wf-tl-node stands in for
    the partial's own mark. */
 .wf-tl-gate-inline { flex:1; min-width:0; }

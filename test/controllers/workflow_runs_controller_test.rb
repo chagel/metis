@@ -264,6 +264,21 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a", text: /Transcript/
   end
 
+  test "a running step's card embeds the live turn regions the chat streams into" do
+    conversation = @user.conversations.create!
+    run = @team.workflow_runs.create!(conversation: conversation, status: :running)
+    msg = conversation.messages.create!(
+      role: :assistant, content: "", streaming_status: :pending, started_at: Time.current
+    )
+    run.tasks.create!(position: 0, name: "spec", status: :running, assistant_message: msg)
+
+    get conversation_path(conversation)
+    assert_response :success
+    assert_select ".wf-tl-live ##{ActionView::RecordIdentifier.dom_id(msg)}_body"
+    assert_select ".wf-tl-live ##{ActionView::RecordIdentifier.dom_id(msg)}_activity"
+    assert_select ".wf-tl-live ##{ActionView::RecordIdentifier.dom_id(msg)}_indicator"
+  end
+
   test "the run page renders the timeline and gate; the transcript stays plain" do
     run = gated_run
     get conversation_path(run.conversation)

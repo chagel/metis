@@ -53,10 +53,23 @@
             <% end %>
           </span>
         </div>
-        <% summary = task.delegated? ? task.result_summary : message&.content %>
-        <% if summary.present? %>
-          <%# Snippets are prose: render the markdown, drop the markup. %>
-          <p class="wf-tl-body"><%= truncate(strip_tags(markdown(summary)).squish, length: 180) %></p>
+        <% if message && (message.pending? || message.streaming?) %>
+          <%# The in-flight turn, live: these are the same id-addressed
+              regions the chat renders, so ChatBroadcaster's reasoning,
+              text-delta, and phase streams land here unchanged. The next
+              timeline refresh swaps this for the finished summary. %>
+          <div class="wf-tl-live">
+            <%= render "messages/activity", message: message %>
+            <div id="<%= dom_id(message) %>_body" class="chat-content"><%= markdown(message.content) %></div>
+            <%= render "messages/streaming_indicator", message: message,
+                  phase: (message.pending? ? runtime_initial_phase(conversation) : nil) %>
+          </div>
+        <% else %>
+          <% summary = task.delegated? ? task.result_summary : message&.content %>
+          <% if summary.present? %>
+            <%# Snippets are prose: render the markdown, drop the markup. %>
+            <p class="wf-tl-body"><%= truncate(strip_tags(markdown(summary)).squish, length: 180) %></p>
+          <% end %>
         <% end %>
         <% if message && (message.model_key.present? || token_summary(message).present? || message.cost&.positive?) %>
           <div class="wf-tl-meta">
