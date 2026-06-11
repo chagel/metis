@@ -258,7 +258,7 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_match "paused 4m", response.body
     assert_select ".wf-tl-gate-by", text: /#{@user.display_label}.*approved/m
     assert_select ".wf-meta-stats", text: /1 step.*1 gate.*agent 1m 0s.*\$0\.06/m
-    assert_select "a", text: "Open transcript"
+    assert_select "a", text: /Transcript/
   end
 
   test "the run page renders the timeline and gate; the transcript keeps the rail" do
@@ -272,6 +272,6 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
 
     get conversation_path(run.conversation, view: "transcript")
     assert_select "#workflow_rail"
-    assert_select "a", text: "Run view"
+    assert_select "a", text: /Timeline/
   end
 end
