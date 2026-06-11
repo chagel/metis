@@ -109,30 +109,4 @@
   <% end %>
 </div>
 
-<div class="wf-tl-totals">
-  <div class="wf-tl-stat">
-    <span class="wf-tl-stat-label">Steps</span>
-    <span class="wf-tl-stat-value"><%= run.tasks.size %></span>
-  </div>
-  <div class="wf-tl-stat">
-    <span class="wf-tl-stat-label">Gates</span>
-    <span class="wf-tl-stat-value"><%= run.tasks.approval.count %></span>
-  </div>
-  <div class="wf-tl-stat">
-    <span class="wf-tl-stat-label">Agent time</span>
-    <span class="wf-tl-stat-value"><%= wf_compact_duration(run.agent_seconds) %></span>
-  </div>
-  <% if run.settled_at %>
-    <div class="wf-tl-stat">
-      <span class="wf-tl-stat-label">Wall clock</span>
-      <span class="wf-tl-stat-value"><%= wf_compact_duration(run.settled_at - run.created_at) %></span>
-    </div>
-  <% end %>
-  <% if run.total_cost.positive? %>
-    <div class="wf-tl-stat">
-      <span class="wf-tl-stat-label">Cost</span>
-      <span class="wf-tl-stat-value"><%= format_cost(run.total_cost) %></span>
-    </div>
-  <% end %>
-</div>
 </div>

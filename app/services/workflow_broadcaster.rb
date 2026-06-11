@@ -13,28 +13,33 @@ class WorkflowBroadcaster
     replace("workflow_meta", "workflow_runs/meta")
     replace("workflow_rail", "workflow_runs/rail")
     replace("workflow_gate", "workflow_runs/gate")
-    replace("workflow_timeline", "workflow_runs/timeline", conversation: @conversation)
     replace("composer", "workflow_runs/run_status")
+    refresh_run_page
     refresh_sidebar
   end
 
   # An engine-started turn has no controller to append its message rows (the
   # chat path does that in create.turbo_stream), so do it here — else
   # ChatBroadcaster's streaming has no DOM to land in until a refresh.
-  # The timeline rides along so the run page flips the step to running.
+  # The run page rides along so the step card flips to running.
   def append_turn(user_message, assistant_message)
     append_message(user_message, forkable: false)
     append_message(assistant_message, forkable: true)
-    replace("workflow_timeline", "workflow_runs/timeline", conversation: @conversation)
+    refresh_run_page
   end
 
   # A delegated step's report line (WorkflowRun#append_local_report).
   def append_report(message)
     append_message(message, forkable: false)
-    replace("workflow_timeline", "workflow_runs/timeline", conversation: @conversation)
+    refresh_run_page
   end
 
   private
+
+  def refresh_run_page
+    replace("workflow_timeline", "workflow_runs/timeline", conversation: @conversation)
+    replace("workflow_totals", "workflow_runs/totals")
+  end
 
   def append_message(message, forkable:)
     Turbo::StreamsChannel.broadcast_append_to(

@@ -2103,14 +2103,9 @@ body.drawer-open { overflow:hidden; }
 /* The run-status note rides under the header on the run page. */
 .wf-run-status-top .composer-wrap { padding:10px 28px 12px; border-bottom:1px solid var(--line); }
 
-/* Totals: a quiet stat strip aligned with the card column (28px node +
-   16px gap), sticky at the scrollport's bottom so the summary stays in
-   view while the timeline scrolls. */
-.wf-tl-totals {
-  display:flex; flex-wrap:wrap; gap:8px 36px;
-  position:sticky; bottom:0; background:var(--canvas);
-  border-top:1px solid var(--line); margin:6px 0 0 44px; padding:16px 2px 18px;
-}
+/* Totals: the run page's bottom bar — the composer slot's counterpart. */
+.wf-totals-bar { border-top:1px solid var(--line); background:var(--canvas); padding:13px 28px 17px; }
+.wf-totals-inner { max-width:860px; margin:0 auto; display:flex; flex-wrap:wrap; gap:8px 40px; }
 .wf-tl-stat { display:flex; flex-direction:column; gap:4px; }
 .wf-tl-stat-label {
   font-family:var(--fm); font-size:9px; font-weight:600;
