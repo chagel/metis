@@ -239,7 +239,8 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     workflow = @team.workflows.create!(name: "Ship", steps: [ { "name" => "spec", "prompt" => "p" } ])
     run = @team.workflow_runs.create!(conversation: conversation, workflow: workflow, status: :completed)
     msg = conversation.messages.create!(
-      role: :assistant, content: "Wrote the spec and opened a PR.", streaming_status: :done,
+      role: :assistant, streaming_status: :done,
+      content: "Wrote the **spec** and opened a PR.\n\n| a | b |\n|---|---|\n| 1 | 2 |",
       started_at: 10.minutes.ago, finished_at: 9.minutes.ago,
       model_key: "claude-opus-4-8", input_tokens: 18_200, output_tokens: 1_100, cost: 0.064
     )
@@ -250,7 +251,8 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select ".wf-tl-title", text: "Triggered"
     assert_match "workflow <b>Ship</b>", response.body
-    assert_select ".wf-tl-body", text: /Wrote the spec/
+    assert_select ".wf-tl-body", text: /Wrote the spec and opened a PR/
+    assert_select ".wf-tl-body", text: /[|*#]/, count: 0
     assert_select ".wf-tl-meta .tag", text: "claude-opus-4-8"
     assert_select ".wf-tl-meta .tag", text: "18.2k in · 1.1k out"
     assert_select ".wf-tl-meta .tag", text: "$0.06"

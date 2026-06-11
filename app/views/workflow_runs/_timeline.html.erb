@@ -55,7 +55,8 @@
         </div>
         <% summary = task.delegated? ? task.result_summary : message&.content %>
         <% if summary.present? %>
-          <p class="wf-tl-body"><%= truncate(summary.gsub(/\s+/, " "), length: 180) %></p>
+          <%# Snippets are prose: render the markdown, drop the markup. %>
+          <p class="wf-tl-body"><%= truncate(strip_tags(markdown(summary)).squish, length: 180) %></p>
         <% end %>
         <% if message && (message.model_key.present? || token_summary(message).present? || message.cost&.positive?) %>
           <div class="wf-tl-meta">
