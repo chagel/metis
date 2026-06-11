@@ -264,7 +264,7 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_match "paused 4m", response.body
     assert_select ".wf-tl-gate-by", text: /#{@user.display_label}.*approved/m
     assert_select ".wf-meta-stats", text: /1 step.*1 gate.*agent 1m 0s.*\$0\.06/m
-    assert_select "a", text: /Transcript/
+    assert_select "a", text: /Chat/
   end
 
   test "a running step's card embeds the live turn regions the chat streams into" do
@@ -294,6 +294,6 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     get conversation_path(run.conversation, view: "transcript")
     assert_select "#workflow_rail", count: 0
     assert_select "#workflow_meta", count: 0
-    assert_select "a", text: /Timeline/
+    assert_select "a", text: /Workflow/
   end
 end
