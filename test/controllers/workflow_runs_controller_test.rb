@@ -257,9 +257,7 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".wf-tl-item.gate .wf-tl-title", text: "Gate · spec"
     assert_match "paused 4m", response.body
     assert_select ".wf-tl-gate-by", text: /#{@user.display_label}.*approved/m
-    assert_select ".wf-tl-stat-label", text: "Agent time"
-    assert_select ".wf-tl-stat-value", text: "1m 0s"
-    assert_select ".wf-tl-stat-value", text: "$0.06"
+    assert_select ".wf-meta-stats", text: /1 step.*1 gate.*agent 1m 0s.*\$0\.06/m
     assert_select "a", text: "Open transcript"
   end
 
