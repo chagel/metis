@@ -33,6 +33,21 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".msg-sender", count: 0
   end
 
+  test "under the Me tab a solo shared-team conversation shows no avatar; the Team tab always does" do
+    team = Team.create!(name: "Besty")
+    @user.memberships.create!(team: team, role: :owner)
+    conversation = @user.conversations.create!(team: team, title: "Solo in team", visibility: :team)
+    conversation.messages.create!(role: :user, content: "hi", streaming_status: :done, sender: @user)
+    sign_in @user
+    post switch_team_path(team)
+
+    get conversations_path
+    assert_select ".sidebar .convo .convo-avatars", count: 0
+
+    get conversations_path(filter: "team")
+    assert_select ".sidebar .convo .convo-avatars", count: 1
+  end
+
   test "a conversation a teammate has spoken in shows avatars and sender rows" do
     teammate = User.create!(email: "mate@example.com", password: "password123")
     conversation = @user.conversations.create!(title: "Us")

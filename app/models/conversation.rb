@@ -99,9 +99,9 @@ class Conversation < ApplicationRecord
     ).order(:id).to_a
   end
 
-  # A team-of-one conversation nobody else has touched — identity rows
-  # and sidebar avatars are noise there. Shared teams keep attribution
-  # even solo, so members can tell whose row it is.
+  # A team-of-one conversation nobody else has touched — the chat skips
+  # sender rows there. Shared-team chats keep them even solo: the thread
+  # may be team-visible, and a reader isn't always the writer.
   def solo?
     team.personal? && participants.one?
   end
