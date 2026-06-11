@@ -172,4 +172,65 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     assert_response :accepted
     assert_equal "running tests", task.reload.progress.last["text"]
   end
+
+  test "claim and events stamp the liveness heartbeat" do
+    run = dispatch_run
+    task = run.tasks.first
+    assert_nil task.last_reported_at
+
+    get "/api/bridge/tasks/next", headers: auth
+    claimed_at = task.reload.last_reported_at
+    assert claimed_at.present?
+
+    travel 5.minutes do
+      post "/api/bridge/tasks/#{task.id}/events",
+           params: { kind: "log", text: "still here" }, headers: auth
+      assert_operator task.reload.last_reported_at, :>, claimed_at
+    end
+  end
+
+  test "claim scoped to a project skips other projects' tasks" do
+    other = dispatch_run                       # older, no project
+    project = @team.projects.create!(name: "metis-api")
+    run = WorkflowRun.start(team: @team, user: @user, steps: [ LOCAL ], project: project)
+    WorkflowAdvanceJob.perform_now(run.id)
+
+    get "/api/bridge/tasks/next", params: { project: "Metis-API" }, headers: auth
+    assert_response :success
+    assert_equal run.tasks.first.id, JSON.parse(response.body)["task_id"]
+    assert_nil other.tasks.first.reload.claimed_by_user_id
+
+    get "/api/bridge/tasks/next", params: { project: "no-such-project" }, headers: auth
+    assert_response :no_content
+  end
+
+  test "a cancelled run 410s the next progress post and result" do
+    run = dispatch_run
+    task = Task.claim_next_for(@user)
+    run.reject_current_gate!(by: @user)
+
+    post "/api/bridge/tasks/#{task.id}/events",
+         params: { kind: "log", text: "tests green" }, headers: auth
+    assert_response :gone
+
+    post "/api/bridge/tasks/#{task.id}/result",
+         params: { status: "completed", summary: "done" }, headers: auth
+    assert_response :gone
+    assert task.reload.rejected?
+    assert_empty task.result
+  end
+
+  test "a result after reclaim is discarded with 410" do
+    run = dispatch_run
+    task = Task.claim_next_for(@user)
+    task.reclaim!
+
+    post "/api/bridge/tasks/#{task.id}/result",
+         params: { status: "completed", summary: "too late" }, headers: auth
+    assert_response :gone
+    task.reload
+    assert task.running?, "the task stays claimable"
+    assert_empty task.result
+    assert run.reload.awaiting_local?
+  end
 end

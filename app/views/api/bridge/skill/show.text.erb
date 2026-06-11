@@ -38,7 +38,7 @@ its MCP server config). No MCP support at all? The same API is plain REST,
 bearer-authed with the token:
 
 - `GET  <%= base_url %>/api/bridge/tasks` — the claim queue
-- `GET  <%= base_url %>/api/bridge/tasks/next[?id=<id-or-ref>]` — claim
+- `GET  <%= base_url %>/api/bridge/tasks/next[?id=<id-or-ref>][?project=<name>]` — claim
 - `POST <%= base_url %>/api/bridge/tasks/:id/events` — `{kind: "log", text}`
 - `POST <%= base_url %>/api/bridge/tasks/:id/result` — `{status, summary, artifacts}`
 
@@ -57,9 +57,15 @@ bearer-authed with the token:
 3. **Work like a teammate.** Follow the repo's own conventions
    (CLAUDE.md / AGENTS.md), run its lint and tests before committing,
    use a feature branch, and open a PR when the task asks for one.
-4. Optionally post `report_progress` at milestones — one line each; they
-   land in the run's timeline.
-5. **`submit_result` exactly once, when done**: `status`
+4. **Post `report_progress` at milestones** — one line each; they land
+   in the run's timeline. Progress is also your heartbeat: a claim
+   that stays silent too long (~15 minutes) is reclaimed and handed to
+   the next puller, so on long work report at least that often.
+5. **Stop on a dead task.** If `report_progress` or `submit_result`
+   answers that the task is no longer live (REST: `410 Gone`), the run
+   was cancelled or your claim was reclaimed — stop work immediately
+   and discard it; do not retry the report.
+6. **`submit_result` exactly once, when done**: `status`
    (`completed` | `failed`), a one-or-two-sentence `summary`, and
    `artifacts` such as `[{"type": "pr", "url": "…"}]`. The workflow
    resumes in Metis immediately — a cloud step may review your PR next,

@@ -70,6 +70,21 @@ class Api::Bridge::McpControllerTest < ActionDispatch::IntegrationTest
     assert_equal "halfway", run.tasks.first.progress.last["text"]
   end
 
+  test "reporting against a dead task tells the agent to stop" do
+    run = dispatch_run
+    task = Task.claim_next_for(@user, client: "testbox")
+    run.reject_current_gate!(by: @user)
+
+    body = call_tool("report_progress", { task_id: task.id, text: "tests green" })
+    assert body.dig("result", "isError")
+    assert_includes body.dig("result", "content", 0, "text"), "Stop work"
+
+    body = call_tool("submit_result", { task_id: task.id, status: "completed", summary: "done" })
+    assert body.dig("result", "isError")
+    assert task.reload.rejected?
+    assert_empty task.result
+  end
+
   test "claiming an unavailable task id is a tool error, not a crash" do
     run = dispatch_run
     Task.claim_next_for(@user)

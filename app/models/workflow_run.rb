@@ -108,6 +108,23 @@ class WorkflowRun < ApplicationRecord
     end
   end
 
+  # The sweeper hit the reclaim cap: every claim on this delegated task
+  # went silent. Fails the step and surfaces it — an infrastructure
+  # failure re-dispatches silently (Task#reclaim!), but a step that keeps
+  # killing its client needs a person, not another cycle.
+  def fail_silent_task!(task)
+    return unless task.delegated? && task.running?
+
+    task.update!(status: :failed, decided_at: Time.current)
+    message = conversation.messages.create!(
+      role: :assistant, streaming_status: :done, kind: :local_report,
+      content: %(Gave up on "#{task.name.presence || "the step"}" — every machine that claimed it went silent (#{task.reclaims_count} reclaims).)
+    )
+    WorkflowBroadcaster.new(self).append_report(message)
+    failed!
+    WorkflowBroadcaster.new(self).refresh
+  end
+
   # Cancels at a gate, or while a delegated step sits waiting for (or on)
   # a machine — a parked run must always be killable. A result reported
   # after the cancel no-ops (complete_delegated_task! requires running).
@@ -140,6 +157,7 @@ class WorkflowRun < ApplicationRecord
       task.update!(
         status: :running, approved_by: by, dispatched_at: Time.current,
         claimed_by: nil, claimed_by_user: nil, result: {},
+        last_reported_at: nil, reclaims_count: 0,
         prompt: "#{task.prompt}\n\nRequested changes: #{feedback}"
       )
       append_review "#{reviewer(by)} requested changes — #{feedback}", sender: by

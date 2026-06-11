@@ -7,6 +7,7 @@ module Api
       include TaskPayloads
 
       before_action :set_task, only: %i[events result]
+      before_action :ensure_task_live, only: %i[events result]
 
       # The claim queue, read-only — a client picks by repo instead of
       # blind-claiming FIFO.
@@ -14,10 +15,11 @@ module Api
         render json: { tasks: claim_queue.map { |task| index_entry(task) } }
       end
 
-      # Claims FIFO, or a specific task via ?id= — 409 when that task is
-      # gone (claimed, settled, or never yours).
+      # Claims FIFO, or a specific task via ?id=, or scoped via ?project=
+      # — 409 when that task is gone (claimed, settled, or never yours).
       def claim
-        task = Task.claim_next_for(current_bridge_user, client: bridge_client_name, id: params[:id])
+        task = Task.claim_next_for(current_bridge_user, client: bridge_client_name,
+                                   id: params[:id], project: params[:project])
         return render json: claim_payload(task) if task
 
         params[:id].present? ? head(:conflict) : head(:no_content)
@@ -38,6 +40,12 @@ module Api
 
       def set_task
         @task = find_delegated_task(params[:id])
+      end
+
+      # 410 means stop work now: the run was cancelled or the claim was
+      # reclaimed — the claim that holds the task wins, not the last writer.
+      def ensure_task_live
+        head :gone unless @task.reportable?
       end
 
       def result_params

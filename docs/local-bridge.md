@@ -1,6 +1,8 @@
 # Local bridge (design + build plan)
 
-> Status: **design + build plan**, not yet implemented. Companion to
+> Status: **shipped through Phase 3** (token + presence, delegation core,
+> hosted MCP facade, delegation reliability); Phases 4–5 (daemon + ACP,
+> notifications) are design. Companion to
 > [`workflows.md`](workflows.md) — the bridge is how a workflow's
 > *implementation step* runs on the user's own machine instead of a
 > Metis-operated sandbox.
@@ -369,11 +371,13 @@ protocol — argued there, not assumed here.
     -o ~/.claude/skills/metis-bridge/SKILL.md
   ```
 
-### Phase 3 — Delegation reliability
+### Phase 3 — Delegation reliability ✅
 - Migration: `tasks.last_reported_at` + `tasks.reclaims_count`; stamped
-  on claim, events, result.
-- Recurring sweeper job: silent claims past the TTL return to the
-  unclaimed pool; the reclaim cap fails the task and notifies.
+  on claim and events.
+- `ReclaimSilentBridgeTasksJob` (recurring, every 5 minutes): silent
+  claims past `METIS_BRIDGE_CLAIM_TTL_MINUTES` (default 15) return to
+  the unclaimed pool; at `METIS_BRIDGE_RECLAIM_CAP` (default 3) the
+  task fails and the run surfaces it.
 - `410 Gone` from `events` / `result` when the task is no longer live;
   the served skill teaches stop-on-410 and a progress cadence.
 - `?project=` claim filter on `next`.

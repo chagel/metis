@@ -121,7 +121,10 @@ module Api
 
       def report_progress(args)
         task = find_delegated_task(args.fetch("task_id"))
-        task.log_progress!({ "kind" => "log", "text" => args.fetch("text").to_s })
+        text = args.fetch("text").to_s
+        return dead_task_error(task) unless task.reportable?
+
+        task.log_progress!({ "kind" => "log", "text" => text })
         tool_text("Progress recorded.")
       end
 
@@ -132,8 +135,15 @@ module Api
           "summary" => args.fetch("summary"),
           "artifacts" => args["artifacts"]
         }.compact
+        return dead_task_error(task) unless task.reportable?
+
         task.workflow_run.complete_delegated_task!(task, result: result)
         tool_text("Result submitted — the run resumes in Metis.")
+      end
+
+      def dead_task_error(task)
+        tool_error("Task #{task.ref} is no longer live (the run was cancelled " \
+                   "or the claim was reclaimed). Stop work on it now.")
       end
 
       def tool_text(text)

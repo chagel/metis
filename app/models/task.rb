@@ -24,16 +24,29 @@ class Task < ApplicationRecord
     joins(:workflow_run).where(delegated: true, workflow_runs: { team_id: user.team_ids })
   }
   scope :claimable_by, ->(user) { delegated_for(user).running.unclaimed }
+  # Claimed and silent past the cutoff — reclaim candidates. Progress is
+  # the heartbeat: claim/events stamp last_reported_at, so a task whose
+  # client keeps posting never matches. Unclaimed tasks never match —
+  # offline is just latency, only a held claim can go stale.
+  scope :silent_claims, ->(cutoff) {
+    dispatched.where.not(claimed_by_user_id: nil).where(last_reported_at: ..cutoff)
+  }
+  scope :in_project, ->(name) {
+    joins(workflow_run: { conversation: :project })
+      .where("LOWER(projects.name) = ?", name.to_s.downcase)
+  }
 
-  # FIFO claim (or by id/ref) across the user's teams; nil when nothing is
-  # claimable. SKIP LOCKED so concurrent pollers each get a distinct task
-  # instead of blocking or double-claiming.
-  def self.claim_next_for(user, client: nil, id: nil)
+  # FIFO claim (or by id/ref, or scoped to one project) across the user's
+  # teams; nil when nothing is claimable. SKIP LOCKED so concurrent
+  # pollers each get a distinct task instead of blocking or double-claiming.
+  def self.claim_next_for(user, client: nil, id: nil, project: nil)
     transaction do
       scope = claimable_by(user)
       scope = scope.where(id: dereference(id)) if id.present?
+      scope = scope.in_project(project) if project.present?
       task = scope.order(:dispatched_at).lock("FOR UPDATE SKIP LOCKED").first
-      task&.update!(claimed_by_user: user, claimed_by: client.presence)
+      task&.update!(claimed_by_user: user, claimed_by: client.presence,
+                    last_reported_at: Time.current)
       task
     end
   end
@@ -52,7 +65,26 @@ class Task < ApplicationRecord
   end
 
   def log_progress!(entry)
-    update!(progress: progress + [ entry ])
+    update!(progress: progress + [ entry ], last_reported_at: Time.current)
+  end
+
+  # Whether a client may still post events/results against this task.
+  # False once the run settled it (cancelled, completed) or the sweeper
+  # reclaimed the claim — the claim that holds the task wins, not the
+  # last writer.
+  def reportable?
+    delegated? && running? && claimed_by_user_id.present?
+  end
+
+  # Return a silent claim to the unclaimed pool; the run stays
+  # awaiting_local and the next pull picks the task up.
+  def reclaim!
+    update!(
+      claimed_by: nil, claimed_by_user: nil, last_reported_at: nil,
+      reclaims_count: reclaims_count + 1,
+      progress: progress + [ { "kind" => "reclaim",
+                               "text" => "#{claimed_label} went silent — returned to the queue" } ]
+    )
   end
 
   def final_step?

@@ -29,6 +29,8 @@ cp .env.example .env
 | `METIS_LANGFUSE_ENABLED` | export per-turn token/cost traces to Langfuse — see [Observability](observability.md) |
 | `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_HOST` | Langfuse credentials + endpoint (host defaults to `https://cloud.langfuse.com`) |
 | `METIS_LANGFUSE_INCLUDE_CONTENT` | also export prompt/completion text (off by default — `Message#content` is encrypted) |
+| `METIS_BRIDGE_CLAIM_TTL_MINUTES` | minutes a claimed delegated task may stay silent before the sweeper reclaims it (default 15) — see [local bridge](local-bridge.md) |
+| `METIS_BRIDGE_RECLAIM_CAP` | reclaims before a delegated task fails instead of re-queueing (default 3) |
 
 ## Runtimes
 
