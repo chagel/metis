@@ -22,10 +22,9 @@
 
   <div class="stream">
     <div class="wf-tl-wrap">
+      <%# The gate card renders inline, under the step it blocks; the whole
+          timeline is one broadcast region, so it stays live. %>
       <%= render "workflow_runs/timeline", run: @workflow_run, conversation: @conversation %>
-      <%# Always present so the broadcaster's replace lands when a gate
-          opens mid-visit — the partial renders an empty region otherwise. %>
-      <div class="thread"><%= render "workflow_runs/gate", run: @workflow_run %></div>
     </div>
   </div>
 

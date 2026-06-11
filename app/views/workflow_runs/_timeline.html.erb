@@ -70,6 +70,16 @@
       </div>
     </div>
 
+    <% if run.awaiting_approval? && task.awaiting_approval? %>
+      <div class="wf-tl-item gate">
+        <div class="wf-tl-node gate">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        </div>
+        <div class="wf-tl-gate-inline"><%= render "workflow_runs/gate", run: run %></div>
+      </div>
+    <% end %>
+
     <% if task.approval? && task.decided_at %>
       <div class="wf-tl-item gate">
         <div class="wf-tl-node gate">
