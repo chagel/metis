@@ -13,9 +13,9 @@
 Rails.application.config.x.registration_mode =
   ENV.fetch("METIS_REGISTRATION_MODE", Rails.env.test? ? "open" : "invite_only").to_sym
 
-# In invite-only mode, emails on these domains may register without an
-# invitation — a second door for company deployments (anyone @acme.com
-# walks up), not a replacement for invites. Deployment-wide, like the
-# mode itself. Empty (the default) leaves invite-only behavior unchanged.
+# In invite-only mode, emails on these domains may also register without
+# an invitation (empty = off). The password form trusts the typed address
+# — there is no email confirmation — so list only domains where a claimed
+# address is acceptable proof; OAuth requires a provider-verified email.
 Rails.application.config.x.allowed_domains =
   ENV.fetch("METIS_ALLOWED_DOMAINS", "").split(",").map { |domain| domain.strip.downcase }.reject(&:empty?).freeze

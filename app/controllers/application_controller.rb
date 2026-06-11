@@ -99,9 +99,8 @@ class ApplicationController < ActionController::Base
     Rails.configuration.x.registration_mode == :open
   end
 
-  # Whether to even show the sign-up form: open, the bootstrap, someone
-  # mid-acceptance of an invite, or a deployment with an allowed-domains
-  # list — a domain-eligible visitor proves they belong at submission time.
+  # Whether to even show the sign-up form. With an allowed-domains list
+  # the form always shows — eligibility is proven at submission time.
   def registration_offered?
     registration_open? || User.none? || pending_invitation.present? || allowed_domains.any?
   end

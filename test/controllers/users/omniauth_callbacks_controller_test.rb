@@ -93,6 +93,22 @@ class Users::OmniauthCallbacksControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_user_session_path
   end
 
+  test "invite-only with allowed_domains blocks an OAuth sign-in with no provider email" do
+    User.create!(email: "existing@example.com", password: "password123") # past the bootstrap
+    # No verified email → noreply synth, which can never match an allowlisted
+    # domain. Membership can't be proven without a provider-verified address.
+    mock_github(uid: "no-email", email: nil)
+
+    with_registration_mode(:invite_only) do
+      with_allowed_domains("acme.com") do
+        assert_no_difference([ "User.count", "Identity.count" ]) do
+          get user_github_omniauth_callback_path
+        end
+      end
+    end
+    assert_redirected_to new_user_session_path
+  end
+
   test "first GitHub sign-in creates a user, records the identity, and records an OauthGrant — no connector yet" do
     email = mock_github(uid: "42", login: "mgc")
 

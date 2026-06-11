@@ -25,6 +25,7 @@ cp .env.example .env
 | `METIS_MAIL_FROM` | sender for all email (on the Cloudflare-verified domain) |
 | `METIS_APP_HOST` | host for links in emails (invites, password reset) |
 | `METIS_REGISTRATION_MODE` | `invite_only` (default) or `open` |
+| `METIS_ALLOWED_DOMAINS` | comma-separated email domains that may register without an invitation in invite-only mode (default empty — off) |
 | `METIS_LANGFUSE_ENABLED` | export per-turn token/cost traces to Langfuse — see [Observability](observability.md) |
 | `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_HOST` | Langfuse credentials + endpoint (host defaults to `https://cloud.langfuse.com`) |
 | `METIS_LANGFUSE_INCLUDE_CONTENT` | also export prompt/completion text (off by default — `Message#content` is encrypted) |
@@ -114,3 +115,11 @@ the deployment's shared provider keys — so `METIS_REGISTRATION_MODE`
 defaults to **`invite_only`**: only invitees (and the first, bootstrap
 account) may register. Set it to `open` to let anyone sign up. See
 [`teams.md`](teams.md) for the invitation flow.
+
+`METIS_ALLOWED_DOMAINS` opens a second door in invite-only mode: emails on
+the listed domains (`acme.com,corp.example.com`) may register without an
+invitation. Matching is case-insensitive and exact — no subdomains. Note
+the trust model: the password form does **not** verify mailbox ownership
+(Metis has no email confirmation step), so anyone *claiming* an allowed
+address can register; OAuth sign-ups only match on provider-verified
+emails. Use it on domains where that trade-off is acceptable.
