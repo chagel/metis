@@ -20,6 +20,11 @@
     </div>
   </header>
 
+  <%# Current state up top with the header; the totals strip inside the
+      timeline is sticky-bottom, so the summary stays in view while the
+      timeline scrolls. %>
+  <div class="wf-run-status-top"><%= render "workflow_runs/run_status", run: @workflow_run %></div>
+
   <div class="stream">
     <div class="wf-tl-wrap">
       <%# The gate card renders inline, under the step it blocks; the whole
@@ -27,6 +32,4 @@
       <%= render "workflow_runs/timeline", run: @workflow_run, conversation: @conversation %>
     </div>
   </div>
-
-  <%= render "workflow_runs/run_status", run: @workflow_run %>
 </main>
