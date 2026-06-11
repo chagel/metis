@@ -99,11 +99,10 @@ class Conversation < ApplicationRecord
     ).order(:id).to_a
   end
 
-  # A team-of-one conversation nobody else has touched — the chat skips
-  # sender rows there. Shared-team chats keep them even solo: the thread
-  # may be team-visible, and a reader isn't always the writer.
+  # Only the owner has spoken — the chat skips sender attribution; with
+  # one voice there is nobody to tell apart.
   def solo?
-    team.personal? && participants.one?
+    participants.one?
   end
 
   TITLE_MAX = 60
