@@ -2100,11 +2100,20 @@ body.drawer-open { overflow:hidden; }
   font-weight:600; font-size:8px;
 }
 .wf-tl-gate-by .tag { font-family:var(--fm); font-size:10px; }
+/* Totals: a quiet stat strip aligned with the card column (28px node + 16px gap). */
 .wf-tl-totals {
-  border-top:1px solid var(--line); margin-top:6px; padding:14px 2px 24px;
-  font-family:var(--fm); font-size:11.5px; color:var(--ink-3);
+  display:flex; flex-wrap:wrap; gap:8px 36px;
+  border-top:1px solid var(--line); margin:6px 0 0 44px; padding:16px 2px 24px;
 }
-.wf-tl-totals b { color:var(--ink); font-weight:600; }
+.wf-tl-stat { display:flex; flex-direction:column; gap:4px; }
+.wf-tl-stat-label {
+  font-family:var(--fm); font-size:9px; font-weight:600;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--faint);
+}
+.wf-tl-stat-value {
+  font-size:13.5px; font-weight:600; color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
 
 .wf-rail {
   display:flex; align-items:flex-start; gap:0;
