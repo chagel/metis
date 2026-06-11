@@ -51,7 +51,7 @@ module Agent
 
         ## This turn
 
-        - **Operator** — #{user.email}
+        - **Operator** — #{user.email}#{timezone_section}
         - **Team** — #{team.name}
         - **Runtime** — #{runtime_description}#{model_section}
         - **Workspace** — files you write here persist between turns.
@@ -316,6 +316,16 @@ module Agent
 
     def user = @conversation.user
     def team = @conversation.team
+
+    # Ground truth for time-sensitive reasoning — without it the agent
+    # guesses UTC when the operator says "tomorrow morning".
+    def timezone_section
+      zone = ActiveSupport::TimeZone[user.timezone.to_s]
+      return "" unless zone
+
+      now = Time.current.in_time_zone(zone)
+      "\n- **Timezone** — #{user.timezone} (#{now.strftime('%B %-d, %Y, %-l:%M %p %Z')})"
+    end
 
     # The agent can't reliably name its own model, so hand it the real id
     # to cite. "" when Metis passed no --model (pi uses its own config).

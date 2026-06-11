@@ -169,6 +169,20 @@ class Agent::IdentityTest < ActiveSupport::TestCase
     assert_match(/file:line/, out)
   end
 
+  test "renders the operator's timezone with the current local time so the agent knows when 'now' is" do
+    conversation.user.update!(timezone: "Eastern Time (US & Canada)")
+
+    travel_to Time.utc(2026, 6, 11, 18, 34) do
+      out = render
+
+      assert_match(/\*\*Timezone\*\* — Eastern Time \(US & Canada\) \(June 11, 2026, 2:34 PM EDT\)/, out)
+    end
+  end
+
+  test "omits the timezone bullet when the operator hasn't set one" do
+    refute_match(/\*\*Timezone\*\*/, render)
+  end
+
   test "omits operator-preferences sections when the profile fields are blank" do
     out = render
 
