@@ -109,3 +109,18 @@ func TestEnvTokenFillsTokenlessServer(t *testing.T) {
 		t.Fatalf("token = %q, want file token kept", cfg.Servers[0].Token)
 	}
 }
+
+func TestProjectLookupIsCaseInsensitive(t *testing.T) {
+	cfg, err := LoadConfig(writeConfig(t,
+		`{"server": "http://x", "token": "t", "projects": {"metis": "/code/metis"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The server's ?project= filter matches case-insensitively, so the
+	// daemon can claim "Metis" while configured as "metis" — the local
+	// lookup must agree or it instantly fails a claimed run.
+	path, ok := cfg.Servers[0].Checkout("Metis")
+	if !ok || path != "/code/metis" {
+		t.Fatalf("Checkout(\"Metis\") = %q, %v", path, ok)
+	}
+}

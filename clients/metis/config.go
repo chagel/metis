@@ -124,10 +124,23 @@ func (s *Server) normalize() error {
 	if len(s.Projects) == 0 {
 		return fmt.Errorf(`server %q needs "projects" — the daemon only claims tasks it has a checkout for`, s.Name)
 	}
+	// Project names are matched case-insensitively, mirroring the
+	// server's ?project= claim filter — the daemon must never claim a
+	// task it then refuses to work (dogfooded: "metis" vs "Metis"
+	// instantly failed a real run).
+	lowered := make(map[string]string, len(s.Projects))
 	for name, path := range s.Projects {
-		s.Projects[name] = expandHome(path)
+		lowered[strings.ToLower(name)] = expandHome(path)
 	}
+	s.Projects = lowered
 	return nil
+}
+
+// Checkout resolves a task's project to its local path, matching the
+// server's case-insensitive project filter.
+func (s *Server) Checkout(projectName string) (string, bool) {
+	path, ok := s.Projects[strings.ToLower(projectName)]
+	return path, ok
 }
 
 // WorktreeRoot keeps each server's worktrees apart — dev's RUN-1 and

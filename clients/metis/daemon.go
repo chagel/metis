@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"sort"
 	"strings"
@@ -18,13 +19,16 @@ type target struct {
 
 // Daemon is the poll loop: claim per server per project (both
 // alphabetical, so behavior is deterministic), work one task at a time,
-// sweep worktrees hourly.
+// sweep worktrees hourly. When watching a config path, edits hot-reload
+// between tasks — never mid-task.
 type Daemon struct {
-	cfg     *Config
-	targets []*target
-	agent   Agent
-	logf    func(string, ...any)
-	lastGC  time.Time
+	cfg        *Config
+	targets    []*target
+	agent      Agent
+	logf       func(string, ...any)
+	lastGC     time.Time
+	configPath string
+	configSeen time.Time
 }
 
 func NewDaemon(cfg *Config, logf func(string, ...any)) (*Daemon, error) {
@@ -32,24 +36,66 @@ func NewDaemon(cfg *Config, logf func(string, ...any)) (*Daemon, error) {
 	if err != nil {
 		return nil, err
 	}
-	daemon := &Daemon{cfg: cfg, agent: agent, logf: logf}
+	return &Daemon{cfg: cfg, agent: agent, targets: buildTargets(cfg), logf: logf}, nil
+}
+
+func buildTargets(cfg *Config) []*target {
 	servers := append([]*Server{}, cfg.Servers...)
 	sort.Slice(servers, func(i, j int) bool { return servers[i].Name < servers[j].Name })
+	targets := make([]*target, 0, len(servers))
 	for _, server := range servers {
 		names := make([]string, 0, len(server.Projects))
 		for name := range server.Projects {
 			names = append(names, name)
 		}
 		sort.Strings(names)
-		daemon.targets = append(daemon.targets, &target{
+		targets = append(targets, &target{
 			server: server, api: NewApi(server, cfg.Client), projects: names})
 	}
-	return daemon, nil
+	return targets
+}
+
+// WatchConfig arms hot-reload for path; the current mtime is the
+// baseline.
+func (d *Daemon) WatchConfig(path string) {
+	d.configPath = path
+	if info, err := os.Stat(path); err == nil {
+		d.configSeen = info.ModTime()
+	}
+}
+
+// maybeReload swaps in an edited config between tasks. An invalid edit
+// is logged once and the daemon keeps running on the previous config —
+// the same refuse-to-crash-loop posture as `metis install`.
+func (d *Daemon) maybeReload() {
+	if d.configPath == "" {
+		return
+	}
+	info, err := os.Stat(d.configPath)
+	if err != nil || info.ModTime().Equal(d.configSeen) {
+		return
+	}
+	d.configSeen = info.ModTime()
+	cfg, err := LoadConfig(d.configPath)
+	if err == nil {
+		if _, agentErr := AgentFor(cfg.Agent); agentErr != nil {
+			err = agentErr
+		}
+	}
+	if err != nil {
+		d.logf("config reload skipped: %v — still running on the previous config", err)
+		return
+	}
+	d.agent, _ = AgentFor(cfg.Agent)
+	d.cfg = cfg
+	d.targets = buildTargets(cfg)
+	d.logf("config reloaded — polling %s", strings.Join(d.describeTargets(), "; "))
 }
 
 func (d *Daemon) Run(once bool) error {
 	d.logf("metis %s — %s polling %s", version, d.cfg.Client, strings.Join(d.describeTargets(), "; "))
 	for {
+		d.maybeReload()
 		task, from, err := d.nextTask()
 		switch {
 		case err != nil:

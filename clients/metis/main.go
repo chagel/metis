@@ -56,6 +56,7 @@ func withDaemon(logger *log.Logger, fn func(*Daemon) error) error {
 	if err != nil {
 		return err
 	}
+	daemon.WatchConfig(configPath())
 	return fn(daemon)
 }
 

@@ -50,7 +50,7 @@ type outcome struct {
 }
 
 func (w *Worker) Run() {
-	repo, ok := w.server.Projects[w.task.Context.Project.Name]
+	repo, ok := w.server.Checkout(w.task.Context.Project.Name)
 	if !ok {
 		w.report(&outcome{status: "failed", summary: fmt.Sprintf(
 			"No checkout configured on %s for project %q.", w.cfg.Client, w.task.Context.Project.Name)})

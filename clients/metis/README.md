@@ -86,9 +86,14 @@ metis uninstall  # stop + remove the service (binary stays)
 The installer validates the config first (a service that would
 crash-loop refuses to install), and bakes your current `PATH` into the
 service definition — services get a bare PATH, and the agent CLIs
-usually live in version-manager shims. Logs:
-`~/.metis/daemon.log`. Re-running `install` after editing the
-config restarts the service.
+usually live in version-manager shims. Logs: `~/.metis/daemon.log`.
+
+**Config edits need no restart**: the daemon hot-reloads `config.json`
+between tasks (never mid-task) — a valid edit swaps in by the next
+poll, an invalid one is logged and ignored, keeping the previous config
+running. Restart (`metis install` again, which also re-validates) only
+for binary upgrades or PATH changes. Project names match
+case-insensitively, mirroring the server.
 
 ## How a task runs
 
