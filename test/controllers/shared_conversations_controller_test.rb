@@ -27,14 +27,16 @@ class SharedConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".msg-sender .msg-sender-name", text: "Tea M. Mate"
   end
 
-  test "shows workflow tags in the header when a run drives the conversation" do
+  test "shows workflow tags and the progress rail when a run drives the conversation" do
     workflow = @user.personal_team.workflows.create!(name: "Ship", steps: [ { "name" => "spec", "prompt" => "p" } ])
-    @user.personal_team.workflow_runs.create!(conversation: @conversation, workflow: workflow, status: :completed)
+    run = @user.personal_team.workflow_runs.create!(conversation: @conversation, workflow: workflow, status: :completed)
+    run.tasks.create!(position: 0, name: "spec", prompt: "p", status: :completed)
 
     get shared_conversation_path(token: @token)
     assert_response :success
     assert_select ".shared-head .wf-meta-name", text: /Ship/
     assert_select ".shared-head .wf-meta-state", text: "Completed"
+    assert_select ".wf-rail .wf-step.done .wf-label", text: /spec/
   end
 
   test "emits Open Graph and Twitter card meta for unfurls" do
