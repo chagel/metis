@@ -30,7 +30,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     get conversation_path(conversation)
     assert_response :success
     assert_select ".sidebar .convo .convo-avatars", count: 0
-    assert_select ".msg-sender", count: 0
+    assert_select ".msg-sender-avatar", count: 0
   end
 
   test "under the Me tab a solo shared-team conversation shows no avatar; the Team tab always does" do
@@ -58,7 +58,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     get conversation_path(conversation)
     assert_response :success
     assert_select ".sidebar .convo .convo-avatars", count: 1
-    assert_select ".msg-sender", count: 2
+    assert_select ".msg-sender-avatar", count: 2
   end
 
   test "starting a new chat creates a conversation with the first message" do

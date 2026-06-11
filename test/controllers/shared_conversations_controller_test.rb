@@ -24,7 +24,8 @@ class SharedConversationsControllerTest < ActionDispatch::IntegrationTest
 
     get shared_conversation_path(token: @token)
     assert_response :success
-    assert_select ".msg-sender .msg-sender-name", text: "Tea M. Mate"
+    assert_select ".msg-user .msg-sender-avatar", count: 1
+    assert_select ".msg-user .msg-stamp", text: /Tea M\. Mate/
   end
 
   test "shows workflow tags and the progress rail when a run drives the conversation" do

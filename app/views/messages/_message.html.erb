@@ -9,24 +9,25 @@
     <div class="chat-content"><%= markdown(message.content) %></div>
   </div>
 <% elsif message.user? %>
-  <%# User: a contained bubble on the accent fill, aligned right.
-      Sender falls back to the owner on rows predating the column. %>
-  <div id="<%= dom_id(message) %>" class="msg-user">
-    <% unless message.conversation.solo? %>
-      <% sender = message.sender || message.conversation.user %>
-      <div class="msg-sender">
-        <%= avatar_for sender, size: 16, css: "msg-sender-avatar" %>
-        <span class="msg-sender-name"><%= sender.display_label %></span>
+  <%# User: a contained bubble on the accent fill, aligned right. In a
+      multi-person conversation the sender's avatar hangs in a fixed rail
+      by the bubble tail and the name joins the stamp line — the bubble
+      itself never moves. Sender falls back to the owner on old rows. %>
+  <% sender = (message.sender || message.conversation.user) unless message.conversation.solo? %>
+  <div id="<%= dom_id(message) %>" class="msg-user<%= ' msg-user--attributed' if sender %>">
+    <div class="msg-user-row">
+      <div class="bubble">
+        <% if message.attachments? %>
+          <%= render "messages/attachments", message: message %>
+        <% end %>
+        <div id="<%= dom_id(message) %>_body"
+             class="chat-content"><%= markdown(message.content) %></div>
       </div>
-    <% end %>
-    <div class="bubble">
-      <% if message.attachments? %>
-        <%= render "messages/attachments", message: message %>
+      <% if sender %>
+        <%= avatar_for sender, size: 28, css: "msg-sender-avatar" %>
       <% end %>
-      <div id="<%= dom_id(message) %>_body"
-           class="chat-content"><%= markdown(message.content) %></div>
     </div>
-    <div class="msg-stamp"><%= time_ago_in_words(message.created_at) %> ago</div>
+    <div class="msg-stamp"><%= "#{sender.display_label} · " if sender %><%= time_ago_in_words(message.created_at) %> ago</div>
   </div>
 <% else %>
   <%# Assistant: a card beside the agent mark, room for code and tables.
