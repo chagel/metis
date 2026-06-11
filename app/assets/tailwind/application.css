@@ -2092,6 +2092,36 @@ body.drawer-open { overflow:hidden; }
 .wf-tl-live { margin-top:8px; }
 .wf-tl-live .chat-content { max-height:280px; overflow-y:auto; font-size:13.5px; }
 
+/* The step being worked right now reads as the page's live element:
+   accent ring on the card, pulsing badge in its time slot. The gold
+   treatment stays reserved for gates. */
+.wf-tl-item.running .wf-tl-card {
+  border-color:color-mix(in srgb, var(--accent) 40%, var(--line));
+  box-shadow:0 0 0 3px var(--accent-soft), var(--sh-md);
+}
+.wf-tl-running {
+  display:inline-flex; align-items:center; gap:6px;
+  font-weight:600; color:var(--accent-fg);
+}
+.wf-tl-running::before {
+  content:""; width:6px; height:6px; border-radius:50%; flex:none;
+  background:currentColor; animation:convo-pulse 1.6s ease-in-out infinite;
+}
+
+/* Unclaimed local step: how to claim it, and where the bridge lives. */
+.wf-tl-localguide { margin-top:8px; font-size:13px; color:var(--ink-2); line-height:1.6; }
+.wf-tl-localguide a { color:var(--accent-fg); }
+.wf-tl-localguide-sub { margin-top:4px; font-size:12px; color:var(--ink-3); }
+.wf-tl-claim {
+  display:inline-flex; align-items:center; gap:5px; cursor:pointer;
+  font-family:var(--fm); font-size:12px; border:none; border-radius:6px;
+  padding:2px 8px; background:var(--accent-soft); color:var(--accent-fg);
+}
+.wf-tl-claim svg { width:11px; height:11px; }
+.wf-tl-claim .ico-check { display:none; }
+.wf-tl-claim.is-copied .ico-copy { display:none; }
+.wf-tl-claim.is-copied .ico-check { display:inline; }
+
 /* The gate partial inline on the timeline: the wf-tl-node stands in for
    the partial's own mark. */
 .wf-tl-gate-inline { flex:1; min-width:0; }

@@ -25,7 +25,7 @@
   <% run.tasks.each_with_index do |task, index| %>
     <% message = task.assistant_message %>
     <% state = wf_step_state(task) %>
-    <div class="wf-tl-item">
+    <div class="wf-tl-item<%= " #{state}" if state.present? %>">
       <div class="wf-tl-node <%= state %>">
         <% case state %>
         <% when "done" %>
@@ -47,9 +47,9 @@
             <% if (window = wf_turn_window(message)) %>
               <%= window %>
             <% elsif task.delegated? && task.running? %>
-              <%= wf_local_label(run) %>
+              <span class="wf-tl-running"><%= wf_local_label(run) %></span>
             <% elsif task.running? %>
-              running
+              <span class="wf-tl-running">Running</span>
             <% end %>
           </span>
         </div>
@@ -70,6 +70,32 @@
             <%# Snippets are prose: render the markdown, drop the markup. %>
             <p class="wf-tl-body"><%= truncate(strip_tags(markdown(summary)).squish, length: 180) %></p>
           <% end %>
+        <% end %>
+        <% if task.delegated? && task.running? && task.claimed_by_user.nil? %>
+          <div class="wf-tl-localguide">
+            <p>
+              This step runs on one of your machines. In your coding agent there, say
+              <button type="button" class="wf-tl-claim" title="Copy"
+                      data-controller="copy" data-copy-text-value="claim next task"
+                      data-action="copy#copy">
+                claim next task
+                <svg class="ico-copy" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/>
+                  <path d="M3.4 10.5A1.4 1.4 0 0 1 2.5 9.2V3.6A1.4 1.4 0 0 1 3.9 2.2h5.3a1.4 1.4 0 0 1 1.3.9"/>
+                </svg>
+                <svg class="ico-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3.5 8.4l3 3 6-6.2"/>
+                </svg>
+              </button>
+            </p>
+            <p class="wf-tl-localguide-sub">
+              No agent picking it up? Set up the bridge in
+              <%= link_to "account settings", account_path %> — token, MCP
+              endpoint, and the skill install live there.
+            </p>
+          </div>
         <% end %>
         <% if message && (message.model_key.present? || token_summary(message).present? || message.cost&.positive?) %>
           <div class="wf-tl-meta">

@@ -97,11 +97,14 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     get conversation_path(conversation)
     assert_match "waiting for a machine with a bridge token", response.body
     assert_match "Waiting for a machine", response.body
+    assert_select ".wf-tl-localguide .wf-tl-claim[data-copy-text-value=?]", "claim next task"
+    assert_select ".wf-tl-localguide a[href=?]", account_path
 
     task.update!(claimed_by_user: @user, claimed_by: "Apollo")
     get conversation_path(conversation)
     assert_match "#{@user.display_label}&#39;s Apollo is working on this step", response.body
     assert_match "On #{@user.display_label}&#39;s machine", response.body
+    assert_select ".wf-tl-localguide", count: 0
   end
 
   test "the gate on the final step reads finish, mid-run reads continue" do
