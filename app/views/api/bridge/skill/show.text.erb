@@ -71,6 +71,13 @@ bearer-authed with the token:
    resumes in Metis immediately — a cloud step may review your PR next,
    and the user approves the run at its gates.
 
+## Unattended instead?
+
+This skill is the *attended* loop — you, working a task interactively.
+For hands-off automation install the `metis` daemon (`clients/metis/` in
+the Metis repo): it polls, claims, runs an agent headless in a per-task
+git worktree, and reports — `metis init && metis install`.
+
 ## When blocked
 
 Missing repo, tests you cannot make pass, a spec that contradicts the

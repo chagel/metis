@@ -21,6 +21,8 @@ type stubServer struct {
 	results     []map[string]any
 	state       TaskState
 	goneOnEvent bool
+	claimable   *Task
+	claimStatus int
 	server      *httptest.Server
 }
 
@@ -28,6 +30,21 @@ func newStubServer(t *testing.T) *stubServer {
 	t.Helper()
 	stub := &stubServer{state: TaskState{Status: "running", ClaimedBy: "testbox"}}
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/bridge/tasks/next", func(w http.ResponseWriter, r *http.Request) {
+		stub.mu.Lock()
+		defer stub.mu.Unlock()
+		if stub.claimStatus != 0 {
+			w.WriteHeader(stub.claimStatus)
+			return
+		}
+		if stub.claimable == nil {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		task := stub.claimable
+		stub.claimable = nil
+		_ = json.NewEncoder(w).Encode(task)
+	})
 	mux.HandleFunc("POST /api/bridge/tasks/{id}/events", func(w http.ResponseWriter, r *http.Request) {
 		stub.mu.Lock()
 		defer stub.mu.Unlock()
@@ -119,8 +136,9 @@ func initRepo(t *testing.T) (repo, root string) {
 
 func testConfig(server, repo, root string, mutate func(*Config)) *Config {
 	cfg := &Config{
-		Server: server, Token: "mbt_x", Client: "testbox", Agent: "claude",
-		Projects:          map[string]string{"proj": repo},
+		Servers: []*Server{{Name: "test", Server: server, Token: "mbt_x",
+			Projects: map[string]string{"proj": repo}}},
+		Client: "testbox", Agent: "claude",
 		WorkspacesRoot:    root,
 		HeartbeatInterval: 1000, CancelPollInterval: 1000, InactivityTimeout: 30,
 		PollInterval: 1, GCTTL: 86400,
@@ -129,6 +147,11 @@ func testConfig(server, repo, root string, mutate func(*Config)) *Config {
 		mutate(cfg)
 	}
 	return cfg
+}
+
+// testWorktreeRoot is where testConfig's server keeps its worktrees.
+func testWorktreeRoot(root string) string {
+	return filepath.Join(root, "test")
 }
 
 func testTask(ref string) *Task {
@@ -145,8 +168,9 @@ func testTask(ref string) *Task {
 func runWorker(t *testing.T, stub *stubServer, repo, root, script, ref string, mutate func(*Config)) *Config {
 	t.Helper()
 	cfg := testConfig(stub.server.URL, repo, root, mutate)
-	worker := &Worker{api: NewApi(cfg), cfg: cfg, task: testTask(ref), agent: fakeAgent{script: script},
-		logf: func(string, ...any) {}}
+	server := cfg.Servers[0]
+	worker := &Worker{api: NewApi(server, cfg.Client), cfg: cfg, server: server,
+		task: testTask(ref), agent: fakeAgent{script: script}, logf: func(string, ...any) {}}
 	worker.Run()
 	return cfg
 }
@@ -167,7 +191,7 @@ func TestHappyPathStructuredResult(t *testing.T) {
 		t.Fatalf("artifacts = %v", artifacts)
 	}
 
-	worktree := filepath.Join(root, "RUN-1")
+	worktree := filepath.Join(testWorktreeRoot(root), "RUN-1")
 	branch, _ := exec.Command("git", "-C", worktree, "branch", "--show-current").Output()
 	if strings.TrimSpace(string(branch)) != "metis/run-1" {
 		t.Fatalf("branch = %q", branch)
@@ -267,14 +291,14 @@ func TestMissingCheckoutFailsFast(t *testing.T) {
 	cfg := testConfig(stub.server.URL, repo, root, nil)
 	task := testTask("RUN-1")
 	task.Context.Project.Name = "other-proj"
-	worker := &Worker{api: NewApi(cfg), cfg: cfg, task: task, agent: fakeAgent{script: "true"},
-		logf: func(string, ...any) {}}
+	worker := &Worker{api: NewApi(cfg.Servers[0], cfg.Client), cfg: cfg, server: cfg.Servers[0],
+		task: task, agent: fakeAgent{script: "true"}, logf: func(string, ...any) {}}
 	worker.Run()
 	result := stub.lastResult(t)
 	if result["status"] != "failed" || !strings.Contains(result["summary"].(string), "No checkout configured") {
 		t.Fatalf("result = %v", result)
 	}
-	if _, err := os.Stat(filepath.Join(root, "RUN-1")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(testWorktreeRoot(root), "RUN-1")); !os.IsNotExist(err) {
 		t.Fatal("no worktree must be created for an unknown project")
 	}
 }
@@ -283,7 +307,7 @@ func TestReclaimReusesWorktree(t *testing.T) {
 	repo, root := initRepo(t)
 	stub := newStubServer(t)
 	runWorker(t, stub, repo, root, `touch partial.txt; echo '{"final":"part one"}'`, "RUN-1", nil)
-	if _, err := os.Stat(filepath.Join(root, "RUN-1", "partial.txt")); err != nil {
+	if _, err := os.Stat(filepath.Join(testWorktreeRoot(root), "RUN-1", "partial.txt")); err != nil {
 		t.Fatal("partial work missing after first run")
 	}
 

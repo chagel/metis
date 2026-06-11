@@ -46,14 +46,15 @@ type TaskState struct {
 
 type Artifact map[string]any
 
-// Api is a thin client over the bridge REST surface.
+// Api is a thin client over one server's bridge REST surface.
 type Api struct {
-	cfg  *Config
-	http *http.Client
+	server *Server
+	client string
+	http   *http.Client
 }
 
-func NewApi(cfg *Config) *Api {
-	return &Api{cfg: cfg, http: &http.Client{Timeout: 30 * time.Second}}
+func NewApi(server *Server, client string) *Api {
+	return &Api{server: server, client: client, http: &http.Client{Timeout: 30 * time.Second}}
 }
 
 // Claim returns nil when the queue is empty for this project (204/409).
@@ -121,12 +122,12 @@ func (a *Api) do(method, path string, body map[string]any) (*http.Response, erro
 		}
 		reader = bytes.NewReader(encoded)
 	}
-	req, err := http.NewRequest(method, a.cfg.Server+path, reader)
+	req, err := http.NewRequest(method, a.server.Server+path, reader)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+a.cfg.Token)
-	req.Header.Set("X-Bridge-Client", a.cfg.Client)
+	req.Header.Set("Authorization", "Bearer "+a.server.Token)
+	req.Header.Set("X-Bridge-Client", a.client)
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}

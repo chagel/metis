@@ -30,11 +30,17 @@ type bridgeAPI interface {
 // heartbeats, cancellation polling, the inactivity watchdog, and the
 // final report.
 type Worker struct {
-	api   bridgeAPI
-	cfg   *Config
-	task  *Task
-	agent Agent
-	logf  func(string, ...any)
+	api    bridgeAPI
+	cfg    *Config
+	server *Server
+	task   *Task
+	agent  Agent
+	logf   func(string, ...any)
+}
+
+// label identifies the task across servers in logs: "dev/RUN-1".
+func (w *Worker) label() string {
+	return w.server.Name + "/" + w.task.Ref
 }
 
 type outcome struct {
@@ -44,24 +50,24 @@ type outcome struct {
 }
 
 func (w *Worker) Run() {
-	repo, ok := w.cfg.Projects[w.task.Context.Project.Name]
+	repo, ok := w.server.Projects[w.task.Context.Project.Name]
 	if !ok {
 		w.report(&outcome{status: "failed", summary: fmt.Sprintf(
 			"No checkout configured on %s for project %q.", w.cfg.Client, w.task.Context.Project.Name)})
 		return
 	}
-	worktree := Worktree{Repo: repo, Root: w.cfg.WorkspacesRoot, Ref: w.task.Ref}
+	worktree := Worktree{Repo: repo, Root: w.cfg.WorktreeRoot(w.server), Ref: w.task.Ref}
 	if err := worktree.Prepare(); err != nil {
 		w.report(&outcome{status: "failed", summary: err.Error()})
 		return
 	}
 	result := w.driveAgent(worktree)
 	if result == nil {
-		w.logf("task %s: gone — stopped", w.task.Ref)
+		w.logf("task %s: gone — stopped", w.label())
 		return
 	}
 	if err := worktree.Settle(result.status); err != nil {
-		w.logf("task %s: could not write meta: %v", w.task.Ref, err)
+		w.logf("task %s: could not write meta: %v", w.label(), err)
 	}
 	w.report(result)
 }
@@ -74,7 +80,7 @@ func (w *Worker) Run() {
 // the task died server-side and the result must not be reported.
 func (w *Worker) driveAgent(worktree Worktree) *outcome {
 	argv := w.agent.Command(w.prompt(), w.cfg.AgentArgs)
-	w.logf("task %s: running %s in %s", w.task.Ref, argv[0], worktree.Path())
+	w.logf("task %s: running %s in %s", w.label(), argv[0], worktree.Path())
 
 	cmd := exec.Command(argv[0], argv[1:]...)
 	cmd.Dir = worktree.Path()
@@ -198,11 +204,11 @@ func (w *Worker) report(result *outcome) {
 	err := w.api.Result(w.task.TaskID, result.status, summary, result.artifacts)
 	switch {
 	case errors.Is(err, ErrGone):
-		w.logf("task %s: result discarded (task no longer live)", w.task.Ref)
+		w.logf("task %s: result discarded (task no longer live)", w.label())
 	case err != nil:
-		w.logf("task %s: could not report result: %v", w.task.Ref, err)
+		w.logf("task %s: could not report result: %v", w.label(), err)
 	default:
-		w.logf("task %s: reported %s", w.task.Ref, result.status)
+		w.logf("task %s: reported %s", w.label(), result.status)
 	}
 }
 

@@ -80,10 +80,10 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: clients/metis-bridge/go.mod
+          go-version-file: clients/metis/go.mod
 
-      - name: Lint, vet, and test the metis-bridge daemon
-        working-directory: clients/metis-bridge
+      - name: Lint, vet, and test the bridge daemon
+        working-directory: clients/metis
         run: |
           test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
           go vet ./...

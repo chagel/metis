@@ -13,7 +13,7 @@ func TestWorktreeGC(t *testing.T) {
 	stub := newStubServer(t)
 	runWorker(t, stub, repo, root, `echo '{"final":"done"}'`, "RUN-1", nil) // settled meta
 
-	live := filepath.Join(root, "RUN-LIVE")
+	live := filepath.Join(testWorktreeRoot(root), "RUN-LIVE")
 	if err := os.MkdirAll(live, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -21,15 +21,15 @@ func TestWorktreeGC(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(live, metaFile), claimedOnly, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	orphan := filepath.Join(root, "RUN-ORPHAN")
+	orphan := filepath.Join(testWorktreeRoot(root), "RUN-ORPHAN")
 	if err := os.MkdirAll(orphan, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
-	GCWorktrees(root, func(string) string { return repo }, time.Minute,
+	GCWorktrees(testWorktreeRoot(root), func(string) string { return repo }, time.Minute,
 		time.Now().UTC().Add(time.Hour), func(string, ...any) {})
 
-	if _, err := os.Stat(filepath.Join(root, "RUN-1")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(testWorktreeRoot(root), "RUN-1")); !os.IsNotExist(err) {
 		t.Fatal("settled worktree past ttl must be removed")
 	}
 	if _, err := os.Stat(live); err != nil {

@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const metaFile = ".metis-bridge.json"
+const metaFile = ".metis-task.json"
 
 // Worktree is the per-task isolation: a git worktree off the project's
 // configured checkout, on a metis/<ref> branch — the task never touches

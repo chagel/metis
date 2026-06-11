@@ -1,4 +1,4 @@
-// metis-bridge — the unattended local daemon for delegated Metis workflow
+// metis — the unattended local-bridge daemon for delegated Metis workflow
 // steps (docs/local-bridge.md, Phase 4). It polls the bridge pull API,
 // claims tasks for the projects configured on this machine, runs a coding
 // agent headless in a per-task git worktree, streams progress back, and
@@ -31,6 +31,10 @@ func main() {
 		err = withDaemon(logger, func(d *Daemon) error { return d.Run(command == "once") })
 	case "gc":
 		err = withDaemon(logger, func(d *Daemon) error { d.GC(); return nil })
+	case "install":
+		err = installService(logger.Printf)
+	case "uninstall":
+		err = uninstallService(logger.Printf)
 	case "help", "--help":
 		usage()
 	default:
@@ -38,7 +42,7 @@ func main() {
 		os.Exit(1)
 	}
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "metis-bridge: %v\n", err)
+		fmt.Fprintf(os.Stderr, "metis: %v\n", err)
 		os.Exit(1)
 	}
 }
@@ -60,7 +64,7 @@ func configPath() string {
 		return path
 	}
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".metis-bridge", "config.json")
+	return filepath.Join(home, ".metis", "config.json")
 }
 
 func writeSkeleton(path string) error {
@@ -78,12 +82,14 @@ func writeSkeleton(path string) error {
 }
 
 func usage() {
-	fmt.Printf(`metis-bridge %s — unattended daemon for delegated Metis workflow steps
+	fmt.Printf(`metis %s — unattended daemon for delegated Metis workflow steps
 
-Usage: metis-bridge <init|once|run|gc>
-  init   write a config skeleton to ~/.metis-bridge/config.json (or $METIS_BRIDGE_CONFIG)
-  once   one poll → work the claimed task → exit
-  run    poll forever
-  gc     sweep settled task worktrees
+Usage: metis <init|once|run|gc|install|uninstall>
+  init       write a config skeleton to ~/.metis/config.json (or $METIS_BRIDGE_CONFIG)
+  once       one poll → work the claimed task → exit
+  run        poll forever
+  gc         sweep settled task worktrees
+  install    install the binary and register a login service (launchd / systemd --user)
+  uninstall  stop and remove the login service
 `, version)
 }

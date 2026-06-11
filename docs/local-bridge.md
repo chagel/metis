@@ -1,7 +1,7 @@
 # Local bridge (design + build plan)
 
 > Status: **shipped through Phase 4** (token + presence, delegation core,
-> hosted MCP facade, delegation reliability, the `metis-bridge` daemon);
+> hosted MCP facade, delegation reliability, the `metis` daemon);
 > Phase 5 (notifications) is design. Companion to
 > [`workflows.md`](workflows.md) — the bridge is how a workflow's
 > *implementation step* runs on the user's own machine instead of a
@@ -132,9 +132,9 @@ server** and the **daemon** are both thin clients of it, added later:
                               ▲                         ▲
         ── pulls (outbound) ──┤                         ├── pulls (outbound) ──
                               │                         │
-        Phase 2: MCP server   │                         │  Phase 4: metis-bridge daemon
-        (user's Claude Code   │                         │  (polls, spawns pi/Claude Code
-         self-pulls via       │                         │   via ACP, reports — unattended)
+        Phase 2: MCP server   │                         │  Phase 4: the metis daemon
+        (user's Claude Code   │                         │  (polls, spawns the agent
+         self-pulls via       │                         │   headless, reports — unattended)
          .mcp.json tools)     │                         │
 ```
 
@@ -390,11 +390,17 @@ protocol — argued there, not assumed here.
 
 ### Phase 4 — Daemon (unattended) ✅
 
-[`clients/metis-bridge`](../clients/metis-bridge/) — a stdlib-only
+[`clients/metis`](../clients/metis/) — a stdlib-only
 **Go** daemon, single static binary (`init` / `once` / `run` / `gc`).
 It polls the REST surface per configured project, runs the agent
 headless in a per-task worktree, heartbeats progress, and submits the
-result. The v1 was Ruby (same repo, same Minitest suite — cheapest path
+result. It is **multi-server**: one daemon polls any number of Metis
+deployments (dev and prod), each with its own token, projects, and
+worktree namespace — one unreachable server never blocks the others.
+`metis install` registers it as a login service (launchd /
+systemd --user) with the user's PATH baked in, since agent CLIs live in
+version-manager shims a bare service PATH can't see.
+The v1 was Ruby (same repo, same Minitest suite — cheapest path
 to *workable*, dogfooded live); the Go port followed immediately, taking
 the exit ramp the Ruby section had pre-committed to: a static binary
 with no runtime-presence assumption, the agent subprocess in its own

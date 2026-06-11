@@ -1,4 +1,4 @@
-# metis-bridge
+# metis — the local-bridge daemon
 
 The unattended local daemon for delegated Metis workflow steps
 ([`docs/local-bridge.md`](../../docs/local-bridge.md), Phase 4). It polls
@@ -14,31 +14,49 @@ Go stdlib only, single static binary. macOS / Linux.
 From a checkout:
 
 ```sh
-cd clients/metis-bridge && go build -o /usr/local/bin/metis-bridge .
+cd clients/metis && go build -o /usr/local/bin/metis .
 ```
 
 or directly:
 
 ```sh
-go install github.com/chagel/metis/clients/metis-bridge@latest
+go install github.com/chagel/metis/clients/metis@latest
 ```
 
 ## Configure
 
 ```sh
-metis-bridge init       # writes ~/.metis-bridge/config.json
+metis init       # writes ~/.metis/config.json
 ```
 
 ```jsonc
 {
-  "server": "https://your-metis-host",
-  "token": "mbt_…",                  // /settings/account → Local bridge; or METIS_BRIDGE_TOKEN
   "agent": "claude",                 // claude | pi | codex
-  "projects": {
-    "metis-api": "~/Workspaces/metis"   // Metis project name → local checkout
-  }
+  "servers": [
+    {
+      "name": "prod",
+      "server": "https://your-metis-host",
+      "token": "mbt_…",              // /settings/account → Local bridge on THAT deployment
+      "projects": {
+        "metis-api": "~/Workspaces/metis"   // Metis project name → local checkout
+      }
+    },
+    {
+      "name": "dev",
+      "server": "https://your-dev-host",
+      "token": "mbt_…",
+      "projects": { "scratch": "~/code/scratch" }
+    }
+  ]
 }
 ```
+
+One daemon polls every configured server; tokens and projects are
+per-server (different deployments, different identities), and each
+server's worktrees live apart under
+`workspaces_root/<server-name>/`. A single deployment can use the flat
+`server` / `token` / `projects` shorthand at the top level instead of
+`servers`. One unreachable server never blocks the others.
 
 The daemon only claims tasks whose workflow project it has a checkout
 for (the `?project=` claim filter) — it never blind-claims. Optional
@@ -46,16 +64,31 @@ keys (defaults): `agent_args` (`[]`, protocol-breaking flags are
 stripped, your flags come after the defaults so they win),
 `poll_interval` (30s), `heartbeat_interval` (240s),
 `inactivity_timeout` (600s), `cancel_poll_interval` (30s), `gc_ttl`
-(24h), `workspaces_root` (`~/.metis-bridge/worktrees`), `client`
+(24h), `workspaces_root` (`~/.metis/worktrees`), `client`
 (hostname).
 
 ## Run
 
 ```sh
-metis-bridge once       # one poll → work the claimed task → exit (good first run)
-metis-bridge run        # poll forever
-metis-bridge gc         # sweep settled task worktrees now
+metis once       # one poll → work the claimed task → exit (good first run)
+metis run        # poll forever
+metis gc         # sweep settled task worktrees now
 ```
+
+## Install as a login service
+
+```sh
+metis install    # copies the binary to /usr/local/bin (or ~/.local/bin)
+                        # and registers launchd (macOS) / systemd --user (Linux)
+metis uninstall  # stop + remove the service (binary stays)
+```
+
+The installer validates the config first (a service that would
+crash-loop refuses to install), and bakes your current `PATH` into the
+service definition — services get a bare PATH, and the agent CLIs
+usually live in version-manager shims. Logs:
+`~/.metis/daemon.log`. Re-running `install` after editing the
+config restarts the service.
 
 ## How a task runs
 
