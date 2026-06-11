@@ -61,6 +61,12 @@ metis-bridge gc         # sweep settled task worktrees now
 3. The agent runs headless in its native JSON stream (`claude -p
    --output-format stream-json`, `pi -p --mode json`, `codex exec
    --json`), with the user's own credentials and subscription.
+   Unattended means no one can answer permission prompts, so claude runs
+   with `--permission-mode bypassPermissions` and codex with
+   `--full-auto` — tighten via `agent_args` if your deployment wants
+   less (your flags come last and win). The inner agent is isolated
+   from your own MCP servers (`--strict-mcp-config`): a delegated task
+   must not discover your other tools.
 4. Three clocks watch the stream: a heartbeat posts progress (the
    server-side liveness signal), a poll of `GET /api/bridge/tasks/:id`
    kills the agent if the task settles or the claim moves, and the

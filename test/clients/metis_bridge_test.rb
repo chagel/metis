@@ -207,7 +207,10 @@ class MetisBridgeTest < ActiveSupport::TestCase
     cmd = agent.command("do it", [ "--model", "opus" ])
     assert_equal %w[claude -p], cmd.first(2)
     assert_includes cmd, "stream-json"
+    assert_includes cmd, "--strict-mcp-config", "inner agent must not inherit the user's MCP servers"
     assert_includes cmd, "--model"
+    assert_operator cmd.index("--model"), :>, cmd.index("--permission-mode"),
+                    "user agent_args come last so they can override defaults"
 
     assert_equal "hi", agent.parse(%({"type":"assistant","message":{"content":[{"type":"text","text":"hi"}]}}))[:text]
     final = agent.parse(%({"type":"result","result":"all done","is_error":false}))
