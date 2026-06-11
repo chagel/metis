@@ -344,7 +344,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_11_035049) do
   add_foreign_key "memberships", "teams"
   add_foreign_key "memberships", "users"
   add_foreign_key "messages", "conversations"
-  add_foreign_key "messages", "users", column: "sender_id"
+  add_foreign_key "messages", "users", column: "sender_id", on_delete: :nullify
   add_foreign_key "oauth_grants", "users"
   add_foreign_key "projects", "teams"
   add_foreign_key "projects", "users", column: "created_by_id"

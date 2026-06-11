@@ -7,10 +7,8 @@ class Message < ApplicationRecord
   enum :kind, { chat: 0, step_prompt: 1, local_report: 2, review: 3 }
 
   belongs_to :conversation, touch: true
-  # The human who sent a user message — the owner from the composer, a
-  # teammate from a gate. nil on assistant rows, engine prompts, and
-  # rows from before senders were recorded (display falls back to the
-  # conversation owner).
+  # The human behind a user message (composer or gate reviewer); nil on
+  # assistant rows, engine prompts, and rows predating the column.
   belongs_to :sender, class_name: "User", optional: true
 
   # Composer uploads. Images are sent to the agent inline (pi's vision

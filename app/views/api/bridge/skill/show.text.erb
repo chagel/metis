@@ -54,16 +54,12 @@ bearer-authed with the token:
    Fetch artifact URLs when the prompt refers to them. There is no other
    shared state; if the brief is insufficient, say so via a failed
    result rather than guessing.
-3. **Never switch this checkout's branch.** If the working copy serves
-   any other duty (a running dev server, a branch mid-work), do the task
-   in an isolated `git worktree add` (or a fresh clone) and clean up
-   after.
-4. **Work like a teammate.** Follow the repo's own conventions
+3. **Work like a teammate.** Follow the repo's own conventions
    (CLAUDE.md / AGENTS.md), run its lint and tests before committing,
    use a feature branch, and open a PR when the task asks for one.
-5. Optionally post `report_progress` at milestones — one line each; they
+4. Optionally post `report_progress` at milestones — one line each; they
    land in the run's timeline.
-6. **`submit_result` exactly once, when done**: `status`
+5. **`submit_result` exactly once, when done**: `status`
    (`completed` | `failed`), a one-or-two-sentence `summary`, and
    `artifacts` such as `[{"type": "pr", "url": "…"}]`. The workflow
    resumes in Metis immediately — a cloud step may review your PR next,

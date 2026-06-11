@@ -309,8 +309,8 @@ protocol — argued there, not assumed here.
   resumes in Metis.
 - `GET /api/bridge/skill` — the client-side skill (SKILL.md, served
   unauthenticated with the deployment URL baked in) that teaches a local
-  agent that loop: MCP setup, list-before-claim, the worktree-isolation
-  rule, submit-once etiquette, failure reporting. One install:
+  agent that loop: MCP setup, list-before-claim, submit-once etiquette,
+  failure reporting. One install:
 
   ```bash
   curl -fsSL --create-dirs https://your-metis-host/api/bridge/skill \

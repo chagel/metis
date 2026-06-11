@@ -59,7 +59,7 @@
       <%= render partial: "messages/message",
             collection: @messages,
             as: :message,
-            locals: { hide_activity: true } %>
+            locals: { hide_activity: true, hide_sender: true } %>
     </div>
   </div>
 </main>

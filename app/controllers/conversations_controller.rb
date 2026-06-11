@@ -41,7 +41,7 @@ class ConversationsController < ApplicationController
     @conversation = current_user.conversations.find_by(id: params[:id]) ||
                     current_team.conversations.visibility_team.find(params[:id])
     @read_only = @conversation.user_id != current_user.id
-    @messages = @conversation.messages.chronological
+    @messages = @conversation.messages.includes(:sender).chronological
   end
 
   # PATCH /conversations/:id — title-only rename. Driven by the
