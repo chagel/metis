@@ -173,6 +173,19 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     assert_equal "running tests", task.reload.progress.last["text"]
   end
 
+  test "claim and progress broadcast the run page live" do
+    run = dispatch_run
+    assert_turbo_stream_broadcasts(run.conversation) do
+      get "/api/bridge/tasks/next", headers: auth.merge("X-Bridge-Client" => "apollo")
+    end
+
+    task = run.tasks.first
+    assert_turbo_stream_broadcasts(run.conversation) do
+      post "/api/bridge/tasks/#{task.id}/events",
+           params: { kind: "log", text: "working — running tests" }, headers: auth
+    end
+  end
+
   test "claim and events stamp the liveness heartbeat" do
     run = dispatch_run
     task = run.tasks.first

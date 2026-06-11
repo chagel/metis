@@ -76,6 +76,10 @@
               markup — the full turn is one click away. %>
           <p class="wf-tl-body"><%= truncate(strip_tags(markdown(message.content)).squish, length: 180) %></p>
         <% end %>
+        <% if task.delegated? && task.running? && task.claimed_by_user &&
+              (latest = task.progress.last) %>
+          <p class="wf-tl-body"><%= latest["text"] %></p>
+        <% end %>
         <% if task.delegated? && task.running? && task.claimed_by_user.nil? %>
           <div class="wf-tl-localguide">
             <p>

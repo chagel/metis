@@ -40,15 +40,19 @@ class Task < ApplicationRecord
   # teams; nil when nothing is claimable. SKIP LOCKED so concurrent
   # pollers each get a distinct task instead of blocking or double-claiming.
   def self.claim_next_for(user, client: nil, id: nil, project: nil)
-    transaction do
+    task = transaction do
       scope = claimable_by(user)
       scope = scope.where(id: dereference(id)) if id.present?
       scope = scope.in_project(project) if project.present?
-      task = scope.order(:dispatched_at).lock("FOR UPDATE SKIP LOCKED").first
-      task&.update!(claimed_by_user: user, claimed_by: client.presence,
-                    last_reported_at: Time.current)
-      task
+      found = scope.order(:dispatched_at).lock("FOR UPDATE SKIP LOCKED").first
+      found&.update!(claimed_by_user: user, claimed_by: client.presence,
+                     last_reported_at: Time.current)
+      found
     end
+    # The run page shows who holds the step ("On M's Apollo") — push the
+    # flip live, after commit, for every claim surface alike.
+    WorkflowBroadcaster.new(task.workflow_run).refresh if task
+    task
   end
 
   # The Sentry-style short reference ("CHEESE-1G") clients quote instead
@@ -66,6 +70,7 @@ class Task < ApplicationRecord
 
   def log_progress!(entry)
     update!(progress: progress + [ entry ], last_reported_at: Time.current)
+    WorkflowBroadcaster.new(workflow_run).refresh
   end
 
   # Whether a client may still post events/results against this task.
