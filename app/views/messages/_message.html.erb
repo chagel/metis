@@ -7,6 +7,7 @@
   <div id="<%= dom_id(message) %>" class="msg-step<%= modifier %>">
     <span class="msg-step-tag"><%= tag %></span>
     <div class="chat-content"><%= markdown(message.content) %></div>
+    <span class="msg-step-time"><%= message.created_at.strftime("%b %-d · %-l:%M %p") %></span>
   </div>
 <% elsif message.user? %>
   <%# User: a contained bubble on the accent fill, aligned right. In a

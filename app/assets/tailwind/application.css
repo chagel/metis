@@ -2341,12 +2341,16 @@ body.drawer-open { overflow:hidden; }
    and not a toggle (the old chevron read as an expandable disclosure). */
 .msg-step {
   display:flex; align-items:baseline; gap:11px;
-  max-width:80%; align-self:flex-start; margin-left:45px;
+  align-self:stretch; margin-left:45px;
   padding:7px 0 7px 13px; border-left:2px solid var(--line-2);
 }
 .msg-step-tag {
   flex:none; font-family:var(--fm); font-size:9px; font-weight:600;
   letter-spacing:.12em; text-transform:uppercase; color:var(--faint);
+}
+.msg-step-time {
+  margin-left:auto; flex:none; padding-left:14px;
+  font-family:var(--fm); font-size:10px; color:var(--faint); white-space:nowrap;
 }
 .msg-step .chat-content { font-size:13px; color:var(--ink-2); }
 .msg-step .chat-content p { margin:0 0 .35rem; }

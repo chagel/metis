@@ -7,7 +7,7 @@ class WorkflowBroadcasterTest < ActiveSupport::TestCase
     @run = @team.workflow_runs.create!(conversation: @user.conversations.create!, status: :running)
   end
 
-  test "refresh renders rail/gate/composer outside a request" do
+  test "refresh renders gate/composer/timeline outside a request" do
     @run.tasks.create!(position: 0, gate: :auto, status: :running)
     assert_nothing_raised { WorkflowBroadcaster.new(@run).refresh }
   end

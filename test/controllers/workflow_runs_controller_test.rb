@@ -221,6 +221,7 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     get conversation_path(run.conversation, view: "transcript")
     assert_response :success
     assert_select ".msg-step", text: /implement the spec/
+    assert_select ".msg-step .msg-step-time", count: 1
     assert_select ".msg-user .bubble", text: /implement the spec/, count: 0
   end
 
@@ -261,7 +262,7 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a", text: /Transcript/
   end
 
-  test "the run page renders the timeline and gate; the transcript keeps the rail" do
+  test "the run page renders the timeline and gate; the transcript stays plain" do
     run = gated_run
     get conversation_path(run.conversation)
     assert_response :success
@@ -271,7 +272,8 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_match "the spec", response.body
 
     get conversation_path(run.conversation, view: "transcript")
-    assert_select "#workflow_rail"
+    assert_select "#workflow_rail", count: 0
+    assert_select "#workflow_meta", count: 0
     assert_select "a", text: /Timeline/
   end
 end
