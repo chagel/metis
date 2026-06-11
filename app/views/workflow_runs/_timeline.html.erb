@@ -1,6 +1,6 @@
 <%# The run page's audit timeline: one card per event — trigger, each
     step's turn, and each gate decision. "view turn →" jumps into the
-    transcript anchored at that step's message. Root id is the
+    chat anchored at that step's message. Root id is the
     broadcast/replace target; request-safe (run + conversation only). %>
 <div id="workflow_timeline">
 <div class="wf-tl">
@@ -103,7 +103,7 @@
             <% if token_summary(message).present? %><span class="tag"><%= token_summary(message) %></span><% end %>
             <% if message.cost&.positive? %><span class="tag"><%= format_cost(message.cost) %></span><% end %>
             <%= link_to "view turn →",
-                  conversation_path(conversation, view: "transcript", anchor: dom_id(message)),
+                  conversation_path(conversation, view: "chat", turn: message.id),
                   class: "wf-tl-turnlink" %>
           </div>
         <% end %>

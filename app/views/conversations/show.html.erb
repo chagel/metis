@@ -1,7 +1,8 @@
 <% content_for :title, @conversation.display_title %>
 <% workflow_run = @conversation.workflow_run %>
 
-<main class="chat" data-controller="chat">
+<main class="chat" data-controller="chat"
+      data-chat-anchor-value="<%= "message_#{params[:turn].to_i}" if params[:turn].present? %>">
   <%= turbo_stream_from @conversation %>
 
   <header class="chat-head">

@@ -2052,7 +2052,7 @@ body.drawer-open { overflow:hidden; }
 .wf-meta-state--failed { color:var(--danger); background:var(--danger-soft); }
 .wf-meta-state--cancelled { color:var(--ink-3); }
 
-/* Run timeline — the run page's default view (transcript is the toggle). */
+/* Run timeline — the run page's default view (chat is the toggle). */
 .wf-tl-wrap { max-width:860px; margin:0 auto; padding:20px 28px 8px; }
 .wf-tl { display:flex; flex-direction:column; }
 .wf-tl-item { display:flex; gap:16px; position:relative; padding-bottom:18px; }
@@ -2085,7 +2085,7 @@ body.drawer-open { overflow:hidden; }
 .wf-tl-turnlink { font-family:var(--fm); font-size:11px; color:var(--accent-fg); text-decoration:none; }
 .wf-tl-turnlink:hover { text-decoration:underline; }
 /* A running step's live turn, embedded in its card. Capped — the full
-   stream lives in the transcript. */
+   stream lives in the chat view. */
 .wf-tl-live { margin-top:8px; }
 .wf-tl-live .chat-content { max-height:280px; overflow-y:auto; font-size:13.5px; }
 
@@ -2121,6 +2121,13 @@ body.drawer-open { overflow:hidden; }
 .wf-tl-running::before {
   content:""; width:6px; height:6px; border-radius:50%; flex:none;
   background:currentColor; animation:convo-pulse 1.6s ease-in-out infinite;
+}
+
+/* A turn deep-linked from the workflow timeline wears the same accent
+   ring as the running step card — kept, marking the linked turn. */
+.anchor-flash .ai-card, .anchor-flash .bubble {
+  border-color:color-mix(in srgb, var(--accent) 30%, var(--line));
+  box-shadow:0 0 0 3px var(--accent-soft), var(--sh-md);
 }
 
 /* Unclaimed local step: how to claim it, and where the bridge lives. */

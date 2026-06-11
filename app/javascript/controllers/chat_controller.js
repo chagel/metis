@@ -11,10 +11,11 @@ const SCROLL_THRESHOLD = 150
 // messages, tool-call updates) all flow through the same observer.
 export default class extends Controller {
   static targets = ["messages", "scroll", "scrollButton"]
+  static values = { anchor: String }
 
   connect() {
     this.userScrolledUp = false
-    this.scrollToBottom()
+    if (!this._scrollToAnchor()) this.scrollToBottom()
     this._boundOnScroll = this._onScroll.bind(this)
     this._scrollEl.addEventListener("scroll", this._boundOnScroll, { passive: true })
     this.observer = new MutationObserver(() => this._onMutation())
@@ -44,6 +45,21 @@ export default class extends Controller {
   }
 
   // ── private ──────────────────────────────────────────────────────────────
+
+  // Deep link from the workflow timeline ("view turn"): frame navigation
+  // drops URL hashes, so the target rides in as a value. Lands the turn
+  // mid-viewport wearing the accent ring (kept — it marks the linked
+  // turn), and suppresses the default bottom-scroll so it stays there.
+  _scrollToAnchor() {
+    if (!this.anchorValue) return false
+    const el = document.getElementById(this.anchorValue)
+    if (!el) return false
+    el.scrollIntoView({ block: "center" })
+    el.classList.add("anchor-flash")
+    this.userScrolledUp = true
+    this._showScrollButton()
+    return true
+  }
 
   get _scrollEl() {
     return this.hasScrollTarget ? this.scrollTarget : this.element

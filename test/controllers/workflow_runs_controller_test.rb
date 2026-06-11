@@ -46,7 +46,7 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select ".wf-tl", count: 1
 
-    get conversation_path(open_run.conversation, view: "transcript")
+    get conversation_path(open_run.conversation, view: "chat")
     assert_match "Read-only", response.body
 
     get conversation_path(private_run.conversation)
@@ -221,7 +221,7 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     run.conversation.messages.create!(
       role: :user, content: "implement the spec", streaming_status: :done, kind: :step_prompt
     )
-    get conversation_path(run.conversation, view: "transcript")
+    get conversation_path(run.conversation, view: "chat")
     assert_response :success
     assert_select ".msg-step", text: /implement the spec/
     assert_select ".msg-step .msg-step-time", count: 1
@@ -259,7 +259,9 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".wf-tl-meta .tag", text: "claude-opus-4-8"
     assert_select ".wf-tl-meta .tag", text: "18.2k in · 1.1k out"
     assert_select ".wf-tl-meta .tag", text: "$0.06"
-    assert_select ".wf-tl-turnlink", text: "view turn →"
+    assert_select ".wf-tl-turnlink[href=?]",
+                  conversation_path(conversation, view: "chat", turn: msg.id),
+                  text: "view turn →"
     assert_select ".wf-tl-item.gate .wf-tl-title", text: "Gate · spec"
     assert_match "paused 4m", response.body
     assert_select ".wf-tl-gate-by", text: /#{@user.display_label}.*approved/m
@@ -282,7 +284,7 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".wf-tl-live ##{ActionView::RecordIdentifier.dom_id(msg)}_indicator"
   end
 
-  test "the run page renders the timeline and gate; the transcript stays plain" do
+  test "the run page renders the timeline and gate; the chat view stays plain" do
     run = gated_run
     get conversation_path(run.conversation)
     assert_response :success
@@ -291,7 +293,7 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Review needed", response.body
     assert_match "the spec", response.body
 
-    get conversation_path(run.conversation, view: "transcript")
+    get conversation_path(run.conversation, view: "chat")
     assert_select "#workflow_rail", count: 0
     assert_select "#workflow_meta", count: 0
     assert_select "a", text: /Workflow/

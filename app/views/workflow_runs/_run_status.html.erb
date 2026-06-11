@@ -25,7 +25,7 @@
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
         Workflow <%= run.status %>.
         <%= link_to "Continue the conversation",
-              conversation_path(run.conversation, view: "transcript"),
+              conversation_path(run.conversation, view: "chat"),
               class: "wf-run-link", data: { turbo_frame: "_top" } %>
       <% end %>
     </div>
