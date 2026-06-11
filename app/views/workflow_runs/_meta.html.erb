@@ -9,7 +9,6 @@
   <% else %>
     <span class="tag wf-meta-name">Workflow</span>
   <% end %>
-  <span class="tag wf-meta-state wf-meta-state--<%= run.status %>"><%= wf_run_status_label(run) %></span>
   <span class="wf-meta-stats">
     <%= pluralize(run.tasks.size, "step") %>
     · <%= pluralize(run.tasks.approval.count, "gate") %>
@@ -17,4 +16,5 @@
     <% if run.settled_at %> · wall <%= wf_compact_duration(run.settled_at - run.created_at) %><% end %>
     <% if run.total_cost.positive? %> · <%= format_cost(run.total_cost) %><% end %>
   </span>
+  <span class="tag wf-meta-state wf-meta-state--<%= run.status %>"><%= wf_run_status_label(run) %></span>
 </span>
