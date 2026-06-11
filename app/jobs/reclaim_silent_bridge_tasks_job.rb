@@ -23,11 +23,16 @@ class ReclaimSilentBridgeTasksJob < ApplicationJob
   private
 
   def sweep(task)
-    if task.reclaims_count >= Rails.application.config.x.bridge.reclaim_cap
-      task.workflow_run.fail_silent_task!(task)
-    else
-      task.reclaim!
-      WorkflowBroadcaster.new(task.workflow_run).refresh
+    label = task.claimed_label
+    task.with_lock do
+      if task.running? && task.claimed_by_user_id.present?
+        if task.reclaims_count >= Rails.application.config.x.bridge.reclaim_cap
+          task.workflow_run.fail_silent_task!(task)
+        else
+          task.reclaim!(label)
+          WorkflowBroadcaster.new(task.workflow_run).refresh
+        end
+      end
     end
   rescue StandardError => e
     Rails.logger.warn(

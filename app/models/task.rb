@@ -78,12 +78,12 @@ class Task < ApplicationRecord
 
   # Return a silent claim to the unclaimed pool; the run stays
   # awaiting_local and the next pull picks the task up.
-  def reclaim!
+  def reclaim!(label = claimed_label)
     update!(
       claimed_by: nil, claimed_by_user: nil, last_reported_at: nil,
       reclaims_count: reclaims_count + 1,
       progress: progress + [ { "kind" => "reclaim",
-                               "text" => "#{claimed_label} went silent — returned to the queue" } ]
+                               "text" => "#{label} went silent — returned to the queue" } ]
     )
   end
 

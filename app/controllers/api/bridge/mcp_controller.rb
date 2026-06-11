@@ -122,7 +122,7 @@ module Api
       def report_progress(args)
         task = find_delegated_task(args.fetch("task_id"))
         text = args.fetch("text").to_s
-        return dead_task_error(task) unless task.reportable?
+        return dead_task_error(task) unless task.reportable? && task.claimed_by_user_id == current_bridge_user.id
 
         task.log_progress!({ "kind" => "log", "text" => text })
         tool_text("Progress recorded.")
@@ -135,7 +135,7 @@ module Api
           "summary" => args.fetch("summary"),
           "artifacts" => args["artifacts"]
         }.compact
-        return dead_task_error(task) unless task.reportable?
+        return dead_task_error(task) unless task.reportable? && task.claimed_by_user_id == current_bridge_user.id
 
         task.workflow_run.complete_delegated_task!(task, result: result)
         tool_text("Result submitted — the run resumes in Metis.")
