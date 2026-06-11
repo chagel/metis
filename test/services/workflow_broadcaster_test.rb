@@ -18,6 +18,21 @@ class WorkflowBroadcasterTest < ActiveSupport::TestCase
     assert_nothing_raised { WorkflowBroadcaster.new(@run).refresh }
   end
 
+  test "a broadcast-rendered avatar src is a path, not a renderer-host URL" do
+    @user.avatar.attach(
+      io: StringIO.new("\x89PNG\r\n\x1a\nfake".b), filename: "a.png", content_type: "image/png"
+    )
+    @run.tasks.create!(position: 0, name: "spec", gate: :approval, status: :completed,
+                       approved_by: @user, decided_at: Time.current)
+
+    html = ApplicationController.renderer.render(
+      partial: "workflow_runs/timeline",
+      locals: { run: @run, conversation: @run.conversation }
+    )
+    assert_no_match "example.org", html
+    assert_match %r{src="/}, html
+  end
+
   test "refresh renders the timeline with a decided gate outside a request" do
     message = @run.conversation.messages.create!(
       role: :assistant, content: "the spec", streaming_status: :done,
