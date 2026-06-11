@@ -440,6 +440,14 @@ what the attended loop can't:
   client takes; how a project resolves to a path on disk stays the
   client's job — the agent's own cwd judgment in the attended loop, a
   project → path config map in the daemon.
+- **Attended-claim ergonomics — deferred until the Phase 4 daemon.**
+  Two known frictions in stop-and-go attended work, parked on purpose:
+  a result against a *running-but-unclaimed* task 410s even when no one
+  else wants the claim (it should atomically re-claim and be accepted),
+  and stepping away has no voluntary *release* — the sweeper reclaim
+  bumps `reclaims_count`, so deliberate pauses share a strike counter
+  with crashed machines. Revisit once a workable daemon shows which
+  frictions remain.
 
 (Settled since the first draft: claim contention → `SKIP LOCKED` guard;
 mid-flight loss → the stale-claim sweeper; worktree isolation → the
