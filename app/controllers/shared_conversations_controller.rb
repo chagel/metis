@@ -5,6 +5,6 @@ class SharedConversationsController < ApplicationController
 
   def show
     @conversation = Conversation.find_by!(share_token: params[:token])
-    @messages = @conversation.messages.where(role: %i[user assistant]).chronological
+    @messages = @conversation.messages.includes(:sender).where(role: %i[user assistant]).chronological
   end
 end

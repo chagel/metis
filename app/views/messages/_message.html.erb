@@ -10,16 +10,13 @@
   </div>
 <% elsif message.user? %>
   <%# User: a contained bubble on the accent fill, aligned right.
-      hide_sender keeps identity (display_label falls back to email) off
-      the public share page. Sender falls back to the owner on old rows. %>
+      Sender falls back to the owner on rows predating the column. %>
+  <% sender = message.sender || message.conversation.user %>
   <div id="<%= dom_id(message) %>" class="msg-user">
-    <% unless local_assigns[:hide_sender] %>
-      <% sender = message.sender || message.conversation.user %>
-      <div class="msg-sender">
-        <%= avatar_for sender, size: 16, css: "msg-sender-avatar" %>
-        <span class="msg-sender-name"><%= sender.display_label %></span>
-      </div>
-    <% end %>
+    <div class="msg-sender">
+      <%= avatar_for sender, size: 16, css: "msg-sender-avatar" %>
+      <span class="msg-sender-name"><%= sender.display_label %></span>
+    </div>
     <div class="bubble">
       <% if message.attachments? %>
         <%= render "messages/attachments", message: message %>

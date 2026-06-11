@@ -39,6 +39,16 @@
       <span class="shared-word">Metis</span>
     </a>
     <h1 class="shared-title"><%= @conversation.display_title %></h1>
+    <% if (run = @conversation.workflow_run) %>
+      <span class="wf-meta">
+        <span class="tag wf-meta-name">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4h5l1 1.5h5M2.5 4v8h11V5.5M2.5 8h11"/></svg>
+          <%= run.workflow&.name || "Workflow" %>
+        </span>
+        <span class="tag wf-meta-state wf-meta-state--<%= run.status %>"><%= wf_run_status_label(run) %></span>
+      </span>
+    <% end %>
     <% author = @conversation.user %>
     <% if author %>
       <div class="shared-author">
@@ -59,7 +69,7 @@
       <%= render partial: "messages/message",
             collection: @messages,
             as: :message,
-            locals: { hide_activity: true, hide_sender: true } %>
+            locals: { hide_activity: true } %>
     </div>
   </div>
 </main>

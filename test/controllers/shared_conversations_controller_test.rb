@@ -17,16 +17,24 @@ class SharedConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".thread .chat-content", text: /hi back/
   end
 
-  test "never shows message sender identity to anonymous viewers" do
-    # The header credits the owner (they chose to share); teammates who
-    # merely spoke in the thread must never leak.
-    teammate = User.create!(email: "teammate@example.com", password: "password123")
+  test "shows each user message's sender on the public page" do
+    teammate = User.create!(email: "teammate@example.com", password: "password123",
+                            display_name: "Tea M. Mate")
     @conversation.messages.where(role: :user).first.update!(sender: teammate)
 
     get shared_conversation_path(token: @token)
     assert_response :success
-    assert_select ".msg-sender", count: 0
-    assert_no_match teammate.email, response.body
+    assert_select ".msg-sender .msg-sender-name", text: "Tea M. Mate"
+  end
+
+  test "shows workflow tags in the header when a run drives the conversation" do
+    workflow = @user.personal_team.workflows.create!(name: "Ship", steps: [ { "name" => "spec", "prompt" => "p" } ])
+    @user.personal_team.workflow_runs.create!(conversation: @conversation, workflow: workflow, status: :completed)
+
+    get shared_conversation_path(token: @token)
+    assert_response :success
+    assert_select ".shared-head .wf-meta-name", text: /Ship/
+    assert_select ".shared-head .wf-meta-state", text: "Completed"
   end
 
   test "emits Open Graph and Twitter card meta for unfurls" do
