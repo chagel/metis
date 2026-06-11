@@ -1,8 +1,8 @@
 # Local bridge (design + build plan)
 
-> Status: **shipped through Phase 3** (token + presence, delegation core,
-> hosted MCP facade, delegation reliability); Phases 4–5 (daemon + ACP,
-> notifications) are design. Companion to
+> Status: **shipped through Phase 4** (token + presence, delegation core,
+> hosted MCP facade, delegation reliability, the `metis-bridge` daemon);
+> Phase 5 (notifications) is design. Companion to
 > [`workflows.md`](workflows.md) — the bridge is how a workflow's
 > *implementation step* runs on the user's own machine instead of a
 > Metis-operated sandbox.
@@ -100,11 +100,13 @@ conversation" the design calls for.
   off a discrete step* (vs. driving a live chat turn), agent-pull is the
   natural fit, and it keeps Metis from having to drive anything.
 - **[ACP](https://agentclientprotocol.com)** (Agent Client Protocol) —
-  demoted to a **daemon-internal detail**. ACP matters only if/when a
-  `metis-bridge` daemon drives a *headless* agent unattended (Phase 4); it
-  normalizes Claude Code / Codex / Gemini / pi behind one stdio protocol.
-  In the lightest v1 (the user's own Claude Code pulls via MCP) there is
-  no ACP — the agent *is* the client.
+  demoted twice: first to a daemon-internal detail, then (Phase 4, built)
+  to a **future adapter** behind the daemon's `Agents` seam. pi, Claude
+  Code, and Codex all have native headless JSON streams, so the daemon
+  drives those directly; one generic ACP adapter joins the registry the
+  first time an agent without a native stream is needed. In the lightest
+  loop (the user's own Claude Code pulls via MCP) there is no ACP at all
+  — the agent *is* the client.
 
 ## Transport: pull-based REST core
 
@@ -386,37 +388,56 @@ protocol — argued there, not assumed here.
   cancelled run 410s the next progress post; reclaim never fires while
   events keep arriving.
 
-### Phase 4 — Daemon + ACP (unattended)
+### Phase 4 — Daemon (unattended) ✅
 
-`metis-bridge` daemon polls the REST surface, spawns the agent
-(`pi --mode rpc`, or Claude Code / Codex via ACP over stdio), reports
-back — hands-off automation, non-pi agents. The daemon spec bakes in
-what the attended loop can't:
+[`clients/metis-bridge`](../clients/metis-bridge/) — a single-file,
+stdlib-only Ruby daemon (`init` / `once` / `run` / `gc`). It polls the
+REST surface per configured project, runs the agent headless in a
+per-task worktree, heartbeats progress, and submits the result. Ruby
+because the daemon is I/O orchestration in a Ruby shop: same repo, same
+Minitest suite, same rubocop, and a stdlib-only single file installs
+with `curl + chmod` on any dev machine. The stated exit ramp is a Go
+rewrite if multi-task concurrency, Windows, or non-developer
+distribution ever matter — the REST contract makes the daemon a drop-in
+swap the server never notices.
 
-- **Worktree-per-task.** Clone once into a local repo cache; every task
-  runs in its own `git worktree`, never on a checkout doing other duty.
-  (Learned live: the first dogfood run switched the dev server's branch
-  and knocked the bridge API off the very server it was reporting to.
-  Until the daemon exists, the coding-step prompt says so.)
-- **Resume pointers with a machine guard.** Record
-  `(client, work_dir, agent_session_id)` on the task as work proceeds;
-  offer it back on the next claim for the same project. Same machine →
-  resume the session in the same worktree; different machine → start
-  fresh. Continuity across delegated steps without pretending agent
-  sessions cross machines.
+**ACP deferred behind the adapter seam.** pi, Claude Code, and Codex
+all expose native headless JSON streams (`pi -p --mode json`,
+`claude -p --output-format stream-json`, `codex exec --json`), so v1
+drives those directly — each agent is a ~20-line adapter (`command` +
+`parse` + blocklist) in the daemon's `Agents` module. ACP earns its
+place as *one more adapter* — a single generic one covering every
+ACP-capable agent — the first time we need an agent without a native
+stream. It is an extension point, not a redesign.
+
+What shipped, against the spec:
+
+- **Worktree-per-task.** Each task runs in `git worktree add` off the
+  project's configured checkout, on a `metis/<ref>` branch — never on a
+  checkout doing other duty. (Learned live: the first dogfood run
+  switched the dev server's branch and knocked the bridge API off the
+  very server it was reporting to.)
+- **Machine-local resume.** A re-claimed task whose worktree still
+  exists on this machine reuses it (same branch, same partial work);
+  another machine starts fresh. This replaces the server-side
+  `(client, work_dir, session_id)` pointer from the original spec —
+  the machine's own disk is the resume pointer, no server state needed.
+  Agent-*session* resume (`--resume` into the same conversation) stays
+  future work.
 - **Semantic-inactivity watchdog, no wall clock.** A session still
-  emitting events is never killed for running long — long local turns
-  are the point of delegation. Kill only after N minutes of *silence*,
-  then report a failed result so the reclaim path isn't needed.
-- **Active cancellation.** Poll task status between agent events;
-  terminate the agent process when the task dies server-side — the
-  unattended upgrade of stop-on-410.
-- **Argument hygiene.** Per-CLI blocklists strip user-supplied args that
-  would break the driving protocol (output-format / mode flags), and
-  each CLI's resume-id quirks are normalized behind the ACP seam.
-- **Workdir GC.** TTL cleanup of done-task worktrees; artifact-only
-  cleanup (`node_modules`-class regenerable dirs) for tasks still open,
-  so a daemon machine stays usable after a month of tasks.
+  emitting events is never killed for running long; N minutes of
+  *silence* (default 10) kills the agent and reports a failed result,
+  so the server-side reclaim path stays a backstop.
+- **Active cancellation.** `GET /api/bridge/tasks/:id` polled between
+  agent events; the agent process is terminated when the task settles
+  or the claim moves — the unattended upgrade of stop-on-410 (which the
+  daemon also honours on every heartbeat post).
+- **Argument hygiene.** Commands are exec arrays (never a shell), and
+  per-CLI blocklists strip user-supplied `agent_args` that would break
+  the stream protocol or leak into another session.
+- **Workdir GC.** Hourly + on demand: settled-task worktrees removed
+  past a TTL (default 24h), orphan dirs (daemon crash mid-prepare) past
+  3× that. Artifact-only cleanup for still-open tasks stays future work.
 
 ### Phase 5 — Notifications + live progress
 - Push-notify dispatched tasks (in-app, email, Slack); optional SSE tickle

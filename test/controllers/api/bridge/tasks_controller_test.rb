@@ -234,6 +234,32 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     assert_empty task.result
   end
 
+  test "show reports status and claim holder for cancellation polling" do
+    run = dispatch_run
+    task = Task.claim_next_for(@user, client: "mikes-mbp")
+
+    get "/api/bridge/tasks/#{task.ref}", headers: auth
+    assert_response :success
+    body = JSON.parse(response.body)
+    assert_equal "running", body["status"]
+    assert_equal "mikes-mbp", body["claimed_by"]
+
+    task.reclaim!
+    run.reject_current_gate!(by: @user)
+    get "/api/bridge/tasks/#{task.id}", headers: auth
+    body = JSON.parse(response.body)
+    assert_equal "rejected", body["status"]
+    assert_nil body["claimed_by"]
+  end
+
+  test "show is scoped to the user's teams" do
+    run = dispatch_run
+    stranger = User.create!(email: "x-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    get "/api/bridge/tasks/#{run.tasks.first.id}",
+        headers: { "Authorization" => "Bearer #{stranger.generate_bridge_token!}" }
+    assert_response :not_found
+  end
+
   test "a result after reclaim is discarded with 410" do
     run = dispatch_run
     task = Task.claim_next_for(@user)

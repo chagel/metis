@@ -6,7 +6,7 @@ module Api
     class TasksController < BaseController
       include TaskPayloads
 
-      before_action :set_task, only: %i[events result]
+      before_action :set_task, only: %i[show events result]
       before_action :ensure_task_live, only: %i[events result]
 
       # The claim queue, read-only — a client picks by repo instead of
@@ -23,6 +23,17 @@ module Api
         return render json: claim_payload(task) if task
 
         params[:id].present? ? head(:conflict) : head(:no_content)
+      end
+
+      # Liveness check for an unattended client: a daemon polls this
+      # between agent events and kills the agent when the task settled or
+      # its claim moved (cancellation / reclaim — the active upgrade of
+      # stop-on-410).
+      def show
+        render json: {
+          task_id: @task.id, ref: @task.ref, status: @task.status,
+          claimed_by: @task.claimed_by
+        }
       end
 
       def events

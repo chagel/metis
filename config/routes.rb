@@ -97,6 +97,7 @@ Rails.application.routes.draw do
     namespace :bridge do
       get  "tasks",            to: "tasks#index"
       get  "tasks/next",       to: "tasks#claim"
+      get  "tasks/:id",        to: "tasks#show"
       post "tasks/:id/events", to: "tasks#events"
       post "tasks/:id/result", to: "tasks#result"
       post "mcp",              to: "mcp#handle"
