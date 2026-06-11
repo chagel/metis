@@ -98,6 +98,30 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
     assert_includes step_prompt, "next"
   end
 
+  # Regression: the tasks association orders ascending, so step_prompt must
+  # reorder — a plain .order silently kept ASC and take_while found nothing
+  # whenever a cloud step preceded the delegated one.
+  test "the report still folds into the next prompt when a cloud step ran first" do
+    run = start([
+      { "name" => "spec", "prompt" => "write the spec", "gate" => "auto" },
+      LOCAL,
+      { "name" => "review", "prompt" => "review the PR", "gate" => "auto" }
+    ])
+    advance(run)                                  # start cloud step 0
+    run.tasks.find_by!(position: 0).assistant_message.update!(streaming_status: :done)
+    advance(run)                                  # settle 0, dispatch step 1
+    task = Task.claim_next_for(@user, client: "macbook")
+    run.complete_delegated_task!(task, result: {
+      "status" => "completed", "summary" => "opened the PR",
+      "artifacts" => [ { "type" => "pr", "url" => "http://x/63" } ]
+    })
+    advance(run.reload)                           # start cloud step 2
+
+    step_prompt = run.conversation.messages.where(kind: :step_prompt).last.content
+    assert_includes step_prompt, %(Step "impl" ran on the user's machine and reported: opened the PR (http://x/63))
+    assert_includes step_prompt, "review the PR"
+  end
+
   test "a failed result fails the run and leaves a failure report line" do
     run = start([ LOCAL ])
     advance(run)

@@ -77,7 +77,7 @@ class WorkflowAdvanceJob < ApplicationJob
   # A delegated step's outcome never enters the agent session, so the
   # reports of the delegated steps just before this one fold into its prompt.
   def step_prompt(run, task)
-    reports = run.tasks.completed.where(position: ...task.position).order(position: :desc)
+    reports = run.tasks.completed.where(position: ...task.position).reorder(position: :desc)
                  .take_while(&:delegated?).reverse.map { |prior| delegated_report(prior) }
     [ *reports, task.prompt ].join("\n\n")
   end
