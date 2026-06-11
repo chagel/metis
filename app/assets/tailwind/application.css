@@ -2093,11 +2093,25 @@ body.drawer-open { overflow:hidden; }
 .wf-tl-live .chat-content { max-height:280px; overflow-y:auto; font-size:13.5px; }
 
 /* The step being worked right now reads as the page's live element:
-   accent ring on the card, pulsing badge in its time slot. The gold
-   treatment stays reserved for gates. */
+   a glow flowing around the card, pulsing badge in its time slot. The
+   gold treatment stays reserved for gates. */
+@property --wf-sweep { syntax:"<angle>"; inherits:false; initial-value:0deg; }
 .wf-tl-item.running .wf-tl-card {
-  border-color:color-mix(in srgb, var(--accent) 40%, var(--line));
-  box-shadow:0 0 0 3px var(--accent-soft), var(--sh-md);
+  position:relative;
+  border-color:color-mix(in srgb, var(--accent) 30%, var(--line));
+  box-shadow:var(--sh-md);
+}
+.wf-tl-item.running .wf-tl-card::before {
+  content:""; position:absolute; inset:-3px; z-index:-1; border-radius:17px;
+  background:conic-gradient(from var(--wf-sweep),
+    transparent 0turn, transparent .58turn,
+    var(--accent-glow) .79turn, transparent .99turn);
+  animation:wf-sweep 3.2s linear infinite;
+}
+@keyframes wf-sweep { to { --wf-sweep:360deg; } }
+@media (prefers-reduced-motion: reduce) {
+  .wf-tl-item.running .wf-tl-card { box-shadow:0 0 0 3px var(--accent-soft), var(--sh-md); }
+  .wf-tl-item.running .wf-tl-card::before { animation:none; background:none; }
 }
 .wf-tl-running {
   display:inline-flex; align-items:center; gap:6px;
