@@ -70,6 +70,26 @@ jobs:
       - name: Lint code for consistent style
         run: bin/rubocop -f github
 
+  daemon:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: clients/metis-bridge/go.mod
+
+      - name: Lint, vet, and test the metis-bridge daemon
+        working-directory: clients/metis-bridge
+        run: |
+          test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+          go vet ./...
+          go test ./...
+          go build ./...
+
   test:
     runs-on: ubuntu-latest
 

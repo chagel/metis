@@ -7,16 +7,21 @@ machine, runs a coding agent headless in a per-task git worktree, streams
 progress back, and submits the result. Metis never drives this machine —
 the daemon pulls.
 
-Single file, Ruby stdlib only — no gems, no Bundler. Any Ruby ≥ 3.0.
+Go stdlib only, single static binary. macOS / Linux.
 
 ## Install
 
+From a checkout:
+
 ```sh
-curl -fsSL https://raw.githubusercontent.com/chagel/metis/main/clients/metis-bridge/metis-bridge \
-  -o /usr/local/bin/metis-bridge && chmod +x /usr/local/bin/metis-bridge
+cd clients/metis-bridge && go build -o /usr/local/bin/metis-bridge .
 ```
 
-(or copy it from a checkout — it's one file.)
+or directly:
+
+```sh
+go install github.com/chagel/metis/clients/metis-bridge@latest
+```
 
 ## Configure
 
@@ -38,7 +43,8 @@ metis-bridge init       # writes ~/.metis-bridge/config.json
 The daemon only claims tasks whose workflow project it has a checkout
 for (the `?project=` claim filter) — it never blind-claims. Optional
 keys (defaults): `agent_args` (`[]`, protocol-breaking flags are
-stripped), `poll_interval` (30s), `heartbeat_interval` (240s),
+stripped, your flags come after the defaults so they win),
+`poll_interval` (30s), `heartbeat_interval` (240s),
 `inactivity_timeout` (600s), `cancel_poll_interval` (30s), `gc_ttl`
 (24h), `workspaces_root` (`~/.metis-bridge/worktrees`), `client`
 (hostname).
@@ -60,13 +66,13 @@ metis-bridge gc         # sweep settled task worktrees now
    task whose worktree survives resumes in it.
 3. The agent runs headless in its native JSON stream (`claude -p
    --output-format stream-json`, `pi -p --mode json`, `codex exec
-   --json`), with the user's own credentials and subscription.
-   Unattended means no one can answer permission prompts, so claude runs
-   with `--permission-mode bypassPermissions` and codex with
-   `--full-auto` — tighten via `agent_args` if your deployment wants
-   less (your flags come last and win). The inner agent is isolated
-   from your own MCP servers (`--strict-mcp-config`): a delegated task
-   must not discover your other tools.
+   --json`), with the user's own credentials and subscription, in its
+   own process group. Unattended means no one can answer permission
+   prompts, so claude runs with `--permission-mode bypassPermissions`
+   and codex with `--full-auto` — tighten via `agent_args` if your
+   deployment wants less. The inner agent is isolated from your own MCP
+   servers (`--strict-mcp-config`): a delegated task must not discover
+   your other tools.
 4. Three clocks watch the stream: a heartbeat posts progress (the
    server-side liveness signal), a poll of `GET /api/bridge/tasks/:id`
    kills the agent if the task settles or the claim moves, and the
@@ -78,3 +84,15 @@ metis-bridge gc         # sweep settled task worktrees now
 
 Settled worktrees are swept after `gc_ttl`; the `metis/<ref>` branch
 stays in your repo until you delete it.
+
+## Development
+
+```sh
+go test ./...           # the suite drives real worktrees, fake agents, and an httptest bridge
+gofmt -l . && go vet ./...
+```
+
+Adding an agent: implement the two-method `Agent` interface in
+`agents.go` (command array + stream-line parser + blocklist) and register
+it in `AgentFor`. A generic ACP adapter belongs here the first time an
+agent without a native headless JSON stream is needed.

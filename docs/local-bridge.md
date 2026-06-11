@@ -390,16 +390,19 @@ protocol — argued there, not assumed here.
 
 ### Phase 4 — Daemon (unattended) ✅
 
-[`clients/metis-bridge`](../clients/metis-bridge/) — a single-file,
-stdlib-only Ruby daemon (`init` / `once` / `run` / `gc`). It polls the
-REST surface per configured project, runs the agent headless in a
-per-task worktree, heartbeats progress, and submits the result. Ruby
-because the daemon is I/O orchestration in a Ruby shop: same repo, same
-Minitest suite, same rubocop, and a stdlib-only single file installs
-with `curl + chmod` on any dev machine. The stated exit ramp is a Go
-rewrite if multi-task concurrency, Windows, or non-developer
-distribution ever matter — the REST contract makes the daemon a drop-in
-swap the server never notices.
+[`clients/metis-bridge`](../clients/metis-bridge/) — a stdlib-only
+**Go** daemon, single static binary (`init` / `once` / `run` / `gc`).
+It polls the REST surface per configured project, runs the agent
+headless in a per-task worktree, heartbeats progress, and submits the
+result. The v1 was Ruby (same repo, same Minitest suite — cheapest path
+to *workable*, dogfooded live); the Go port followed immediately, taking
+the exit ramp the Ruby section had pre-committed to: a static binary
+with no runtime-presence assumption, the agent subprocess in its own
+**process group** (the Ruby dogfood orphaned a claude when the daemon
+died), and `go test` + vet in CI. The REST contract made the port a
+drop-in — the server never noticed the language change, which was the
+point of keeping the contract primary. Tests stand up an `httptest`
+bridge server, real temp git repos, and fake agent subprocesses.
 
 **ACP deferred behind the adapter seam.** pi, Claude Code, and Codex
 all expose native headless JSON streams (`pi -p --mode json`,
