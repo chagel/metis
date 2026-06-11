@@ -2089,6 +2089,15 @@ body.drawer-open { overflow:hidden; }
 .wf-tl-live { margin-top:8px; }
 .wf-tl-live .chat-content { max-height:280px; overflow-y:auto; font-size:13.5px; }
 
+/* The launch input, quoted on the trigger card. */
+.wf-tl-quote {
+  margin-top:8px; padding:8px 13px; font-size:13.5px; color:var(--ink-2);
+  background:var(--bg); border-left:3px solid var(--line-2); border-radius:6px 10px 10px 6px;
+}
+
+/* A delegated step's full result — its only rendering, scroll-capped. */
+.wf-tl-result { margin-top:8px; max-height:320px; overflow-y:auto; font-size:13.5px; color:var(--ink-2); }
+
 /* Steps that haven't happened yet recede; they brighten as the run
    reaches them. */
 .wf-tl-item.pending { opacity:.55; }

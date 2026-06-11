@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_11_202514) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_11_220059) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -305,6 +305,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_11_202514) do
   create_table "workflow_runs", force: :cascade do |t|
     t.bigint "conversation_id", null: false
     t.datetime "created_at", null: false
+    t.text "input"
     t.integer "status", default: 0, null: false
     t.bigint "team_id", null: false
     t.string "trigger_summary"

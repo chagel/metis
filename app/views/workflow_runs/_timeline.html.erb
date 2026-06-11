@@ -19,6 +19,9 @@
         <% if run.workflow %> · workflow <b><%= run.workflow.name %></b><% end %>
         <% if conversation.runtime_label %> · runtime <%= conversation.runtime_label %><% end %>
       </p>
+      <% if run.input.present? %>
+        <div class="wf-tl-quote chat-content"><%= markdown(run.input) %></div>
+      <% end %>
     </div>
   </div>
 
@@ -64,12 +67,14 @@
             <%= render "messages/streaming_indicator", message: message,
                   phase: (message.pending? ? runtime_initial_phase(conversation) : nil) %>
           </div>
-        <% else %>
-          <% summary = task.delegated? ? task.result_summary : message&.content %>
-          <% if summary.present? %>
-            <%# Snippets are prose: render the markdown, drop the markup. %>
-            <p class="wf-tl-body"><%= truncate(strip_tags(markdown(summary)).squish, length: 180) %></p>
-          <% end %>
+        <% elsif task.delegated? && task.result_summary.present? %>
+          <%# A delegated step's result has no turn to view — the summary
+              is the deliverable, so it renders in full (scroll-capped). %>
+          <div class="wf-tl-result chat-content"><%= markdown(task.result_summary) %></div>
+        <% elsif message&.content.present? %>
+          <%# Cloud snippets are prose: render the markdown, drop the
+              markup — the full turn is one click away. %>
+          <p class="wf-tl-body"><%= truncate(strip_tags(markdown(message.content)).squish, length: 180) %></p>
         <% end %>
         <% if task.delegated? && task.running? && task.claimed_by_user.nil? %>
           <div class="wf-tl-localguide">

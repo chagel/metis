@@ -158,6 +158,7 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     run = WorkflowRun.last
     assert_equal workflow, run.workflow
     assert_equal project, run.conversation.project
+    assert_equal "for the launch composer feature", run.input
     first = run.tasks.first
     assert_match "for the launch composer feature", first.prompt
     assert_match "write the spec", first.prompt
@@ -282,6 +283,19 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".wf-tl-live ##{ActionView::RecordIdentifier.dom_id(msg)}_body"
     assert_select ".wf-tl-live ##{ActionView::RecordIdentifier.dom_id(msg)}_activity"
     assert_select ".wf-tl-live ##{ActionView::RecordIdentifier.dom_id(msg)}_indicator"
+  end
+
+  test "the trigger card quotes the input; a delegated result renders in full" do
+    workflow = @team.workflows.create!(name: "PR Review", steps: [ { "name" => "Local review", "prompt" => "p", "run" => "local" } ])
+    run = WorkflowRun.start(team: @team, user: @user, workflow: workflow, input: "Review chagel/metis#66")
+    long = "Verdict: **APPROVE** — " + ("finding detail " * 30)
+    run.tasks.first.update!(status: :completed, result: { "status" => "completed", "summary" => long })
+
+    get conversation_path(run.conversation)
+    assert_response :success
+    assert_select ".wf-tl-quote", text: /Review chagel\/metis#66/
+    assert_select ".wf-tl-result strong", text: "APPROVE"
+    assert_select ".wf-tl-result", text: /(finding detail ){29}/
   end
 
   test "the run page renders the timeline and gate; the chat view stays plain" do

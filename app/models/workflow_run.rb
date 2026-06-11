@@ -32,7 +32,7 @@ class WorkflowRun < ApplicationRecord
       )
       run = create!(
         team: team, workflow: workflow, conversation: conversation,
-        trigger_summary: trigger_summary
+        trigger_summary: trigger_summary, input: input
       )
       steps.each_with_index do |step, i|
         prompt = step["prompt"] || step[:prompt]
