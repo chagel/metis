@@ -36,6 +36,9 @@
       <% end %>
     </div>
     <div class="chat-actions">
+      <% if workflow_run %>
+        <%= link_to "Run view", conversation_path(@conversation), class: "btn btn-ghost btn-sm" %>
+      <% end %>
       <%# The share panel is available to read-only viewers too, so they can
           copy the public link; owner-only controls (revoke/create, archive)
           are gated on can_manage / @read_only. %>

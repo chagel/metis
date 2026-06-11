@@ -57,6 +57,24 @@ class WorkflowRun < ApplicationRecord
     WorkflowAdvanceJob.perform_later(run.id) if run&.active?
   end
 
+  def turn_messages
+    tasks.includes(:assistant_message).filter_map(&:assistant_message)
+  end
+
+  def agent_seconds
+    turn_messages.sum { |message| message.duration.to_f }
+  end
+
+  def total_cost
+    turn_messages.sum { |message| message.cost.to_f }
+  end
+
+  # When the run last moved: a turn settling or a gate decision —
+  # whichever came later. nil before anything has finished.
+  def settled_at
+    [ *turn_messages.map(&:finished_at), *tasks.map(&:decided_at) ].compact.max
+  end
+
   def approve_current_gate!(by: nil)
     task = tasks.awaiting_approval.first
     return unless task

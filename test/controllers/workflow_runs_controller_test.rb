@@ -44,6 +44,9 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     join_as_teammate(team)
     get conversation_path(open_run.conversation)
     assert_response :success
+    assert_select ".wf-tl", count: 1
+
+    get conversation_path(open_run.conversation, view: "transcript")
     assert_match "Read-only", response.body
 
     get conversation_path(private_run.conversation)
@@ -215,7 +218,7 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     run.conversation.messages.create!(
       role: :user, content: "implement the spec", streaming_status: :done, kind: :step_prompt
     )
-    get conversation_path(run.conversation)
+    get conversation_path(run.conversation, view: "transcript")
     assert_response :success
     assert_select ".msg-step", text: /implement the spec/
     assert_select ".msg-user .bubble", text: /implement the spec/, count: 0
@@ -230,13 +233,45 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert run.reload.awaiting_approval?
   end
 
-  test "the conversation view renders the rail and the gate card" do
+  test "the run timeline shows turn stats, the gate decision, and totals" do
+    conversation = @user.conversations.create!
+    workflow = @team.workflows.create!(name: "Ship", steps: [ { "name" => "spec", "prompt" => "p" } ])
+    run = @team.workflow_runs.create!(conversation: conversation, workflow: workflow, status: :completed)
+    msg = conversation.messages.create!(
+      role: :assistant, content: "Wrote the spec and opened a PR.", streaming_status: :done,
+      started_at: 10.minutes.ago, finished_at: 9.minutes.ago,
+      model_key: "claude-opus-4-8", input_tokens: 18_200, output_tokens: 1_100, cost: 0.064
+    )
+    run.tasks.create!(position: 0, name: "spec", gate: :approval, status: :completed,
+                      assistant_message: msg, approved_by: @user, decided_at: 5.minutes.ago)
+
+    get conversation_path(conversation)
+    assert_response :success
+    assert_select ".wf-tl-title", text: "Triggered"
+    assert_match "workflow <b>Ship</b>", response.body
+    assert_select ".wf-tl-body", text: /Wrote the spec/
+    assert_select ".wf-tl-meta .tag", text: "claude-opus-4-8"
+    assert_select ".wf-tl-meta .tag", text: "18.2k in · 1.1k out"
+    assert_select ".wf-tl-meta .tag", text: "$0.06"
+    assert_select ".wf-tl-turnlink", text: "view turn →"
+    assert_select ".wf-tl-item.gate .wf-tl-title", text: "Gate · spec"
+    assert_match "paused 4m", response.body
+    assert_select ".wf-tl-gate-by", text: /#{@user.display_label}.*approved/m
+    assert_select ".wf-tl-totals", text: /1 step.*1 gate.*agent time 1m 0s.*cost \$0\.06/m
+    assert_select "a", text: "Open transcript"
+  end
+
+  test "the run page renders the timeline and gate; the transcript keeps the rail" do
     run = gated_run
     get conversation_path(run.conversation)
     assert_response :success
-    assert_select "#workflow_rail"
+    assert_select ".wf-tl", count: 1
     assert_select "#workflow_gate"
     assert_match "Review needed", response.body
     assert_match "the spec", response.body
+
+    get conversation_path(run.conversation, view: "transcript")
+    assert_select "#workflow_rail"
+    assert_select "a", text: "Run view"
   end
 end

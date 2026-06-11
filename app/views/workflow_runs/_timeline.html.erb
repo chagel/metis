@@ -1,0 +1,98 @@
+<%# The run page's audit timeline: one card per event — trigger, each
+    step's turn, and each gate decision. "view turn →" jumps into the
+    transcript anchored at that step's message. %>
+<div class="wf-tl">
+  <div class="wf-tl-item">
+    <div class="wf-tl-node done">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+    </div>
+    <div class="wf-tl-card">
+      <div class="wf-tl-top">
+        <h3 class="wf-tl-title">Triggered</h3>
+        <span class="wf-tl-time"><%= wf_trigger_stamp(run.created_at) %></span>
+      </div>
+      <p class="wf-tl-body">
+        <%= run.trigger_summary %>
+        <% if run.workflow %> · workflow <b><%= run.workflow.name %></b><% end %>
+        <% if conversation.runtime_label %> · runtime <%= conversation.runtime_label %><% end %>
+      </p>
+    </div>
+  </div>
+
+  <% run.tasks.each_with_index do |task, index| %>
+    <% message = task.assistant_message %>
+    <% state = wf_step_state(task) %>
+    <div class="wf-tl-item">
+      <div class="wf-tl-node <%= state %>">
+        <% case state %>
+        <% when "done" %>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+        <% when "failed" %>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        <% when "running", "current" %>
+          <span class="wf-pulse"></span>
+        <% else %>
+          <%= index + 1 %>
+        <% end %>
+      </div>
+      <div class="wf-tl-card">
+        <div class="wf-tl-top">
+          <h3 class="wf-tl-title"><%= task.name.presence || "Step #{index + 1}" %></h3>
+          <span class="wf-tl-time">
+            <% if (window = wf_turn_window(message)) %>
+              <%= window %>
+            <% elsif task.delegated? && task.running? %>
+              <%= wf_local_label(run) %>
+            <% elsif task.running? %>
+              running
+            <% end %>
+          </span>
+        </div>
+        <% summary = task.delegated? ? task.result_summary : message&.content %>
+        <% if summary.present? %>
+          <p class="wf-tl-body"><%= truncate(summary.gsub(/\s+/, " "), length: 180) %></p>
+        <% end %>
+        <% if message && (message.model_key.present? || token_summary(message).present? || message.cost&.positive?) %>
+          <div class="wf-tl-meta">
+            <% if message.model_key.present? %><span class="tag"><%= message.model_key %></span><% end %>
+            <% if token_summary(message).present? %><span class="tag"><%= token_summary(message) %></span><% end %>
+            <% if message.cost&.positive? %><span class="tag"><%= format_cost(message.cost) %></span><% end %>
+            <%= link_to "view turn →",
+                  conversation_path(conversation, view: "transcript", anchor: dom_id(message)),
+                  class: "wf-tl-turnlink" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <% if task.approval? && task.decided_at %>
+      <div class="wf-tl-item gate">
+        <div class="wf-tl-node gate">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+        </div>
+        <div class="wf-tl-card">
+          <div class="wf-tl-top">
+            <h3 class="wf-tl-title">Gate · <%= task.name.presence || "review" %></h3>
+            <% if message&.finished_at %>
+              <span class="wf-tl-time">paused <%= wf_compact_duration(task.decided_at - message.finished_at) %></span>
+            <% end %>
+          </div>
+          <div class="wf-tl-gate-by">
+            <% if task.approved_by %>
+              <%= avatar_for task.approved_by, size: 20, css: "wf-tl-gate-avatar" %>
+              <span><%= task.approved_by.display_label %></span>
+            <% else %>
+              <span>The reviewer</span>
+            <% end %>
+            · <%= task.rejected? ? "rejected" : "approved" %>
+            <span class="tag"><%= task.decided_at.strftime("%-l:%M %p") %></span>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>

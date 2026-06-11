@@ -27,6 +27,28 @@ module WorkflowsHelper
     end
   end
 
+  def wf_turn_window(message)
+    return unless message&.started_at && message.finished_at
+
+    "#{message.started_at.strftime("%-l:%M:%S")} → #{message.finished_at.strftime("%-l:%M:%S %p")}"
+  end
+
+  def wf_trigger_stamp(time)
+    time.strftime("%b %-d · %-l:%M:%S %p")
+  end
+
+  # "44s", "4m 44s", "6h 2m" — for the timeline's totals and gate pauses.
+  def wf_compact_duration(seconds)
+    return "—" if seconds.to_f <= 0
+    return "#{seconds.round}s" if seconds < 60
+
+    minutes, rest = seconds.divmod(60)
+    return "#{minutes.to_i}m #{rest.round}s" if minutes < 60
+
+    hours, minutes = minutes.divmod(60)
+    "#{hours.to_i}h #{minutes.to_i}m"
+  end
+
   # The turn a gate reviews: the gate step's own, else the most recent prior
   # step that produced one.
   def wf_gated_work(run, gate_task)

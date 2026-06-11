@@ -37,10 +37,15 @@ class ConversationsController < ApplicationController
   # a separate door (shared_conversations#show). Mutating actions still go
   # through the owner-scoped set_conversation, so read-only here can't be
   # escalated.
+  # A workflow-run conversation opens on the run timeline by default;
+  # ?view=transcript swaps in the raw chat.
   def show
     @conversation = current_user.conversations.find_by(id: params[:id]) ||
                     current_team.conversations.visibility_team.find(params[:id])
     @read_only = @conversation.user_id != current_user.id
+    @workflow_run = @conversation.workflow_run
+    return render :run if @workflow_run && params[:view] != "transcript"
+
     @messages = @conversation.messages.includes(:sender).chronological
   end
 

@@ -1,0 +1,48 @@
+<% content_for :title, @conversation.display_title %>
+
+<main class="chat">
+  <%= turbo_stream_from @conversation %>
+
+  <header class="chat-head">
+    <div style="flex:1; min-width:0">
+      <h1 class="chat-title">
+        <span id="<%= dom_id(@conversation, :title) %>"><%= @conversation.display_title %></span>
+      </h1>
+      <div class="chat-sub">
+        <span><%= @workflow_run.trigger_summary %></span>
+        <%= render "workflow_runs/meta", run: @workflow_run %>
+      </div>
+    </div>
+    <div class="chat-actions">
+      <%= link_to "Open transcript",
+            conversation_path(@conversation, view: "transcript"),
+            class: "btn btn-ghost btn-sm" %>
+    </div>
+  </header>
+
+  <div class="stream">
+    <div class="wf-tl-wrap">
+      <%= render "workflow_runs/timeline", run: @workflow_run, conversation: @conversation %>
+
+      <% if @workflow_run.awaiting_approval? %>
+        <div class="thread"><%= render "workflow_runs/gate", run: @workflow_run %></div>
+      <% end %>
+
+      <div class="wf-tl-totals" id="<%= dom_id(@workflow_run, :totals) %>">
+        Total: <b><%= pluralize(@workflow_run.tasks.size, "step") %></b>
+        · <b><%= pluralize(@workflow_run.tasks.approval.count, "gate") %></b>
+        · agent time <b><%= wf_compact_duration(@workflow_run.agent_seconds) %></b>
+        <% if @workflow_run.settled_at %>
+          · wall clock <b><%= wf_compact_duration(@workflow_run.settled_at - @workflow_run.created_at) %></b>
+        <% end %>
+        <% if @workflow_run.total_cost.positive? %>
+          · cost <b><%= format_cost(@workflow_run.total_cost) %></b>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <% if @workflow_run.active? %>
+    <%= render "workflow_runs/run_status", run: @workflow_run %>
+  <% end %>
+</main>
