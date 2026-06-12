@@ -22,7 +22,7 @@ const (
 // httptest server instead of mocking it.
 type bridgeAPI interface {
 	Event(id int64, text string) error
-	Result(id int64, status, summary string, artifacts []Artifact) error
+	Result(id int64, status, summary string, artifacts []Artifact, agent, model string) error
 	TaskState(id int64) (*TaskState, error)
 }
 
@@ -47,6 +47,7 @@ type outcome struct {
 	status    string
 	summary   string
 	artifacts []Artifact
+	model     string
 }
 
 func (w *Worker) Run() {
@@ -115,6 +116,7 @@ func (w *Worker) driveAgent(worktree Worktree) *outcome {
 	}()
 
 	finalText := ""
+	model := ""
 	lastSnippet := "starting " + w.cfg.Agent
 	lastActivity := time.Now()
 	heartbeat := time.NewTicker(time.Duration(w.cfg.HeartbeatInterval) * time.Second)
@@ -129,14 +131,19 @@ func (w *Worker) driveAgent(worktree Worktree) *outcome {
 		case line, open := <-lines:
 			if !open {
 				if err := cmd.Wait(); err != nil {
-					return &outcome{status: "failed", summary: w.failureSummary(finalText)}
+					return &outcome{status: "failed", summary: w.failureSummary(finalText), model: model}
 				}
-				return w.conclude(finalText)
+				result := w.conclude(finalText)
+				result.model = model
+				return result
 			}
 			lastActivity = time.Now()
 			event := w.agent.Parse(line)
 			if snippet := lastLine(event.Text); snippet != "" {
 				lastSnippet = snippet
+			}
+			if event.Model != "" {
+				model = event.Model
 			}
 			if event.HasFinal {
 				finalText = event.Final
@@ -207,7 +214,7 @@ func (w *Worker) report(result *outcome) {
 	if len(summary) > 2000 {
 		summary = summary[:2000]
 	}
-	err := w.api.Result(w.task.TaskID, result.status, summary, result.artifacts)
+	err := w.api.Result(w.task.TaskID, result.status, summary, result.artifacts, w.cfg.Agent, result.model)
 	switch {
 	case errors.Is(err, ErrGone):
 		w.logf("task %s: result discarded (task no longer live)", w.label())

@@ -131,6 +131,14 @@
             <% end %>
           </div>
         <% end %>
+        <% if task.delegated? && (task.result_agent || task.result_model) %>
+          <%# The machine owner picks the model; Metis acknowledges what ran. %>
+          <div class="wf-tl-meta">
+            <% if task.result_agent %><span class="tag"><%= task.result_agent %></span><% end %>
+            <% if task.result_model %><span class="tag"><%= task.result_model %></span><% end %>
+            <% if task.claimed_label %><span class="tag"><%= task.claimed_label %></span><% end %>
+          </div>
+        <% end %>
         <% if message && (message.model_key.present? || token_summary(message).present? || message.cost&.positive?) %>
           <div class="wf-tl-meta">
             <% if message.model_key.present? %><span class="tag"><%= message.model_key %></span><% end %>

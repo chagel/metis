@@ -29,6 +29,10 @@ func TestClaudeCommandAndParse(t *testing.T) {
 		t.Fatal("user agent_args must come last so they can override defaults")
 	}
 
+	init := agent.Parse(`{"type":"system","subtype":"init","model":"claude-opus-4-8"}`)
+	if init.Model != "claude-opus-4-8" {
+		t.Fatalf("init parse = %+v", init)
+	}
 	text := agent.Parse(`{"type":"assistant","message":{"content":[{"type":"text","text":"hi"}]}}`)
 	if text.Text != "hi" || text.HasFinal {
 		t.Fatalf("assistant parse = %+v", text)
@@ -53,9 +57,12 @@ func TestPiCommandAndParse(t *testing.T) {
 		t.Fatal("prompt must be the last argument")
 	}
 
-	final := agent.Parse(`{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"done"}]}}`)
+	final := agent.Parse(`{"type":"message_end","message":{"role":"assistant","provider":"anthropic","model":"claude-fable-5","content":[{"type":"text","text":"done"}]}}`)
 	if final.Final != "done" || !final.HasFinal {
 		t.Fatalf("assistant message_end parse = %+v", final)
+	}
+	if final.Model != "anthropic/claude-fable-5" {
+		t.Fatalf("model = %q, want provider/model", final.Model)
 	}
 	user := agent.Parse(`{"type":"message_end","message":{"role":"user","content":[{"type":"text","text":"hi"}]}}`)
 	if user != (ParsedEvent{}) {

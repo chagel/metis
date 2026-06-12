@@ -144,12 +144,16 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     task_id = JSON.parse(response.body)["task_id"]
 
     post "/api/bridge/tasks/#{task_id}/result",
-         params: { status: "completed", summary: "done", artifacts: [ { type: "pr", url: "http://x/1" } ] },
+         params: { status: "completed", summary: "done", agent: "claude",
+                   model: "anthropic/claude-opus-4-8",
+                   artifacts: [ { type: "pr", url: "http://x/1" } ] },
          headers: auth
     assert_response :ok
     task = run.tasks.first.reload
     assert task.completed?
     assert_equal "done", task.result["summary"]
+    assert_equal "claude", task.result_agent
+    assert_equal "anthropic/claude-opus-4-8", task.result_model
     assert run.reload.running?   # single step → completion runs via the enqueued advance
   end
 

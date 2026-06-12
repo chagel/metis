@@ -93,12 +93,18 @@ func (a *Api) Event(id int64, text string) error {
 		map[string]any{"kind": "log", "text": text})
 }
 
-func (a *Api) Result(id int64, status, summary string, artifacts []Artifact) error {
+func (a *Api) Result(id int64, status, summary string, artifacts []Artifact, agent, model string) error {
 	if artifacts == nil {
 		artifacts = []Artifact{}
 	}
-	return a.post(fmt.Sprintf("/api/bridge/tasks/%d/result", id),
-		map[string]any{"status": status, "summary": summary, "artifacts": artifacts})
+	body := map[string]any{"status": status, "summary": summary, "artifacts": artifacts}
+	if agent != "" {
+		body["agent"] = agent
+	}
+	if model != "" {
+		body["model"] = model
+	}
+	return a.post(fmt.Sprintf("/api/bridge/tasks/%d/result", id), body)
 }
 
 func (a *Api) post(path string, body map[string]any) error {

@@ -134,6 +134,21 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".wf-tl-live .wf-tl-body", text: "working — running tests"
   end
 
+  test "a delegated result shows which agent and model the machine ran" do
+    conversation = @user.conversations.create!(team: @team)
+    run = @team.workflow_runs.create!(conversation: conversation, status: :completed)
+    run.tasks.create!(
+      position: 0, name: "impl", status: :completed, delegated: true, claimed_by: "Apollo",
+      claimed_by_user: @user,
+      result: { "status" => "completed", "summary" => "done",
+                "agent" => "claude", "model" => "anthropic/claude-opus-4-8" }
+    )
+
+    get conversation_path(conversation)
+    assert_select ".wf-tl-meta .tag", text: "claude"
+    assert_select ".wf-tl-meta .tag", text: "anthropic/claude-opus-4-8"
+  end
+
   test "the gate on the final step reads finish, mid-run reads continue" do
     run = gated_run
     get conversation_path(run.conversation)

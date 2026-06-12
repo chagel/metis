@@ -116,4 +116,15 @@ class Task < ApplicationRecord
   def result_artifact_urls
     Array(result["artifacts"]).filter_map { |a| a["url"] }
   end
+
+  # Which agent/model the local machine actually ran — self-reported by
+  # the daemon from the agent's own event stream; the machine owner picks
+  # the model, Metis only acknowledges it.
+  def result_agent
+    result["agent"].presence
+  end
+
+  def result_model
+    result["model"].presence
+  end
 end

@@ -133,7 +133,9 @@ module Api
         result = {
           "status" => args.fetch("status"),
           "summary" => args.fetch("summary"),
-          "artifacts" => args["artifacts"]
+          "artifacts" => args["artifacts"],
+          "agent" => args["agent"],
+          "model" => args["model"]
         }.compact
         return dead_task_error(task) unless task.reportable? && task.claimed_by_user_id == current_bridge_user.id
 

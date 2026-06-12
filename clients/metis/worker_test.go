@@ -104,14 +104,15 @@ func (f fakeAgent) Parse(line string) ParsedEvent {
 	var event struct {
 		Text  string  `json:"text"`
 		Final *string `json:"final"`
+		Model string  `json:"model"`
 	}
 	if json.Unmarshal([]byte(line), &event) != nil {
 		return ParsedEvent{}
 	}
 	if event.Final != nil {
-		return ParsedEvent{Text: *event.Final, Final: *event.Final, HasFinal: true}
+		return ParsedEvent{Text: *event.Final, Final: *event.Final, HasFinal: true, Model: event.Model}
 	}
-	return ParsedEvent{Text: event.Text}
+	return ParsedEvent{Text: event.Text, Model: event.Model}
 }
 
 func initRepo(t *testing.T) (repo, root string) {
@@ -178,7 +179,7 @@ func runWorker(t *testing.T, stub *stubServer, repo, root, script, ref string, m
 func TestHappyPathStructuredResult(t *testing.T) {
 	repo, root := initRepo(t)
 	stub := newStubServer(t)
-	script := `echo '{"text":"editing files"}'; ` +
+	script := `echo '{"text":"editing files","model":"anthropic/claude-opus-4-8"}'; ` +
 		`printf '%s\n' '{"final":"All done\nMETIS_RESULT: {\"status\":\"completed\",\"summary\":\"capped retries\",\"artifacts\":[{\"type\":\"pr\",\"url\":\"http://x/1\"}]}"}'`
 	runWorker(t, stub, repo, root, script, "RUN-1", nil)
 
@@ -189,6 +190,9 @@ func TestHappyPathStructuredResult(t *testing.T) {
 	artifacts := result["artifacts"].([]any)
 	if len(artifacts) != 1 || artifacts[0].(map[string]any)["url"] != "http://x/1" {
 		t.Fatalf("artifacts = %v", artifacts)
+	}
+	if result["agent"] != "claude" || result["model"] != "anthropic/claude-opus-4-8" {
+		t.Fatalf("agent/model must ride with the result: %v", result)
 	}
 
 	worktree := filepath.Join(testWorktreeRoot(root), "RUN-1")

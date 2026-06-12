@@ -60,7 +60,8 @@ module Api
       end
 
       def result_params
-        params.permit(:status, :summary, artifacts: [ :type, :url, :files_changed, :insertions, :deletions ]).to_h
+        params.permit(:status, :summary, :agent, :model,
+                      artifacts: [ :type, :url, :files_changed, :insertions, :deletions ]).to_h
       end
     end
   end

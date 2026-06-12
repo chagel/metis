@@ -12,6 +12,7 @@ type ParsedEvent struct {
 	Text     string
 	Final    string
 	HasFinal bool
+	Model    string
 }
 
 // Agent is the adapter seam: each coding agent is a command builder plus
@@ -58,7 +59,9 @@ func (claudeAgent) Parse(line string) ParsedEvent {
 	var event struct {
 		Type    string `json:"type"`
 		Result  string `json:"result"`
+		Model   string `json:"model"`
 		Message struct {
+			Model   string `json:"model"`
 			Content []struct {
 				Text string `json:"text"`
 			} `json:"content"`
@@ -68,12 +71,14 @@ func (claudeAgent) Parse(line string) ParsedEvent {
 		return ParsedEvent{}
 	}
 	switch event.Type {
+	case "system":
+		return ParsedEvent{Model: event.Model}
 	case "assistant":
 		texts := make([]string, 0, len(event.Message.Content))
 		for _, part := range event.Message.Content {
 			texts = append(texts, part.Text)
 		}
-		return ParsedEvent{Text: strings.Join(texts, "")}
+		return ParsedEvent{Text: strings.Join(texts, ""), Model: event.Message.Model}
 	case "result":
 		return ParsedEvent{Text: event.Result, Final: event.Result, HasFinal: true}
 	default:
@@ -96,8 +101,10 @@ func (piAgent) Parse(line string) ParsedEvent {
 	var event struct {
 		Type    string `json:"type"`
 		Message struct {
-			Role    string `json:"role"`
-			Content []struct {
+			Role     string `json:"role"`
+			Provider string `json:"provider"`
+			Model    string `json:"model"`
+			Content  []struct {
 				Text string `json:"text"`
 			} `json:"content"`
 		} `json:"message"`
@@ -113,7 +120,11 @@ func (piAgent) Parse(line string) ParsedEvent {
 		texts = append(texts, part.Text)
 	}
 	text := strings.Join(texts, "")
-	return ParsedEvent{Text: text, Final: text, HasFinal: true}
+	model := event.Message.Model
+	if model != "" && event.Message.Provider != "" {
+		model = event.Message.Provider + "/" + model
+	}
+	return ParsedEvent{Text: text, Final: text, HasFinal: true, Model: model}
 }
 
 var codexBlocked = []string{"--json", "--output-schema", "--skip-git-repo-check", "-C", "--cd", "resume"}
