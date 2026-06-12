@@ -22,12 +22,22 @@ func TestLaunchdPlist(t *testing.T) {
 	}
 }
 
+func TestLaunchdPlistEscapesXML(t *testing.T) {
+	plist := launchdPlist("/usr/local/bin/metis", "/l.log", "/opt/Mike & Co/bin:/usr/bin")
+	if !strings.Contains(plist, "/opt/Mike &amp; Co/bin:/usr/bin") {
+		t.Fatalf("PATH must be xml-escaped:\n%s", plist)
+	}
+	if strings.Contains(plist, "& Co") {
+		t.Fatal("raw ampersand survived into the plist")
+	}
+}
+
 func TestSystemdUnit(t *testing.T) {
 	unit := systemdUnit("/home/m/.local/bin/metis", "/opt/x/bin:/usr/bin")
 	for _, want := range []string{
 		"ExecStart=/home/m/.local/bin/metis run",
 		"Restart=always",
-		"Environment=PATH=/opt/x/bin:/usr/bin",
+		`Environment="PATH=/opt/x/bin:/usr/bin"`,
 	} {
 		if !strings.Contains(unit, want) {
 			t.Fatalf("unit missing %q:\n%s", want, unit)

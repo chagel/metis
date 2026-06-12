@@ -141,7 +141,13 @@ func installLaunchd(binary, logPath string, logf func(string, ...any)) error {
 	return nil
 }
 
+func xmlEscape(s string) string {
+	r := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", `"`, "&quot;")
+	return r.Replace(s)
+}
+
 func launchdPlist(binary, logPath, path string) string {
+	binary, logPath, path = xmlEscape(binary), xmlEscape(logPath), xmlEscape(path)
 	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -194,7 +200,7 @@ Description=metis — unattended daemon for delegated Metis workflow steps
 ExecStart=%s run
 Restart=always
 RestartSec=30
-Environment=PATH=%s
+Environment="PATH=%s"
 
 [Install]
 WantedBy=default.target

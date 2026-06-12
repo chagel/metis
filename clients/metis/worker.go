@@ -148,9 +148,15 @@ func (w *Worker) driveAgent(worktree Worktree) *outcome {
 					"Agent went silent for %d minutes; killed by the watchdog.", w.cfg.InactivityTimeout/60)}
 			}
 		case <-heartbeat.C:
-			if err := w.api.Event(w.task.TaskID, "working — "+lastSnippet); errors.Is(err, ErrGone) {
+			err := w.api.Event(w.task.TaskID, "working — "+lastSnippet)
+			if errors.Is(err, ErrGone) {
 				w.kill(cmd, lines)
 				return nil
+			}
+			if err != nil {
+				// A blip must not kill the run, but a silent one makes the
+				// eventual 410 post-mortem impossible to read.
+				w.logf("task %s: heartbeat failed: %v", w.label(), err)
 			}
 		case <-cancelPoll.C:
 			state, err := w.api.TaskState(w.task.TaskID)

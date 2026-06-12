@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -54,5 +56,22 @@ func TestWorktreePrepareReusesBranchAfterGC(t *testing.T) {
 		func(string, ...any) {})
 	if err := worktree.Prepare(); err != nil {
 		t.Fatalf("re-prepare after gc must reuse the branch: %v", err)
+	}
+}
+
+func TestMetaFileIsInvisibleToGit(t *testing.T) {
+	repo, root := initRepo(t)
+	worktree := Worktree{Repo: repo, Root: root, Ref: "RUN-5"}
+	if err := worktree.Prepare(); err != nil {
+		t.Fatal(err)
+	}
+	// Unattended agents run git add -A; the daemon's bookkeeping must
+	// never ride into their commits.
+	out, err := exec.Command("git", "-C", worktree.Path(), "status", "--porcelain").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(out), metaFile) {
+		t.Fatalf("meta file visible to git:\n%s", out)
 	}
 }

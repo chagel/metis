@@ -85,7 +85,14 @@ func (c *Config) normalize() error {
 	c.WorkspacesRoot = expandHome(c.WorkspacesRoot)
 
 	if len(c.Servers) == 0 && c.Server != "" {
-		c.Servers = []*Server{{Server: c.Server, Token: c.Token, Projects: c.Projects}}
+		// METIS_BRIDGE_TOKEN applies only to the single-server shorthand —
+		// a credential must never fan out to every tokenless entry of a
+		// multi-server list (it would be sent to the other deployments).
+		token := c.Token
+		if token == "" {
+			token = os.Getenv("METIS_BRIDGE_TOKEN")
+		}
+		c.Servers = []*Server{{Server: c.Server, Token: token, Projects: c.Projects}}
 	}
 	if len(c.Servers) == 0 {
 		return errors.New(`config needs "servers" (or the single-server "server"/"token"/"projects" shorthand)`)
@@ -115,11 +122,8 @@ func (s *Server) normalize() error {
 		}
 		s.Name = parsed.Hostname()
 	}
-	if token := os.Getenv("METIS_BRIDGE_TOKEN"); token != "" && s.Token == "" {
-		s.Token = token
-	}
 	if strings.TrimSpace(s.Token) == "" {
-		return fmt.Errorf(`server %q needs "token" (or METIS_BRIDGE_TOKEN for one tokenless server)`, s.Name)
+		return fmt.Errorf(`server %q needs "token" (METIS_BRIDGE_TOKEN applies only to the single-server shorthand)`, s.Name)
 	}
 	if len(s.Projects) == 0 {
 		return fmt.Errorf(`server %q needs "projects" — the daemon only claims tasks it has a checkout for`, s.Name)

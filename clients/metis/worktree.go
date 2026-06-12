@@ -47,7 +47,35 @@ func (w Worktree) Prepare() error {
 	if err != nil {
 		return err
 	}
+	if err := w.excludeMeta(); err != nil {
+		return err
+	}
 	return w.writeMeta(map[string]any{"claimed_at": time.Now().UTC().Format(time.RFC3339)})
+}
+
+// excludeMeta keeps the bookkeeping file out of the agent's commits: the
+// unattended prompt says "commit your work", agents git add -A, and the
+// meta would ride into real branches. The worktree's private exclude
+// (gitdir/info/exclude) hides it without touching the repo's .gitignore.
+func (w Worktree) excludeMeta() error {
+	out, err := exec.Command("git", "-C", w.Path(), "rev-parse", "--git-path", "info/exclude").Output()
+	if err != nil {
+		return fmt.Errorf("git rev-parse --git-path failed: %w", err)
+	}
+	exclude := strings.TrimSpace(string(out))
+	if !filepath.IsAbs(exclude) {
+		exclude = filepath.Join(w.Path(), exclude)
+	}
+	if err := os.MkdirAll(filepath.Dir(exclude), 0o755); err != nil {
+		return err
+	}
+	file, err := os.OpenFile(exclude, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.WriteString(metaFile + "\n")
+	return err
 }
 
 func (w Worktree) Settle(status string) error {

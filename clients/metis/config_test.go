@@ -88,6 +88,19 @@ func TestLoadConfigValidates(t *testing.T) {
 	}
 }
 
+func TestEnvTokenNeverFansOutToServerList(t *testing.T) {
+	t.Setenv("METIS_BRIDGE_TOKEN", "mbt_prod_token")
+	_, err := LoadConfig(writeConfig(t, `{
+	  "servers": [
+	    {"name": "prod", "server": "https://prod.example", "token": "t1", "projects": {"a": "/a"}},
+	    {"name": "dev", "server": "https://dev.example", "projects": {"b": "/b"}}
+	  ]
+	}`))
+	if err == nil || !strings.Contains(err.Error(), `"token"`) {
+		t.Fatalf("a tokenless entry in an explicit servers list must be a hard error, got %v", err)
+	}
+}
+
 func TestEnvTokenFillsTokenlessServer(t *testing.T) {
 	t.Setenv("METIS_BRIDGE_TOKEN", "mbt_env")
 	cfg, err := LoadConfig(writeConfig(t,
