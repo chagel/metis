@@ -26,6 +26,7 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     assert_equal "implement", body["prompt"]
     assert_equal "mikes-mbp", run.tasks.first.reload.claimed_by
     assert @user.reload.bridge_seen_at.present?
+    assert_equal "mikes-mbp", @user.bridge_client
   end
 
   test "claim returns 204 when nothing is dispatched" do

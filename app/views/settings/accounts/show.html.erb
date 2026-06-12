@@ -149,7 +149,8 @@
             <% if @user.bridge_token_digest.present? %>
               Token active.
               <% if @user.bridge_seen_at %>
-                Last connected <%= time_ago_in_words(@user.bridge_seen_at) %> ago.
+                <%= @user.bridge_client.presence || "A machine" %> connected
+                <%= time_ago_in_words(@user.bridge_seen_at) %> ago.
               <% else %>
                 No machine has connected yet.
               <% end %>

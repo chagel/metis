@@ -102,8 +102,9 @@ class User < ApplicationRecord
   end
 
   # Presence stamp — drives only the "is your machine connected" hint.
-  def bridge_seen!
-    update_column(:bridge_seen_at, Time.current)
+  def bridge_seen!(client = nil)
+    update_columns(bridge_seen_at: Time.current,
+                   bridge_client: client.presence || bridge_client)
   end
 
   NOREPLY_EMAIL_SUFFIX = ".users.noreply.metis".freeze

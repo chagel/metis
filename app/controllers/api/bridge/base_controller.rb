@@ -13,7 +13,7 @@ module Api
         @current_bridge_user = User.authenticate_bridge_token(bearer_token)
         return head :unauthorized unless @current_bridge_user
 
-        @current_bridge_user.bridge_seen!
+        @current_bridge_user.bridge_seen!(bridge_client_name)
       end
 
       def bearer_token

@@ -83,7 +83,9 @@
         <% if task.delegated? && task.running? && task.claimed_by_user.nil? %>
           <div class="wf-tl-localguide">
             <p>
-              This step runs on one of your machines. In your coding agent there, say
+              This step runs on one of your machines. A running
+              <code>metis</code> daemon claims it automatically on its next
+              poll — or, in your coding agent, say
               <button type="button" class="wf-tl-claim" title="Copy"
                       data-controller="copy" data-copy-text-value="claim next task"
                       data-action="copy#copy">
@@ -100,9 +102,10 @@
               </button>
             </p>
             <p class="wf-tl-localguide-sub">
-              No agent picking it up? Set up the bridge in
+              Nothing picking it up? Set up the bridge in
               <%= link_to "account settings", account_path %> — token, MCP
-              endpoint, and the skill install live there.
+              endpoint, the skill install, and the daemon live there. A
+              daemon only claims projects its config maps to a checkout.
             </p>
           </div>
         <% end %>
