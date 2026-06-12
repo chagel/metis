@@ -103,7 +103,6 @@ class Task < ApplicationRecord
       progress: progress + [ { "kind" => "reclaim",
                                "text" => "#{claimed_label} went silent — returned to the queue" } ]
     )
-    WorkflowBroadcaster.new(workflow_run).refresh
   end
 
   def final_step?

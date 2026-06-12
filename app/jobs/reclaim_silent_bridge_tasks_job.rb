@@ -16,15 +16,18 @@ class ReclaimSilentBridgeTasksJob < ApplicationJob
 
   # Best-effort per row — a single failure is logged and the sweep continues.
   def sweep(task)
+    reclaimed = false
     task.with_lock do
       if task.running? && task.claimed?
         if task.reclaims_count >= Rails.application.config.x.bridge.reclaim_cap
           task.workflow_run.fail_silent_task!(task)
         else
           task.reclaim!
+          reclaimed = true
         end
       end
     end
+    WorkflowBroadcaster.new(task.workflow_run).refresh if reclaimed
   rescue StandardError => e
     Rails.logger.warn(
       "ReclaimSilentBridgeTasksJob: failed for task=#{task.id}: #{e.class}: #{e.message}"
