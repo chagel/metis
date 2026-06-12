@@ -65,7 +65,9 @@ stripped, your flags come after the defaults so they win),
 `poll_interval` (30s), `heartbeat_interval` (240s),
 `inactivity_timeout` (600s), `cancel_poll_interval` (30s), `gc_ttl`
 (24h), `workspaces_root` (`~/.metis/worktrees`), `client`
-(hostname).
+(hostname). When several machines run daemons under one token, give
+each a unique `client` — claim-moved detection compares that label, so
+two machines both called "mbp" would alias each other.
 
 ## Run
 
