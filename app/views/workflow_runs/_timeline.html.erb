@@ -76,9 +76,23 @@
               markup — the full turn is one click away. %>
           <p class="wf-tl-body"><%= truncate(strip_tags(markdown(message.content)).squish, length: 180) %></p>
         <% end %>
-        <% if task.delegated? && task.running? && task.claimed_by_user &&
-              (latest = task.progress.last) %>
-          <p class="wf-tl-body"><%= latest["text"] %></p>
+        <% if task.delegated? && task.running? && task.claimed_by_user %>
+          <%# Claim → first heartbeat is minutes of silence; the ticker
+              shows the step is alive meanwhile. Same controller as the
+              chat's streaming indicator. %>
+          <div class="wf-tl-live">
+            <% if (latest = task.progress.last) %>
+              <p class="wf-tl-body"><%= latest["text"] %></p>
+            <% end %>
+            <% if task.claimed_at %>
+              <div class="working-status"
+                   data-controller="elapsed-timer"
+                   data-elapsed-timer-started-at-value="<%= task.claimed_at.to_i * 1000 %>">
+                <span class="msg-indicator" aria-hidden="true">&#x25CF;</span>
+                <span class="working-label" data-elapsed-timer-target="label" role="status" aria-live="polite"></span>
+              </div>
+            <% end %>
+          </div>
         <% end %>
         <% if task.delegated? && task.running? && task.claimed_by_user.nil? %>
           <div class="wf-tl-localguide">

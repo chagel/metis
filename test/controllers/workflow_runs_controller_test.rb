@@ -107,6 +107,22 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".wf-tl-localguide", count: 0
   end
 
+  test "a claimed delegated step shows the elapsed ticker and latest progress" do
+    conversation = @user.conversations.create!(team: @team)
+    run = @team.workflow_runs.create!(conversation: conversation, status: :awaiting_local)
+    task = run.tasks.create!(position: 0, name: "impl", status: :running, delegated: true,
+                             claimed_by_user: @user, claimed_by: "Apollo", claimed_at: 3.minutes.ago)
+
+    get conversation_path(conversation)
+    assert_select ".wf-tl-live .working-status[data-elapsed-timer-started-at-value=?]",
+                  (task.claimed_at.to_i * 1000).to_s
+    assert_select ".wf-tl-live .wf-tl-body", count: 0, message: "no progress yet — ticker only"
+
+    task.log_progress!({ "kind" => "log", "text" => "working — running tests" })
+    get conversation_path(conversation)
+    assert_select ".wf-tl-live .wf-tl-body", text: "working — running tests"
+  end
+
   test "the gate on the final step reads finish, mid-run reads continue" do
     run = gated_run
     get conversation_path(run.conversation)

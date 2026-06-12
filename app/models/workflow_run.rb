@@ -156,7 +156,7 @@ class WorkflowRun < ApplicationRecord
     if task.delegated?
       task.update!(
         status: :running, approved_by: by, dispatched_at: Time.current,
-        claimed_by: nil, claimed_by_user: nil, result: {},
+        claimed_by: nil, claimed_by_user: nil, claimed_at: nil, result: {},
         last_reported_at: nil, reclaims_count: 0,
         prompt: "#{task.prompt}\n\nRequested changes: #{feedback}"
       )

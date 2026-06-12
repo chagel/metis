@@ -46,7 +46,7 @@ class Task < ApplicationRecord
       scope = scope.in_project(project) if project.present?
       found = scope.order(:dispatched_at).lock("FOR UPDATE SKIP LOCKED").first
       found&.update!(claimed_by_user: user, claimed_by: client.presence,
-                     last_reported_at: Time.current)
+                     claimed_at: Time.current, last_reported_at: Time.current)
       found
     end
     # The run page shows who holds the step ("On M's Apollo") — push the
@@ -85,7 +85,7 @@ class Task < ApplicationRecord
   # awaiting_local and the next pull picks the task up.
   def reclaim!(label = claimed_label)
     update!(
-      claimed_by: nil, claimed_by_user: nil, last_reported_at: nil,
+      claimed_by: nil, claimed_by_user: nil, claimed_at: nil, last_reported_at: nil,
       reclaims_count: reclaims_count + 1,
       progress: progress + [ { "kind" => "reclaim",
                                "text" => "#{label} went silent — returned to the queue" } ]
