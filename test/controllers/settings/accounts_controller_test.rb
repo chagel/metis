@@ -20,7 +20,8 @@ class Settings::AccountsControllerTest < ActionDispatch::IntegrationTest
     assert @user.reload.bridge_token_digest.present?
     # The paste-into-your-agent blob carries skill install, mcp add, and token.
     assert_select ".bridge-token .bridge-paste", /mbt_/
-    assert_select ".bridge-token .bridge-paste", /claude mcp add/
+    assert_select ".bridge-token .bridge-paste", /go install/
+    assert_select ".bridge-token .bridge-paste", /metis install/
     assert_select ".bridge-token .bridge-paste", %r{api/bridge/skill}
 
     # Shown only on the generating response, never again.

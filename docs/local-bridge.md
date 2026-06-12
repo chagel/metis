@@ -344,7 +344,15 @@ protocol — argued there, not assumed here.
   approval-gated delegated step routes to `awaiting_approval`; token auth
   scoping (a token can't reach another team's task).
 
-### Phase 2 — hosted MCP facade (lightest local surface) ✅
+### Phase 2 — hosted MCP facade (lightest local surface) ✅ (demoted)
+
+> Since the Phase 4 daemon shipped, **the daemon is the supported
+> client**: account settings teaches only `metis install`, and the
+> served skill became the daemon's setup/ops guide. The MCP facade
+> below still works and stays as a protocol surface (it shares all its
+> models with the REST core), but it is no longer advertised — remove
+> it outright if it hasn't earned its keep by the time Phase 5 lands.
+
 - `POST /api/bridge/mcp` — a stateless streamable-HTTP MCP server in
   Rails, exposing `list_tasks` / `get_next_task` / `report_progress` /
   `submit_result` over the same models as the REST surface (same bearer

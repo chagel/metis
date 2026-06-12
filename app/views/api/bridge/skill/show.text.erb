@@ -1,86 +1,96 @@
 ---
 name: metis-bridge
-description: Pull and work delegated Metis workflow tasks on this machine — set up the Metis bridge MCP connection, claim a task from the queue, implement it in the local checkout, and report the result. Use when the user asks to pick up, work on, or check Metis tasks, or to set up the Metis bridge.
+description: Install, configure, and troubleshoot the metis bridge daemon on this machine — the unattended client that auto-claims delegated Metis workflow steps. Use when the user asks to set up the Metis bridge or daemon, asks why a Local step is not being claimed, or wants to check daemon status, logs, or worktrees.
 ---
 
-# Metis bridge — work delegated tasks on this machine
+# Metis bridge daemon — setup & operations
 
 Metis (<%= base_url %>) runs gated, multi-step agent workflows in the
-cloud. A step marked **Local** is delegated to this machine: you pull it,
-do the work in the real checkout with the user's own tools and
-credentials, and report the result. Metis never drives this machine —
-you pull, you report, the workflow resumes.
+cloud. A step marked **Local** is delegated to the user's own machine:
+the `metis` daemon polls the bridge API, claims the step, runs a coding
+agent headless in a per-task git worktree, streams progress back, and
+submits the result — the workflow resumes in Metis. Metis never drives
+this machine; the daemon pulls. The daemon is the supported client for
+delegated steps.
 
-## One-time setup
+## Install
 
-1. `claude mcp list` — if `metis-bridge` is already configured, skip to
-   "Working a task".
-2. Ask the user for their bridge token (`mbt_…`), generated at
-   <%= base_url %>/settings/account → **Local bridge**.
-3. Register the server (user scope, so it works from any repo):
+1. One static Go binary:
 
    ```bash
-   claude mcp add --transport http --scope user metis-bridge \
-     <%= base_url %>/api/bridge/mcp \
-     --header "Authorization: Bearer <token>" \
-     --header "X-Bridge-Client: $(hostname -s)"
+   go install github.com/chagel/metis/clients/metis@latest
+   # or from a metis checkout: cd clients/metis && go build -o /usr/local/bin/metis .
    ```
 
-4. Reconnect MCP servers (or restart the session). You now have four
-   tools: `list_tasks`, `get_next_task`, `report_progress`,
-   `submit_result`.
+2. Config — ask the user for their bridge token (`mbt_…`, generated at
+   <%= base_url %>/settings/account → **Local bridge**), then:
 
-**Not Claude Code?** Adapt the same facts to your agent: save this file
-where your agent discovers skills (pi: `.pi/skills/metis-bridge/SKILL.md`),
-and register `<%= base_url %>/api/bridge/mcp` with the same two headers in
-your MCP config (pi: `.mcp.json` via the pi-mcp-adapter extension; Codex:
-its MCP server config). No MCP support at all? The same API is plain REST,
-bearer-authed with the token:
+   ```bash
+   metis init        # scaffolds ~/.metis/config.json
+   ```
+
+   ```jsonc
+   {
+     "agent": "claude",                   // claude | pi | codex — runs with its own default model
+     "servers": [
+       {
+         "name": "<%= URI.parse(base_url).host %>",
+         "server": "<%= base_url %>",
+         "token": "mbt_…",
+         "projects": { "<metis project name>": "~/path/to/its/checkout" }
+       }
+     ]
+   }
+   ```
+
+   Multiple `servers` entries are fine (e.g. dev and prod) — tokens and
+   projects are per-server. The daemon **only claims steps whose Metis
+   project is mapped to a checkout here** (names match
+   case-insensitively).
+
+3. Run it:
+
+   ```bash
+   metis once        # one poll → work the claimed task → exit (good first test)
+   metis install     # register as a login service; polls from now on
+   ```
+
+## How it behaves
+
+- Claims FIFO per mapped project; the step runs in a fresh `git
+  worktree` on a `metis/<ref>` branch — never on the checkout's own
+  branch. A re-claimed task reuses a surviving worktree.
+- The agent uses **its own default model** (override per machine via
+  `"agent_args": ["--model", "…"]`); Metis records which agent/model
+  actually ran with the result.
+- Progress heartbeats every ~4 minutes; a claim silent for ~15 minutes
+  is reclaimed by the server. Cancellation is honored mid-run.
+- Config edits **hot-reload** between tasks — no restart. Restart
+  (re-run `metis install`) only for binary upgrades.
+
+## Troubleshooting
+
+- **Logs**: `tail -f ~/.metis/daemon.log`. "queue empty" means nothing
+  is dispatched for the mapped projects — it is not an error.
+- **A step waits forever on "Waiting for a machine"**: either the run
+  has **no project** (daemons never auto-claim project-less runs — the
+  run page warns about this), the project isn't mapped in
+  `~/.metis/config.json`, or the daemon isn't running
+  (`launchctl list | grep metis` / `systemctl --user status
+  metis-bridge`).
+- **Several machines, one token**: give each a unique `"client"` name —
+  claim tracking compares that label.
+- **Disk**: settled task worktrees are swept after 24h (`metis gc` to
+  sweep now); `metis/<ref>` branches stay in the repo until deleted.
+
+## Debugging the wire (rare)
+
+The daemon speaks a plain bearer-authed REST surface; you can inspect it
+directly with the same token:
 
 - `GET  <%= base_url %>/api/bridge/tasks` — the claim queue
-- `GET  <%= base_url %>/api/bridge/tasks/next[?id=<id-or-ref>][?project=<name>]` — claim
-- `POST <%= base_url %>/api/bridge/tasks/:id/events` — `{kind: "log", text}`
+- `GET  <%= base_url %>/api/bridge/tasks/:id` — one task's status + claim holder
 - `POST <%= base_url %>/api/bridge/tasks/:id/result` — `{status, summary, artifacts}`
 
-## Working a task
-
-1. **List before claiming.** Call `list_tasks` and pick the task whose
-   project or prompt matches the repository you are in; ask the user
-   when it's ambiguous. Claim it with `get_next_task` + `task_id`.
-   Only call bare `get_next_task` when the queue holds a single task.
-2. **The claim is your entire brief.** It carries the step prompt plus
-   `context.prior_steps` — the full text of the workflow's earlier steps
-   (e.g. the approved spec) and signed URLs for files they published.
-   Fetch artifact URLs when the prompt refers to them. There is no other
-   shared state; if the brief is insufficient, say so via a failed
-   result rather than guessing.
-3. **Work like a teammate.** Follow the repo's own conventions
-   (CLAUDE.md / AGENTS.md), run its lint and tests before committing,
-   use a feature branch, and open a PR when the task asks for one.
-4. **Post `report_progress` at milestones** — one line each; they land
-   in the run's timeline. Progress is also your heartbeat: a claim
-   that stays silent too long (~15 minutes) is reclaimed and handed to
-   the next puller, so on long work report at least that often.
-5. **Stop on a dead task.** If `report_progress` or `submit_result`
-   answers that the task is no longer live (REST: `410 Gone`), the run
-   was cancelled or your claim was reclaimed — stop work immediately
-   and discard it; do not retry the report.
-6. **`submit_result` exactly once, when done**: `status`
-   (`completed` | `failed`), a one-or-two-sentence `summary`, and
-   `artifacts` such as `[{"type": "pr", "url": "…"}]`. The workflow
-   resumes in Metis immediately — a cloud step may review your PR next,
-   and the user approves the run at its gates.
-
-## Unattended instead?
-
-This skill is the *attended* loop — you, working a task interactively.
-For hands-off automation install the `metis` daemon (`clients/metis/` in
-the Metis repo): it polls, claims, runs an agent headless in a per-task
-git worktree, and reports — `metis init && metis install`.
-
-## When blocked
-
-Missing repo, tests you cannot make pass, a spec that contradicts the
-code — submit `status: "failed"` with a precise reason. That fails the
-run visibly so the user can revise and re-dispatch. Never leave a
-claimed task silent.
+A `410 Gone` from events/result means the task was cancelled or
+reclaimed — whoever holds the claim wins.

@@ -104,17 +104,35 @@
 
         <% if @new_bridge_token.present? %>
           <% bridge_setup = <<~TEXT.strip
-            Set up the Metis bridge on this machine. The example commands are for Claude Code — if you are a different coding agent (pi, Codex, …), adapt them: the bridge is a streamable-HTTP MCP server, and its guide also documents the same API as plain REST.
+            Set up the Metis bridge daemon on this machine. It runs as a login service, auto-claims workflow steps marked Local, and works them with my own coding agent in per-task git worktrees.
 
-            1. Install the guide where you discover skills (Claude Code: ~/.claude/skills, pi: .pi/skills):
+            1. Install the daemon (one static Go binary):
+
+            go install github.com/chagel/metis/clients/metis@latest
+            # or from a checkout: cd clients/metis && go build -o /usr/local/bin/metis .
+
+            2. Write ~/.metis/config.json (`metis init` scaffolds it) — the daemon only claims steps whose Metis project is mapped to a checkout here:
+
+            {
+              "agent": "claude",
+              "servers": [
+                {
+                  "name": "#{request.host}",
+                  "server": "#{request.base_url}",
+                  "token": "#{@new_bridge_token}",
+                  "projects": { "<metis project name>": "~/path/to/its/checkout" }
+                }
+              ]
+            }
+
+            3. Install it as a login service and verify it polls:
+
+            metis install
+            tail -5 ~/.metis/daemon.log
+
+            4. Optional: install the ops guide where you discover skills, for future troubleshooting:
 
             curl -fsSL --create-dirs #{api_bridge_skill_url} -o ~/.claude/skills/metis-bridge/SKILL.md
-
-            2. Register the MCP server:
-
-            claude mcp add --transport http --scope user metis-bridge #{api_bridge_mcp_url} --header "Authorization: Bearer #{@new_bridge_token}" --header "X-Bridge-Client: $(hostname -s)"
-
-            3. Reconnect MCP servers and verify by calling the list_tasks tool.
           TEXT
           %>
           <div class="bridge-token">

@@ -192,8 +192,9 @@ who can act on its gates and claim its local steps. `WorkflowBroadcaster`
 owns the run's live DOM. See `docs/workflows.md`.
 
 The **local bridge** (`docs/local-bridge.md`) is the delegation transport:
-a pull API under `app/controllers/api/bridge/` (REST + a hosted MCP server
-+ a self-documenting skill endpoint), bearer-authed by a per-user token
+a pull API under `app/controllers/api/bridge/` (REST core + an
+unadvertised MCP facade + a skill endpoint serving the daemon's
+setup/ops guide), bearer-authed by a per-user token
 (`User#bridge_token_digest`, generated in account settings). A local agent
 claims a dispatched task (`Task.claim_next_for`, `FOR UPDATE SKIP LOCKED`),
 works it in the user's own checkout, and reports a result; the run resumes.
