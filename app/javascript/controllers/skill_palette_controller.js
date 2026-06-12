@@ -132,7 +132,7 @@ export default class extends Controller {
 
   _pick(entry) {
     if (entry.kind === "workflow") {
-      this.dispatch("launch", { detail: { id: entry.id, name: entry.name, description: entry.description, intro: entry.intro } })
+      this.dispatch("launch", { detail: { id: entry.id, name: entry.name, description: entry.description, intro: entry.intro, default_project: entry.default_project, has_local_step: entry.has_local_step } })
       // Drop the `/token` — it was the trigger, not part of the run's input.
       this.textarea.value = this.textarea.value.replace(/^\/[^\s]*\s?/, "")
       this._close()

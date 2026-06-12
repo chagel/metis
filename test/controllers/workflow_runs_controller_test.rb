@@ -90,7 +90,8 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "the run note names the claimer once a delegated task is claimed" do
-    conversation = @user.conversations.create!(team: @team)
+    project = @team.projects.create!(name: "R&D")
+    conversation = @user.conversations.create!(team: @team, project: project)
     run = @team.workflow_runs.create!(conversation: conversation, status: :awaiting_local)
     task = run.tasks.create!(position: 0, name: "impl", status: :running, delegated: true)
 
@@ -105,6 +106,16 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_match "#{@user.display_label}&#39;s Apollo is working on this step", response.body
     assert_match "On #{@user.display_label}&#39;s machine", response.body
     assert_select ".wf-tl-localguide", count: 0
+  end
+
+  test "a project-less delegated step warns that daemons cannot auto-claim it" do
+    conversation = @user.conversations.create!(team: @team)
+    run = @team.workflow_runs.create!(conversation: conversation, status: :awaiting_local)
+    run.tasks.create!(position: 0, name: "impl", status: :running, delegated: true)
+
+    get conversation_path(conversation)
+    assert_match "This run has no project", response.body
+    assert_select ".wf-tl-localguide a[href=?]", account_path, count: 0
   end
 
   test "a claimed delegated step shows the elapsed ticker and latest progress" do

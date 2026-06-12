@@ -7,17 +7,26 @@ import { Controller } from "@hotwired/stimulus"
 // typed text becomes the run's input; clearing reverts to a normal chat.
 // The controller is on the <form>, so this.element is the form.
 export default class extends Controller {
-  static targets = ["chip", "chipName", "field"]
+  static targets = ["chip", "chipName", "field", "project", "projectBlank"]
   static values = { runsPath: String, chatPath: String }
 
   // Handles skill-palette:launch — event.detail is { id, name }.
   selectFromPalette(event) {
-    const { id, name, description, intro } = event.detail
+    const { id, name, description, intro, default_project, has_local_step } = event.detail
     this.fieldTarget.value = id
     this.chipNameTarget.textContent = name
     this.chipTarget.hidden = false
     this.element.action = this.runsPathValue
     this.setSendTitle("Start run")
+    // The blank option must say what it resolves to: the workflow's
+    // default project, or no project at all — which a daemon will never
+    // auto-claim (its claim filter is per-project), hence the nudge when
+    // the workflow has a local step.
+    if (this.hasProjectBlankTarget) {
+      this.projectBlankTarget.textContent = default_project
+        ? `Default — ${default_project}`
+        : (has_local_step ? "No project — pick one for auto-claim" : "No project")
+    }
     // Lead with what step 1 actually does (your input is folded into it),
     // then the workflow's description, then a generic fallback.
     const hint = (intro || "").trim() || (description || "").trim()
