@@ -12,6 +12,11 @@ class Task < ApplicationRecord
   # "none" would clash with ActiveRecord's Model.none, hence auto/approval.
   enum :gate, { auto: 0, approval: 1 }, default: :auto
 
+  # The full claim-state column set — every writer that releases a claim
+  # (reclaim, re-dispatch) must clear all of it or stale state leaks.
+  UNCLAIMED_ATTRS = { claimed_by: nil, claimed_by_user: nil,
+                      claimed_at: nil, last_reported_at: nil }.freeze
+
   validates :position, presence: true
 
   scope :next_pending, -> { pending.order(:position) }
@@ -26,14 +31,11 @@ class Task < ApplicationRecord
   scope :delegated_for, ->(user) {
     joins(workflow_run: :conversation)
       .where(delegated: true, workflow_runs: { team_id: user.team_ids })
-      .where("conversations.visibility = :team OR conversations.user_id = :user",
-             team: Conversation.visibilities[:team], user: user.id)
+      .merge(Conversation.accessible_to(user))
   }
   scope :claimable_by, ->(user) { delegated_for(user).running.unclaimed }
-  # Claimed and silent past the cutoff — reclaim candidates. Progress is
-  # the heartbeat: claim/events stamp last_reported_at, so a task whose
-  # client keeps posting never matches. Unclaimed tasks never match —
-  # offline is just latency, only a held claim can go stale.
+  # Progress is the heartbeat: claim/events stamp last_reported_at, so
+  # only a held claim can go stale — unclaimed is just latency.
   scope :silent_claims, ->(cutoff) {
     dispatched.where.not(claimed_by_user_id: nil).where(last_reported_at: ..cutoff)
   }
@@ -74,32 +76,42 @@ class Task < ApplicationRecord
     value.include?("-") ? value.split("-").last.to_i(36) : value.to_i
   end
 
+  # A log line can only change the timeline — skip the full-region
+  # refresh; heartbeats land here every few minutes per running task.
   def log_progress!(entry)
     update!(progress: progress + [ entry ], last_reported_at: Time.current)
-    WorkflowBroadcaster.new(workflow_run).refresh
+    WorkflowBroadcaster.new(workflow_run).refresh_run_page
   end
 
-  # Whether a client may still post events/results against this task.
-  # False once the run settled it (cancelled, completed) or the sweeper
-  # reclaimed the claim — the claim that holds the task wins, not the
-  # last writer.
-  def reportable?
-    delegated? && running? && claimed_by_user_id.present?
+  def claimed?
+    claimed_by_user_id.present?
+  end
+
+  # Whether user's client may still post events/results against this
+  # task. False once the run settled it (cancelled, completed) or the
+  # claim moved — the claim that holds the task wins, not the last writer.
+  def reportable_by?(user)
+    delegated? && running? && claimed_by_user_id == user.id
   end
 
   # Return a silent claim to the unclaimed pool; the run stays
   # awaiting_local and the next pull picks the task up.
-  def reclaim!(label = claimed_label)
+  def reclaim!
     update!(
-      claimed_by: nil, claimed_by_user: nil, claimed_at: nil, last_reported_at: nil,
+      **UNCLAIMED_ATTRS,
       reclaims_count: reclaims_count + 1,
       progress: progress + [ { "kind" => "reclaim",
-                               "text" => "#{label} went silent — returned to the queue" } ]
+                               "text" => "#{claimed_label} went silent — returned to the queue" } ]
     )
+    WorkflowBroadcaster.new(workflow_run).refresh
   end
 
   def final_step?
     workflow_run.tasks.where("position > ?", position).none?
+  end
+
+  def display_name
+    name.presence || "the step"
   end
 
   # Who's working this delegated task, for timelines: "Bob's Apollo".

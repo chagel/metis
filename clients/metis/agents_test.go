@@ -2,6 +2,7 @@ package main
 
 import (
 	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -25,7 +26,7 @@ func TestClaudeCommandAndParse(t *testing.T) {
 	// The inner agent must not inherit the user's MCP servers.
 	assertIncludes(t, cmd, "--strict-mcp-config")
 	assertIncludes(t, cmd, "--model")
-	if indexOf(cmd, "--model") < indexOf(cmd, "--permission-mode") {
+	if slices.Index(cmd, "--model") < slices.Index(cmd, "--permission-mode") {
 		t.Fatal("user agent_args must come last so they can override defaults")
 	}
 
@@ -103,16 +104,7 @@ func TestAgentForRejectsUnknown(t *testing.T) {
 
 func assertIncludes(t *testing.T, list []string, item string) {
 	t.Helper()
-	if !contains(list, item) {
+	if !slices.Contains(list, item) {
 		t.Fatalf("%v must include %q", list, item)
 	}
-}
-
-func indexOf(list []string, item string) int {
-	for i, candidate := range list {
-		if candidate == item {
-			return i
-		}
-	}
-	return -1
 }

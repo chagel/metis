@@ -4,7 +4,7 @@
 <% post_url = new_chat ? conversations_path : conversation_messages_path(conversation) %>
 <%# A new chat can instead launch a workflow: pick one and the composer
     posts to workflow_runs#create with the text as the run's input. %>
-<% launchable = new_chat ? current_team.workflows.order(:name).to_a : [] %>
+<% launchable = new_chat ? current_team.workflows.includes(:default_project).order(:name).to_a : [] %>
 <% form_data = new_chat ? { turbo_frame: "_top" } : {} %>
 <% if launchable.any?
      form_data.merge!(controller: "workflow-launch",
@@ -17,7 +17,7 @@
        description: w.description.to_s,
        intro: w.steps.first&.dig("prompt").to_s.truncate(120),
        default_project: w.default_project&.name,
-       has_local_step: w.steps.any? { |s| (s["run"] || s[:run]).to_s == "local" } }
+       has_local_step: w.local_step? }
    } %>
 <div id="composer" class="composer-wrap"
      data-controller="file-upload"

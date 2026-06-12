@@ -49,6 +49,17 @@ module ActiveSupport
       Rails.application.config.x.allowed_domains = previous
     end
 
+    # The bridge tests' standard fixture: a one-step delegated workflow
+    # run, dispatched and parked on awaiting_local. Expects the test's
+    # setup to have created @user / @team.
+    LOCAL_STEP = { "name" => "impl", "prompt" => "implement", "run" => "local" }.freeze
+
+    def dispatch_run(steps = [ LOCAL_STEP ])
+      run = WorkflowRun.start(team: @team, user: @user, steps: steps)
+      WorkflowAdvanceJob.perform_now(run.id)
+      run.reload
+    end
+
     # Idempotently create one enabled catalog model and return its key —
     # for tests needing a valid preferred_model now that the catalog is
     # DB-backed (Agent::Catalog has no hardcoded fallback).

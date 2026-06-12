@@ -1,15 +1,7 @@
-# A delegated task claimed by a machine that died must not park its run
-# on awaiting_local forever (docs/local-bridge.md, "Reliability").
-# Progress is the heartbeat — claim and events stamp
-# tasks.last_reported_at — so a claim silent past
-# config.x.bridge.claim_ttl is reclaimed: returned to the unclaimed pool
-# for the next pull, invisibly to the user. At
-# config.x.bridge.reclaim_cap the task fails and the run surfaces it
-# instead of cycling.
-#
-# Wired in config/recurring.yml (production). Best-effort per row — a
-# single failure is logged and the sweep continues. Mirrors
-# ReapStalledTurnsJob.
+# Returns claims silent past config.x.bridge.claim_ttl to the unclaimed
+# pool; at config.x.bridge.reclaim_cap the task fails and the run
+# surfaces it instead of cycling (docs/local-bridge.md, "Reliability").
+# Wired in config/recurring.yml. Mirrors ReapStalledTurnsJob.
 class ReclaimSilentBridgeTasksJob < ApplicationJob
   queue_as :default
 
@@ -22,15 +14,14 @@ class ReclaimSilentBridgeTasksJob < ApplicationJob
 
   private
 
+  # Best-effort per row — a single failure is logged and the sweep continues.
   def sweep(task)
-    label = task.claimed_label
     task.with_lock do
-      if task.running? && task.claimed_by_user_id.present?
+      if task.running? && task.claimed?
         if task.reclaims_count >= Rails.application.config.x.bridge.reclaim_cap
           task.workflow_run.fail_silent_task!(task)
         else
-          task.reclaim!(label)
-          WorkflowBroadcaster.new(task.workflow_run).refresh
+          task.reclaim!
         end
       end
     end

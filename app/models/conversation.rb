@@ -29,6 +29,16 @@ class Conversation < ApplicationRecord
   scope :starred, -> { where.not(starred_at: nil) }
   scope :shared, -> { where.not(share_token: nil) }
   scope :for_team, ->(team) { where(team: team) }
+  # The visibility rule, in one place: the launcher always, teammates
+  # only when team-visible. Every surface (run page, gates, bridge
+  # claims) must apply it through this scope or the predicate below.
+  scope :accessible_to, ->(user) {
+    where(visibility: :team).or(where(user_id: user.id))
+  }
+
+  def accessible_to?(user)
+    user_id == user.id || visibility_team?
+  end
 
   def archived?
     archived_at.present?

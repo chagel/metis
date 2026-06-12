@@ -76,7 +76,7 @@
               markup — the full turn is one click away. %>
           <p class="wf-tl-body"><%= truncate(strip_tags(markdown(message.content)).squish, length: 180) %></p>
         <% end %>
-        <% if task.delegated? && task.running? && task.claimed_by_user %>
+        <% if task.delegated? && task.running? && task.claimed? %>
           <%# Claim → first heartbeat is minutes of silence; the ticker
               shows the step is alive meanwhile. Same controller as the
               chat's streaming indicator. %>
@@ -93,8 +93,7 @@
               </div>
             <% end %>
           </div>
-        <% end %>
-        <% if task.delegated? && task.running? && task.claimed_by_user.nil? %>
+        <% elsif task.delegated? && task.running? %>
           <div class="wf-tl-localguide">
             <p>
               This step runs on one of your machines. A running

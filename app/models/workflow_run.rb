@@ -80,7 +80,7 @@ class WorkflowRun < ApplicationRecord
     return unless task
 
     task.update!(status: :completed, approved_by: by, decided_at: Time.current)
-    append_review %(#{reviewer(by)} approved "#{task.name.presence || "the step"}"), sender: by
+    append_review %(#{reviewer(by)} approved "#{task.display_name}"), sender: by
     running!
     WorkflowAdvanceJob.perform_later(id)
   end
@@ -113,14 +113,8 @@ class WorkflowRun < ApplicationRecord
   # failure re-dispatches silently (Task#reclaim!), but a step that keeps
   # killing its client needs a person, not another cycle.
   def fail_silent_task!(task)
-    return unless task.delegated? && task.running?
-
     task.update!(status: :failed, decided_at: Time.current)
-    message = conversation.messages.create!(
-      role: :assistant, streaming_status: :done, kind: :local_report,
-      content: %(Gave up on "#{task.name.presence || "the step"}" — every machine that claimed it went silent (#{task.reclaims_count} reclaims).)
-    )
-    WorkflowBroadcaster.new(self).append_report(message)
+    append_local_note %(Gave up on "#{task.display_name}" — every machine that claimed it went silent (#{task.reclaims_count} reclaims).)
     failed!
     WorkflowBroadcaster.new(self).refresh
   end
@@ -135,9 +129,9 @@ class WorkflowRun < ApplicationRecord
     waited_on_local = task.running?
     task.update!(status: :rejected, approved_by: by, decided_at: Time.current)
     append_review((if waited_on_local
-      %(#{reviewer(by)} cancelled the run while "#{task.name.presence || "the step"}" waited on a machine)
+      %(#{reviewer(by)} cancelled the run while "#{task.display_name}" waited on a machine)
                    else
-      %(#{reviewer(by)} rejected "#{task.name.presence || "the step"}" and cancelled the run)
+      %(#{reviewer(by)} rejected "#{task.display_name}" and cancelled the run)
                    end), sender: by)
     cancelled!
   end
@@ -155,9 +149,9 @@ class WorkflowRun < ApplicationRecord
 
     if task.delegated?
       task.update!(
+        **Task::UNCLAIMED_ATTRS,
         status: :running, approved_by: by, dispatched_at: Time.current,
-        claimed_by: nil, claimed_by_user: nil, claimed_at: nil, result: {},
-        last_reported_at: nil, reclaims_count: 0,
+        result: {}, reclaims_count: 0,
         prompt: "#{task.prompt}\n\nRequested changes: #{feedback}"
       )
       append_review "#{reviewer(by)} requested changes — #{feedback}", sender: by
@@ -184,8 +178,12 @@ class WorkflowRun < ApplicationRecord
     url = task.result_artifact_urls.first
     line += " → #{url}" if url
 
+    append_local_note(line)
+  end
+
+  def append_local_note(content)
     message = conversation.messages.create!(
-      role: :assistant, content: line, streaming_status: :done, kind: :local_report
+      role: :assistant, content: content, streaming_status: :done, kind: :local_report
     )
     WorkflowBroadcaster.new(self).append_report(message)
   end

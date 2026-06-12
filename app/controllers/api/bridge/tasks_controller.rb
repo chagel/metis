@@ -56,7 +56,7 @@ module Api
       # 410 means stop work now: the run was cancelled or the claim was
       # reclaimed — the claim that holds the task wins, not the last writer.
       def ensure_task_live
-        head :gone unless @task.reportable? && @task.claimed_by_user_id == current_bridge_user.id
+        head :gone unless @task.reportable_by?(current_bridge_user)
       end
 
       def result_params

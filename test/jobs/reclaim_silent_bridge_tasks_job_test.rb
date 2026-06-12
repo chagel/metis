@@ -6,14 +6,6 @@ class ReclaimSilentBridgeTasksJobTest < ActiveJob::TestCase
     @team = @user.personal_team
   end
 
-  LOCAL = { "name" => "impl", "prompt" => "implement", "run" => "local" }.freeze
-
-  def dispatch_run
-    run = WorkflowRun.start(team: @team, user: @user, steps: [ LOCAL ])
-    WorkflowAdvanceJob.perform_now(run.id)
-    run.reload
-  end
-
   test "reclaims a claim silent past the TTL; the task is re-claimable" do
     run = dispatch_run
     task = Task.claim_next_for(@user, client: "mikes-mbp")

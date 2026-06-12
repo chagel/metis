@@ -7,8 +7,6 @@ class Api::Bridge::McpControllerTest < ActionDispatch::IntegrationTest
     @token = @user.generate_bridge_token!
   end
 
-  LOCAL = { "name" => "impl", "prompt" => "implement", "run" => "local" }.freeze
-
   def rpc(method, params = nil, id: 1, token: @token)
     body = { jsonrpc: "2.0", id: id, method: method, params: params }.compact
     post "/api/bridge/mcp", params: body.to_json,
@@ -19,12 +17,6 @@ class Api::Bridge::McpControllerTest < ActionDispatch::IntegrationTest
 
   def call_tool(name, args = {})
     rpc("tools/call", { name: name, arguments: args })
-  end
-
-  def dispatch_run
-    run = WorkflowRun.start(team: @team, user: @user, steps: [ LOCAL ])
-    WorkflowAdvanceJob.perform_now(run.id)
-    run.reload
   end
 
   test "initialize negotiates and lists the four tools" do

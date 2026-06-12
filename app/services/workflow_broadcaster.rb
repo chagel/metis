@@ -33,13 +33,13 @@ class WorkflowBroadcaster
     refresh_run_page
   end
 
-  private
-
   # The header stats ride in workflow_meta, so it refreshes with the timeline.
   def refresh_run_page
     replace("workflow_timeline", "workflow_runs/timeline", conversation: @conversation)
     replace("workflow_meta", "workflow_runs/meta")
   end
+
+  private
 
   def append_message(message, forkable:)
     Turbo::StreamsChannel.broadcast_append_to(

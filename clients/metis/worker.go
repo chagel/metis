@@ -123,7 +123,8 @@ func (w *Worker) driveAgent(worktree Worktree) *outcome {
 	defer heartbeat.Stop()
 	cancelPoll := time.NewTicker(time.Duration(w.cfg.CancelPollInterval) * time.Second)
 	defer cancelPoll.Stop()
-	watchdog := time.NewTicker(time.Second)
+	inactivity := time.Duration(w.cfg.InactivityTimeout) * time.Second
+	watchdog := time.NewTicker(max(time.Second, inactivity/10))
 	defer watchdog.Stop()
 
 	for {
@@ -149,7 +150,7 @@ func (w *Worker) driveAgent(worktree Worktree) *outcome {
 				finalText = event.Final
 			}
 		case <-watchdog.C:
-			if time.Since(lastActivity) > time.Duration(w.cfg.InactivityTimeout)*time.Second {
+			if time.Since(lastActivity) > inactivity {
 				w.kill(cmd, lines)
 				return &outcome{status: "failed", summary: fmt.Sprintf(
 					"Agent went silent for %d minutes; killed by the watchdog.", w.cfg.InactivityTimeout/60)}
@@ -179,8 +180,9 @@ func (w *Worker) driveAgent(worktree Worktree) *outcome {
 // The agent is asked to end with a METIS_RESULT: json line; honour it
 // when present, fall back to its final message otherwise.
 func (w *Worker) conclude(finalText string) *outcome {
-	for _, line := range reverse(strings.Split(finalText, "\n")) {
-		trimmed := strings.TrimSpace(line)
+	lines := strings.Split(finalText, "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		trimmed := strings.TrimSpace(lines[i])
 		if !strings.HasPrefix(trimmed, resultMarker) {
 			continue
 		}
@@ -210,10 +212,7 @@ func (w *Worker) failureSummary(finalText string) string {
 }
 
 func (w *Worker) report(result *outcome) {
-	summary := result.summary
-	if len(summary) > 2000 {
-		summary = summary[:2000]
-	}
+	summary := truncate(result.summary, 2000)
 	err := w.api.Result(w.task.TaskID, result.status, summary, result.artifacts, w.cfg.Agent, result.model)
 	switch {
 	case errors.Is(err, ErrGone):
@@ -277,32 +276,21 @@ func (w *Worker) kill(cmd *exec.Cmd, lines chan string) {
 
 func lastLine(text string) string {
 	trimmed := strings.TrimSpace(text)
-	if trimmed == "" {
-		return ""
-	}
-	parts := strings.Split(trimmed, "\n")
-	line := strings.TrimSpace(parts[len(parts)-1])
-	if len(line) > snippetLen {
-		line = line[:snippetLen]
-	}
-	return line
+	line := strings.TrimSpace(trimmed[strings.LastIndexByte(trimmed, '\n')+1:])
+	return truncate(line, snippetLen)
 }
 
 func fallbackSummary(finalText string) string {
-	text := strings.TrimSpace(finalText)
-	if len(text) > summaryFallbackLen {
-		text = text[:summaryFallbackLen]
-	}
+	text := truncate(strings.TrimSpace(finalText), summaryFallbackLen)
 	if text == "" {
 		return "Agent finished without a summary."
 	}
 	return text
 }
 
-func reverse(list []string) []string {
-	out := make([]string, len(list))
-	for i, item := range list {
-		out[len(list)-1-i] = item
+func truncate(s string, max int) string {
+	if len(s) > max {
+		return s[:max]
 	}
-	return out
+	return s
 }

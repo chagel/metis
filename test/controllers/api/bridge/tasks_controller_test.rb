@@ -9,14 +9,6 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
 
   def auth = { "Authorization" => "Bearer #{@token}" }
 
-  LOCAL = { "name" => "impl", "prompt" => "implement", "run" => "local" }.freeze
-
-  def dispatch_run(steps = [ LOCAL ])
-    run = WorkflowRun.start(team: @team, user: @user, steps: steps)
-    WorkflowAdvanceJob.perform_now(run.id)   # dispatch the delegated step
-    run.reload
-  end
-
   test "claim returns the dispatched task, stamps presence and client name" do
     run = dispatch_run
     get "/api/bridge/tasks/next", headers: auth.merge("X-Bridge-Client" => "mikes-mbp")
@@ -36,7 +28,7 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
 
   test "claim payload carries prior steps' full content and artifact urls" do
     run = WorkflowRun.start(team: @team, user: @user, steps: [
-      { "name" => "spec", "prompt" => "write the spec" }, LOCAL
+      { "name" => "spec", "prompt" => "write the spec" }, LOCAL_STEP
     ])
     WorkflowAdvanceJob.perform_now(run.id)        # starts the cloud spec step
     spec = run.tasks.find_by(position: 0)
@@ -57,7 +49,7 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index lists the claim queue without claiming" do
-    workflow = @team.workflows.create!(name: "Ship it", steps: [ LOCAL ])
+    workflow = @team.workflows.create!(name: "Ship it", steps: [ LOCAL_STEP ])
     run = WorkflowRun.start(team: @team, user: @user, workflow: workflow)
     WorkflowAdvanceJob.perform_now(run.id)
 
@@ -121,9 +113,9 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     mate = User.create!(email: "mate-#{SecureRandom.hex(4)}@example.com", password: "password123")
     team.memberships.create!(user: mate, role: :member)
 
-    personal = WorkflowRun.start(team: team, user: @user, steps: [ LOCAL ])
+    personal = WorkflowRun.start(team: team, user: @user, steps: [ LOCAL_STEP ])
     WorkflowAdvanceJob.perform_now(personal.id)
-    shared = WorkflowRun.start(team: team, user: @user, steps: [ LOCAL ], visibility: :team)
+    shared = WorkflowRun.start(team: team, user: @user, steps: [ LOCAL_STEP ], visibility: :team)
     WorkflowAdvanceJob.perform_now(shared.id)
 
     mate_auth = { "Authorization" => "Bearer #{mate.generate_bridge_token!}" }
@@ -238,7 +230,7 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
   test "claim scoped to a project skips other projects' tasks" do
     other = dispatch_run                       # older, no project
     project = @team.projects.create!(name: "metis-api")
-    run = WorkflowRun.start(team: @team, user: @user, steps: [ LOCAL ], project: project)
+    run = WorkflowRun.start(team: @team, user: @user, steps: [ LOCAL_STEP ], project: project)
     WorkflowAdvanceJob.perform_now(run.id)
 
     get "/api/bridge/tasks/next", params: { project: "Metis-API" }, headers: auth

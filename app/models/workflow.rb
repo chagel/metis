@@ -16,6 +16,10 @@ class Workflow < ApplicationRecord
     steps.count { |step| step["gate"] == "approval" }
   end
 
+  def local_step?
+    steps.any? { |step| step["run"] == "local" }
+  end
+
   private
 
   def default_project_in_team

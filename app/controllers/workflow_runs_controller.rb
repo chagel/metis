@@ -35,8 +35,7 @@ class WorkflowRunsController < ApplicationController
   # team-visible runs — a personal run's gates are not the team's to act on.
   def set_run
     @run = WorkflowRun.where(team_id: current_user.teams.select(:id)).find(params[:id])
-    head :not_found unless @run.conversation.user_id == current_user.id ||
-                           @run.conversation.visibility_team?
+    head :not_found unless @run.conversation.accessible_to?(current_user)
   end
 
   def set_workflow

@@ -94,10 +94,10 @@ func (a *Api) Event(id int64, text string) error {
 }
 
 func (a *Api) Result(id int64, status, summary string, artifacts []Artifact, agent, model string) error {
-	if artifacts == nil {
-		artifacts = []Artifact{}
+	body := map[string]any{"status": status, "summary": summary}
+	if len(artifacts) > 0 {
+		body["artifacts"] = artifacts
 	}
-	body := map[string]any{"status": status, "summary": summary, "artifacts": artifacts}
 	if agent != "" {
 		body["agent"] = agent
 	}

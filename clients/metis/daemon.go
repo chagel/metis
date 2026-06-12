@@ -77,16 +77,15 @@ func (d *Daemon) maybeReload() {
 	}
 	d.configSeen = info.ModTime()
 	cfg, err := LoadConfig(d.configPath)
+	var agent Agent
 	if err == nil {
-		if _, agentErr := AgentFor(cfg.Agent); agentErr != nil {
-			err = agentErr
-		}
+		agent, err = AgentFor(cfg.Agent)
 	}
 	if err != nil {
 		d.logf("config reload skipped: %v — still running on the previous config", err)
 		return
 	}
-	d.agent, _ = AgentFor(cfg.Agent)
+	d.agent = agent
 	d.cfg = cfg
 	d.targets = buildTargets(cfg)
 	d.logf("config reloaded — polling %s", strings.Join(d.describeTargets(), "; "))
@@ -168,12 +167,18 @@ func (d *Daemon) describeTargets() []string {
 
 // repoFinder reports which of a server's checkouts a worktree ref
 // belongs to, so gc can deregister it with git before removing the
-// directory.
+// directory. Each repo's worktree list is fetched once per sweep.
 func repoFinder(server *Server) func(ref string) string {
+	lists := map[string]string{}
 	return func(ref string) string {
 		for _, repo := range server.Projects {
-			out, err := exec.Command("git", "-C", repo, "worktree", "list", "--porcelain").Output()
-			if err == nil && strings.Contains(string(out), "/"+ref+"\n") {
+			list, ok := lists[repo]
+			if !ok {
+				out, _ := exec.Command("git", "-C", repo, "worktree", "list", "--porcelain").Output()
+				list = string(out)
+				lists[repo] = list
+			}
+			if strings.Contains(list, "/"+ref+"\n") {
 				return repo
 			}
 		}

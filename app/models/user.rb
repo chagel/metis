@@ -101,8 +101,13 @@ class User < ApplicationRecord
     Digest::SHA256.hexdigest(token)
   end
 
-  # Presence stamp — drives only the "is your machine connected" hint.
+  # Presence stamp — drives only the "is your machine connected" hint,
+  # so skip the write while a fresh stamp would say the same thing
+  # (daemons hit the bridge API several times a minute).
   def bridge_seen!(client = nil)
+    return if bridge_seen_at && bridge_seen_at > 1.minute.ago &&
+              (client.blank? || client == bridge_client)
+
     update_columns(bridge_seen_at: Time.current,
                    bridge_client: client.presence || bridge_client)
   end

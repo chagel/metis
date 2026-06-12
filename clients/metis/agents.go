@@ -3,8 +3,23 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 )
+
+// textParts is the content-part array shape shared by claude's and pi's
+// message events.
+type textParts []struct {
+	Text string `json:"text"`
+}
+
+func (p textParts) join() string {
+	texts := make([]string, 0, len(p))
+	for _, part := range p {
+		texts = append(texts, part.Text)
+	}
+	return strings.Join(texts, "")
+}
 
 // ParsedEvent is one line of an agent's stream: Text is activity for the
 // heartbeat snippet; Final (when HasFinal) is the agent's final message.
@@ -61,10 +76,8 @@ func (claudeAgent) Parse(line string) ParsedEvent {
 		Result  string `json:"result"`
 		Model   string `json:"model"`
 		Message struct {
-			Model   string `json:"model"`
-			Content []struct {
-				Text string `json:"text"`
-			} `json:"content"`
+			Model   string    `json:"model"`
+			Content textParts `json:"content"`
 		} `json:"message"`
 	}
 	if json.Unmarshal([]byte(line), &event) != nil {
@@ -74,11 +87,7 @@ func (claudeAgent) Parse(line string) ParsedEvent {
 	case "system":
 		return ParsedEvent{Model: event.Model}
 	case "assistant":
-		texts := make([]string, 0, len(event.Message.Content))
-		for _, part := range event.Message.Content {
-			texts = append(texts, part.Text)
-		}
-		return ParsedEvent{Text: strings.Join(texts, ""), Model: event.Message.Model}
+		return ParsedEvent{Text: event.Message.Content.join(), Model: event.Message.Model}
 	case "result":
 		return ParsedEvent{Text: event.Result, Final: event.Result, HasFinal: true}
 	default:
@@ -101,12 +110,10 @@ func (piAgent) Parse(line string) ParsedEvent {
 	var event struct {
 		Type    string `json:"type"`
 		Message struct {
-			Role     string `json:"role"`
-			Provider string `json:"provider"`
-			Model    string `json:"model"`
-			Content  []struct {
-				Text string `json:"text"`
-			} `json:"content"`
+			Role     string    `json:"role"`
+			Provider string    `json:"provider"`
+			Model    string    `json:"model"`
+			Content  textParts `json:"content"`
 		} `json:"message"`
 	}
 	if json.Unmarshal([]byte(line), &event) != nil {
@@ -115,11 +122,7 @@ func (piAgent) Parse(line string) ParsedEvent {
 	if event.Type != "message_end" || event.Message.Role != "assistant" {
 		return ParsedEvent{}
 	}
-	texts := make([]string, 0, len(event.Message.Content))
-	for _, part := range event.Message.Content {
-		texts = append(texts, part.Text)
-	}
-	text := strings.Join(texts, "")
+	text := event.Message.Content.join()
 	model := event.Message.Model
 	if model != "" && event.Message.Provider != "" {
 		model = event.Message.Provider + "/" + model
@@ -174,20 +177,11 @@ func filterArgs(args, blocked []string) []string {
 			continue
 		}
 		flag, _, hasValue := strings.Cut(arg, "=")
-		if contains(blocked, flag) {
+		if slices.Contains(blocked, flag) {
 			skipValue = !hasValue
 			continue
 		}
 		kept = append(kept, arg)
 	}
 	return kept
-}
-
-func contains(list []string, item string) bool {
-	for _, candidate := range list {
-		if candidate == item {
-			return true
-		}
-	}
-	return false
 }
