@@ -46,6 +46,19 @@ class WorkflowAdvanceJobTest < ActiveSupport::TestCase
     assert run.tasks.find_by(position: 1).completed?
   end
 
+  test "a later step's prompt restates the run input" do
+    run = WorkflowRun.start(team: @team, user: @user, input: "review pr 75", steps: [
+      { "name" => "a", "prompt" => "do a", "gate" => AUTO },
+      { "name" => "b", "prompt" => "do b", "gate" => AUTO }
+    ])
+    advance(run)
+    finish_turn(run, 0)
+    advance(run)
+
+    prompts = run.conversation.messages.where(kind: :step_prompt).order(:created_at).map(&:content)
+    assert_equal [ "review pr 75\n\ndo a", "review pr 75\n\ndo b" ], prompts
+  end
+
   test "an approval step runs its prompt as a turn, then pauses for review" do
     run = start([ { "name" => "spec", "prompt" => "write the spec", "gate" => GATE } ])
 

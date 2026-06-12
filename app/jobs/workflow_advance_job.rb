@@ -74,12 +74,13 @@ class WorkflowAdvanceJob < ApplicationJob
     WorkflowBroadcaster.new(run).append_turn(user, assistant)
   end
 
-  # A delegated step's outcome never enters the agent session, so the
-  # reports of the delegated steps just before this one fold into its prompt.
+  # Later steps restate the run input (creation folds it into step 0 only)
+  # and the reports of just-prior delegated steps, which never enter the session.
   def step_prompt(run, task)
+    subject = (run.input if task.position.positive?)
     reports = run.tasks.completed.where(position: ...task.position).reorder(position: :desc)
                  .take_while(&:delegated?).reverse.map { |prior| delegated_report(prior) }
-    [ *reports, task.prompt ].join("\n\n")
+    [ subject, *reports, task.prompt ].compact_blank.join("\n\n")
   end
 
   def delegated_report(task)

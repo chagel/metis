@@ -226,6 +226,9 @@ func (w *Worker) report(result *outcome) {
 
 func (w *Worker) prompt() string {
 	sections := []string{w.task.Prompt}
+	if input := w.task.Context.Input; input != "" {
+		sections = append(sections, "## Run subject\n"+input)
+	}
 	for _, step := range w.task.Context.PriorSteps {
 		body := fmt.Sprintf("## Context from earlier step: %s\n%s", step.Name, step.Content)
 		urls := []string{}

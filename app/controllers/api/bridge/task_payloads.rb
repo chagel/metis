@@ -38,6 +38,7 @@ module Api
           name: task.name,
           prompt: task.prompt,
           context: {
+            input: run.input.presence,
             project: project_context(run),
             prior_steps: prior_step_summaries(run, task)
           }.compact

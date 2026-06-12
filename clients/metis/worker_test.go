@@ -157,6 +157,7 @@ func testWorktreeRoot(root string) string {
 
 func testTask(ref string) *Task {
 	task := &Task{TaskID: 1, Ref: ref, Prompt: "implement the thing"}
+	task.Context.Input = "ship feature 42"
 	task.Context.Project.Name = "proj"
 	task.Context.PriorSteps = []PriorStep{{Name: "spec", Content: "the spec",
 		Artifacts: []struct {
@@ -328,8 +329,8 @@ func TestPromptFoldsContextAndRules(t *testing.T) {
 	cfg := testConfig("http://x", repo, root, nil)
 	worker := &Worker{cfg: cfg, task: testTask("RUN-1")}
 	prompt := worker.prompt()
-	for _, want := range []string{"implement the thing", "earlier step: spec", "the spec",
-		"http://a/spec.md", resultMarker, "metis/run-1"} {
+	for _, want := range []string{"implement the thing", "## Run subject\nship feature 42",
+		"earlier step: spec", "the spec", "http://a/spec.md", resultMarker, "metis/run-1"} {
 		if !strings.Contains(prompt, want) {
 			t.Fatalf("prompt missing %q:\n%s", want, prompt)
 		}

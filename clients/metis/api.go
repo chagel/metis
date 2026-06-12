@@ -31,6 +31,7 @@ type Task struct {
 	Name    string `json:"name"`
 	Prompt  string `json:"prompt"`
 	Context struct {
+		Input   string `json:"input"`
 		Project struct {
 			Name  string `json:"name"`
 			About string `json:"about"`

@@ -48,6 +48,23 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     assert_match %r{^http.+/files/blobs/}, prior["artifacts"].first["url"]
   end
 
+  test "claim payload carries the run input so a later step knows the subject" do
+    run = WorkflowRun.start(team: @team, user: @user, input: "review pr 75",
+                            steps: [ LOCAL_STEP ])
+    WorkflowAdvanceJob.perform_now(run.id)
+
+    get "/api/bridge/tasks/next", headers: auth
+    assert_response :success
+    assert_equal "review pr 75", JSON.parse(response.body).dig("context", "input")
+  end
+
+  test "claim payload omits input when the run has none" do
+    dispatch_run
+    get "/api/bridge/tasks/next", headers: auth
+    assert_response :success
+    assert_not_includes JSON.parse(response.body)["context"].keys, "input"
+  end
+
   test "index lists the claim queue without claiming" do
     workflow = @team.workflows.create!(name: "Ship it", steps: [ LOCAL_STEP ])
     run = WorkflowRun.start(team: @team, user: @user, workflow: workflow)

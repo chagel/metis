@@ -16,7 +16,8 @@ class WorkflowRun < ApplicationRecord
     pending? || running? || awaiting_approval? || awaiting_local?
   end
 
-  # `input` is the run's subject — folded into the first step's prompt.
+  # `input` is the run's subject — folded into the first step's prompt here;
+  # later steps get it restated (engine step_prompt, bridge claim payload).
   # `visibility` is the launcher's choice from the composer: a team-visible
   # run is openable by any member, who can act on its gates and claim its
   # local steps.

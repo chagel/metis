@@ -173,6 +173,7 @@ same effect by list-then-pick.
   "name": "Implement the retry-budget cap",
   "prompt": "Implement the retry-budget cap described in the plan…",
   "context": {
+    "input":    "review pr 75",            // the run's subject; omitted when blank
     "project":  { "name": "metis-api", "about": "Rails 8 API; conventions in…" },
     "prior_steps": [                       // the cloud steps so far, in full
       {
