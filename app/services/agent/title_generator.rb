@@ -61,10 +61,9 @@ module Agent
       return nil if context.blank?
 
       provider = pick_provider
-      api_key  = Rails.application.config.x.agent.api_keys.to_h[provider]
-      return nil if provider.blank? || api_key.blank?
+      return nil if provider.blank?
 
-      sanitize(generate(provider, api_key, context))
+      sanitize(generate(provider, api_keys[provider], context))
     rescue => e
       Rails.logger.warn("Agent::TitleGenerator failed (#{e.class}): #{e.message}")
       nil
@@ -72,13 +71,22 @@ module Agent
 
     private
 
-    # Prefer the conversation's chosen provider (its API key is already
-    # validated for the running turn). Fall back to the deployment
-    # default if the conversation hasn't picked one.
+    # Prefer the conversation's chosen provider, then the deployment
+    # default — but the pick must be one this class can speak
+    # (TITLE_MODELS) with a key configured; a conversation on e.g.
+    # minimax falls through to any usable provider instead of losing
+    # its title to the truncation fallback.
     def pick_provider
-      @conversation.settings["provider"].presence ||
-        Rails.application.config.x.agent.provider.presence ||
-        Agent::Catalog.default_provider
+      preferred = [ @conversation.settings["provider"],
+                    Rails.application.config.x.agent.provider,
+                    Agent::Catalog.default_provider ]
+      (preferred.compact_blank + TITLE_MODELS.keys).find do |provider|
+        TITLE_MODELS.key?(provider) && api_keys[provider].present?
+      end
+    end
+
+    def api_keys
+      Rails.application.config.x.agent.api_keys.to_h
     end
 
     def build_context

@@ -42,6 +42,22 @@ class Agent::TitleGeneratorTest < ActiveSupport::TestCase
     assert_match(/openai/, seen_provider)
   end
 
+  test "an unsupported provider falls through to a supported one with a key" do
+    @conversation.update!(settings: { "provider" => "minimax" })
+    seen_host = nil
+    fake_response = { "choices" => [ { "message" => { "content" => "Ruby Basics" } } ] }
+
+    with_stub(Rails.application.config.x.agent, :api_keys, -> { { "minimax" => "k", "openai" => "k" } }) do
+      with_stub(Rails.application.config.x.agent, :provider, -> { "minimax" }) do
+        generator = Agent::TitleGenerator.new(@conversation)
+        generator.define_singleton_method(:post) { |uri, _body, _hdrs| seen_host = uri.host; fake_response }
+        assert_equal "Ruby Basics", generator.call
+      end
+    end
+
+    assert_match(/openai/, seen_host)
+  end
+
   test "parses and sanitizes a successful Anthropic response" do
     fake_response = { "content" => [ { "type" => "text", "text" => '  "What Is Ruby"  ' } ] }
     with_stub(Rails.application.config.x.agent, :api_keys, -> { { "anthropic" => "test-key" } }) do

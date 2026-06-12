@@ -133,12 +133,19 @@ class Conversation < ApplicationRecord
   # the LLM call and sanitization; this method is the single place that
   # writes `title` and pushes the change to the UI.
   def apply_generated_title!(raw)
-    cleaned = raw.to_s.strip.truncate(TITLE_MAX, omission: "").presence ||
-              messages.where(role: :user).order(:created_at).first&.content.to_s
-                       .strip.truncate(TITLE_MAX, omission: "")
+    cleaned = raw.to_s.strip.truncate(TITLE_MAX, omission: "").presence || fallback_title
     return if cleaned.blank?
     update!(title: cleaned)
     broadcast_title_change!
+  end
+
+  # A workflow conversation's first user message is the step prompt, not
+  # the user's words — fall back to the run's input instead, or to
+  # nothing, leaving the next turn free to retry the LLM title.
+  def fallback_title
+    source = workflow_run ? workflow_run.input
+                          : messages.where(role: :user).order(:created_at).first&.content
+    source.to_s.strip.truncate(TITLE_MAX, omission: "")
   end
 
   def broadcast_title_change!

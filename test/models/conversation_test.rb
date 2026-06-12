@@ -281,6 +281,24 @@ class ConversationTest < ActiveSupport::TestCase
     assert_nil @conversation.title
   end
 
+  test "apply_generated_title! falls back to the run input for a workflow conversation" do
+    run = WorkflowRun.start(team: @user.personal_team, user: @user, input: "review pr 75",
+                            steps: [ { "name" => "a", "prompt" => "Clone the repo and review it thoroughly" } ])
+    run.conversation.messages.create!(role: :user, content: "review pr 75\n\nClone the repo and review it thoroughly",
+                                      streaming_status: :done, kind: :step_prompt)
+    run.conversation.apply_generated_title!(nil)
+    assert_equal "review pr 75", run.conversation.title
+  end
+
+  test "apply_generated_title! leaves a workflow conversation untitled when the run has no input" do
+    run = WorkflowRun.start(team: @user.personal_team, user: @user,
+                            steps: [ { "name" => "a", "prompt" => "Clone the repo and review it thoroughly" } ])
+    run.conversation.messages.create!(role: :user, content: "Clone the repo and review it thoroughly",
+                                      streaming_status: :done, kind: :step_prompt)
+    run.conversation.apply_generated_title!(nil)
+    assert_nil run.conversation.title
+  end
+
   test "shared? is false until a share token is minted" do
     refute @conversation.shared?
     @conversation.generate_share_token!
