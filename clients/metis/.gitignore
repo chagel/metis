@@ -1,0 +1,3 @@
+# Built binaries — go build drops them here; never commit them.
+/metis
+/metis-bridge
