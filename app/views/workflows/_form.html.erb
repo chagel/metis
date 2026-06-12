@@ -16,8 +16,8 @@
   <div class="field">
     <%= f.label :default_project_id, "Default project" %>
     <%= f.collection_select :default_project_id, current_team.projects.recent, :id, :name,
-          { include_blank: "None" }, class: "team-input" %>
-    <p class="field-hint">Suggested context at launch — its standards reach the agent via AGENTS.md. Overridable per run.</p>
+          { include_blank: "None — pick at launch" }, class: "team-input" %>
+    <p class="field-hint">Every run launches with a project; its standards reach the agent via AGENTS.md. This default is overridable per run — without one, each launch must pick.</p>
   </div>
 
   <div class="field">

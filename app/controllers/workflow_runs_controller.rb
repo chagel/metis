@@ -5,7 +5,12 @@ class WorkflowRunsController < ApplicationController
   before_action :set_workflow, only: :create
 
   def create
+    # A run needs a project: daemons claim local steps per project, so a
+    # project-less run could never be auto-claimed.
     project = current_team.projects.find_by(id: params[:project_id]) || @workflow.default_project
+    if project.nil?
+      return render_composer_error(nil, "Pick a project to launch this workflow.")
+    end
     run = WorkflowRun.start(
       team: current_team, user: current_user, workflow: @workflow,
       project: project, input: params[:input].presence || params[:content],

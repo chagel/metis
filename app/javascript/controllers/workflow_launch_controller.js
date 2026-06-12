@@ -12,20 +12,19 @@ export default class extends Controller {
 
   // Handles skill-palette:launch — event.detail is { id, name }.
   selectFromPalette(event) {
-    const { id, name, description, intro, default_project, has_local_step } = event.detail
+    const { id, name, description, intro, default_project } = event.detail
     this.fieldTarget.value = id
     this.chipNameTarget.textContent = name
     this.chipTarget.hidden = false
     this.element.action = this.runsPathValue
     this.setSendTitle("Start run")
-    // The blank option must say what it resolves to: the workflow's
-    // default project, or no project at all — which a daemon will never
-    // auto-claim (its claim filter is per-project), hence the nudge when
-    // the workflow has a local step.
+    // Every run needs a project (daemons claim local steps per project),
+    // so blank either resolves to the workflow's default or forces a pick.
     if (this.hasProjectBlankTarget) {
       this.projectBlankTarget.textContent = default_project
         ? `Default — ${default_project}`
-        : (has_local_step ? "No project — pick one for auto-claim" : "No project")
+        : "Pick a project…"
+      this.projectTarget.required = !default_project
     }
     // Lead with what step 1 actually does (your input is folded into it),
     // then the workflow's description, then a generic fallback.
@@ -37,6 +36,7 @@ export default class extends Controller {
     event.preventDefault()
     this.fieldTarget.value = ""
     this.chipTarget.hidden = true
+    if (this.hasProjectTarget) this.projectTarget.required = false
     this.element.action = this.chatPathValue
     this.setSendTitle("Start")
     this.restorePlaceholder()

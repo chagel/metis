@@ -71,7 +71,9 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "the composer's visibility pick reaches the run conversation" do
-    workflow = @team.workflows.create!(name: "W", steps: [ { "name" => "a", "prompt" => "a" } ])
+    project = @team.projects.create!(name: "R&D")
+    workflow = @team.workflows.create!(name: "W", default_project: project,
+                                       steps: [ { "name" => "a", "prompt" => "a" } ])
     post workflow_runs_path, params: { workflow_id: workflow.id, content: "go", visibility: "team" }
     assert WorkflowRun.order(:id).last.conversation.visibility_team?
   end
@@ -208,8 +210,10 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create from the composer uses the typed content as input and the picked model" do
+    project = @team.projects.create!(name: "R&D")
     workflow = @team.workflows.create!(
-      name: "Triage", steps: [ { "name" => "spec", "prompt" => "write the spec", "gate" => "approval" } ]
+      name: "Triage", default_project: project,
+      steps: [ { "name" => "spec", "prompt" => "write the spec", "gate" => "approval" } ]
     )
     # The composer posts `content` (not `input`) alongside workflow_id + model.
     post workflow_runs_path(workflow_id: workflow.id, content: "the launch composer", model: "claude-opus-4-8")
@@ -224,6 +228,23 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     workflow = @team.workflows.create!(name: "W", steps: [ { "name" => "a", "prompt" => "a", "gate" => "auto" } ])
     post workflow_runs_path(workflow_id: workflow.id, project_id: other.id)
     assert_equal other, WorkflowRun.last.conversation.project
+  end
+
+  test "create without a resolvable project is rejected" do
+    workflow = @team.workflows.create!(name: "W", steps: [ { "name" => "a", "prompt" => "a", "gate" => "auto" } ])
+
+    assert_no_difference -> { WorkflowRun.count } do
+      post workflow_runs_path(workflow_id: workflow.id, content: "go")
+    end
+    assert_response :unprocessable_entity
+    assert_match "Pick a project to launch this workflow", response.body
+
+    # Another team's project id doesn't resolve either.
+    foreign = Team.create!(name: "Elsewhere").projects.create!(name: "Theirs")
+    assert_no_difference -> { WorkflowRun.count } do
+      post workflow_runs_path(workflow_id: workflow.id, project_id: foreign.id)
+    end
+    assert_response :unprocessable_entity
   end
 
   test "approve completes the gate, resumes the run, and enqueues an advance" do

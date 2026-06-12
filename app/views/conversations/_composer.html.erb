@@ -16,8 +16,7 @@
      { id: w.id, name: w.name, steps: w.steps.size, gates: w.gate_count,
        description: w.description.to_s,
        intro: w.steps.first&.dig("prompt").to_s.truncate(120),
-       default_project: w.default_project&.name,
-       has_local_step: w.local_step? }
+       default_project: w.default_project&.name }
    } %>
 <div id="composer" class="composer-wrap"
      data-controller="file-upload"
@@ -50,9 +49,9 @@
                 <button type="button" class="auto-chip-x" data-action="workflow-launch#clear" aria-label="Clear workflow">✕</button>
               </span>
               <% if current_team.projects.any? %>
-                <%# Blank = the workflow's default project; the launch
-                    controller retitles it ("Default — R&D" / "No project")
-                    so a blank pick never reads like more than it is. %>
+                <%# Blank = the workflow's default project; without one the
+                    launch controller retitles it "Pick a project…" and makes
+                    the pick required — every run carries a project. %>
                 <select name="project_id" class="wf-launch-project" aria-label="Project"
                         data-workflow-launch-target="project">
                   <option value="" data-workflow-launch-target="projectBlank">Default project</option>
