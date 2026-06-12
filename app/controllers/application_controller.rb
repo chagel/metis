@@ -151,7 +151,7 @@ class ApplicationController < ActionController::Base
     @needs_you = needs_you_conversations
     @sidebar_pagy, @conversations = pagy(
       :countless,
-      sidebar_scope(@sidebar_filter).where.not(id: @needs_you.map(&:id)),
+      sidebar_scope(@sidebar_filter).where.not(id: @needs_you.map(&:id)).preloaded_for_sidebar,
       limit: SIDEBAR_PAGE_SIZE
     )
   end
@@ -165,7 +165,8 @@ class ApplicationController < ActionController::Base
 
     current_team.conversations.where(user: current_user).or(
       current_team.conversations.visibility_team
-    ).active.joins(:workflow_run).merge(WorkflowRun.awaiting).recent.to_a
+    ).active.joins(:workflow_run).merge(WorkflowRun.awaiting)
+     .recent.preloaded_for_sidebar.to_a
   end
 
   # "team" spans the whole team (every member's team-visible

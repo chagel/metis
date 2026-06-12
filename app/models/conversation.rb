@@ -8,6 +8,11 @@ class Conversation < ApplicationRecord
   belongs_to :project, optional: true
   belongs_to :forked_from_message, class_name: "Message", optional: true
   has_many :messages, dependent: :destroy
+  # Every distinct teammate who has sent a user message here. An
+  # association, not a hand-rolled query, so list pages can preload it.
+  has_many :senders, -> { merge(Message.user).distinct.order(:id) },
+           through: :messages, source: :sender
+  has_one :inflight_message, -> { inflight }, class_name: "Message"
   # nil for a normal chat; present once a workflow drives this conversation.
   has_one :workflow_run, dependent: :destroy
 
@@ -34,6 +39,13 @@ class Conversation < ApplicationRecord
   # claims) must apply it through this scope or the predicate below.
   scope :accessible_to, ->(user) {
     where(visibility: :team).or(where(user_id: user.id))
+  }
+  # Everything a sidebar row asks per conversation — the run pill, the
+  # running dot, participant avatars — batched for the whole page.
+  scope :preloaded_for_sidebar, -> {
+    includes(:workflow_run, :inflight_message,
+             user: { avatar_attachment: :blob },
+             senders: { avatar_attachment: :blob })
   }
 
   def accessible_to?(user)
@@ -101,12 +113,9 @@ class Conversation < ApplicationRecord
     update!(starred_at: nil)
   end
 
-  # The owner first, then every teammate who has sent a message here
-  # (composer or workflow gate). Memoized — the sidebar asks per row.
+  # The owner first, then every other sender (composer or workflow gate).
   def participants
-    @participants ||= [ user ] + User.with_attached_avatar.where(
-      id: messages.where(role: :user).where.not(sender_id: [ nil, user_id ]).distinct.select(:sender_id)
-    ).order(:id).to_a
+    @participants ||= [ user ] + (senders - [ user ])
   end
 
   # Only the owner has spoken — the chat skips sender attribution; with
@@ -178,9 +187,12 @@ class Conversation < ApplicationRecord
   end
 
   # True while a turn is running — an assistant message is still pending
-  # or streaming. Used to refuse a second concurrent turn.
+  # or streaming. Used to refuse a second concurrent turn, so it stays a
+  # live query unless inflight_message was preloaded for a list page.
   def turn_in_progress?
-    messages.where(role: :assistant, streaming_status: %i[pending streaming]).exists?
+    return inflight_message.present? if association(:inflight_message).loaded?
+
+    messages.inflight.exists?
   end
 
   # Stamp a cancellation request for the in-flight turn. ChatJob polls

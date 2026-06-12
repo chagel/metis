@@ -44,6 +44,26 @@ class ConversationTest < ActiveSupport::TestCase
     assert @user.conversations.create!(team: team).solo?
   end
 
+  test ".preloaded_for_sidebar answers the per-row questions without further queries" do
+    teammate = User.create!(email: "preload-mate@example.com", password: "password123")
+    @conversation.messages.create!(role: :user, content: "feedback", streaming_status: :done, sender: teammate)
+    @conversation.messages.create!(role: :user, content: "mine", streaming_status: :done, sender: @user)
+    running = @user.conversations.create!
+    running.messages.create!(role: :assistant, content: "", streaming_status: :streaming)
+    run = @user.personal_team.workflow_runs.create!(conversation: running)
+
+    solo, live = Conversation.where(id: [ @conversation.id, running.id ])
+                             .order(:id).preloaded_for_sidebar.to_a
+    reads = count_queries do
+      assert_equal [ @user, teammate ], solo.participants
+      assert_equal [ @user ], live.participants
+      refute solo.turn_in_progress?
+      assert live.turn_in_progress?
+      assert_equal run, live.workflow_run
+    end
+    assert_equal 0, reads, "sidebar reads must be answered from the preload"
+  end
+
   test "turn_in_progress? is false with no in-flight assistant message" do
     refute @conversation.turn_in_progress?
   end

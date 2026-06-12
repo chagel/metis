@@ -35,6 +35,8 @@ class Message < ApplicationRecord
 
   scope :chronological, -> { order(:created_at) }
   scope :conversational, -> { where(role: %i[user assistant]) }
+  # An in-flight turn: the assistant message still pending or streaming.
+  scope :inflight, -> { assistant.where(streaming_status: %i[pending streaming]) }
 
   # Once an assistant turn finishes, the conversation has enough context
   # (first user msg + first assistant reply) for a good title. Gating on

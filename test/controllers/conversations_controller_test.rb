@@ -22,6 +22,29 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".sidebar .convo .tt", text: "Existing"
   end
 
+  test "the sidebar's query count does not scale with its rows" do
+    teammate = User.create!(email: "n1-mate@example.com", password: "password123")
+    build_row = lambda do |i|
+      conversation = @user.conversations.create!(title: "Row #{i}")
+      conversation.messages.create!(role: :user, content: "hi", streaming_status: :done, sender: teammate)
+      conversation.messages.create!(role: :assistant, content: "", streaming_status: :streaming)
+      @user.personal_team.workflow_runs.create!(conversation: conversation)
+      conversation
+    end
+
+    build_row.call(0)
+    sign_in @user
+    get conversations_path
+    baseline = count_queries { get conversations_path }
+
+    5.times { |i| build_row.call(i + 1) }
+    grown = count_queries { get conversations_path }
+
+    assert_response :success
+    assert_select ".sidebar .convo", minimum: 6
+    assert_equal baseline, grown, "each sidebar row must not add queries"
+  end
+
   test "a solo personal conversation shows no avatars in the sidebar or sender row in the chat" do
     conversation = @user.conversations.create!(title: "Just me")
     conversation.messages.create!(role: :user, content: "hi", streaming_status: :done, sender: @user)

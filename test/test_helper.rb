@@ -39,6 +39,20 @@ module ActiveSupport
       Rails.application.config.x.registration_mode = previous
     end
 
+    # SQL statements issued by the block, schema/transaction bookkeeping
+    # excluded. For N+1 regression tests: cache hits count by default —
+    # the query cache can span requests here, and a cached N+1 is still
+    # one statement per row.
+    def count_queries(include_cached: true, &block)
+      count = 0
+      counter = lambda do |_name, _start, _finish, _id, payload|
+        next if %w[SCHEMA TRANSACTION].include?(payload[:name])
+        count += 1 if include_cached || !payload[:cached]
+      end
+      ActiveSupport::Notifications.subscribed(counter, "sql.active_record", &block)
+      count
+    end
+
     # Run a block with the invite-only domain allowlist set (default empty).
     # Domains are stored downcased, as the initializer does at boot.
     def with_allowed_domains(*domains)
