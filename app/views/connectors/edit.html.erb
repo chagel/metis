@@ -83,6 +83,21 @@
                   </span>
                 </span>
               </label>
+              <% if @installations.many? %>
+                <div class="field">
+                  <%= label_tag "connector[bot_installation_id]", "Act through installation" %>
+                  <%= select_tag "connector[bot_installation_id]",
+                        options_for_select(
+                          @installations.map { |i| [ "#{i["login"]} (#{i["type"].to_s.downcase})", i["id"] ] },
+                          @connector.bot_installation_id
+                        ),
+                        include_blank: "Choose an installation…" %>
+                  <p class="field-hint">
+                    The App is installed in more than one place — the bot acts through
+                    the one you pick here.
+                  </p>
+                </div>
+              <% end %>
               <div class="form-actions">
                 <%= f.submit "Save", class: "btn btn-primary" %>
               </div>

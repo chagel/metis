@@ -36,6 +36,7 @@ class ConnectorsController < ApplicationController
   def edit
     @app = @connector.catalog_app
     @credential = @connector.credential_for(current_user)
+    @installations = bot_installations
   end
 
   def update
@@ -45,6 +46,7 @@ class ConnectorsController < ApplicationController
       redirect_to edit_connector_path(@connector), notice: "Connector saved."
     else
       @app = @connector.catalog_app
+      @installations = bot_installations
       render :edit, status: :unprocessable_entity
     end
   end
@@ -92,10 +94,24 @@ class ConnectorsController < ApplicationController
 
   # Admin toggle for the github_bot token (github connector only; no
   # param elsewhere). require_team_admin! already gates this action.
+  # The installation choice rides along: absent or blank clears it, so
+  # the bot falls back to the deployment default.
   def apply_bot_setting
     return unless params[:connector]&.key?(:bot_enabled)
 
     @connector.bot_enabled = ActiveModel::Type::Boolean.new.cast(params[:connector][:bot_enabled])
+    @connector.bot_installation_id = params[:connector][:bot_installation_id].presence
+  end
+
+  # Installations for the manage page's bot picker. A GitHub blip hides
+  # the picker rather than breaking the page.
+  def bot_installations
+    return [] unless @connector.catalog_app&.oauth_provider == "github"
+    return [] unless GithubApp::Config.app_auth_configured?
+
+    GithubApp::InstallationToken.installations
+  rescue GithubApp::InstallationToken::Error
+    []
   end
 
   # OAuth-shaped apps own credentials through the connect flow — never accept

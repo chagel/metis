@@ -175,11 +175,14 @@ on file anywhere.
   - **`github_bot`** — installation (`ghs_`), acting as `<slug>[bot]`.
     Minted server-to-server from the App's id + private key by
     `GithubApp::InstallationToken` (JWT → `POST /app/installations/
-    :id/access_tokens`), cached ~50 min; the install id is
-    **auto-resolved** from the App's sole installation
-    (`GET /app/installations`, cached). When the App is installed in
-    more than one place, set `GITHUB_APP_INSTALLATION_ID` to pick which
-    (auto-resolution otherwise raises, naming the var).
+    :id/access_tokens`), cached ~50 min. Which installation it acts
+    through resolves in order: the connector's own choice
+    (`Connector#bot_installation_id`, picked per team on the manage
+    page when the App has several installs), else the deployment's
+    `GITHUB_APP_INSTALLATION_ID`, else **auto-resolved** from the
+    App's sole installation (`GET /app/installations`, cached). With
+    several installs and no choice anywhere, resolution raises and
+    the bot is skipped — pick one on the manage page.
     No bearer is stored. `McpConfig` stages this **second** server
     whenever the deployment is App-auth configured (`GITHUB_APP_ID` +
     `GITHUB_APP_PRIVATE_KEY`), the team has a `github` connector, **and an
@@ -238,9 +241,9 @@ on file anywhere.
     fallback (anything carrying the `-----` banner is used verbatim).
     Absent these two, `app_auth_configured?` is false and the
     `github_bot` server simply isn't staged (the `github` user-to-server
-    path is unaffected). `GITHUB_APP_INSTALLATION_ID` is optional — set
-    it only when the App is installed in more than one account/org, to
-    say which one `github_bot` acts through.
+    path is unaffected). `GITHUB_APP_INSTALLATION_ID` is optional — a
+    deployment-wide default for multi-install Apps; each team's manage
+    page can pick its own installation, which takes precedence.
     - Loaded by **foreman from `.env` at startup**, so adding these
       requires a `bin/dev` restart — a standalone `bin/rails runner`
       won't see them (no `dotenv-rails`).

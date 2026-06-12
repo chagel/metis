@@ -102,6 +102,31 @@ class GithubApp::InstallationTokenTest < ActiveSupport::TestCase
     end
   end
 
+  test "installations lists id and account for each install" do
+    configured do
+      body = [ { "id" => 1, "account" => { "login" => "acme", "type" => "Organization" } } ].to_json
+      fake = Struct.new(:code, :body).new("200", body)
+      with_stub(GithubApp::InstallationToken, :signed_request, ->(_klass, _path) { fake }) do
+        assert_equal [ { "id" => "1", "login" => "acme", "type" => "Organization" } ],
+                     GithubApp::InstallationToken.installations
+      end
+    end
+  end
+
+  test "installations raises Error when unconfigured or GitHub rejects" do
+    with_env("GITHUB_APP_ID" => "", "GITHUB_APP_PRIVATE_KEY" => "") do
+      assert_raises(GithubApp::InstallationToken::Error) { GithubApp::InstallationToken.installations }
+    end
+
+    configured do
+      fake = Struct.new(:code, :body).new("401", "{}")
+      with_stub(GithubApp::InstallationToken, :signed_request, ->(_klass, _path) { fake }) do
+        error = assert_raises(GithubApp::InstallationToken::Error) { GithubApp::InstallationToken.installations }
+        assert_match(/401/, error.message)
+      end
+    end
+  end
+
   test "app_jwt signs an RS256 token issued by the configured app id" do
     configured do
       jwt = GithubApp::InstallationToken.send(:app_jwt)

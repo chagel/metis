@@ -193,6 +193,18 @@ class Agent::McpConfigTest < ActiveSupport::TestCase
     end
   end
 
+  test "the github_bot token is minted for the connector's chosen installation" do
+    add_github_connector.update!(bot_installation_id: "777")
+    minted_for = :unset
+    with_stub(GithubApp::Config, :app_auth_configured?, -> { true }) do
+      with_stub(GithubApp::InstallationToken, :for, ->(id = nil) { minted_for = id; "ghs_bot" }) do
+        rendered
+      end
+    end
+
+    assert_equal "777", minted_for
+  end
+
   test "no github_bot server when the connector has not enabled the bot" do
     add_github_connector(bot_enabled: false)
     with_stub(GithubApp::Config, :app_auth_configured?, -> { true }) do

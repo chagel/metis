@@ -140,7 +140,7 @@ module Agent
       github = connectors.find { |connector| connector.catalog_app&.oauth_provider == "github" }
       return unless github&.bot_enabled?
 
-      token = GithubApp::InstallationToken.for
+      token = GithubApp::InstallationToken.for(github.bot_installation_id)
       entry = github.definition.deep_dup
       entry["headers"] = (entry["headers"] || {}).merge(github.catalog_app.credential_map_for(token))
       [ "github_bot", entry ]

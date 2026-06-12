@@ -28,8 +28,8 @@ module GithubApp
       # the request — callers treat that as "drop this connector".
       # `installation_id` may be nil — then we use the deployment's
       # GITHUB_APP_INSTALLATION_ID, else resolve the App's sole
-      # installation (the common single-org case). A deployment with >1
-      # installs and no override raises, naming the env var to set.
+      # installation (the common single-org case). With >1 installs and
+      # no choice anywhere, raises naming where to pick one.
       def for(installation_id = nil)
         raise Error, "GitHub App auth not configured" unless Config.app_auth_configured?
 
@@ -47,32 +47,49 @@ module GithubApp
         raise Error, "#{error.class}: #{error.message}"
       end
 
+      # The App's installations — [{ "id" =>, "login" =>, "type" => }] —
+      # for the connector manage page's picker and for id resolution.
+      # Cached like the token; raises Error on the same terms as `for`.
+      def installations
+        raise Error, "GitHub App auth not configured" unless Config.app_auth_configured?
+
+        Rails.cache.fetch("github_app/installations", expires_in: CACHE_TTL) do
+          response = signed_request(Net::HTTP::Get, "/app/installations")
+          raise Error, "github installations status #{response.code}" unless response.code == "200"
+
+          JSON.parse(response.body).map do |install|
+            { "id" => install["id"].to_s,
+              "login" => install.dig("account", "login"),
+              "type" => install.dig("account", "type") }
+          end
+        end
+      rescue Error
+        raise
+      rescue StandardError => error
+        raise Error, "#{error.class}: #{error.message}"
+      end
+
       private
 
       def mint(installation_id)
         parse(signed_request(Net::HTTP::Post, "/app/installations/#{installation_id}/access_tokens"))
       end
 
-      # The id of the App's one installation, for teams that haven't
-      # pinned an explicit one. Cached — installs change rarely.
+      # The id of the App's one installation, for connectors that haven't
+      # picked an explicit one.
       def sole_installation_id
-        Rails.cache.fetch("github_app/sole_installation", expires_in: CACHE_TTL) do
-          ids = installation_ids
-          raise Error, "GitHub App has no installations" if ids.empty?
-          if ids.size > 1
-            raise Error, "GitHub App has #{ids.size} installations (#{ids.join(', ')}); " \
-                         "set GITHUB_APP_INSTALLATION_ID to choose one"
-          end
-
-          ids.first
+        ids = installation_ids
+        raise Error, "GitHub App has no installations" if ids.empty?
+        if ids.size > 1
+          raise Error, "GitHub App has #{ids.size} installations (#{ids.join(', ')}); " \
+                       "pick one on the connector's manage page or set GITHUB_APP_INSTALLATION_ID"
         end
+
+        ids.first
       end
 
       def installation_ids
-        response = signed_request(Net::HTTP::Get, "/app/installations")
-        raise Error, "github installations status #{response.code}" unless response.code == "200"
-
-        JSON.parse(response.body).map { |install| install["id"].to_s }
+        installations.map { |install| install["id"] }
       end
 
       # An App-JWT-authenticated request to the GitHub API.

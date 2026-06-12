@@ -114,6 +114,39 @@ class ConnectorsControllerTest < ActionDispatch::IntegrationTest
     assert_not connector.reload.bot_enabled?
   end
 
+  test "an admin can pick which installation the bot acts through" do
+    connector = github_connector
+
+    patch connector_path(connector), params: { connector: { bot_enabled: "1", bot_installation_id: "139780379" } }
+    assert_equal "139780379", connector.reload.bot_installation_id
+
+    # No picker submitted (single-install App) clears the choice — back to
+    # the deployment default.
+    patch connector_path(connector), params: { connector: { bot_enabled: "1" } }
+    assert_nil connector.reload.bot_installation_id
+  end
+
+  test "the manage page offers an installation picker when the App has several" do
+    connector = github_connector
+    connector.update!(bot_enabled: true)
+    installs = [
+      { "id" => "1", "login" => "chagel", "type" => "User" },
+      { "id" => "2", "login" => "pipihosting", "type" => "Organization" }
+    ]
+
+    with_stub(GithubApp::Config, :app_auth_configured?, -> { true }) do
+      with_stub(GithubApp::InstallationToken, :installations, -> { installs }) do
+        get edit_connector_path(connector)
+        assert_select %(select[name="connector[bot_installation_id]"] option), 3
+      end
+
+      with_stub(GithubApp::InstallationToken, :installations, -> { installs.take(1) }) do
+        get edit_connector_path(connector)
+        assert_select %(select[name="connector[bot_installation_id]"]), 0
+      end
+    end
+  end
+
   test "the manage form's hidden companion disables the bot when the box is unchecked" do
     connector = github_connector
     connector.update!(bot_enabled: true)

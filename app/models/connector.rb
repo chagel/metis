@@ -16,8 +16,11 @@ class Connector < ApplicationRecord
 
   # Admin opt-in for the github_bot installation token, off by default —
   # it's installation-wide and shared team-wide, so staging it is a
-  # deliberate choice, not a deployment default. See docs/connectors.md.
-  store_accessor :settings, :bot_enabled
+  # deliberate choice, not a deployment default. bot_installation_id picks
+  # which installation the bot acts through when the App has several
+  # (nil → GITHUB_APP_INSTALLATION_ID, else the App's sole install).
+  # See docs/connectors.md.
+  store_accessor :settings, :bot_enabled, :bot_installation_id
 
   validates :name, presence: true,
                     format: { with: /\A[a-z0-9][a-z0-9_-]*\z/i },
