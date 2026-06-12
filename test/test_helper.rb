@@ -55,7 +55,8 @@ module ActiveSupport
     LOCAL_STEP = { "name" => "impl", "prompt" => "implement", "run" => "local" }.freeze
 
     def dispatch_run(steps = [ LOCAL_STEP ])
-      run = WorkflowRun.start(team: @team, user: @user, steps: steps)
+      project = @team.projects.find_or_create_by!(name: "Bridgework")
+      run = WorkflowRun.start(team: @team, user: @user, project: project, steps: steps)
       WorkflowAdvanceJob.perform_now(run.id)
       run.reload
     end

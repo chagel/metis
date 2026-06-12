@@ -27,7 +27,8 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "claim payload carries prior steps' full content and artifact urls" do
-    run = WorkflowRun.start(team: @team, user: @user, steps: [
+    run = WorkflowRun.start(team: @team, user: @user,
+                            project: @team.projects.create!(name: "Payloads"), steps: [
       { "name" => "spec", "prompt" => "write the spec" }, LOCAL_STEP
     ])
     WorkflowAdvanceJob.perform_now(run.id)        # starts the cloud spec step
@@ -50,7 +51,8 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
 
   test "index lists the claim queue without claiming" do
     workflow = @team.workflows.create!(name: "Ship it", steps: [ LOCAL_STEP ])
-    run = WorkflowRun.start(team: @team, user: @user, workflow: workflow)
+    run = WorkflowRun.start(team: @team, user: @user, workflow: workflow,
+                            project: @team.projects.create!(name: "Queue"))
     WorkflowAdvanceJob.perform_now(run.id)
 
     get "/api/bridge/tasks", headers: auth
@@ -113,9 +115,10 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     mate = User.create!(email: "mate-#{SecureRandom.hex(4)}@example.com", password: "password123")
     team.memberships.create!(user: mate, role: :member)
 
-    personal = WorkflowRun.start(team: team, user: @user, steps: [ LOCAL_STEP ])
+    project = team.projects.create!(name: "Shared")
+    personal = WorkflowRun.start(team: team, user: @user, project: project, steps: [ LOCAL_STEP ])
     WorkflowAdvanceJob.perform_now(personal.id)
-    shared = WorkflowRun.start(team: team, user: @user, steps: [ LOCAL_STEP ], visibility: :team)
+    shared = WorkflowRun.start(team: team, user: @user, project: project, steps: [ LOCAL_STEP ], visibility: :team)
     WorkflowAdvanceJob.perform_now(shared.id)
 
     mate_auth = { "Authorization" => "Bearer #{mate.generate_bridge_token!}" }
@@ -228,7 +231,7 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "claim scoped to a project skips other projects' tasks" do
-    other = dispatch_run                       # older, no project
+    other = dispatch_run                       # older, in the helper's project
     project = @team.projects.create!(name: "metis-api")
     run = WorkflowRun.start(team: @team, user: @user, steps: [ LOCAL_STEP ], project: project)
     WorkflowAdvanceJob.perform_now(run.id)

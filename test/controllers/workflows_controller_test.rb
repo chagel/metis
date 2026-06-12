@@ -61,7 +61,8 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_equal %w[cloud local], workflow.steps.map { |s| s["run"] }
 
     # And the run picks it up: the local step becomes a delegated task.
-    run = WorkflowRun.start(team: @team, user: @user, workflow: workflow)
+    run = WorkflowRun.start(team: @team, user: @user, workflow: workflow,
+                            project: @team.projects.create!(name: "Editor"))
     assert_not run.tasks.find_by(position: 0).delegated?
     assert run.tasks.find_by(position: 1).delegated?
   end

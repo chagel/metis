@@ -41,8 +41,11 @@ class ProjectsController < ApplicationController
 
   def destroy
     name = @project.name
-    @project.destroy
-    redirect_to projects_path, notice: "#{name} deleted."
+    if @project.destroy
+      redirect_to projects_path, notice: "#{name} deleted."
+    else
+      redirect_to edit_project_path(@project), alert: "#{name} #{@project.errors[:base].first}."
+    end
   end
 
   private

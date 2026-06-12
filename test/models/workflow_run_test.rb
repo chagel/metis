@@ -87,8 +87,16 @@ class WorkflowRunTest < ActiveSupport::TestCase
       steps: [ { "name" => "a", "prompt" => "a", "gate" => "auto" },
                { "name" => "b", "prompt" => "b", "gate" => "auto" } ]
     )
-    run = WorkflowRun.start(team: @team, user: @user, workflow: workflow)
+    run = WorkflowRun.start(team: @team, user: @user, workflow: workflow,
+                            project: @team.projects.create!(name: "Defaults"))
     assert_equal 2, run.tasks.count
+  end
+
+  test ".start refuses a nil project" do
+    assert_raises ArgumentError do
+      WorkflowRun.start(team: @team, user: @user, project: nil,
+                        steps: [ { "name" => "a", "prompt" => "a" } ])
+    end
   end
 
   test ".signal_turn_finished enqueues an advance only for an active run" do

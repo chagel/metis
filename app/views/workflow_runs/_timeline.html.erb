@@ -114,20 +114,12 @@
                 </svg>
               </button>
             </p>
-            <% if conversation.project.nil? %>
-              <p class="wf-tl-localguide-sub">
-                <strong>This run has no project</strong>, so daemons will
-                never auto-claim it (they claim per project) — relaunch the
-                workflow with a project picked.
-              </p>
-            <% else %>
-              <p class="wf-tl-localguide-sub">
-                Nothing picking it up? Set up the bridge in
-                <%= link_to "account settings", account_path %> — token, MCP
-                endpoint, the skill install, and the daemon live there. A
-                daemon only claims projects its config maps to a checkout.
-              </p>
-            <% end %>
+            <p class="wf-tl-localguide-sub">
+              Nothing picking it up? Set up the bridge in
+              <%= link_to "account settings", account_path %> — token, MCP
+              endpoint, the skill install, and the daemon live there. A
+              daemon only claims projects its config maps to a checkout.
+            </p>
           </div>
         <% end %>
         <% if task.delegated? && (task.result_agent || task.result_model) %>

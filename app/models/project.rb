@@ -12,5 +12,19 @@ class Project < ApplicationRecord
 
   has_many :conversations, dependent: :nullify
 
+  # Deleting mid-run would strip the project off the run's conversation,
+  # leaving delegated steps unclaimable (daemons claim per project).
+  # Prepended so it beats the association's nullify callback.
+  before_destroy :forbid_active_runs, prepend: true
+
   scope :recent, -> { order(updated_at: :desc) }
+
+  private
+
+  def forbid_active_runs
+    return unless WorkflowRun.active.where(conversation_id: conversations.select(:id)).exists?
+
+    errors.add(:base, "still has active workflow runs — finish or cancel them first")
+    throw :abort
+  end
 end

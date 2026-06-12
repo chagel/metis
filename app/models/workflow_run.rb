@@ -19,10 +19,13 @@ class WorkflowRun < ApplicationRecord
   # `input` is the run's subject — folded into the first step's prompt.
   # `visibility` is the launcher's choice from the composer: a team-visible
   # run is openable by any member, who can act on its gates and claim its
-  # local steps.
-  def self.start(team:, user:, workflow: nil, project: nil, steps: nil,
+  # local steps. A project is mandatory: daemons claim delegated steps per
+  # project, so a project-less run could never be auto-claimed.
+  def self.start(team:, user:, project:, workflow: nil, steps: nil,
                  input: nil, settings: {}, visibility: :personal,
                  trigger_summary: "Started by you")
+    raise ArgumentError, "every workflow run needs a project" if project.nil?
+
     steps ||= workflow&.steps || []
     run = transaction do
       # No title — auto-titling names each run from its first turn, so runs

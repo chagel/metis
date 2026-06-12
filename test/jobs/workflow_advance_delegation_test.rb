@@ -11,7 +11,8 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
   end
 
   def start(steps)
-    WorkflowRun.start(team: @team, user: @user, steps: steps)
+    project = @team.projects.find_or_create_by!(name: "Delegation")
+    WorkflowRun.start(team: @team, user: @user, project: project, steps: steps)
   end
 
   def advance(run)

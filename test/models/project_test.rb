@@ -42,6 +42,19 @@ class ProjectTest < ActiveSupport::TestCase
     assert_nil conversation.reload.project_id
   end
 
+  test "a project with an active workflow run cannot be destroyed" do
+    project = @team.projects.create!(name: "Metis")
+    conversation = @user.conversations.create!(project: project)
+    run = @team.workflow_runs.create!(conversation: conversation, status: :awaiting_local)
+
+    refute project.destroy
+    assert_includes project.errors[:base].first, "active workflow runs"
+    assert project.reload.persisted?
+
+    run.cancelled!
+    assert project.destroy
+  end
+
   test "destroying a team destroys its projects" do
     other = User.create!(email: "team-cascade-#{SecureRandom.hex(4)}@example.com", password: "password123").personal_team
     other.projects.create!(name: "Will Cascade")

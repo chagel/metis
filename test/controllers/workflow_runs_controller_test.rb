@@ -35,9 +35,10 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
 
   test "a team-visible run opens read-only for a teammate; personal stays private" do
     team = shared_team
-    open_run = WorkflowRun.start(team: team, user: @user, visibility: :team,
+    project = team.projects.create!(name: "Vis")
+    open_run = WorkflowRun.start(team: team, user: @user, project: project, visibility: :team,
                                  steps: [ { "name" => "a", "prompt" => "a" } ])
-    private_run = WorkflowRun.start(team: team, user: @user,
+    private_run = WorkflowRun.start(team: team, user: @user, project: project,
                                     steps: [ { "name" => "a", "prompt" => "a" } ])
     assert private_run.conversation.visibility_personal?, "personal is the default"
 
@@ -108,16 +109,6 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_match "#{@user.display_label}&#39;s Apollo is working on this step", response.body
     assert_match "On #{@user.display_label}&#39;s machine", response.body
     assert_select ".wf-tl-localguide", count: 0
-  end
-
-  test "a project-less delegated step warns that daemons cannot auto-claim it" do
-    conversation = @user.conversations.create!(team: @team)
-    run = @team.workflow_runs.create!(conversation: conversation, status: :awaiting_local)
-    run.tasks.create!(position: 0, name: "impl", status: :running, delegated: true)
-
-    get conversation_path(conversation)
-    assert_match "This run has no project", response.body
-    assert_select ".wf-tl-localguide a[href=?]", account_path, count: 0
   end
 
   test "a claimed delegated step shows the elapsed ticker and latest progress" do
@@ -350,7 +341,8 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
 
   test "the trigger card quotes the input; a delegated result renders in full" do
     workflow = @team.workflows.create!(name: "PR Review", steps: [ { "name" => "Local review", "prompt" => "p", "run" => "local" } ])
-    run = WorkflowRun.start(team: @team, user: @user, workflow: workflow, input: "Review chagel/metis#66")
+    run = WorkflowRun.start(team: @team, user: @user, workflow: workflow,
+                            project: @team.projects.create!(name: "Cards"), input: "Review chagel/metis#66")
     long = "Verdict: **APPROVE** — " + ("finding detail " * 30)
     run.tasks.first.update!(status: :completed, result: { "status" => "completed", "summary" => long })
 
