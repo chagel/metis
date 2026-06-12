@@ -132,3 +132,4 @@ bin/ci           # rubocop, security scans, and tests
 
 See [`docs/architecture.md`](docs/architecture.md) and
 [`CLAUDE.md`](CLAUDE.md) for architecture and conventions.
+这是一句 demo 示例。
