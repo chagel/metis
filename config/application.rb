@@ -14,6 +14,10 @@ module Metis
     # Locale files are organized one folder per language (config/locales/en,
     # config/locales/zh-CN, …); the default load_path glob is non-recursive.
     config.i18n.load_path += Dir[Rails.root.join("config/locales/**/*.{rb,yml}")]
+    # The locales we ship — also caps what rails-i18n loads (it provides the
+    # framework-default datetime/number/errors translations Rails omits for
+    # non-English locales) so it doesn't carry data for ~100 others.
+    config.i18n.available_locales = %i[en zh-CN]
 
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
