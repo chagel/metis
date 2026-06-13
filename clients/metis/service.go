@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const launchdLabel = "com.metis.bridge"
+const launchdLabel = "com.metiser.bridge"
 
 // installService copies the running binary to a stable location and
 // registers it as a login service (launchd agent on macOS, systemd user

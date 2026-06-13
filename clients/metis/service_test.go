@@ -8,7 +8,7 @@ import (
 func TestLaunchdPlist(t *testing.T) {
 	plist := launchdPlist("/usr/local/bin/metis", "/Users/m/.metis/daemon.log", "/opt/x/bin:/usr/bin")
 	for _, want := range []string{
-		"<string>com.metis.bridge</string>",
+		"<string>com.metiser.bridge</string>",
 		"<string>/usr/local/bin/metis</string>",
 		"<string>run</string>",
 		"<key>KeepAlive</key><true/>",
