@@ -2143,15 +2143,6 @@ body.drawer-open { overflow:hidden; }
 .wf-tl-localguide { margin-top:8px; font-size:13px; color:var(--ink-2); line-height:1.6; }
 .wf-tl-localguide a { color:var(--accent-fg); }
 .wf-tl-localguide-sub { margin-top:4px; font-size:12px; color:var(--ink-3); }
-.wf-tl-claim {
-  display:inline-flex; align-items:center; gap:5px; cursor:pointer;
-  font-family:var(--fm); font-size:12px; border:none; border-radius:6px;
-  padding:2px 8px; background:var(--accent-soft); color:var(--accent-fg);
-}
-.wf-tl-claim svg { width:11px; height:11px; }
-.wf-tl-claim .ico-check { display:none; }
-.wf-tl-claim.is-copied .ico-copy { display:none; }
-.wf-tl-claim.is-copied .ico-check { display:inline; }
 
 /* The gate partial inline on the timeline: the wf-tl-node stands in for
    the partial's own mark. */
