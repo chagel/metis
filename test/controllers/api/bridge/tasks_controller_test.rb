@@ -51,7 +51,7 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
 
   test "claim payload carries the run input so a later step knows the subject" do
     run = WorkflowRun.start(team: @team, user: @user, input: "review pr 75",
-                            steps: [ LOCAL_STEP ])
+                            project: @team.projects.create!(name: "Subject"), steps: [ LOCAL_STEP ])
     WorkflowAdvanceJob.perform_now(run.id)
 
     get "/api/bridge/tasks/next", headers: auth

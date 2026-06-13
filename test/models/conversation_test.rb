@@ -303,6 +303,7 @@ class ConversationTest < ActiveSupport::TestCase
 
   test "apply_generated_title! falls back to the run input for a workflow conversation" do
     run = WorkflowRun.start(team: @user.personal_team, user: @user, input: "review pr 75",
+                            project: @user.personal_team.projects.create!(name: "Review"),
                             steps: [ { "name" => "a", "prompt" => "Clone the repo and review it thoroughly" } ])
     run.conversation.messages.create!(role: :user, content: "review pr 75\n\nClone the repo and review it thoroughly",
                                       streaming_status: :done, kind: :step_prompt)
@@ -312,6 +313,7 @@ class ConversationTest < ActiveSupport::TestCase
 
   test "apply_generated_title! leaves a workflow conversation untitled when the run has no input" do
     run = WorkflowRun.start(team: @user.personal_team, user: @user,
+                            project: @user.personal_team.projects.create!(name: "Untitled"),
                             steps: [ { "name" => "a", "prompt" => "Clone the repo and review it thoroughly" } ])
     run.conversation.messages.create!(role: :user, content: "Clone the repo and review it thoroughly",
                                       streaming_status: :done, kind: :step_prompt)

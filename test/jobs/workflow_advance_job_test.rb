@@ -48,7 +48,8 @@ class WorkflowAdvanceJobTest < ActiveSupport::TestCase
   end
 
   test "a later step's prompt restates the run input" do
-    run = WorkflowRun.start(team: @team, user: @user, input: "review pr 75", steps: [
+    run = WorkflowRun.start(team: @team, user: @user, input: "review pr 75",
+                            project: @team.projects.find_or_create_by!(name: "Engine"), steps: [
       { "name" => "a", "prompt" => "do a", "gate" => AUTO },
       { "name" => "b", "prompt" => "do b", "gate" => AUTO }
     ])
