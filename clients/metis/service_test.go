@@ -42,6 +42,15 @@ func TestLaunchdPid(t *testing.T) {
 	}
 }
 
+func TestLaunchdMigrationKeepsLegacyLabelVisible(t *testing.T) {
+	if len(legacyLaunchdLabels) != 1 || legacyLaunchdLabels[0] != "com.metis.bridge" {
+		t.Fatalf("legacy labels = %v", legacyLaunchdLabels)
+	}
+	if !strings.HasSuffix(launchdPlistPathFor(legacyLaunchdLabels[0]), "com.metis.bridge.plist") {
+		t.Fatalf("legacy plist path = %q", launchdPlistPathFor(legacyLaunchdLabels[0]))
+	}
+}
+
 func TestSystemdUnit(t *testing.T) {
 	unit := systemdUnit("/home/m/.local/bin/metis", "/opt/x/bin:/usr/bin")
 	for _, want := range []string{

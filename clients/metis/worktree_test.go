@@ -59,6 +59,31 @@ func TestWorktreePrepareReusesBranchAfterGC(t *testing.T) {
 	}
 }
 
+func TestWorktreePrepareRefreshesMetaWhenReusingExistingWorktree(t *testing.T) {
+	repo, root := initRepo(t)
+	worktree := Worktree{Repo: repo, Root: root, Ref: "RUN-10"}
+	if err := worktree.Prepare(); err != nil {
+		t.Fatal(err)
+	}
+	if err := worktree.Settle("completed"); err != nil {
+		t.Fatal(err)
+	}
+	if err := worktree.Prepare(); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(filepath.Join(worktree.Path(), metaFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var meta map[string]any
+	if err := json.Unmarshal(raw, &meta); err != nil {
+		t.Fatal(err)
+	}
+	if meta["settled_at"] != nil || meta["status"] != nil || meta["claimed_at"] == nil {
+		t.Fatalf("reuse meta = %v", meta)
+	}
+}
+
 func TestMetaFileIsInvisibleToGit(t *testing.T) {
 	repo, root := initRepo(t)
 	worktree := Worktree{Repo: repo, Root: root, Ref: "RUN-5"}

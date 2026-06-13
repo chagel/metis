@@ -41,7 +41,7 @@ func (w Worktree) Path() string {
 
 func (w Worktree) Prepare() error {
 	if info, err := os.Stat(w.Path()); err == nil && info.IsDir() {
-		return nil
+		return w.writeMeta(map[string]any{"claimed_at": time.Now().UTC().Format(time.RFC3339)})
 	}
 	if err := os.MkdirAll(w.Root, 0o755); err != nil {
 		return err

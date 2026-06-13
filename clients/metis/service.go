@@ -14,6 +14,8 @@ import (
 
 const launchdLabel = "com.metiser.bridge"
 
+var legacyLaunchdLabels = []string{"com.metis.bridge"}
+
 // installService copies the running binary to a stable location and
 // registers it as a login service (launchd agent on macOS, systemd user
 // unit on Linux) running `metis run`. The caller's PATH is baked
@@ -47,8 +49,8 @@ func installService(logf func(string, ...any)) error {
 func stopService(logf func(string, ...any)) error {
 	switch runtime.GOOS {
 	case "darwin":
-		if out, err := exec.Command("launchctl", "bootout", launchdDomain()+"/"+launchdLabel).CombinedOutput(); err != nil {
-			return fmt.Errorf("not running? launchctl bootout: %s", strings.TrimSpace(string(out)))
+		if err := bootoutLaunchd(append([]string{launchdLabel}, legacyLaunchdLabels...)); err != nil {
+			return fmt.Errorf("not running? launchctl bootout: %w", err)
 		}
 		logf("service %s stopped — starts again at next login or metis install", launchdLabel)
 		return nil
@@ -68,6 +70,12 @@ func statusService(logf func(string, ...any)) error {
 	switch runtime.GOOS {
 	case "darwin":
 		if _, err := os.Stat(launchdPlistPath()); err != nil {
+			for _, label := range legacyLaunchdLabels {
+				if _, err := os.Stat(launchdPlistPathFor(label)); err == nil {
+					logf("legacy service %s installed — run: metis install to migrate", label)
+					return nil
+				}
+			}
 			logf("not installed — run: metis install")
 			return nil
 		}
@@ -83,8 +91,12 @@ func statusService(logf func(string, ...any)) error {
 			logf("not installed — run: metis install")
 			return nil
 		}
-		state, _ := exec.Command("systemctl", "--user", "is-active", "metis-bridge.service").Output()
-		logf("%s (logs: journalctl --user -u metis-bridge; also %s)", strings.TrimSpace(string(state)), logPath)
+		state, err := exec.Command("systemctl", "--user", "is-active", "metis-bridge.service").Output()
+		status := strings.TrimSpace(string(state))
+		if err != nil && status == "" {
+			status = "unknown"
+		}
+		logf("%s (logs: journalctl --user -u metis-bridge; also %s)", status, logPath)
 		return nil
 	default:
 		return fmt.Errorf("service status not supported on %s", runtime.GOOS)
@@ -131,15 +143,41 @@ func launchdDomain() string {
 	return "gui/" + strconv.Itoa(os.Getuid())
 }
 
+func bootoutLaunchd(labels []string) error {
+	var firstErr error
+	stopped := false
+	for _, label := range labels {
+		if out, err := exec.Command("launchctl", "bootout", launchdDomain()+"/"+label).CombinedOutput(); err != nil {
+			if firstErr == nil {
+				firstErr = fmt.Errorf("%s: %s", label, strings.TrimSpace(string(out)))
+			}
+		} else {
+			stopped = true
+		}
+	}
+	if stopped {
+		return nil
+	}
+	return firstErr
+}
+
+func removeLaunchd(label string) error {
+	_ = exec.Command("launchctl", "bootout", launchdDomain()+"/"+label).Run()
+	if err := os.Remove(launchdPlistPathFor(label)); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
 func uninstallService(logf func(string, ...any)) error {
 	switch runtime.GOOS {
 	case "darwin":
-		plist := launchdPlistPath()
-		_ = exec.Command("launchctl", "bootout", launchdDomain()+"/"+launchdLabel).Run()
-		if err := os.Remove(plist); err != nil && !os.IsNotExist(err) {
-			return err
+		for _, label := range append([]string{launchdLabel}, legacyLaunchdLabels...) {
+			if err := removeLaunchd(label); err != nil {
+				return err
+			}
 		}
-		logf("removed %s (binary left in place)", plist)
+		logf("removed %s (binary left in place)", launchdPlistPath())
 		return nil
 	case "linux":
 		_ = exec.Command("systemctl", "--user", "disable", "--now", "metis-bridge.service").Run()
@@ -212,14 +250,23 @@ func copyExecutable(src, dst string) error {
 }
 
 func launchdPlistPath() string {
+	return launchdPlistPathFor(launchdLabel)
+}
+
+func launchdPlistPathFor(label string) string {
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, "Library", "LaunchAgents", launchdLabel+".plist")
+	return filepath.Join(home, "Library", "LaunchAgents", label+".plist")
 }
 
 func installLaunchd(binary, logPath string, logf func(string, ...any)) error {
 	plist := launchdPlistPath()
 	if err := os.MkdirAll(filepath.Dir(plist), 0o755); err != nil {
 		return err
+	}
+	for _, label := range legacyLaunchdLabels {
+		if err := removeLaunchd(label); err != nil {
+			return err
+		}
 	}
 	if err := os.WriteFile(plist, []byte(launchdPlist(binary, logPath, os.Getenv("PATH"))), 0o644); err != nil {
 		return err
