@@ -65,6 +65,10 @@
         notice: "工作流已保存。"
       destroy:
         notice: "%{name} 已删除。"
+    workflow_runs:
+      claim:
+        claimed: "%{step} 已认领 — 你的守护进程会在下次轮询时接手。"
+        unavailable: "此任务已不可用。"
     models:
       refresh:
         notice: "正在后台从 pi 刷新目录 — 请稍后重新加载。"

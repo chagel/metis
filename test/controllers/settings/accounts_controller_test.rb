@@ -47,6 +47,22 @@ class Settings::AccountsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".bridge-paste", /regenerate your token/
   end
 
+  test "the bridge UI is fully translated in zh-CN — no missing keys leaking into markup" do
+    @user.update!(language: "zh-CN")
+    post account_bridge_token_path                 # auto is the default
+
+    # A missing key renders an HTML translation_missing span; inside an
+    # attribute (aria-label/title) it corrupts the markup and the paste
+    # block renders garbage. Assert the real translations resolved instead.
+    assert_select "span.translation_missing", count: 0
+    assert_select ".bridge-mode-selector", /自动/
+    assert_select ".bridge-mode-selector", /手动/
+    assert_select ".bridge-instr-title", /守护进程设置/
+    assert_select ".token-copy[aria-label=?]", "复制设置说明到剪贴板"
+    # The paste block holds only the setup text, never leaked button markup.
+    assert_select ".bridge-paste", { text: /data-controller|aria-label/, count: 0 }
+  end
+
   test "the claim-mode selector is hidden until a token exists, then visible" do
     get account_path
     assert_select ".bridge-mode-selector", count: 0

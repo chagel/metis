@@ -1,4 +1,6 @@
 "zh-CN":
+  task:
+    default_name: "该步骤"
   activerecord:
     errors:
       models:
