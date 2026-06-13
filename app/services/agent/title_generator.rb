@@ -80,7 +80,7 @@ module Agent
       preferred = [ @conversation.settings["provider"],
                     Rails.application.config.x.agent.provider,
                     Agent::Catalog.default_provider ]
-      (preferred.compact_blank + TITLE_MODELS.keys).find do |provider|
+      (preferred.compact_blank + TITLE_MODELS.keys).uniq.find do |provider|
         TITLE_MODELS.key?(provider) && api_keys[provider].present?
       end
     end
