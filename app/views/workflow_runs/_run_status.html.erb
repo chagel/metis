@@ -6,25 +6,25 @@
       <% if run.awaiting_approval? %>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-        Paused for your approval — see the gate above.
+        <%= t(".paused") %>
       <% elsif run.awaiting_local? %>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="11" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
         <% if (worker = run.tasks.dispatched.first&.claimed_label) %>
-          <%= worker %> is working on this step.
+          <%= t(".worker_working", worker: worker) %>
         <% else %>
-          Delegated — waiting for a machine with a bridge token to pick it up.
+          <%= t(".delegated_waiting") %>
         <% end %>
-        <%= button_to "Cancel run", reject_workflow_run_path(run), method: :post,
+        <%= button_to t(".cancel_run"), reject_workflow_run_path(run), method: :post,
               class: "wf-run-cancel", form: { class: "inline-form", data: { turbo_stream: true } } %>
       <% elsif run.active? %>
         <span class="wf-run-dot"></span>
-        The agent is running this workflow…
+        <%= t(".running") %>
       <% else %>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-        Workflow <%= run.status %>.
-        <%= link_to "Continue the conversation",
+        <%= t(".workflow_status", status: run.status) %>
+        <%= link_to t(".continue_conversation"),
               conversation_path(run.conversation, view: "chat"),
               class: "wf-run-link", data: { turbo_frame: "_top" } %>
       <% end %>

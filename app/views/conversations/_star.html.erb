@@ -6,8 +6,8 @@
     <%= button_to star_conversation_path(conversation),
           method: :delete,
           class: "chat-action on",
-          title: "Unstar conversation",
-          aria: { label: "Unstar conversation" },
+          title: t('.unstar'),
+          aria: { label: t('.unstar') },
           form: { data: { turbo_stream: true } } do %>
       <svg viewBox="0 0 16 16" fill="currentColor" stroke="currentColor" stroke-width="1.2"
            stroke-linejoin="round" aria-hidden="true">
@@ -18,8 +18,8 @@
     <%= button_to star_conversation_path(conversation),
           method: :post,
           class: "chat-action",
-          title: "Star conversation",
-          aria: { label: "Star conversation" },
+          title: t('.star'),
+          aria: { label: t('.star') },
           form: { data: { turbo_stream: true } } do %>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

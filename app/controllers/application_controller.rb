@@ -39,13 +39,13 @@ class ApplicationController < ActionController::Base
   def require_team_admin!
     return if current_membership&.manages_team?
 
-    redirect_to team_path, alert: "You don't have permission to manage this team."
+    redirect_to team_path, alert: t("flash.authorization.not_team_admin")
   end
 
   def require_team_owner!
     return if current_membership&.owner?
 
-    redirect_to team_path, alert: "Only the team owner can do that."
+    redirect_to team_path, alert: t("flash.authorization.not_team_owner")
   end
 
   # Deployment-level authority, orthogonal to team membership: the
@@ -54,7 +54,7 @@ class ApplicationController < ActionController::Base
   def require_superuser!
     return if current_user.superuser?
 
-    redirect_to models_path, alert: "Only a superuser can change the model catalog."
+    redirect_to models_path, alert: t("flash.authorization.not_superuser")
   end
 
   # Roster operations (rename, delete, invite, leave) only make sense on
@@ -62,7 +62,7 @@ class ApplicationController < ActionController::Base
   def reject_personal_team!
     return unless current_team.personal?
 
-    redirect_to team_path, alert: "That isn't available for your personal workspace."
+    redirect_to team_path, alert: t("flash.authorization.personal_unavailable")
   end
 
   # Cast a request param to a real boolean ("1"/"true"/"on" -> true, etc.).

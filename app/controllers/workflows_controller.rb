@@ -17,7 +17,7 @@ class WorkflowsController < ApplicationController
   def create
     @workflow = current_team.workflows.new(workflow_params)
     if @workflow.save
-      redirect_to edit_workflow_path(@workflow), notice: "Workflow created."
+      redirect_to edit_workflow_path(@workflow), notice: t("flash.workflows.create.notice")
     else
       render :new, status: :unprocessable_entity
     end
@@ -28,7 +28,7 @@ class WorkflowsController < ApplicationController
 
   def update
     if @workflow.update(workflow_params)
-      redirect_to edit_workflow_path(@workflow), notice: "Workflow saved."
+      redirect_to edit_workflow_path(@workflow), notice: t("flash.workflows.update.notice")
     else
       render :edit, status: :unprocessable_entity
     end
@@ -37,7 +37,7 @@ class WorkflowsController < ApplicationController
   def destroy
     name = @workflow.name
     @workflow.destroy
-    redirect_to workflows_path, notice: "#{name} deleted."
+    redirect_to workflows_path, notice: t("flash.workflows.destroy.notice", name: name)
   end
 
   private

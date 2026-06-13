@@ -1,23 +1,23 @@
-<% content_for :title, "Models" %>
+<% content_for :title, t('.title') %>
 
 <main class="pane">
   <header class="pane-head">
-    <h1 class="pane-title">Models</h1>
+    <h1 class="pane-title"><%= t('.heading') %></h1>
     <div style="flex:1"></div>
     <% if current_user.superuser? %>
       <%# Turbo swaps the label to "Refreshing…" and disables the button for
           the whole request — the sync spawns pi (docker run / E2b microVM),
           which can take a while. %>
-      <%= button_to "Refresh", refresh_models_path, class: "btn btn-ghost",
-            data: { turbo_submits_with: "Refreshing…" } %>
+      <%= button_to t('.refresh'), refresh_models_path, class: "btn btn-ghost",
+            data: { turbo_submits_with: t('.refreshing') } %>
     <% end %>
   </header>
 
   <div class="pane-body">
     <div class="pane-inner">
       <p class="models-intro">
-        The providers and models this deployment offers in the new-chat composer.
-        <%= current_user.superuser? ? "Refresh to pull the latest from pi, then toggle on what you want." : "Managed by an administrator." %>
+        <%= t('.intro') %>
+        <%= current_user.superuser? ? t('.intro_superuser') : t('.intro_managed') %>
       </p>
 
       <%# Enable/disable and set-default submit inside this frame, so Turbo
@@ -26,11 +26,11 @@
       <%= turbo_frame_tag "models-catalog" do %>
         <% if @providers.empty? %>
           <div class="pane-empty">
-            <p>The catalog is empty.</p>
+            <p><%= t('.empty') %></p>
             <% if current_user.superuser? %>
-              <p>Click <strong>Refresh</strong> to populate it from pi.</p>
+              <p><%= t('.empty_refresh_prefix') %><strong><%= t('.refresh') %></strong><%= t('.empty_refresh_suffix') %></p>
             <% else %>
-              <p>An administrator hasn't populated it yet.</p>
+              <p><%= t('.empty_managed') %></p>
             <% end %>
           </div>
         <% else %>

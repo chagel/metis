@@ -11,13 +11,13 @@
     </div>
     <div class="wf-tl-card">
       <div class="wf-tl-top">
-        <h3 class="wf-tl-title">Triggered</h3>
+        <h3 class="wf-tl-title"><%= t(".triggered") %></h3>
         <span class="wf-tl-time"><%= wf_trigger_stamp(run.created_at) %></span>
       </div>
       <p class="wf-tl-body">
         <%= run.trigger_summary %>
-        <% if run.workflow %> · workflow <b><%= run.workflow.name %></b><% end %>
-        <% if conversation.runtime_label %> · runtime <%= conversation.runtime_label %><% end %>
+        <% if run.workflow %> <%= t(".workflow_prefix") %> <b><%= run.workflow.name %></b><% end %>
+        <% if conversation.runtime_label %> <%= t(".runtime_label", runtime: conversation.runtime_label) %><% end %>
       </p>
       <% if run.input.present? %>
         <div class="wf-tl-quote chat-content"><%= markdown(run.input) %></div>
@@ -45,14 +45,14 @@
       </div>
       <div class="wf-tl-card">
         <div class="wf-tl-top">
-          <h3 class="wf-tl-title"><%= task.name.presence || "Step #{index + 1}" %></h3>
+          <h3 class="wf-tl-title"><%= task.name.presence || t(".step_number", number: index + 1) %></h3>
           <span class="wf-tl-time">
             <% if (window = wf_turn_window(message)) %>
               <%= window %>
             <% elsif task.delegated? && task.running? %>
               <span class="wf-tl-running"><%= wf_local_label(run) %></span>
             <% elsif task.running? %>
-              <span class="wf-tl-running">Running</span>
+              <span class="wf-tl-running"><%= t(".running") %></span>
             <% end %>
           </span>
         </div>
@@ -96,13 +96,11 @@
         <% elsif task.delegated? && task.running? %>
           <div class="wf-tl-localguide">
             <p>
-              This step runs on one of your machines. A running
-              <code>metis</code> daemon claims it automatically on its next
-              poll — or, in your coding agent, say
-              <button type="button" class="wf-tl-claim" title="Copy"
+              <%= t(".local_runs_html") %>
+              <button type="button" class="wf-tl-claim" title="<%= t(".copy") %>"
                       data-controller="copy" data-copy-text-value="claim next task"
                       data-action="copy#copy">
-                claim next task
+                <%= t(".claim_next_task") %>
                 <svg class="ico-copy" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/>
@@ -115,10 +113,7 @@
               </button>
             </p>
             <p class="wf-tl-localguide-sub">
-              Nothing picking it up? Set up the bridge in
-              <%= link_to "account settings", account_path %> — token, MCP
-              endpoint, the skill install, and the daemon live there. A
-              daemon only claims projects its config maps to a checkout.
+              <%= t(".nothing_html", link: link_to(t(".account_settings"), account_path)) %>
             </p>
           </div>
         <% end %>
@@ -135,7 +130,7 @@
             <% if message.model_key.present? %><span class="tag"><%= message.model_key %></span><% end %>
             <% if token_summary(message).present? %><span class="tag"><%= token_summary(message) %></span><% end %>
             <% if message.cost&.positive? %><span class="tag"><%= format_cost(message.cost) %></span><% end %>
-            <%= link_to "view turn →",
+            <%= link_to t(".view_turn"),
                   conversation_path(conversation, view: "chat", turn: message.id),
                   class: "wf-tl-turnlink" %>
           </div>
@@ -161,9 +156,9 @@
         </div>
         <div class="wf-tl-card">
           <div class="wf-tl-top">
-            <h3 class="wf-tl-title">Gate · <%= task.name.presence || "review" %></h3>
+            <h3 class="wf-tl-title"><%= t(".gate_title", name: task.name.presence || t(".gate_review")) %></h3>
             <% if message&.finished_at %>
-              <span class="wf-tl-time">paused <%= wf_compact_duration(task.decided_at - message.finished_at) %></span>
+              <span class="wf-tl-time"><%= t(".paused_duration", duration: wf_compact_duration(task.decided_at - message.finished_at)) %></span>
             <% end %>
           </div>
           <div class="wf-tl-gate-by">
@@ -171,9 +166,9 @@
               <%= avatar_for task.approved_by, size: 20, css: "wf-tl-gate-avatar" %>
               <span><%= task.approved_by.display_label %></span>
             <% else %>
-              <span>The reviewer</span>
+              <span><%= t(".the_reviewer") %></span>
             <% end %>
-            · <%= task.rejected? ? "rejected" : "approved" %>
+            · <%= task.rejected? ? t(".rejected") : t(".approved") %>
             <span class="tag"><%= task.decided_at.strftime("%-l:%M %p") %></span>
           </div>
         </div>

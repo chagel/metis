@@ -1,23 +1,23 @@
-<% content_for :title, "Skills" %>
+<% content_for :title, t(".title") %>
 
 <main class="pane">
   <header class="pane-head">
-    <h1 class="pane-title">Skills</h1>
+    <h1 class="pane-title"><%= t(".title") %></h1>
     <div style="flex:1"></div>
     <% if team_manager? %>
-      <%= link_to "Import", import_form_skills_path, class: "btn btn-ghost" %>
-      <%= link_to "New", new_skill_path, class: "btn btn-ghost" %>
+      <%= link_to t("common.import"), import_form_skills_path, class: "btn btn-ghost" %>
+      <%= link_to t(".new"), new_skill_path, class: "btn btn-ghost" %>
     <% end %>
   </header>
 
   <div class="pane-body">
     <div class="pane-inner">
       <nav class="skills-tabs">
-        <%= link_to "Your skills", skills_path(tab: "team"),
+        <%= link_to t(".your_skills"), skills_path(tab: "team"),
               class: "skills-tab #{'is-active' if @tab == 'team'}" %>
-        <%= link_to "Built-in", skills_path(tab: "builtin"),
+        <%= link_to t(".built_in"), skills_path(tab: "builtin"),
               class: "skills-tab #{'is-active' if @tab == 'builtin'}" %>
-        <%= link_to "Marketplace", skills_path(tab: "marketplace"),
+        <%= link_to t(".marketplace"), skills_path(tab: "marketplace"),
               class: "skills-tab #{'is-active' if @tab == 'marketplace'}" %>
       </nav>
 

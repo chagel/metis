@@ -1,0 +1,16 @@
+en:
+  activerecord:
+    errors:
+      models:
+        skill:
+          attributes:
+            slug:
+              invalid: "only lowercase letters, numbers, and hyphens"
+        project:
+          attributes:
+            name:
+              invalid: "can't contain line breaks"
+        invitation:
+          attributes:
+            email:
+              taken: "already has a pending invitation"

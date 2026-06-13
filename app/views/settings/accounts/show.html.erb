@@ -1,8 +1,8 @@
-<% content_for :title, "Account" %>
+<% content_for :title, t('.title') %>
 
 <main class="pane">
   <header class="pane-head">
-    <h1 class="pane-title">Account</h1>
+    <h1 class="pane-title"><%= t('.heading') %></h1>
   </header>
 
   <div class="pane-body">
@@ -13,7 +13,7 @@
         <% end %>
         <% if @user.errors.any? %>
           <div class="form-flash form-flash-err">
-            <%= pluralize(@user.errors.count, "error") %> prevented saving your account:
+            <%= pluralize(@user.errors.count, "error") %> <%= t('.errors_prevented') %>
             <ul>
               <% @user.errors.full_messages.each do |msg| %>
                 <li><%= msg %></li>
@@ -24,44 +24,44 @@
 
         <section class="settings-card">
           <fieldset class="account-fieldset">
-            <legend>Email</legend>
+            <legend><%= t('.email_legend') %></legend>
             <div class="form-row">
-              <%= form.label :email, "Email address" %>
+              <%= form.label :email, t('.email_label') %>
               <%= form.email_field :email, autocomplete: "email" %>
-              <p class="form-hint">Used to sign in and for account notifications.</p>
+              <p class="form-hint"><%= t('.email_hint') %></p>
             </div>
           </fieldset>
 
           <fieldset class="account-fieldset">
-            <legend>Password</legend>
+            <legend><%= t('.password_legend') %></legend>
             <div class="form-row">
-              <%= form.label :password, "New password" %>
+              <%= form.label :password, t('.new_password') %>
               <%= form.password_field :password, autocomplete: "new-password" %>
-              <p class="form-hint">Leave blank to keep your current password.</p>
+              <p class="form-hint"><%= t('.new_password_hint') %></p>
             </div>
             <div class="form-row">
-              <%= form.label :password_confirmation, "Confirm new password" %>
+              <%= form.label :password_confirmation, t('.confirm_new_password') %>
               <%= form.password_field :password_confirmation, autocomplete: "new-password" %>
             </div>
           </fieldset>
 
           <fieldset class="account-fieldset">
-            <legend>Confirm changes</legend>
+            <legend><%= t('.confirm_legend') %></legend>
             <div class="form-row">
-              <%= form.label :current_password, "Current password" %>
+              <%= form.label :current_password, t('.current_password') %>
               <%= form.password_field :current_password, autocomplete: "current-password" %>
               <p class="form-hint">
-                Required to save any change.
+                <%= t('.current_password_hint') %>
                 <% if @user.identities.exists? %>
-                  Signed up with a social account?
-                  <%= link_to "Set a password", new_user_password_path, data: { turbo_frame: "_top" } %> first.
+                  <%= t('.social_signup') %>
+                  <%= link_to t('.set_password'), new_user_password_path, data: { turbo_frame: "_top" } %> <%= t('.first') %>
                 <% end %>
               </p>
             </div>
           </fieldset>
 
           <div class="form-actions">
-            <%= form.submit "Save changes", class: "btn btn-primary" %>
+            <%= form.submit t('.save_changes'), class: "btn btn-primary" %>
           </div>
         </section>
       <% end %>
@@ -69,9 +69,9 @@
       <% if @identities.any? %>
         <section class="settings-card">
           <div class="settings-card-head">
-            <span class="settings-card-title">Connected accounts</span>
+            <span class="settings-card-title"><%= t('.connected_accounts') %></span>
           </div>
-          <p class="form-hint">Sign-in providers linked to your account.</p>
+          <p class="form-hint"><%= t('.connected_accounts_hint') %></p>
           <ul class="identity-list">
             <% @identities.each do |identity| %>
               <li class="identity-row">
@@ -80,7 +80,7 @@
                 </span>
                 <span class="identity-id">
                   <span class="identity-provider"><%= identity_provider_label(identity.provider) %></span>
-                  <span class="identity-meta">Connected</span>
+                  <span class="identity-meta"><%= t('.connected') %></span>
                 </span>
                 <svg class="identity-check" viewBox="0 0 16 16" fill="none" stroke="currentColor"
                      stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -94,12 +94,10 @@
 
       <section class="settings-card">
         <div class="settings-card-head">
-          <span class="settings-card-title">Local bridge</span>
+          <span class="settings-card-title"><%= t('.local_bridge') %></span>
         </div>
         <p class="form-hint">
-          A workflow step set to <strong>Local</strong> runs on your own machine: a
-          local agent pulls it with this token, works in your real repo with your
-          own credentials, and reports the result. Treat the token like a password.
+          <%= t('.local_bridge_hint_pre') %> <strong><%= t('.local') %></strong> <%= t('.local_bridge_hint_post') %>
         </p>
 
         <% if @new_bridge_token.present? %>
@@ -137,12 +135,12 @@
           %>
           <div class="bridge-token">
             <p class="bridge-token-hint">
-              Shown once — paste this whole thing into the coding agent on your machine:
+              <%= t('.bridge_token_hint') %>
             </p>
             <div class="token-row">
               <pre class="token bridge-paste"><%= bridge_setup %></pre>
-              <button type="button" class="token-copy" title="Copy setup instructions"
-                      aria-label="Copy setup instructions to clipboard"
+              <button type="button" class="token-copy" title="<%= t('.copy_instructions') %>"
+                      aria-label="<%= t('.copy_instructions_aria') %>"
                       data-controller="copy"
                       data-copy-text-value="<%= bridge_setup %>"
                       data-action="copy#copy">
@@ -155,8 +153,8 @@
                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M3.5 8.4l3 3 6-6.2"/>
                 </svg>
-                <span class="lbl-copy">Copy</span>
-                <span class="lbl-done">Copied</span>
+                <span class="lbl-copy"><%= t('.copy') %></span>
+                <span class="lbl-done"><%= t('.copied') %></span>
               </button>
             </div>
           </div>
@@ -165,19 +163,18 @@
         <div class="danger-row">
           <p class="form-hint">
             <% if @user.bridge_token_digest.present? %>
-              Token active.
+              <%= t('.token_active') %>
               <% if @user.bridge_seen_at %>
-                <%= @user.bridge_client.presence || "A machine" %> connected
-                <%= time_ago_in_words(@user.bridge_seen_at) %> ago.
+                <%= t('.machine_connected', machine: @user.bridge_client.presence || t('.a_machine'), ago: time_ago_in_words(@user.bridge_seen_at)) %>
               <% else %>
-                No machine has connected yet.
+                <%= t('.no_machine_yet') %>
               <% end %>
-              Regenerating revokes the current token.
+              <%= t('.regenerate_revokes') %>
             <% else %>
-              No token yet — generate one to connect your machine.
+              <%= t('.no_token_yet') %>
             <% end %>
           </p>
-          <%= button_to (@user.bridge_token_digest.present? ? "Regenerate token" : "Generate token"),
+          <%= button_to (@user.bridge_token_digest.present? ? t('.regenerate_token') : t('.generate_token')),
                 account_bridge_token_path, method: :post, class: "btn btn-ghost",
                 form: { class: "inline-form" } %>
         </div>
@@ -185,13 +182,13 @@
 
       <section class="settings-card settings-card-danger">
         <div class="settings-card-head">
-          <span class="settings-card-title">Delete account</span>
+          <span class="settings-card-title"><%= t('.delete_account') %></span>
         </div>
         <div class="danger-row">
-          <p class="form-hint">Permanently removes your account and conversations. This cannot be undone.</p>
-          <%= button_to "Delete account", account_path, method: :delete, class: "btn btn-danger",
+          <p class="form-hint"><%= t('.delete_account_hint') %></p>
+          <%= button_to t('.delete_account'), account_path, method: :delete, class: "btn btn-danger",
                 form: { class: "inline-form", data: { turbo_frame: "_top",
-                                turbo_confirm: "Delete your account? This permanently removes your conversations and cannot be undone." } } %>
+                                turbo_confirm: t('.delete_account_confirm') } } %>
         </div>
       </section>
     </div>

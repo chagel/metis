@@ -5,19 +5,19 @@
     <% local = step["run"] == "local" %>
     <div class="wf-step-head">
       <input type="text" name="workflow[steps][<%= index %>][name]"
-             value="<%= step["name"] %>" placeholder="Step name" class="wf-step-name">
-      <div class="wf-step-run" role="radiogroup" aria-label="Where this step runs">
+             value="<%= step["name"] %>" placeholder="<%= t(".name_placeholder") %>" class="wf-step-name">
+      <div class="wf-step-run" role="radiogroup" aria-label="<%= t(".where_runs") %>">
         <label class="wf-gate-opt">
           <input type="radio" name="workflow[steps][<%= index %>][run]" value="cloud" <%= "checked" unless local %>>
-          <span title="Run as a normal cloud turn">Cloud</span>
+          <span title="<%= t(".run_cloud_title") %>"><%= t(".run_cloud") %></span>
         </label>
         <label class="wf-gate-opt wf-gate-opt--local">
           <input type="radio" name="workflow[steps][<%= index %>][run]" value="local" <%= "checked" if local %>>
-          <span title="Delegate this step to your enrolled machine">Local</span>
+          <span title="<%= t(".run_local_title") %>"><%= t(".run_local") %></span>
         </label>
       </div>
       <button type="button" class="wf-step-del" data-action="workflow-editor#remove"
-              title="Remove step" aria-label="Remove step">
+              title="<%= t(".remove_step") %>" aria-label="<%= t(".remove_step") %>">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M3 4.5h10M6.5 4.5V3.5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1m1.5 0v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-8"/>
@@ -25,7 +25,7 @@
       </button>
     </div>
     <textarea name="workflow[steps][<%= index %>][prompt]" rows="2"
-              placeholder="What should the agent do in this step?"
+              placeholder="<%= t(".prompt_placeholder") %>"
               class="wf-step-prompt"><%= step["prompt"] %></textarea>
   </div>
 </div>

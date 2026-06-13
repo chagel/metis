@@ -2,15 +2,15 @@
 
 <main class="pane">
   <header class="pane-head">
-    <%= link_to projects_path, class: "ico-btn", title: "Back to projects" do %>
+    <%= link_to projects_path, class: "ico-btn", title: t('.back') do %>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
         <path d="M10 3L5 8l5 5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     <% end %>
     <h1 class="pane-title"><%= @project.name %></h1>
     <div style="flex:1"></div>
-    <%= button_to "Delete", project_path(@project), method: :delete, class: "btn btn-danger",
-          form: { data: { turbo_confirm: "Delete #{@project.name}? Attached conversations will be detached, not deleted." } } %>
+    <%= button_to t('common.delete'), project_path(@project), method: :delete, class: "btn btn-danger",
+          form: { data: { turbo_confirm: t('.delete_confirm', name: @project.name) } } %>
   </header>
 
   <div class="pane-body">

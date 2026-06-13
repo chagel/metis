@@ -7,14 +7,14 @@
       <%= run.workflow.name %>
     <% end %>
   <% else %>
-    <span class="tag wf-meta-name">Workflow</span>
+    <span class="tag wf-meta-name"><%= t(".workflow") %></span>
   <% end %>
   <span class="wf-meta-stats">
-    <%= pluralize(run.tasks.size, "step") %>
-    · <%= pluralize(run.tasks.approval.count, "gate") %>
-    · agent <%= wf_compact_duration(run.agent_seconds) %>
-    <% if run.settled_at %> · wall <%= wf_compact_duration(run.settled_at - run.created_at) %><% end %>
-    <% if run.total_cost.positive? %> · <%= format_cost(run.total_cost) %><% end %>
+    <%= t(".steps", count: run.tasks.size) %>
+    · <%= t(".gates", count: run.tasks.approval.count) %>
+    · <%= t(".agent_duration", duration: wf_compact_duration(run.agent_seconds)) %>
+    <% if run.settled_at %> <%= t(".wall_duration", duration: wf_compact_duration(run.settled_at - run.created_at)) %><% end %>
+    <% if run.total_cost.positive? %> <%= t(".cost", cost: format_cost(run.total_cost)) %><% end %>
   </span>
   <span class="tag wf-meta-state wf-meta-state--<%= run.status %>"><%= wf_run_status_label(run) %></span>
 </span>

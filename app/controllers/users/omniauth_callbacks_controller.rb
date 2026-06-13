@@ -12,7 +12,7 @@ class Users::OmniauthCallbacksController < Devise::OmniauthCallbacksController
   end
 
   def failure
-    redirect_to new_user_session_path, alert: "Sign-in was cancelled."
+    redirect_to new_user_session_path, alert: t("flash.users.omniauth_callbacks.failure.cancelled")
   end
 
   private
@@ -39,16 +39,16 @@ class Users::OmniauthCallbacksController < Devise::OmniauthCallbacksController
     finish_sign_in(target, provider)
   rescue IdentityAlreadyLinked
     redirect_to return_path,
-                alert: "This #{provider.titleize} account is already linked to another Metis user."
+                alert: t("flash.users.omniauth_callbacks.identity_already_linked", provider: provider.titleize)
   rescue User::SignupNotAllowed
     redirect_to new_user_session_path,
-                alert: "Metis is invite-only — ask a team admin to invite you."
+                alert: t("flash.shared.invite_only")
   rescue StandardError => error
     Rails.logger.error(
       "Omniauth(#{provider}) failed: #{error.class}: #{error.message}\n" \
       "#{error.backtrace.first(5).join("\n")}"
     )
-    redirect_to new_user_session_path, alert: "Sign-in failed."
+    redirect_to new_user_session_path, alert: t("flash.users.omniauth_callbacks.sign_in_failed")
   end
 
   def record_grant(target, auth, provider)
@@ -89,7 +89,7 @@ class Users::OmniauthCallbacksController < Devise::OmniauthCallbacksController
   def finish_sign_in(target, provider)
     if user_signed_in?
       redirect_target, redirect_options = post_connect_redirect(provider) || [
-        after_sign_in_path_for(target), { notice: "Connected to #{provider.titleize}." }
+        after_sign_in_path_for(target), { notice: t("flash.users.omniauth_callbacks.connected", provider: provider.titleize) }
       ]
       redirect_to redirect_target, **redirect_options
     else
@@ -112,7 +112,7 @@ class Users::OmniauthCallbacksController < Devise::OmniauthCallbacksController
       install_url,
       {
         allow_other_host: true,
-        notice: "Connected to GitHub. Install the Metis app on the repos you want it to access, then return here."
+        notice: t("flash.users.omniauth_callbacks.github_connected")
       }
     ]
   end

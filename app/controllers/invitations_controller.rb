@@ -22,15 +22,15 @@ class InvitationsController < ApplicationController
     invitation = Invitation.find_by!(token: params[:token])
     return if redirect_if_settled(invitation)
 
-    return redirect_to(root_path, alert: "That invitation has expired.") if invitation.expired?
+    return redirect_to(root_path, alert: t("flash.invitations.accept.expired")) if invitation.expired?
     unless invitation.for?(current_user)
       return redirect_to invitation_path(invitation.token),
-                         alert: "This invitation was sent to #{invitation.email}."
+                         alert: t("flash.invitations.accept.wrong_email", email: invitation.email)
     end
 
     invitation.accept!(current_user)
     session[:current_team_id] = invitation.team_id
-    redirect_to root_path, notice: "You've joined #{invitation.team.name}."
+    redirect_to root_path, notice: t("flash.invitations.accept.notice", name: invitation.team.name)
   end
 
   private
@@ -42,9 +42,9 @@ class InvitationsController < ApplicationController
 
     if invitation.team.members.include?(current_user)
       session[:current_team_id] = invitation.team_id
-      redirect_to root_path, notice: "You're already in #{invitation.team.name}."
+      redirect_to root_path, notice: t("flash.invitations.accept.already_member", name: invitation.team.name)
     else
-      redirect_to root_path, alert: "That invitation has already been used."
+      redirect_to root_path, alert: t("flash.invitations.accept.already_used")
     end
     true
   end

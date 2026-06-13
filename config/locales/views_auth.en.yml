@@ -1,0 +1,63 @@
+en:
+  devise:
+    sessions:
+      new:
+        title: "Sign in"
+        heading: "Sign in"
+        subtitle: "Welcome back to Metis."
+        sign_in_with: "Sign in with %{provider}"
+        or: "or"
+        remember_me: "Remember me"
+        submit: "Sign in"
+    registrations:
+      new:
+        title: "Create account"
+        heading: "Create your account"
+        subtitle: "Get started with Metis."
+        sign_up_with: "Sign up with %{provider}"
+        or: "or"
+        minimum_password_length:
+          one: "%{count} character minimum"
+          other: "%{count} characters minimum"
+        submit: "Create account"
+    passwords:
+      new:
+        title: "Reset password"
+        heading: "Forgot your password?"
+        subtitle: "We'll email you a link to reset it."
+        submit: "Send reset instructions"
+      edit:
+        title: "Change password"
+        heading: "Set a new password"
+        new_password: "New password"
+        confirm_new_password: "Confirm new password"
+        minimum_password_length:
+          one: "%{count} character minimum"
+          other: "%{count} characters minimum"
+        submit: "Change password"
+    shared:
+      error_messages:
+        intro:
+          one: "%{count} problem stopped this from saving:"
+          other: "%{count} problems stopped this from saving:"
+      invitation_note:
+        prefix: "Your invitation is for"
+        suffix: ". Use this address — including if you continue with Google or GitHub — so it matches the invite."
+      links:
+        sign_in: "Sign in"
+        create_account: "Create an account"
+        forgot_password: "Forgot your password?"
+    mailer:
+      reset_password_instructions:
+        heading: "Reset your password"
+        intro_prefix: "We received a request to reset the password for your Metis account"
+        intro: "We received a request to reset the password for your Metis account (%{email})."
+        reset_here: "Reset it here:"
+        cta: "Reset password"
+        ignore_notice: "If you didn't request this, you can safely ignore this email — your password won't change until you open the link above and choose a new one."
+        signature: "Metis · Your AI agent workspace"
+  shared_conversations:
+    show:
+      workflow_fallback: "Workflow"
+      shared_ago: "Shared %{time} ago"
+      powered_by_prefix: "Powered by"

@@ -1,0 +1,65 @@
+en:
+  artifact_previews:
+    show:
+      back: "Back"
+      view_mode: "View mode"
+      fullscreen: "Fullscreen"
+      download: "Download"
+  layouts:
+    head:
+      title: "Metis"
+    application:
+      title: "Metis"
+      brand: "Metis"
+    chat:
+      open_menu: "Open menu"
+      undo: "Undo"
+    mailer:
+      brand: "Metis"
+      tagline: "Your AI agent workspace"
+    settings:
+      open_menu: "Open menu"
+  models:
+    index:
+      title: "Models"
+      heading: "Models"
+      refresh: "Refresh"
+      refreshing: "Refreshing…"
+      intro: "The providers and models this deployment offers in the new-chat composer."
+      intro_superuser: "Refresh to pull the latest from pi, then toggle on what you want."
+      intro_managed: "Managed by an administrator."
+      empty: "The catalog is empty."
+      empty_refresh_prefix: "Click "
+      empty_refresh_suffix: " to populate it from pi."
+      empty_managed: "An administrator hasn't populated it yet."
+    provider:
+      enabled_count: "%{enabled} of %{total} enabled"
+      no_api_key: "no API key"
+      no_api_key_title: "No API key is configured for this provider; its models won't run."
+      disable_all_provider: "Disable all %{provider} models"
+      enable_provider: "Enable %{provider}"
+      disable_provider: "Disable %{provider}"
+      "on": "On"
+      "off": "Off"
+      stale: "stale"
+      stale_title: "Not reported by pi on the last refresh."
+      context_window: "%{size}K context"
+      reasoning: "reasoning"
+      disable_model: "Disable %{model}"
+      enable_model: "Enable %{model}"
+  pwa:
+    manifest:
+      name: "Metis"
+      description: "Metis."
+  shared:
+    team_switcher:
+      switch_team: "Switch team"
+      teams: "Teams"
+      team_settings: "Team settings"
+    user_menu:
+      open_user_menu: "Open user menu"
+      cycle_theme_aria: "Cycle theme: system, light, dark"
+      cycle_theme: "Cycle theme"
+      profile: "Profile"
+      settings: "Settings"
+      sign_out: "Sign out"

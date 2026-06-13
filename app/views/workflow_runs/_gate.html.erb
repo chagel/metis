@@ -15,34 +15,34 @@
           <span class="wf-gate-eyebrow">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-            Review needed
+            <%= t(".review_needed") %>
           </span>
-          <h3 class="wf-gate-title"><%= task.name.presence || "Approval needed" %></h3>
+          <h3 class="wf-gate-title"><%= task.name.presence || t(".approval_needed") %></h3>
           <p class="wf-gate-desc">
             <% if task.final_step? %>
-              This is the workflow's last step — your sign-off completes the run.
+              <%= t(".final_step_desc") %>
             <% else %>
-              The agent paused here on purpose. Approve to let it continue, or reject to stop the run.
+              <%= t(".paused_desc") %>
             <% end %>
           </p>
         </div>
         <% if work&.content.present? %>
           <details class="wf-gate-review">
-            <summary>View the step output</summary>
+            <summary><%= t(".view_output") %></summary>
             <div class="body chat-content"><%= markdown(work.content) %></div>
           </details>
         <% end %>
         <%= form_with url: approve_workflow_run_path(run), method: :post, class: "wf-gate-form" do %>
           <textarea name="feedback" rows="2" class="wf-gate-input"
-                    placeholder="Optional — tell the agent what to change, then Request changes."></textarea>
+                    placeholder="<%= t(".feedback_placeholder") %>"></textarea>
           <div class="wf-gate-bar">
-            <span class="wf-gate-meta">Routed to your team</span>
+            <span class="wf-gate-meta"><%= t(".routed") %></span>
             <button type="submit" formaction="<%= reject_workflow_run_path(run) %>"
-                    class="btn btn-ghost btn-sm">Cancel run</button>
+                    class="btn btn-ghost btn-sm"><%= t(".cancel_run") %></button>
             <button type="submit" formaction="<%= request_changes_workflow_run_path(run) %>"
-                    class="btn btn-ghost btn-sm">Request changes</button>
+                    class="btn btn-ghost btn-sm"><%= t(".request_changes") %></button>
             <button type="submit" class="btn btn-primary btn-sm">
-              <%= task.final_step? ? "Approve & finish" : "Approve & continue" %>
+              <%= task.final_step? ? t(".approve_finish") : t(".approve_continue") %>
             </button>
           </div>
         <% end %>

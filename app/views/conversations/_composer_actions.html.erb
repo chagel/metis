@@ -4,13 +4,13 @@
 <div id="composer_actions" class="composer-actions"
      data-composer-state="<%= conversation&.turn_in_progress? ? "streaming" : "idle" %>">
   <% if conversation&.turn_in_progress? %>
-    <button type="submit" form="cancel_turn" class="send stop" title="Stop" aria-label="Stop">
+    <button type="submit" form="cancel_turn" class="send stop" title="<%= t('.stop') %>" aria-label="<%= t('.stop') %>">
       <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
         <rect x="4" y="4" width="8" height="8" rx="1.5"/>
       </svg>
     </button>
   <% else %>
-    <% label = conversation ? "Send" : "Start" %>
+    <% label = conversation ? t('.send') : t('.start') %>
     <button type="submit" class="send" title="<%= label %>" aria-label="<%= label %>">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
         <path d="M2.5 8h9M7.5 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/>

@@ -1,0 +1,35 @@
+en:
+  helpers:
+    workflows:
+      running: "Running"
+      review: "Review"
+      completed: "Completed"
+      failed: "Failed"
+      cancelled: "Cancelled"
+      on_machine: "On %{name}'s machine"
+      waiting_for_machine: "Waiting for a machine"
+    activity:
+      working: "Working…"
+      reasoning: "Reasoning"
+      activity: "Activity"
+      tool_calls:
+        one: "%{count} tool call"
+        other: "%{count} tool calls"
+    tokens:
+      in: "%{value} in"
+      out: "%{value} out"
+      cached: "%{value} cached"
+    time_buckets:
+      today: "Today"
+      yesterday: "Yesterday"
+      this_week: "This week"
+      this_month: "This month"
+      older: "Older"
+    languages:
+      en: "English"
+    sidebar_empty:
+      team: "No team conversations yet — open one to your team to start."
+      starred: "No starred conversations yet — star one to keep it handy."
+      active: "No conversations yet — start one on the right."
+    share:
+      default_description: "A conversation shared from Metis."

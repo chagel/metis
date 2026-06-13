@@ -5,7 +5,7 @@
     Rendered at the top of both the chat and settings sidebars. %>
 <div class="team-switcher" data-controller="dropdown">
   <button type="button" class="team-switcher-trigger" data-action="click->dropdown#toggle"
-          aria-haspopup="true" aria-label="Switch team">
+          aria-haspopup="true" aria-label="<%= t('.switch_team') %>">
     <span class="team-switcher-name"><%= current_team.display_name %></span>
     <svg class="team-switcher-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor"
          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -15,8 +15,8 @@
 
   <div class="team-switcher-panel" role="menu">
     <div class="team-switcher-label">
-      <span>Teams</span>
-      <%= link_to team_path, class: "team-switcher-gear", title: "Team settings",
+      <span><%= t('.teams') %></span>
+      <%= link_to team_path, class: "team-switcher-gear", title: t('.team_settings'),
             role: "menuitem", data: { turbo_frame: "_top" } do %>
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

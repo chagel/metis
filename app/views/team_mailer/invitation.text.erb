@@ -1,12 +1,11 @@
-Join <%= @team.name %> on Metis
+<%= t(".heading", team: @team.name) %>
 
-<%= @inviter.display_label %> invited you to join <%= @team.name %> with the <%= @invitation.role %> role.
+<%= t(".body_text", inviter: @inviter.display_label, team: @team.name, role: @invitation.role) %>
 
-Accept the invitation:
+<%= t(".accept_link") %>
 <%= @accept_url %>
 
-This invitation expires on <%= @invitation.expires_at.to_date.to_fs(:long) %>.
-If you weren't expecting it, you can safely ignore this email.
+<%= t(".expires", date: @invitation.expires_at.to_date.to_fs(:long)) %>
 
 —
-Metis · Your AI agent workspace
+<%= t(".signature") %>

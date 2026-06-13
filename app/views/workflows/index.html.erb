@@ -1,11 +1,11 @@
-<% content_for :title, "Workflows" %>
+<% content_for :title, t(".title") %>
 
 <main class="pane">
   <header class="pane-head">
-    <h1 class="pane-title">Workflows</h1>
+    <h1 class="pane-title"><%= t(".title") %></h1>
     <div style="flex:1"></div>
     <% if team_manager? %>
-      <%= link_to "New", new_workflow_path, class: "btn btn-ghost" %>
+      <%= link_to t(".new"), new_workflow_path, class: "btn btn-ghost" %>
     <% end %>
   </header>
 
@@ -15,9 +15,9 @@
         <div class="conn-list"><%= render @workflows %></div>
       <% else %>
         <div class="pane-empty">
-          <p>No workflows yet. A workflow is a saved recipe the agent runs on its own, pausing at gates for your approval.</p>
+          <p><%= t(".empty") %></p>
           <% if team_manager? %>
-            <%= link_to "Create your first workflow", new_workflow_path, class: "btn btn-primary" %>
+            <%= link_to t(".create_first"), new_workflow_path, class: "btn btn-primary" %>
           <% end %>
         </div>
       <% end %>

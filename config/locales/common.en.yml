@@ -1,0 +1,9 @@
+en:
+  common:
+    save: "Save"
+    cancel: "Cancel"
+    delete: "Delete"
+    edit: "Edit"
+    remove: "Remove"
+    restore: "Restore"
+    import: "Import"

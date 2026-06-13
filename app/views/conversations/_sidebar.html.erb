@@ -11,7 +11,7 @@
       <%= render "shared/team_switcher" %>
     </div>
     <div style="flex:1"></div>
-    <%= link_to conversations_path, class: "ico-btn", title: "New chat",
+    <%= link_to conversations_path, class: "ico-btn", title: t('.new_chat'),
           data: { turbo_frame: "main" } do %>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
         <path d="M8 3v10M3 8h10" stroke-linecap="round"/>
@@ -23,7 +23,7 @@
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
       <circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/>
     </svg>
-    <input type="search" placeholder="Search conversations" aria-label="Search conversations"
+    <input type="search" placeholder="<%= t('.search') %>" aria-label="<%= t('.search') %>"
            data-conversation-filter-target="query"
            data-action="input->conversation-filter#filter">
   </div>
@@ -36,19 +36,19 @@
         the server re-renders their active state on each swap. %>
     <turbo-frame id="convos">
       <div class="convo-tabs" role="tablist">
-        <%= link_to "Me", conversations_path(filter: "active"), class: sidebar_tab_class("active") %>
+        <%= link_to t('.tab_me'), conversations_path(filter: "active"), class: sidebar_tab_class("active") %>
         <%# A personal workspace is a team of one — nothing to share with. %>
         <% unless current_team.personal? %>
           <%= link_to conversations_path(filter: "team"), class: sidebar_tab_class("team") do %>
-            Team<%= render "conversations/team_tab_dot", active: false %>
+<%= t('.tab_team') %><%= render "conversations/team_tab_dot", active: false %>
           <% end %>
         <% end %>
-        <%= link_to "Starred", conversations_path(filter: "starred"), class: sidebar_tab_class("starred") %>
+        <%= link_to t('.tab_starred'), conversations_path(filter: "starred"), class: sidebar_tab_class("starred") %>
       </div>
 
       <% if @needs_you.present? %>
         <div class="convos-pinned">
-          <div class="grp-label">Needs you</div>
+          <div class="grp-label"><%= t('.needs_you') %></div>
           <% @needs_you.each do |conversation| %>
             <%= render "conversations/convo", conversation: conversation %>
           <% end %>
@@ -69,7 +69,7 @@
           <div class="convos-empty"><%= sidebar_empty_message(@sidebar_filter) %></div>
         <% end %>
       </div>
-      <div class="convos-empty" data-conversation-filter-target="empty" hidden>No matches.</div>
+      <div class="convos-empty" data-conversation-filter-target="empty" hidden><%= t('.no_matches') %></div>
     </turbo-frame>
   </nav>
 

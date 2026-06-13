@@ -1,6 +1,5 @@
 <% if pending_invitation %>
   <div class="auth-note">
-    Your invitation is for <strong><%= pending_invitation.email %></strong>. Use this address —
-    including if you continue with Google or GitHub — so it matches the invite.
+    <%= t('.prefix') %> <strong><%= pending_invitation.email %></strong><%= t('.suffix') %>
   </div>
 <% end %>

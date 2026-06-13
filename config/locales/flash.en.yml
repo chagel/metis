@@ -1,0 +1,121 @@
+en:
+  flash:
+    authorization:
+      not_team_admin: "You don't have permission to manage this team."
+      not_team_owner: "Only the team owner can do that."
+      not_superuser: "Only a superuser can change the model catalog."
+      personal_unavailable: "That isn't available for your personal workspace."
+    shared:
+      invite_only: "Metis is invite-only — ask a team admin to invite you."
+    skills:
+      create:
+        notice: "Skill created."
+      update:
+        notice: "Skill saved."
+      destroy:
+        notice: "%{slug} deleted."
+      import:
+        blank_url: "Paste a GitHub URL or owner/repo."
+        notice: "Importing %{name} — it'll appear in Your skills shortly."
+      add_file:
+        no_file: "Pick a file to upload."
+        invalid_path: "Invalid path — use a relative path under %{depth} levels, segments like `ref/style.md`."
+        too_large: "File too large — keep it under %{size}MB."
+        notice: "Added %{path}."
+      destroy_file:
+        not_found: "File not found."
+        notice: "Removed %{rel}."
+    teams:
+      create:
+        notice: "%{name} created."
+    connectors:
+      update:
+        notice: "Connector saved."
+      destroy:
+        notice: "%{name} disconnected."
+      create:
+        notice: "%{name} connected."
+      oauth:
+        start:
+          unknown: "Unknown connector."
+          invalid_url: "Enter a valid https:// URL for your %{name} server."
+          failed: "Couldn't start that connection: %{message}"
+        callback:
+          expired: "That connection expired — try again."
+          cancelled: "Connection was cancelled."
+          notice: "%{name} connected."
+          failed: "Couldn't finish that connection: %{message}"
+    profiles:
+      update:
+        notice: "Profile saved."
+    workflows:
+      create:
+        notice: "Workflow created."
+      update:
+        notice: "Workflow saved."
+      destroy:
+        notice: "%{name} deleted."
+    models:
+      refresh:
+        notice: "Refreshing the catalog from pi in the background — reload in a moment."
+    invitations:
+      accept:
+        expired: "That invitation has expired."
+        wrong_email: "This invitation was sent to %{email}."
+        notice: "You've joined %{name}."
+        already_member: "You're already in %{name}."
+        already_used: "That invitation has already been used."
+    projects:
+      create:
+        notice: "Project created."
+      update:
+        notice: "Project saved."
+      destroy:
+        notice: "%{name} deleted."
+        alert: "%{name} %{error}."
+    settings:
+      teams:
+        update:
+          notice: "Team renamed."
+        destroy:
+          notice: "%{name} deleted."
+      memberships:
+        update:
+          owner_role: "You can't change the owner's role."
+          unassignable: "That role can't be assigned."
+          notice: "%{name} is now %{role}."
+        destroy:
+          owner_removal: "The owner can't be removed."
+          self_removal: "Use “Leave team” to remove yourself."
+          notice: "%{name} removed."
+        transfer:
+          already_owner: "They're already the owner."
+          notice: "%{name} is now the owner."
+        leave:
+          owner_must_transfer: "Transfer ownership or delete the team before leaving."
+          notice: "You left %{name}."
+      accounts:
+        bridge_token:
+          notice: "Bridge token generated. Copy it now — it won't be shown again."
+        update:
+          notice: "Account updated."
+        destroy:
+          notice: "Your account has been deleted."
+      invitations:
+        create:
+          notice: "Invitation sent to %{email}."
+        resend:
+          too_soon: "That invitation was just sent — try again in a couple of minutes."
+          notice: "Invitation resent to %{email}."
+        destroy:
+          notice: "Invitation revoked."
+    users:
+      omniauth_callbacks:
+        failure:
+          cancelled: "Sign-in was cancelled."
+        identity_already_linked: "This %{provider} account is already linked to another Metis user."
+        sign_in_failed: "Sign-in failed."
+        connected: "Connected to %{provider}."
+        github_connected: "Connected to GitHub. Install the Metis app on the repos you want it to access, then return here."
+      registrations:
+        domain_only: "Metis is invite-only — only %{domains} emails may register without an invitation."

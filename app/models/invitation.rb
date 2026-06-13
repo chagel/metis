@@ -19,8 +19,7 @@ class Invitation < ApplicationRecord
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :role, inclusion: { in: INVITABLE_ROLES }
   validates :token, presence: true, uniqueness: true
-  validates :email, uniqueness: { scope: :team_id, conditions: -> { pending },
-                                  message: "already has a pending invitation" }
+  validates :email, uniqueness: { scope: :team_id, conditions: -> { pending } }
   validate :email_not_already_member, on: :create
 
   def expired?

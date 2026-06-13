@@ -2,15 +2,15 @@
 
 <main class="pane">
   <header class="pane-head">
-    <%= link_to skills_path, class: "ico-btn", title: "Back to skills" do %>
+    <%= link_to skills_path, class: "ico-btn", title: t(".back_to_skills") do %>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
         <path d="M10 3L5 8l5 5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     <% end %>
     <h1 class="pane-title"><%= @skill.slug %></h1>
     <div style="flex:1"></div>
-    <%= button_to "Delete", skill_path(@skill), method: :delete, class: "btn btn-danger",
-          form: { data: { turbo_confirm: "Delete #{@skill.slug}?" } } %>
+    <%= button_to t("common.delete"), skill_path(@skill), method: :delete, class: "btn btn-danger",
+          form: { data: { turbo_confirm: t(".delete_confirm", slug: @skill.slug) } } %>
   </header>
 
   <div class="pane-body">

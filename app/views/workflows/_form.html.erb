@@ -5,30 +5,30 @@
 
   <div class="field">
     <%= f.label :name %>
-    <%= f.text_field :name, placeholder: "Triage & fix Sentry error", autocomplete: "off" %>
+    <%= f.text_field :name, placeholder: t(".name_placeholder"), autocomplete: "off" %>
   </div>
 
   <div class="field">
     <%= f.label :description %>
-    <%= f.text_field :description, placeholder: "Investigate an incoming error, draft a fix, gate, ship." %>
+    <%= f.text_field :description, placeholder: t(".description_placeholder") %>
   </div>
 
   <div class="field">
-    <%= f.label :default_project_id, "Default project" %>
+    <%= f.label :default_project_id, t(".default_project_label") %>
     <%= f.collection_select :default_project_id, current_team.projects.recent, :id, :name,
-          { include_blank: "None — pick at launch" }, class: "team-input" %>
-    <p class="field-hint">Every run launches with a project; its standards reach the agent via AGENTS.md. This default is overridable per run — without one, each launch must pick.</p>
+          { include_blank: t(".include_blank") }, class: "team-input" %>
+    <p class="field-hint"><%= t(".default_project_hint") %></p>
   </div>
 
   <div class="field">
-    <%= f.label :trigger_source, "Trigger" %>
+    <%= f.label :trigger_source, t(".trigger_label") %>
     <%= f.select :trigger_source, Workflow.trigger_sources.keys.map { |k| [ k.humanize, k ] }, {}, class: "team-input" %>
-    <p class="field-hint">Manual runs from the catalog. Webhook and schedule triggers activate in a later release.</p>
+    <p class="field-hint"><%= t(".trigger_hint") %></p>
   </div>
 
   <div class="field">
-    <%= f.label :steps, "Steps" %>
-    <p class="field-hint">Each prompt step runs as one agent turn — the name is just a label, the prompt is the instruction. Add a <strong>break</strong> where the run should pause for your approval (approve to continue, or request changes to re-run the step above it). Set a step to <strong>Local</strong> to run it on your own machine (<%= link_to "bridge token", account_path %>).</p>
+    <%= f.label :steps, t(".steps_label") %>
+    <p class="field-hint"><%= t(".steps_hint_html", bridge_token_link: link_to(t(".bridge_token"), account_path)) %></p>
     <div class="wf-steps" data-controller="workflow-editor">
       <div class="wf-steps-list" data-workflow-editor-target="list"
            data-action="dragover->workflow-editor#dragOver">
@@ -50,19 +50,19 @@
         <button type="button" class="wf-step-add" data-action="workflow-editor#add">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>
-          Add prompt step
+          <%= t(".add_prompt_step") %>
         </button>
         <button type="button" class="wf-step-add wf-step-add--break" data-action="workflow-editor#add"
                 data-workflow-editor-kind-param="break">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 3.5v9M10.5 3.5v9"/></svg>
-          Add break
+          <%= t(".add_break") %>
         </button>
       </div>
     </div>
   </div>
 
   <div class="form-actions">
-    <%= f.submit(workflow.persisted? ? "Save" : "Create workflow", class: "btn btn-primary") %>
+    <%= f.submit(workflow.persisted? ? t("common.save") : t(".create_workflow"), class: "btn btn-primary") %>
   </div>
 <% end %>

@@ -1,11 +1,11 @@
-<% content_for :title, "Projects" %>
+<% content_for :title, t('.title') %>
 
 <main class="pane">
   <header class="pane-head">
-    <h1 class="pane-title">Projects</h1>
+    <h1 class="pane-title"><%= t('.heading') %></h1>
     <div style="flex:1"></div>
     <% if team_manager? %>
-      <%= link_to "New", new_project_path, class: "btn btn-ghost" %>
+      <%= link_to t('.new'), new_project_path, class: "btn btn-ghost" %>
     <% end %>
   </header>
 
@@ -17,9 +17,9 @@
         </div>
       <% else %>
         <div class="pane-empty">
-          <p>No projects yet. A project tells the agent which GitHub repo and Linear project you're working on — once. Every conversation attached to it inherits the mapping.</p>
+          <p><%= t('.empty') %></p>
           <% if team_manager? %>
-            <%= link_to "Create your first project", new_project_path, class: "btn btn-primary" %>
+            <%= link_to t('.create_first'), new_project_path, class: "btn btn-primary" %>
           <% end %>
         </div>
       <% end %>

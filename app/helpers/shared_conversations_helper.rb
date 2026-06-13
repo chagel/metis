@@ -10,7 +10,7 @@ module SharedConversationsHelper
     text  = first&.content.to_s.gsub(/[#*`>_~\[\]()]+/, " ").squish
 
     text.truncate(SHARE_DESCRIPTION_MAX).presence ||
-      "A conversation shared from Metis."
+      t("helpers.share.default_description")
   end
 
   # Absolute URL for the Open Graph / Twitter card image. Static branded

@@ -13,7 +13,7 @@ class Settings::AccountsController < ApplicationController
   # The plaintext is shown once and never stored.
   def bridge_token
     @new_bridge_token = @user.generate_bridge_token!
-    flash.now[:notice] = "Bridge token generated. Copy it now — it won't be shown again."
+    flash.now[:notice] = t("flash.settings.accounts.bridge_token.notice")
     render :show
   end
 
@@ -22,7 +22,7 @@ class Settings::AccountsController < ApplicationController
       # A password change rotates the auth token and would sign them out;
       # re-establish the session so they stay on the page.
       bypass_sign_in(@user)
-      redirect_to account_path, notice: "Account updated."
+      redirect_to account_path, notice: t("flash.settings.accounts.update.notice")
     else
       render :show, status: :unprocessable_entity
     end
@@ -36,7 +36,7 @@ class Settings::AccountsController < ApplicationController
     user.personal_team&.destroy
     user.destroy
     reset_session
-    redirect_to new_user_session_path, notice: "Your account has been deleted."
+    redirect_to new_user_session_path, notice: t("flash.settings.accounts.destroy.notice")
   end
 
   private

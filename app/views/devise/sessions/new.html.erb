@@ -1,7 +1,7 @@
-<% content_for :title, "Sign in" %>
+<% content_for :title, t('.title') %>
 
-<h2>Sign in</h2>
-<p class="auth-sub">Welcome back to Metis.</p>
+<h2><%= t('.heading') %></h2>
+<p class="auth-sub"><%= t('.subtitle') %></p>
 
 <%= render "devise/shared/invitation_note" %>
 
@@ -13,7 +13,7 @@
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M12 0a12 12 0 00-3.79 23.4c.6.11.82-.26.82-.58 0-.29-.01-1.05-.02-2.07-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.1-.75.08-.74.08-.74 1.21.09 1.85 1.25 1.85 1.25 1.08 1.85 2.83 1.32 3.52 1 .11-.78.42-1.32.77-1.62-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.53.12-3.19 0 0 1.01-.32 3.31 1.23a11.5 11.5 0 016.03 0c2.3-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.89.12 3.19.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.62-5.49 5.92.43.37.81 1.1.81 2.21 0 1.6-.01 2.89-.01 3.28 0 .32.22.7.83.58A12 12 0 0012 0z"/>
         </svg>
-        Sign in with GitHub
+        <%= t('.sign_in_with', provider: 'GitHub') %>
       <% end %>
     <% end %>
     <% if configured_oauth_providers.include?(:google_oauth2) %>
@@ -24,10 +24,10 @@
           <path fill="#FBBC05" d="M5 14.23a7.21 7.21 0 010-4.46V6.54H1.18a12 12 0 000 10.92L5 14.23z"/>
           <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.27-3.27C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.18 6.54L5 9.77c.99-2.95 3.75-5.02 7-5.02z"/>
         </svg>
-        Sign in with Google
+        <%= t('.sign_in_with', provider: 'Google') %>
       <% end %>
     <% end %>
-    <div class="auth-or">or</div>
+    <div class="auth-or"><%= t('.or') %></div>
   </div>
 <% end %>
 
@@ -46,11 +46,11 @@
   <% if devise_mapping.rememberable? %>
     <label class="auth-check">
       <%= f.check_box :remember_me %>
-      <span>Remember me</span>
+      <span><%= t('.remember_me') %></span>
     </label>
   <% end %>
 
-  <%= f.submit "Sign in", class: "auth-submit" %>
+  <%= f.submit t('.submit'), class: "auth-submit" %>
 <% end %>
 
 <%= render "devise/shared/links" %>

@@ -1,25 +1,25 @@
-<% content_for :title, "Import skill" %>
+<% content_for :title, t(".title") %>
 
 <main class="pane">
   <header class="pane-head">
-    <h1 class="pane-title">Import skill</h1>
+    <h1 class="pane-title"><%= t(".title") %></h1>
     <div style="flex:1"></div>
-    <%= link_to "Cancel", skills_path, class: "btn btn-ghost" %>
+    <%= link_to t("common.cancel"), skills_path, class: "btn btn-ghost" %>
   </header>
 
   <div class="pane-body">
     <div class="pane-inner">
       <%= form_with url: import_skills_path, method: :post, local: true, class: "conn-form" do |f| %>
         <div class="field">
-          <%= f.label :url, "GitHub source" %>
+          <%= f.label :url, t(".github_source") %>
           <%= f.text_field :url, autofocus: true,
-                placeholder: "owner/repo or a github.com URL" %>
-          <p class="field-hint">Must point to a folder with <code>SKILL.md</code>.</p>
+                placeholder: t(".url_placeholder") %>
+          <p class="field-hint"><%= t(".url_hint_html") %></p>
         </div>
 
         <div style="display:flex; gap:0.5rem;">
-          <%= f.submit "Import", class: "btn btn-primary" %>
-          <%= link_to "Browse marketplace", skills_path(tab: "marketplace"), class: "btn btn-ghost" %>
+          <%= f.submit t("common.import"), class: "btn btn-primary" %>
+          <%= link_to t(".browse_marketplace"), skills_path(tab: "marketplace"), class: "btn btn-ghost" %>
         </div>
       <% end %>
     </div>

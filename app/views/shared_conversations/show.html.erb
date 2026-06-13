@@ -44,7 +44,7 @@
         <span class="tag wf-meta-name">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4h5l1 1.5h5M2.5 4v8h11V5.5M2.5 8h11"/></svg>
-          <%= run.workflow&.name || "Workflow" %>
+          <%= run.workflow&.name || t('.workflow_fallback') %>
         </span>
         <span class="tag wf-meta-state wf-meta-state--<%= run.status %>"><%= wf_run_status_label(run) %></span>
       </span>
@@ -55,10 +55,10 @@
         <%= avatar_for author, size: 24, css: "shared-author-avatar" %>
         <span class="shared-author-name"><%= author.display_label %></span>
         <span class="shared-author-dot" aria-hidden="true">·</span>
-        <span class="shared-author-time">Shared <%= time_ago_in_words(@conversation.updated_at) %> ago</span>
+        <span class="shared-author-time"><%= t('.shared_ago', time: time_ago_in_words(@conversation.updated_at)) %></span>
       </div>
     <% else %>
-      <div class="shared-sub">Shared <%= time_ago_in_words(@conversation.updated_at) %> ago</div>
+      <div class="shared-sub"><%= t('.shared_ago', time: time_ago_in_words(@conversation.updated_at)) %></div>
     <% end %>
   </div>
 </header>
@@ -76,6 +76,6 @@
 
 <footer class="shared-foot">
   <div class="shared-foot-inner">
-    Powered by <a href="<%= root_url %>" target="_blank" rel="noopener">Metis</a>
+    <%= t('.powered_by_prefix') %> <a href="<%= root_url %>" target="_blank" rel="noopener">Metis</a>
   </div>
 </footer>

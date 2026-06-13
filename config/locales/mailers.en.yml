@@ -1,0 +1,14 @@
+en:
+  team_mailer:
+    invitation:
+      subject: "%{inviter} invited you to %{team} on Metis"
+      heading: "Join %{team} on Metis"
+      body_html: "%{inviter} invited you to join %{team} with the %{role} role."
+      body_text: "%{inviter} invited you to join %{team} with the %{role} role."
+      accept: "Accept invitation"
+      accept_link: "Accept the invitation:"
+      expires: "This invitation expires on %{date}. If you weren't expecting it, you can safely ignore this email."
+      signature: "Metis · Your AI agent workspace"
+  email:
+    cta:
+      fallback: "Or paste this link into your browser:"

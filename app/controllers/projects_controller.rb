@@ -19,7 +19,7 @@ class ProjectsController < ApplicationController
     @project.updated_by = current_user
 
     if @project.save
-      redirect_to edit_project_path(@project), notice: "Project created."
+      redirect_to edit_project_path(@project), notice: t("flash.projects.create.notice")
     else
       render :new, status: :unprocessable_entity
     end
@@ -33,7 +33,7 @@ class ProjectsController < ApplicationController
     @project.updated_by = current_user
 
     if @project.save
-      redirect_to edit_project_path(@project), notice: "Project saved."
+      redirect_to edit_project_path(@project), notice: t("flash.projects.update.notice")
     else
       render :edit, status: :unprocessable_entity
     end
@@ -42,9 +42,9 @@ class ProjectsController < ApplicationController
   def destroy
     name = @project.name
     if @project.destroy
-      redirect_to projects_path, notice: "#{name} deleted."
+      redirect_to projects_path, notice: t("flash.projects.destroy.notice", name: name)
     else
-      redirect_to edit_project_path(@project), alert: "#{name} #{@project.errors[:base].first}."
+      redirect_to edit_project_path(@project), alert: t("flash.projects.destroy.alert", name: name, error: @project.errors[:base].first)
     end
   end
 

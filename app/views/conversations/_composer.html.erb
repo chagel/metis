@@ -46,15 +46,15 @@
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4h5l1 1.5h5M2.5 4v8h11V5.5M2.5 8h11"/></svg>
                 <span data-workflow-launch-target="chipName"></span>
-                <button type="button" class="auto-chip-x" data-action="workflow-launch#clear" aria-label="Clear workflow">✕</button>
+                <button type="button" class="auto-chip-x" data-action="workflow-launch#clear" aria-label="<%= t('.clear_workflow') %>">✕</button>
               </span>
               <% if current_team.projects.any? %>
                 <%# Blank = the workflow's default project; without one the
                     launch controller retitles it "Pick a project…" and makes
                     the pick required — every run carries a project. %>
-                <select name="project_id" class="wf-launch-project" aria-label="Project"
+                <select name="project_id" class="wf-launch-project" aria-label="<%= t('.project') %>"
                         data-workflow-launch-target="project">
-                  <option value="" data-workflow-launch-target="projectBlank">Default project</option>
+                  <option value="" data-workflow-launch-target="projectBlank"><%= t('.default_project') %></option>
                   <%= options_from_collection_for_select(current_team.projects.recent, :id, :name) %>
                 </select>
               <% end %>
@@ -63,9 +63,9 @@
           <textarea name="content" rows="2"
                     data-controller="composer"
                     data-action="keydown->skill-palette#onKeydown keydown->composer#submitOnEnter input->skill-palette#onInput input->composer#autoResize"
-                    placeholder="<%= new_chat ? (launchable.any? ? "Ask anything, or / for commands…" : "Ask anything to start a new chat…") : "Message the agent…" %>"></textarea>
+                    placeholder="<%= new_chat ? (launchable.any? ? t('.placeholder_new_with_workflows') : t('.placeholder_new')) : t('.placeholder_message') %>"></textarea>
         <div class="composer-bar">
-          <label class="attach" title="Attach photos or files" aria-label="Attach photos or files">
+          <label class="attach" title="<%= t('.attach') %>" aria-label="<%= t('.attach') %>">
             <input type="file" name="attachments[]" multiple
                    accept="<%= Message::ALLOWED_CONTENT_TYPES.join(",") %>"
                    class="hidden"
@@ -80,7 +80,7 @@
           <% if new_chat %>
             <% catalog_providers = Agent::Catalog.providers %>
             <span class="model-pick">
-              <select name="model" aria-label="Model">
+              <select name="model" aria-label="<%= t('.model') %>">
                 <% selected_model = current_user.preferred_model.presence ||
                                     Agent::Catalog.default_model(catalog_providers) %>
                 <%= grouped_options_for_select(
@@ -93,7 +93,7 @@
               </svg>
             </span>
             <% unless current_team.personal? %>
-              <label class="vis-chip" title="Toggle team visibility for this chat">
+              <label class="vis-chip" title="<%= t('.toggle_team_visibility') %>">
                 <input type="hidden" name="visibility" value="personal">
                 <input type="checkbox" name="visibility" value="team" class="vis-check">
                 <span class="vis-opt">
@@ -102,7 +102,7 @@
                     <path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/>
                     <circle cx="8" cy="8" r="2"/>
                   </svg>
-                  Team
+                  <%= t('.team') %>
                 </span>
               </label>
             <% end %>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title><%= content_for(:title) || "Metis" %></title>
+    <title><%= content_for(:title) || t('.title') %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Metis">
@@ -39,7 +39,7 @@
             <path d="M5 18.5V7l7 6.5 7-6.5v11.5"/>
           </svg>
         </span>
-        <span class="auth-word">Metis</span>
+        <span class="auth-word"><%= t('.brand') %></span>
       </div>
 
       <% if notice %><div class="flash notice" role="status"><%= notice %></div><% end %>

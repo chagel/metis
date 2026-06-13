@@ -1,11 +1,11 @@
-<% content_for :title, "Archived conversations" %>
+<% content_for :title, t('.title') %>
 
 <main class="chat">
   <header class="chat-head archived-head">
     <div>
-      <h1 class="chat-title">Archived conversations</h1>
+      <h1 class="chat-title"><%= t('.heading') %></h1>
       <div class="chat-sub">
-        <span><%= pluralize(@archived_conversations.size, "archived conversation") %></span>
+        <span><%= t('.count', count: @archived_conversations.size) %></span>
       </div>
     </div>
   </header>
@@ -20,9 +20,9 @@
                   class: "archived-title",
                   data: { turbo_frame: "_top" } %>
             <span class="archived-meta">
-              Archived <%= time_ago_in_words(conversation.archived_at) %> ago
+              <%= t('.archived_ago', time: time_ago_in_words(conversation.archived_at)) %>
             </span>
-            <%= button_to "Restore",
+            <%= button_to t('common.restore'),
                   unarchive_conversation_path(conversation),
                   method: :post,
                   class: "archived-restore",
@@ -30,7 +30,7 @@
           </div>
         <% end %>
       <% else %>
-        <div class="convos-empty">No archived conversations.</div>
+        <div class="convos-empty"><%= t('.empty') %></div>
       <% end %>
     </div>
   </div>

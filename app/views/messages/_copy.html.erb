@@ -1,7 +1,7 @@
 <button type="button"
         class="msg-copy"
-        title="Copy message"
-        aria-label="Copy message to clipboard"
+        title="<%= t('.title') %>"
+        aria-label="<%= t('.aria_label') %>"
         data-controller="copy"
         data-copy-text-value="<%= message.content %>"
         data-action="copy#copy">

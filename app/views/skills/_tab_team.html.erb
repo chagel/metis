@@ -7,11 +7,10 @@
 <% else %>
   <div class="pane-empty">
     <% if team_manager? %>
-      <p>No team skills yet. Write one yourself, ask the agent to draft
-        one in chat, or pull one from the marketplace.</p>
-      <%= link_to "Create a skill", new_skill_path, class: "btn btn-primary" %>
+      <p><%= t(".empty_manager") %></p>
+      <%= link_to t(".create_a_skill"), new_skill_path, class: "btn btn-primary" %>
     <% else %>
-      <p>This team has no skills yet. An admin can add them.</p>
+      <p><%= t(".empty_member") %></p>
     <% end %>
   </div>
 <% end %>

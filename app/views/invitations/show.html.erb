@@ -1,62 +1,60 @@
-<% content_for :title, "Team invitation" %>
+<% content_for :title, t('.title') %>
 
 <% if @invitation.expired? %>
-  <h2>Invitation expired</h2>
+  <h2><%= t('.expired_heading') %></h2>
   <p class="auth-sub">
-    This invitation has expired. Ask <%= @invitation.invited_by.display_label %> to send a new one.
+    <%= t('.expired_body', name: @invitation.invited_by.display_label) %>
   </p>
   <% unless user_signed_in? %>
-    <div class="auth-foot"><%= link_to "Go to Metis", new_user_session_path, class: "auth-link" %></div>
+    <div class="auth-foot"><%= link_to t('.go_to_metis'), new_user_session_path, class: "auth-link" %></div>
   <% end %>
 
 <% elsif @invitation.accepted? %>
-  <h2>Invitation already used</h2>
-  <p class="auth-sub">This invitation has already been accepted.</p>
+  <h2><%= t('.used_heading') %></h2>
+  <p class="auth-sub"><%= t('.used_body') %></p>
   <% unless user_signed_in? %>
-    <div class="auth-foot"><%= link_to "Sign in to Metis", new_user_session_path, class: "auth-link" %></div>
+    <div class="auth-foot"><%= link_to t('.sign_in_to_metis'), new_user_session_path, class: "auth-link" %></div>
   <% end %>
 
 <% elsif user_signed_in? && @invitation.for?(current_user) %>
-  <h2>Join <%= @invitation.team.name %></h2>
+  <h2><%= t('.join_heading', team: @invitation.team.name) %></h2>
   <p class="auth-sub">
-    <strong><%= @invitation.invited_by.display_label %></strong> invited you to join
-    <strong><%= @invitation.team.name %></strong> as <%= @invitation.role %>.
+    <strong><%= @invitation.invited_by.display_label %></strong> <%= t('.invited_to_join') %>
+    <strong><%= @invitation.team.name %></strong> <%= t('.as_role', role: @invitation.role) %>
   </p>
-  <%= button_to "Join #{@invitation.team.name}", accept_invitation_path(@invitation.token),
+  <%= button_to t('.join_submit', team: @invitation.team.name), accept_invitation_path(@invitation.token),
         class: "auth-submit" %>
 
 <% elsif user_signed_in? %>
-  <h2>Wrong account</h2>
+  <h2><%= t('.wrong_account_heading') %></h2>
   <p class="auth-sub">
-    This invitation was sent to <strong><%= @invitation.email %></strong>, but you're signed in as
-    <strong><%= current_user.email %></strong>. Sign out and sign back in with
-    <%= @invitation.email %> to accept it.
+    <%= t('.wrong_account_pre') %> <strong><%= @invitation.email %></strong><%= t('.wrong_account_mid') %>
+    <strong><%= current_user.email %></strong><%= t('.wrong_account_post', email: @invitation.email) %>
   </p>
-  <%= button_to "Sign out", destroy_user_session_path, method: :delete, class: "auth-submit" %>
+  <%= button_to t('.sign_out'), destroy_user_session_path, method: :delete, class: "auth-submit" %>
 
 <% else %>
-  <h2>You're invited 🎉</h2>
+  <h2><%= t('.invited_heading') %></h2>
   <p class="auth-sub">
-    <strong><%= @invitation.invited_by.display_label %></strong> invited you to join
-    <strong><%= @invitation.team.name %></strong> on Metis as <%= @invitation.role %>.
+    <strong><%= @invitation.invited_by.display_label %></strong> <%= t('.invited_to_join') %>
+    <strong><%= @invitation.team.name %></strong> <%= t('.on_metis_as_role', role: @invitation.role) %>
   </p>
-  <%= link_to "Create your account", new_user_registration_path(email: @invitation.email),
+  <%= link_to t('.create_account'), new_user_registration_path(email: @invitation.email),
         class: "auth-submit auth-submit-link" %>
   <div class="auth-foot">
-    Already have an account?
-    <%= link_to "Sign in", new_user_session_path(email: @invitation.email), class: "auth-link" %>
+    <%= t('.have_account') %>
+    <%= link_to t('.sign_in'), new_user_session_path(email: @invitation.email), class: "auth-link" %>
   </div>
 
   <div class="invite-about">
     <p class="invite-pitch">
-      <strong>Metis</strong> is a shared workspace for AI agents — a place to get real
-      work done with your team.
+      <strong>Metis</strong> <%= t('.pitch') %>
     </p>
     <ul class="invite-features">
       <% [
-           "Chat with a capable AI agent, right in your browser",
-           "Share tools, connectors, and skills across your team",
-           "Multiple providers and models — including Anthropic, OpenAI, Google, and open-source models"
+           t('.feature_chat'),
+           t('.feature_share'),
+           t('.feature_models')
          ].each do |point| %>
         <li class="invite-feature">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"

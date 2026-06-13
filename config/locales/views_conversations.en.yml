@@ -1,0 +1,82 @@
+en:
+  conversations:
+    composer:
+      clear_workflow: "Clear workflow"
+      project: "Project"
+      default_project: "Default project"
+      placeholder_new_with_workflows: "Ask anything, or / for commands…"
+      placeholder_new: "Ask anything to start a new chat…"
+      placeholder_message: "Message the agent…"
+      attach: "Attach photos or files"
+      model: "Model"
+      toggle_team_visibility: "Toggle team visibility for this chat"
+      team: "Team"
+    composer_actions:
+      stop: "Stop"
+      send: "Send"
+      start: "Start"
+    convo:
+      running: "Running"
+    convo_sentinel:
+      loading: "Loading…"
+    share:
+      team_access: "Team access"
+      team_access_desc: "Members can open this chat, read-only."
+      shared_link: "Shared link"
+      shared_link_desc: "Anyone with the link can view this chat."
+      public_link: "Public link"
+      copy: "Copy"
+    sidebar:
+      new_chat: "New chat"
+      search: "Search conversations"
+      tab_me: "Me"
+      tab_team: "Team"
+      tab_starred: "Starred"
+      needs_you: "Needs you"
+      no_matches: "No matches."
+    star:
+      unstar: "Unstar conversation"
+      star: "Star conversation"
+    archived:
+      title: "Archived conversations"
+      heading: "Archived conversations"
+      count:
+        one: "%{count} archived conversation"
+        other: "%{count} archived conversations"
+      archived_ago: "Archived %{time} ago"
+      empty: "No archived conversations."
+    index:
+      title: "New chat"
+      heading: "What's on your mind?"
+      tagline: "Metis is an open-source, self-hostable agent platform for individuals and teams."
+    run:
+      chat: "Chat"
+    show:
+      shared_by: "Shared by %{name}"
+      started_ago: "Started %{time} ago"
+      workflow: "Workflow"
+      share_conversation: "Share conversation"
+      archive_conversation: "Archive conversation"
+      archived_banner: "This conversation is archived. Restore it to keep chatting."
+      forked_from_html: "Forked from %{link}."
+      forked_from_other: "Forked from another conversation."
+      jump_to_latest: "Jump to latest"
+      new_messages: "New messages"
+      read_only_note: "Read-only — this conversation was shared with your team by %{name}."
+  messages:
+    artifact_card:
+      open: "Open"
+      download: "Download"
+    copy:
+      title: "Copy message"
+      aria_label: "Copy message to clipboard"
+    fork:
+      title: "Fork into a new thread from here"
+      aria_label: "Fork conversation from this message"
+    message:
+      step_tag: "Step"
+      local_tag: "Local"
+      review_tag: "Review"
+      timestamp_ago: "%{time} ago"
+      stamp_ago: "%{sender} · %{time} ago"
+      stopped: "Stopped"

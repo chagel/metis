@@ -25,14 +25,14 @@ class Settings::TeamsController < ApplicationController
 
   def update
     current_team.update!(team_params)
-    redirect_to team_path, notice: "Team renamed."
+    redirect_to team_path, notice: t("flash.settings.teams.update.notice")
   end
 
   def destroy
     name = current_team.name
     current_team.destroy
     session.delete(:current_team_id) # falls back to the personal team
-    redirect_to team_path, notice: "#{name} deleted."
+    redirect_to team_path, notice: t("flash.settings.teams.destroy.notice", name: name)
   end
 
   private

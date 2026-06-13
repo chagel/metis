@@ -11,10 +11,10 @@ class ProfilesController < ApplicationController
     if @user.save(context: :profile_update)
       respond_to do |format|
         format.turbo_stream do
-          flash.now[:notice] = "Profile saved."
+          flash.now[:notice] = t("flash.profiles.update.notice")
           render :update
         end
-        format.html { redirect_to profile_path, notice: "Profile saved." }
+        format.html { redirect_to profile_path, notice: t("flash.profiles.update.notice") }
       end
     else
       respond_to do |format|

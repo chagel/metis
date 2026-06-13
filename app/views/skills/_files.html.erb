@@ -5,11 +5,9 @@
        .sort_by { |f| skill.relative_path(f) } %>
 
 <section class="skill-files">
-  <h2 class="sec-label">Supporting files</h2>
+  <h2 class="sec-label"><%= t(".supporting_files") %></h2>
   <p class="field-hint sec-intro">
-    pi loads <code>SKILL.md</code> by default. Add reference docs,
-    scripts, or examples your SKILL.md points at — pi can open them
-    with its file tools when it loads this skill.
+    <%= t(".intro_html") %>
   </p>
 
   <% if supporting.any? %>
@@ -19,36 +17,36 @@
           <%= link_to skill.relative_path(file), download_file_skill_path(skill, file_id: file.id),
                 class: "file-name", target: "_blank", rel: "noopener" %>
           <span class="file-size"><%= number_to_human_size(file.byte_size) %></span>
-          <%= button_to "Delete", destroy_file_skill_path(skill, file_id: file.id),
+          <%= button_to t("common.delete"), destroy_file_skill_path(skill, file_id: file.id),
                 method: :delete, class: "btn btn-ghost",
-                form: { data: { turbo_confirm: "Delete #{skill.relative_path(file)}?" } } %>
+                form: { data: { turbo_confirm: t(".delete_confirm", path: skill.relative_path(file)) } } %>
         </li>
       <% end %>
     </ul>
   <% end %>
 
   <details class="skill-add-file-wrap">
-    <summary class="btn btn-ghost"><span>+ Add file</span></summary>
+    <summary class="btn btn-ghost"><span><%= t(".add_file") %></span></summary>
     <%= form_with url: add_file_skill_path(skill), multipart: true,
           class: "skill-add-file",
           data: { controller: "filename-from-file" } do |f| %>
       <div class="field">
-        <%= label_tag :file, "File" %>
+        <%= label_tag :file, t(".file_label") %>
         <%= file_field_tag :file,
               data: { filename_from_file_target: "file",
                       action: "change->filename-from-file#filePicked" } %>
-        <p class="field-hint">Up to <%= Skill::MAX_FILE_SIZE / 1.megabyte %>MB.</p>
+        <p class="field-hint"><%= t(".max_size_html", size: Skill::MAX_FILE_SIZE / 1.megabyte) %></p>
       </div>
       <div class="field">
-        <%= label_tag :path, "Filename" %>
-        <%= text_field_tag :path, nil, placeholder: "style.md",
+        <%= label_tag :path, t(".filename_label") %>
+        <%= text_field_tag :path, nil, placeholder: t(".filename_placeholder"),
               autocomplete: "off",
               data: { filename_from_file_target: "filename",
                       action: "input->filename-from-file#filenameChanged" } %>
-        <p class="field-hint">Auto-filled from the file you pick. Use slashes for folders — e.g. <code>ref/style.md</code> or <code>scripts/run.sh</code>. <code>SKILL.md</code> is reserved.</p>
+        <p class="field-hint"><%= t(".filename_hint_html") %></p>
       </div>
       <div class="form-actions">
-        <%= f.submit "Add file", class: "btn btn-primary" %>
+        <%= f.submit t(".add_file_submit"), class: "btn btn-primary" %>
       </div>
     <% end %>
   </details>

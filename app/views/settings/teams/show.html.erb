@@ -1,8 +1,8 @@
-<% content_for :title, "Team" %>
+<% content_for :title, t('.title') %>
 
 <main class="pane">
   <header class="pane-head">
-    <h1 class="pane-title"><%= @team.personal? ? "Personal workspace" : @team.name %></h1>
+    <h1 class="pane-title"><%= @team.personal? ? t('.personal_workspace') : @team.name %></h1>
     <div style="flex:1"></div>
     <% unless @team.personal? %>
       <%= button_to switch_team_path(current_user.personal_team), method: :post,
@@ -12,7 +12,7 @@
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M10 3L5 8l5 5"/>
         </svg>
-        <span>All teams</span>
+        <span><%= t('.all_teams') %></span>
       <% end %>
     <% end %>
   </header>
@@ -21,13 +21,12 @@
     <div class="pane-inner">
       <% if @team.personal? %>
         <p class="pane-lead">
-          You're in your personal workspace — a team of one. Teams let you
-          share connectors, skills, and projects with others.
+          <%= t('.personal_lead') %>
         </p>
 
         <section class="settings-card">
           <div class="settings-card-head">
-            <span class="settings-card-title">Your teams</span>
+            <span class="settings-card-title"><%= t('.your_teams') %></span>
             <% if @joined_teams.any? %>
               <span class="settings-card-count"><%= @joined_teams.size %></span>
             <% end %>
@@ -38,7 +37,7 @@
               <% team = membership.team %>
               <%= button_to switch_team_path(team), method: :post,
                     params: { to: "settings" }, form: { data: { turbo_frame: "_top" } },
-                    class: "team-pick", title: "Open #{team.name}" do %>
+                    class: "team-pick", title: t('.open_team', name: team.name) do %>
                 <span class="team-mono"><%= team.name.first.upcase %></span>
                 <span class="team-pick-id">
                   <span class="team-pick-name"><%= team.name %></span>
@@ -58,8 +57,8 @@
             <%= link_to new_team_path, class: "team-pick team-add" do %>
               <span class="team-mono">+</span>
               <span class="team-pick-id">
-                <span class="team-pick-name">New team</span>
-                <span class="team-pick-meta">Share connectors, skills &amp; projects with others</span>
+                <span class="team-pick-name"><%= t('.new_team') %></span>
+                <span class="team-pick-meta"><%= t('.new_team_meta') %></span>
               </span>
             <% end %>
           </div>
@@ -68,23 +67,22 @@
         <% manager = team_manager? %>
         <% owner = current_membership&.owner? %>
         <p class="pane-lead">
-          Members share this team's connectors, skills, and projects.
-          Conversations stay private to whoever started them.
+          <%= t('.team_lead') %>
         </p>
 
         <%# Group one: the team as it stands — its name and who's in it. %>
         <section class="settings-card">
           <% if manager %>
             <%= form_with model: @team, url: team_path, method: :patch, class: "team-rename" do |form| %>
-              <%= form.label :name, "Team name", class: "team-form-label" %>
+              <%= form.label :name, t('.team_name'), class: "team-form-label" %>
               <div class="team-rename-row">
                 <%= form.text_field :name, class: "team-input" %>
-                <%= form.submit "Save", class: "btn btn-ghost" %>
+                <%= form.submit t('common.save'), class: "btn btn-ghost" %>
               </div>
             <% end %>
           <% end %>
 
-          <div class="settings-card-sub">Members · <%= @memberships.size %></div>
+          <div class="settings-card-sub"><%= t('.members') %> · <%= @memberships.size %></div>
           <ul class="member-list">
             <% @memberships.each do |membership| %>
               <li class="member-row">
@@ -97,16 +95,16 @@
                 <% if manager && !membership.owner? && membership.user_id != current_user.id %>
                   <div class="member-actions">
                     <% next_role = membership.member? ? "admin" : "member" %>
-                    <%= button_to "Make #{next_role}", team_membership_path(membership), method: :patch,
+                    <%= button_to t('.make_role', role: next_role), team_membership_path(membership), method: :patch,
                           params: { membership: { role: next_role } }, form_class: "inline-form",
                           class: "btn btn-ghost btn-sm" %>
                     <% if owner %>
-                      <%= button_to "Make owner", transfer_team_membership_path(membership), method: :post,
-                            form: { class: "inline-form", data: { turbo_confirm: "Make #{membership.user.display_label} the owner? You'll step down to admin." } },
+                      <%= button_to t('.make_owner'), transfer_team_membership_path(membership), method: :post,
+                            form: { class: "inline-form", data: { turbo_confirm: t('.make_owner_confirm', name: membership.user.display_label) } },
                             class: "btn btn-ghost btn-sm" %>
                     <% end %>
-                    <%= button_to "Remove", team_membership_path(membership), method: :delete,
-                          form: { class: "inline-form", data: { turbo_confirm: "Remove #{membership.user.display_label} from #{@team.name}?" } },
+                    <%= button_to t('common.remove'), team_membership_path(membership), method: :delete,
+                          form: { class: "inline-form", data: { turbo_confirm: t('.remove_confirm', name: membership.user.display_label, team: @team.name) } },
                           class: "btn btn-ghost btn-sm" %>
                   </div>
                 <% end %>
@@ -116,11 +114,11 @@
 
           <div class="settings-danger">
             <% if owner %>
-              <%= button_to "Delete team", team_path, method: :delete, class: "btn btn-danger",
-                    form: { data: { turbo_confirm: "Delete #{@team.name}? This permanently deletes the team and all its conversations for everyone." } } %>
+              <%= button_to t('.delete_team'), team_path, method: :delete, class: "btn btn-danger",
+                    form: { data: { turbo_confirm: t('.delete_team_confirm', team: @team.name) } } %>
             <% else %>
-              <%= button_to "Leave team", leave_team_memberships_path, method: :delete, class: "btn btn-danger",
-                    form: { data: { turbo_confirm: "Leave #{@team.name}? You'll lose access to its shared resources." } } %>
+              <%= button_to t('.leave_team'), leave_team_memberships_path, method: :delete, class: "btn btn-danger",
+                    form: { data: { turbo_confirm: t('.leave_team_confirm', team: @team.name) } } %>
             <% end %>
           </div>
         </section>
@@ -129,17 +127,17 @@
         <% if manager %>
           <section class="settings-card">
             <div class="settings-card-head">
-              <span class="settings-card-title">Invitations</span>
+              <span class="settings-card-title"><%= t('.invitations') %></span>
               <% if @pending_invitations.any? %>
-                <span class="settings-card-count"><%= @pending_invitations.size %> pending</span>
+                <span class="settings-card-count"><%= t('.count_pending', count: @pending_invitations.size) %></span>
               <% end %>
             </div>
 
             <%= form_with model: @invitation, url: team_invitations_path, class: "invite-form" do |form| %>
               <div class="invite-row">
-                <%= form.email_field :email, placeholder: "teammate@example.com", "aria-label": "Email", class: "team-input" %>
+                <%= form.email_field :email, placeholder: "teammate@example.com", "aria-label": t('.email'), class: "team-input" %>
                 <%= form.select :role, Invitation::INVITABLE_ROLES.map { |r| [ r.titleize, r ] }, {}, class: "team-input" %>
-                <%= form.submit "Send invite", class: "btn btn-primary" %>
+                <%= form.submit t('.send_invite'), class: "btn btn-primary" %>
               </div>
             <% end %>
 
@@ -150,18 +148,18 @@
                   <li class="invite-pending">
                     <div class="invite-pending-id">
                       <div class="invite-pending-email"><%= invitation.email %></div>
-                      <div class="invite-pending-meta">Invited as <%= invitation.role.titleize %></div>
+                      <div class="invite-pending-meta"><%= t('.invited_as', role: invitation.role.titleize) %></div>
                     </div>
-                    <span class="badge-pending">Pending</span>
-                    <%= button_to "Resend", resend_team_invitation_path(invitation), method: :post,
+                    <span class="badge-pending"><%= t('.pending') %></span>
+                    <%= button_to t('.resend'), resend_team_invitation_path(invitation), method: :post,
                           form_class: "inline-form", class: "btn btn-ghost btn-sm" %>
-                    <%= button_to "Revoke", team_invitation_path(invitation), method: :delete,
+                    <%= button_to t('.revoke'), team_invitation_path(invitation), method: :delete,
                           form_class: "inline-form", class: "btn btn-ghost btn-sm" %>
                   </li>
                 <% end %>
               </ul>
             <% else %>
-              <p class="invite-empty">No pending invitations.</p>
+              <p class="invite-empty"><%= t('.no_pending') %></p>
             <% end %>
           </section>
         <% end %>

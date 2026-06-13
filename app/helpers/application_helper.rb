@@ -86,12 +86,12 @@ module ApplicationHelper
 
   # Summary label for an assistant turn's reasoning/tools disclosure.
   def activity_summary(message)
-    return "Working…" unless message.done?
+    return t("helpers.activity.working") unless message.done?
 
     parts = []
-    parts << "Reasoning" if message.reasoning.present?
-    parts << pluralize(message.tool_calls.size, "tool call") if message.tool_calls.any?
-    parts.join(" · ").presence || "Activity"
+    parts << t("helpers.activity.reasoning") if message.reasoning.present?
+    parts << t("helpers.activity.tool_calls", count: message.tool_calls.size) if message.tool_calls.any?
+    parts.join(" · ").presence || t("helpers.activity.activity")
   end
 
   # A compact per-message token line, or "" when none was recorded.
@@ -99,9 +99,9 @@ module ApplicationHelper
     return "" if message.input_tokens.blank? && message.output_tokens.blank?
 
     parts = []
-    parts << "#{format_tokens(message.input_tokens)} in" if message.input_tokens
-    parts << "#{format_tokens(message.output_tokens)} out" if message.output_tokens
-    parts << "#{format_tokens(message.cache_read_tokens)} cached" if message.cache_read_tokens.to_i.positive?
+    parts << t("helpers.tokens.in", value: format_tokens(message.input_tokens)) if message.input_tokens
+    parts << t("helpers.tokens.out", value: format_tokens(message.output_tokens)) if message.output_tokens
+    parts << t("helpers.tokens.cached", value: format_tokens(message.cache_read_tokens)) if message.cache_read_tokens.to_i.positive?
     parts.join(" · ")
   end
 
@@ -112,21 +112,6 @@ module ApplicationHelper
 
     format("%gk", (count / 100.0).round / 10.0)
   end
-
-  # Recency-bucket labels for the sidebar conversation list. Buckets
-  # are addressed by symbol (data) and rendered via the label (display)
-  # — same split as Themis's inbox_time_bucket.
-  CONVERSATION_TIME_BUCKET_LABELS = {
-    today: "Today",
-    yesterday: "Yesterday",
-    this_week: "This week",
-    this_month: "This month",
-    older: "Older"
-  }.freeze
-
-  LANGUAGE_LABELS = {
-    "en" => "English"
-  }.freeze
 
   # Timezone <option>s for the profile select. Each label carries the
   # UTC offset — "(GMT+08:00) Beijing" — so a user can scan by offset
@@ -159,14 +144,14 @@ module ApplicationHelper
   # language picker. Falls back to the bare code so an unknown locale
   # is still selectable rather than blank.
   def language_label(code)
-    LANGUAGE_LABELS[code.to_s] || code.to_s.upcase
+    t("helpers.languages.#{code}", default: code.to_s.upcase)
   end
 
   # Display label for a recency bucket. Views can't reach the constant
   # by bare name (lexical scope, not the include chain), so they go
   # through this helper.
   def conversation_time_bucket_label(bucket)
-    CONVERSATION_TIME_BUCKET_LABELS[bucket]
+    t("helpers.time_buckets.#{bucket}")
   end
 
   # The recency bucket a timestamp falls into. Used by _convo_items to
@@ -185,14 +170,11 @@ module ApplicationHelper
     end
   end
 
-  SIDEBAR_EMPTY_MESSAGES = {
-    "team" => "No team conversations yet — open one to your team to start.",
-    "starred" => "No starred conversations yet — star one to keep it handy.",
-    "active" => "No conversations yet — start one on the right."
-  }.freeze
+  SIDEBAR_EMPTY_FILTERS = %w[team starred active].freeze
 
   def sidebar_empty_message(filter)
-    SIDEBAR_EMPTY_MESSAGES.fetch(filter, SIDEBAR_EMPTY_MESSAGES["active"])
+    key = SIDEBAR_EMPTY_FILTERS.include?(filter) ? filter : "active"
+    t("helpers.sidebar_empty.#{key}")
   end
 
   # Sidebar scope-tab class, marking the current filter active.

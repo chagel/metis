@@ -3,12 +3,12 @@
 <% id = dom_id(conversation, :wf_status) %>
 <% case run.status %>
 <% when "awaiting_approval" %>
-  <span class="convo-pill" id="<%= id %>">Review</span>
+  <span class="convo-pill" id="<%= id %>"><%= t(".review") %></span>
 <% when "awaiting_local" %>
-  <span class="convo-pill" id="<%= id %>">Local</span>
+  <span class="convo-pill" id="<%= id %>"><%= t(".local") %></span>
 <% when "completed" %>
   <svg class="convo-check" id="<%= id %>" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-       stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-label="Done"><path d="M20 6 9 17l-5-5"/></svg>
+       stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-label="<%= t(".done") %>"><path d="M20 6 9 17l-5-5"/></svg>
 <% when "failed", "cancelled" %>
   <span class="convo-fail" id="<%= id %>" aria-label="<%= run.status %>"></span>
 <% else %>

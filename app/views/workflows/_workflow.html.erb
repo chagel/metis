@@ -2,15 +2,15 @@
   <div class="conn-main">
     <div class="conn-name"><%= workflow.name %></div>
     <div class="conn-sub">
-      <%= pluralize(workflow.steps.size, "step") %> ·
-      <%= pluralize(workflow.gate_count, "break") %> ·
+      <%= t(".steps", count: workflow.steps.size) %> ·
+      <%= t(".breaks", count: workflow.gate_count) %> ·
       <%= workflow.trigger_source %>
-      <%= "· #{workflow.default_project.name}" if workflow.default_project %>
+      <%= t(".project_suffix", name: workflow.default_project.name) if workflow.default_project %>
     </div>
   </div>
   <% if team_manager? %>
     <div class="conn-actions">
-      <%= link_to "Edit", edit_workflow_path(workflow), class: "btn btn-ghost btn-sm" %>
+      <%= link_to t("common.edit"), edit_workflow_path(workflow), class: "btn btn-ghost btn-sm" %>
     </div>
   <% end %>
 </div>

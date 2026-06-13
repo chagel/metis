@@ -8,6 +8,6 @@
     <% end %>
   </div>
   <span class="skill-badge<%= ' off' unless skill.enabled? %>">
-    <%= skill.enabled? ? "Enabled" : "Disabled" %>
+    <%= skill.enabled? ? t(".enabled") : t(".disabled") %>
   </span>
 <% end %>

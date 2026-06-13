@@ -3,12 +3,12 @@
 <header class="preview-header">
   <%= link_to conversation_path(@message.conversation), class: "preview-back" do %>
     <span class="preview-back-arrow" aria-hidden="true">←</span>
-    <span class="preview-action-label">Back</span>
+    <span class="preview-action-label"><%= t('.back') %></span>
   <% end %>
   <h1 class="preview-title"><%= @blob.filename %></h1>
 
   <% if @previewer.preview_modes.size > 1 %>
-    <nav class="preview-modes" aria-label="View mode">
+    <nav class="preview-modes" aria-label="<%= t('.view_mode') %>">
       <% @previewer.preview_modes.each do |mode| %>
         <%= link_to mode.to_s.capitalize,
                     artifact_preview_path(@blob.signed_id, mode: mode),
@@ -20,13 +20,13 @@
   <% if @partial == "previewers/html_full" %>
     <button type="button" class="preview-fs"
             data-action="click->fullscreen#enter">
-      <span class="preview-action-label">Fullscreen</span>
+      <span class="preview-action-label"><%= t('.fullscreen') %></span>
     </button>
   <% end %>
 
   <%= link_to rails_blob_path(@blob, disposition: "attachment"),
               class: "preview-download" do %>
-    <span class="preview-action-label">Download</span>
+    <span class="preview-action-label"><%= t('.download') %></span>
   <% end %>
 </header>
 

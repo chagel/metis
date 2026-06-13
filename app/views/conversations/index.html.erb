@@ -1,4 +1,4 @@
-<% content_for :title, "New chat" %>
+<% content_for :title, t('.title') %>
 
 <main class="chat">
   <div class="welcome">
@@ -8,8 +8,8 @@
         <path d="M5 18.5V7l7 6.5 7-6.5v11.5"/>
       </svg>
     </div>
-    <h1>What's on your mind?</h1>
-    <p>Metis is an open-source, self-hostable agent platform for individuals and teams.</p>
+    <h1><%= t('.heading') %></h1>
+    <p><%= t('.tagline') %></p>
   </div>
 
   <%= render "composer", conversation: nil %>

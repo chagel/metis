@@ -6,13 +6,13 @@
           <div class="conn-name"><%= listing.slug %></div>
           <div class="conn-desc"><%= truncate(listing.description.to_s, length: 140) %></div>
         </div>
-        <span class="badge">Built-in</span>
+        <span class="badge"><%= t(".built_in") %></span>
       </div>
     <% end %>
   </div>
 <% else %>
   <div class="pane-empty">
-    <p>No built-in skills shipped with this deployment.</p>
-    <p class="form-hint">Drop a directory under <code>.pi/skills/&lt;slug&gt;/</code> with a <code>SKILL.md</code> to ship one.</p>
+    <p><%= t(".empty") %></p>
+    <p class="form-hint"><%= t(".empty_hint_html") %></p>
   </div>
 <% end %>

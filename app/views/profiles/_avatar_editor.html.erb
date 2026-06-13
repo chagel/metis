@@ -6,7 +6,7 @@
 <div id="avatar_editor" class="avatar-editor"
      data-controller="avatar-editor"
      data-avatar-editor-url-value="<%= update_avatar_profile_path %>">
-  <label class="avatar-editor-trigger" title="Click to change avatar">
+  <label class="avatar-editor-trigger" title="<%= t('.change') %>">
     <%= avatar_for user, size: 72, css: "avatar avatar-editor-preview" %>
     <input type="file"
            class="avatar-editor-input"
@@ -18,7 +18,7 @@
   <% if user.avatar.attached? || user.avatar_url.present? %>
     <button type="button" class="avatar-editor-remove"
             data-action="click->avatar-editor#remove"
-            aria-label="Remove avatar" title="Remove avatar">
+            aria-label="<%= t('.remove') %>" title="<%= t('.remove') %>">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
            stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
         <path d="M4 4l8 8M4 12l8-8"/>

@@ -4,7 +4,7 @@ class Project < ApplicationRecord
   validates :name, presence: true,
                     uniqueness: { scope: :team_id },
                     length: { maximum: NAME_MAX },
-                    format: { without: /[\r\n]/, message: "can't contain line breaks" }
+                    format: { without: /[\r\n]/ }
 
   belongs_to :team
   belongs_to :created_by, class_name: "User", optional: true

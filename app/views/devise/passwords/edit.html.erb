@@ -1,6 +1,6 @@
-<% content_for :title, "Change password" %>
+<% content_for :title, t('.title') %>
 
-<h2>Set a new password</h2>
+<h2><%= t('.heading') %></h2>
 
 <%= form_for(resource, as: resource_name, url: password_path(resource_name),
       html: { method: :put, class: "auth-form" }) do |f| %>
@@ -8,19 +8,19 @@
   <%= f.hidden_field :reset_password_token %>
 
   <div class="auth-field">
-    <%= f.label :password, "New password", class: "auth-label" %>
+    <%= f.label :password, t('.new_password'), class: "auth-label" %>
     <% if @minimum_password_length %>
-      <span class="auth-hint"><%= @minimum_password_length %> characters minimum</span>
+      <span class="auth-hint"><%= t('.minimum_password_length', count: @minimum_password_length) %></span>
     <% end %>
     <%= f.password_field :password, autofocus: true, autocomplete: "new-password", class: "auth-input" %>
   </div>
 
   <div class="auth-field">
-    <%= f.label :password_confirmation, "Confirm new password", class: "auth-label" %>
+    <%= f.label :password_confirmation, t('.confirm_new_password'), class: "auth-label" %>
     <%= f.password_field :password_confirmation, autocomplete: "new-password", class: "auth-input" %>
   </div>
 
-  <%= f.submit "Change password", class: "auth-submit" %>
+  <%= f.submit t('.submit'), class: "auth-submit" %>
 <% end %>
 
 <%= render "devise/shared/links" %>

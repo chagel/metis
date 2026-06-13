@@ -15,7 +15,7 @@ class ModelsController < ApplicationController
     # Docker/gVisor container in prod), which 504s if done inline.
     RefreshModelCatalogJob.perform_later
     redirect_to models_path,
-      notice: "Refreshing the catalog from pi in the background — reload in a moment."
+      notice: t("flash.models.refresh.notice")
   end
 
   def update_provider

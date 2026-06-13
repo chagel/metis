@@ -17,13 +17,13 @@
         <circle cx="11.5" cy="5.5" r="1.9"/><path d="M11 9.6c1.9.2 3.5 1.9 3.5 3.9"/>
       </svg>
       <div class="access-text">
-        <span class="access-title">Team access</span>
-        <span class="access-desc">Members can open this chat, read-only.</span>
+        <span class="access-title"><%= t('.team_access') %></span>
+        <span class="access-desc"><%= t('.team_access_desc') %></span>
       </div>
       <%= button_to visibility_conversation_path(conversation), method: :patch,
             class: "access-switch#{" on" if conversation.visibility_team?}",
             role: "switch", "aria-checked": conversation.visibility_team?.to_s,
-            "aria-label": "Team access",
+            "aria-label": t('.team_access'),
             form: { data: { turbo_stream: true } } do %>
         <span class="access-knob"></span>
       <% end %>
@@ -38,14 +38,14 @@
         <path d="M9.5 6.5a3 3 0 0 0-4.4-.2L2.9 8.5a3 3 0 0 0 4.2 4.2l1.2-1.2"/>
       </svg>
       <div class="access-text">
-        <span class="access-title">Shared link</span>
-        <span class="access-desc">Anyone with the link can view this chat.</span>
+        <span class="access-title"><%= t('.shared_link') %></span>
+        <span class="access-desc"><%= t('.shared_link_desc') %></span>
       </div>
       <%= button_to share_conversation_path(conversation),
             method: conversation.shared? ? :delete : :post,
             class: "access-switch#{" on" if conversation.shared?}",
             role: "switch", "aria-checked": conversation.shared?.to_s,
-            "aria-label": "Public link",
+            "aria-label": t('.public_link'),
             form: { data: { turbo_stream: true } } do %>
         <span class="access-knob"></span>
       <% end %>
@@ -63,7 +63,7 @@
       <button type="button"
               class="share-panel-copy"
               data-action="click->share#copy"
-              data-share-target="copyButton">Copy</button>
+              data-share-target="copyButton"><%= t('.copy') %></button>
     </div>
   <% end %>
 </div>

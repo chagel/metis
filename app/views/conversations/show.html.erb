@@ -12,7 +12,7 @@
           <span id="<%= dom_id(@conversation, :title) %>"><%= @conversation.display_title %></span>
         </h1>
         <div class="chat-sub">
-          <span>Shared by <%= @conversation.user.display_label %></span>
+          <span><%= t('.shared_by', name: @conversation.user.display_label) %></span>
           <%= render "context_meter", conversation: @conversation %>
         </div>
       <% else %>
@@ -29,7 +29,7 @@
                  hidden />
         </h1>
         <div class="chat-sub">
-          <span>Started <%= time_ago_in_words(@conversation.created_at) %> ago</span>
+          <span><%= t('.started_ago', time: time_ago_in_words(@conversation.created_at)) %></span>
           <%= render "context_meter", conversation: @conversation %>
         </div>
       <% end %>
@@ -42,7 +42,7 @@
             <circle cx="4" cy="4" r="1.7"/><circle cx="4" cy="12" r="1.7"/>
             <path d="M4 5.7v4.6M8.5 4h5M8.5 12h5"/>
           </svg>
-          Workflow
+          <%= t('.workflow') %>
         <% end %>
       <% end %>
       <%# The share panel is available to read-only viewers too, so they can
@@ -53,8 +53,8 @@
           <button type="button"
                   class="chat-action"
                   data-action="click->share#toggle"
-                  title="Share conversation"
-                  aria-label="Share conversation">
+                  title="<%= t('.share_conversation') %>"
+                  aria-label="<%= t('.share_conversation') %>">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="3.5" r="1.75"/>
@@ -73,8 +73,8 @@
         <%= button_to archive_conversation_path(@conversation),
               method: :post,
               class: "chat-action",
-              title: "Archive conversation",
-              aria: { label: "Archive conversation" },
+              title: t('.archive_conversation'),
+              aria: { label: t('.archive_conversation') },
               form: { data: { turbo_frame: "_top" } } do %>
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -95,8 +95,8 @@
         <path d="M3 6.25v6.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-6.5"/>
         <path d="M6.5 9h3"/>
       </svg>
-      <span class="archived-banner-text">This conversation is archived. Restore it to keep chatting.</span>
-      <%= button_to "Restore",
+      <span class="archived-banner-text"><%= t('.archived_banner') %></span>
+      <%= button_to t('common.restore'),
             unarchive_conversation_path(@conversation),
             method: :post,
             class: "archived-banner-action",
@@ -116,9 +116,9 @@
       </svg>
       <span class="fork-banner-text">
         <% if (origin = @conversation.forked_from_conversation) %>
-          Forked from <%= link_to origin.display_title, origin, class: "fork-banner-link" %>.
+          <%= t('.forked_from_html', link: link_to(origin.display_title, origin, class: "fork-banner-link")) %>
         <% else %>
-          Forked from another conversation.
+          <%= t('.forked_from_other') %>
         <% end %>
       </span>
     </div>
@@ -139,18 +139,18 @@
   <button type="button" class="scroll-to-bottom"
           data-chat-target="scrollButton"
           data-action="click->chat#jumpToBottom"
-          aria-label="Jump to latest">
+          aria-label="<%= t('.jump_to_latest') %>">
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"
          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M4 6l4 4 4-4"/>
     </svg>
-    <span class="scroll-to-bottom-label scroll-to-bottom-label--default">Jump to latest</span>
-    <span class="scroll-to-bottom-label scroll-to-bottom-label--new">New messages</span>
+    <span class="scroll-to-bottom-label scroll-to-bottom-label--default"><%= t('.jump_to_latest') %></span>
+    <span class="scroll-to-bottom-label scroll-to-bottom-label--new"><%= t('.new_messages') %></span>
   </button>
 
   <% if @read_only %>
     <div class="readonly-note">
-      Read-only — this conversation was shared with your team by <%= @conversation.user.display_label %>.
+      <%= t('.read_only_note', name: @conversation.user.display_label) %>
     </div>
   <% elsif workflow_run&.active? %>
     <%= render "workflow_runs/run_status", run: workflow_run %>

@@ -43,7 +43,7 @@ class ConnectorsController < ApplicationController
     apply_bot_setting
     if @connector.save
       save_credential
-      redirect_to edit_connector_path(@connector), notice: "Connector saved."
+      redirect_to edit_connector_path(@connector), notice: t("flash.connectors.update.notice")
     else
       @app = @connector.catalog_app
       @installations = bot_installations
@@ -55,7 +55,7 @@ class ConnectorsController < ApplicationController
     app = @connector.catalog_app
     @connector.destroy
     prune_or_revoke_oauth_grant(app) if app&.oauth?
-    redirect_to connectors_path, notice: "#{@connector.name} disconnected."
+    redirect_to connectors_path, notice: t("flash.connectors.destroy.notice", name: @connector.name)
   end
 
   private
@@ -77,7 +77,7 @@ class ConnectorsController < ApplicationController
       definition: app.resolved_definition(input_params(app))
     )
     save_app_credential(connector, app)
-    redirect_to edit_connector_path(connector), notice: "#{app.name} connected."
+    redirect_to edit_connector_path(connector), notice: t("flash.connectors.create.notice", name: app.name)
   end
 
   def input_params(app)

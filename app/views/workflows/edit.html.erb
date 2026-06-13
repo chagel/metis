@@ -2,15 +2,15 @@
 
 <main class="pane">
   <header class="pane-head">
-    <%= link_to workflows_path, class: "ico-btn", title: "Back to workflows" do %>
+    <%= link_to workflows_path, class: "ico-btn", title: t(".back_to_workflows") do %>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
         <path d="M10 3L5 8l5 5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     <% end %>
     <h1 class="pane-title"><%= @workflow.name %></h1>
     <div style="flex:1"></div>
-    <%= button_to "Delete", workflow_path(@workflow), method: :delete, class: "btn btn-danger",
-          form: { data: { turbo_confirm: "Delete #{@workflow.name}? Existing runs keep going." } } %>
+    <%= button_to t("common.delete"), workflow_path(@workflow), method: :delete, class: "btn btn-danger",
+          form: { data: { turbo_confirm: t(".delete_confirm", name: @workflow.name) } } %>
   </header>
 
   <div class="pane-body">

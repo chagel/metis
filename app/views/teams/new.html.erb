@@ -1,21 +1,20 @@
-<% content_for :title, "New team" %>
+<% content_for :title, t('.title') %>
 
 <main class="pane">
   <header class="pane-head">
-    <h1 class="pane-title">Create a team</h1>
+    <h1 class="pane-title"><%= t('.heading') %></h1>
   </header>
 
   <div class="pane-body">
     <div class="pane-inner">
       <p class="pane-lead">
-        A team shares connectors, skills, and projects with everyone you
-        invite. Your conversations stay private to you.
+        <%= t('.lead') %>
       </p>
 
       <%= form_with model: @team, url: teams_path, class: "team-form" do |form| %>
         <% if @team.errors.any? %>
           <div class="form-flash form-flash-err">
-            <%= pluralize(@team.errors.count, "error") %> prevented creating the team:
+            <%= pluralize(@team.errors.count, "error") %> <%= t('.errors_prevented') %>
             <ul>
               <% @team.errors.full_messages.each do |msg| %>
                 <li><%= msg %></li>
@@ -25,14 +24,14 @@
         <% end %>
 
         <div class="field">
-          <%= form.label :name, "Team name" %>
+          <%= form.label :name, t('.team_name') %>
           <%= form.text_field :name, autofocus: true, placeholder: "Acme Engineering" %>
-          <p class="field-hint">You can rename it later.</p>
+          <p class="field-hint"><%= t('.rename_hint') %></p>
         </div>
 
         <div class="form-actions">
-          <%= link_to "Cancel", team_path, class: "btn btn-ghost" %>
-          <%= form.submit "Create team", class: "btn btn-primary" %>
+          <%= link_to t('common.cancel'), team_path, class: "btn btn-ghost" %>
+          <%= form.submit t('.create_team'), class: "btn btn-primary" %>
         </div>
       <% end %>
     </div>

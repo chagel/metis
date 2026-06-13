@@ -1,13 +1,13 @@
-<% content_for :title, "Connect #{@app.name}" %>
+<% content_for :title, t('.title', name: @app.name) %>
 
 <main class="pane">
   <header class="pane-head">
-    <%= link_to connectors_path, class: "ico-btn", title: "Back to connectors" do %>
+    <%= link_to connectors_path, class: "ico-btn", title: t('.back') do %>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
         <path d="M10 3L5 8l5 5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     <% end %>
-    <h1 class="pane-title">Connect <%= @app.name %></h1>
+    <h1 class="pane-title"><%= t('.heading', name: @app.name) %></h1>
   </header>
 
   <div class="pane-body">
@@ -37,8 +37,8 @@
           <% end %>
 
           <div class="form-actions">
-            <%= submit_tag "Connect #{@app.name}", class: "btn btn-primary" %>
-            <%= link_to "Cancel", connectors_path, class: "btn btn-ghost" %>
+            <%= submit_tag t('.submit', name: @app.name), class: "btn btn-primary" %>
+            <%= link_to t('common.cancel'), connectors_path, class: "btn btn-ghost" %>
           </div>
         <% end %>
       <% elsif @app.mcp_oauth? %>
@@ -56,13 +56,13 @@
           <% end %>
 
           <div class="form-actions">
-            <%= submit_tag "Connect #{@app.name}", class: "btn btn-primary" %>
-            <%= link_to "Cancel", connectors_path, class: "btn btn-ghost" %>
+            <%= submit_tag t('.submit', name: @app.name), class: "btn btn-primary" %>
+            <%= link_to t('common.cancel'), connectors_path, class: "btn btn-ghost" %>
           </div>
         <% end %>
       <% else %>
         <div class="pane-empty">
-          <p><%= @app.name %> is not connectable yet.</p>
+          <p><%= t('.not_connectable', name: @app.name) %></p>
         </div>
       <% end %>
     </div>

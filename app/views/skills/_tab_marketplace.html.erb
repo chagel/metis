@@ -8,9 +8,9 @@
         <div class="conn-desc"><%= entry.description %></div>
       </div>
       <% if installed %>
-        <span class="badge">Installed</span>
+        <span class="badge"><%= t(".installed") %></span>
       <% elsif team_manager? %>
-        <%= button_to "Install", import_skills_path,
+        <%= button_to t(".install"), import_skills_path,
               params: { url: entry.source },
               method: :post,
               class: "btn btn-ghost",

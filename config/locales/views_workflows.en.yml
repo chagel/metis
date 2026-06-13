@@ -1,0 +1,146 @@
+en:
+  skills:
+    files:
+      supporting_files: "Supporting files"
+      intro_html: "pi loads <code>SKILL.md</code> by default. Add reference docs,\n    scripts, or examples your SKILL.md points at — pi can open them\n    with its file tools when it loads this skill."
+      delete_confirm: "Delete %{path}?"
+      add_file: "+ Add file"
+      file_label: "File"
+      max_size_html: "Up to %{size}MB."
+      filename_label: "Filename"
+      filename_placeholder: "style.md"
+      filename_hint_html: "Auto-filled from the file you pick. Use slashes for folders — e.g. <code>ref/style.md</code> or <code>scripts/run.sh</code>. <code>SKILL.md</code> is reserved."
+      add_file_submit: "Add file"
+    form:
+      slug_placeholder: "summarize-doc"
+      slug_hint_html: "Lowercase letters, digits, and <code>-</code>. Becomes the directory pi sees."
+      description_placeholder: "When the agent should reach for this skill — one line."
+      description_hint: "pi reads this to decide whether to load the skill."
+      skill_md_label: "SKILL.md"
+      skill_md_hint_html: "YAML frontmatter (<code>name</code>, <code>description</code>) tells pi when to load this skill. The body below is the instructions it sees on a match."
+      enabled: "Enabled"
+      save_skill: "Save skill"
+      create_skill: "Create skill"
+    skill:
+      enabled: "Enabled"
+      disabled: "Disabled"
+    tab_builtin:
+      built_in: "Built-in"
+      empty: "No built-in skills shipped with this deployment."
+      empty_hint_html: "Drop a directory under <code>.pi/skills/&lt;slug&gt;/</code> with a <code>SKILL.md</code> to ship one."
+    tab_marketplace:
+      installed: "Installed"
+      install: "Install"
+    tab_team:
+      empty_manager: "No team skills yet. Write one yourself, ask the agent to draft\n        one in chat, or pull one from the marketplace."
+      create_a_skill: "Create a skill"
+      empty_member: "This team has no skills yet. An admin can add them."
+    edit:
+      back_to_skills: "Back to skills"
+      delete_confirm: "Delete %{slug}?"
+    import_form:
+      title: "Import skill"
+      github_source: "GitHub source"
+      url_placeholder: "owner/repo or a github.com URL"
+      url_hint_html: "Must point to a folder with <code>SKILL.md</code>."
+      browse_marketplace: "Browse marketplace"
+    index:
+      title: "Skills"
+      new: "New"
+      your_skills: "Your skills"
+      built_in: "Built-in"
+      marketplace: "Marketplace"
+    new:
+      title: "New skill"
+  workflows:
+    break_row:
+      title: "The run pauses here — approve to continue, or request changes to re-run the step above"
+      text: "Break — waits for your approval"
+      remove_break: "Remove break"
+    form:
+      name_placeholder: "Triage & fix Sentry error"
+      description_placeholder: "Investigate an incoming error, draft a fix, gate, ship."
+      default_project_label: "Default project"
+      include_blank: "None — pick at launch"
+      default_project_hint: "Every run launches with a project; its standards reach the agent via AGENTS.md. This default is overridable per run — without one, each launch must pick."
+      trigger_label: "Trigger"
+      trigger_hint: "Manual runs from the catalog. Webhook and schedule triggers activate in a later release."
+      steps_label: "Steps"
+      steps_hint_html: "Each prompt step runs as one agent turn — the name is just a label, the prompt is the instruction. Add a <strong>break</strong> where the run should pause for your approval (approve to continue, or request changes to re-run the step above it). Set a step to <strong>Local</strong> to run it on your own machine (%{bridge_token_link})."
+      bridge_token: "bridge token"
+      add_prompt_step: "Add prompt step"
+      add_break: "Add break"
+      create_workflow: "Create workflow"
+    step_row:
+      name_placeholder: "Step name"
+      where_runs: "Where this step runs"
+      run_cloud_title: "Run as a normal cloud turn"
+      run_cloud: "Cloud"
+      run_local_title: "Delegate this step to your enrolled machine"
+      run_local: "Local"
+      remove_step: "Remove step"
+      prompt_placeholder: "What should the agent do in this step?"
+    workflow:
+      steps: {one: "%{count} step", other: "%{count} steps"}
+      breaks: {one: "%{count} break", other: "%{count} breaks"}
+      project_suffix: "· %{name}"
+    edit:
+      back_to_workflows: "Back to workflows"
+      delete_confirm: "Delete %{name}? Existing runs keep going."
+    index:
+      title: "Workflows"
+      new: "New"
+      empty: "No workflows yet. A workflow is a saved recipe the agent runs on its own, pausing at gates for your approval."
+      create_first: "Create your first workflow"
+    new:
+      title: "New workflow"
+  workflow_runs:
+    gate:
+      review_needed: "Review needed"
+      approval_needed: "Approval needed"
+      final_step_desc: "This is the workflow's last step — your sign-off completes the run."
+      paused_desc: "The agent paused here on purpose. Approve to let it continue, or reject to stop the run."
+      view_output: "View the step output"
+      feedback_placeholder: "Optional — tell the agent what to change, then Request changes."
+      routed: "Routed to your team"
+      cancel_run: "Cancel run"
+      request_changes: "Request changes"
+      approve_finish: "Approve & finish"
+      approve_continue: "Approve & continue"
+    meta:
+      workflow: "Workflow"
+      steps: {one: "%{count} step", other: "%{count} steps"}
+      gates: {one: "%{count} gate", other: "%{count} gates"}
+      agent_duration: "agent %{duration}"
+      wall_duration: "· wall %{duration}"
+      cost: "· %{cost}"
+    run_status:
+      paused: "Paused for your approval — see the gate above."
+      worker_working: "%{worker} is working on this step."
+      delegated_waiting: "Delegated — waiting for a machine with a bridge token to pick it up."
+      cancel_run: "Cancel run"
+      running: "The agent is running this workflow…"
+      workflow_status: "Workflow %{status}."
+      continue_conversation: "Continue the conversation"
+    sidebar_pill:
+      review: "Review"
+      local: "Local"
+      done: "Done"
+    timeline:
+      triggered: "Triggered"
+      workflow_prefix: "· workflow"
+      runtime_label: "· runtime %{runtime}"
+      step_number: "Step %{number}"
+      running: "Running"
+      local_runs_html: "This step runs on one of your machines. A running\n              <code>metis</code> daemon claims it automatically on its next\n              poll — or, in your coding agent, say"
+      claim_next_task: "claim next task"
+      copy: "Copy"
+      nothing_html: "Nothing picking it up? Set up the bridge in\n              %{link} — token, MCP\n              endpoint, the skill install, and the daemon live there. A\n              daemon only claims projects its config maps to a checkout."
+      account_settings: "account settings"
+      view_turn: "view turn →"
+      gate_title: "Gate · %{name}"
+      gate_review: "review"
+      paused_duration: "paused %{duration}"
+      the_reviewer: "The reviewer"
+      rejected: "rejected"
+      approved: "approved"

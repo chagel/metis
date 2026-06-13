@@ -27,8 +27,7 @@ class Skill < ApplicationRecord
 
   validates :slug, presence: true,
                     uniqueness: { scope: :team_id },
-                    format: { with: SLUG_FORMAT,
-                              message: "only lowercase letters, numbers, and hyphens" }
+                    format: { with: SLUG_FORMAT }
   validate :slug_not_in_repo_tree
 
   scope :enabled, -> { where(enabled: true) }

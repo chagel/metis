@@ -7,9 +7,9 @@
       <h2 class="model-provider-name"><%= provider.label %></h2>
       <div class="model-provider-sub">
         <code class="model-key"><%= provider.key %></code>
-        <span class="model-count"><%= enabled_count %> of <%= models.size %> enabled</span>
+        <span class="model-count"><%= t('.enabled_count', enabled: enabled_count, total: models.size) %></span>
         <% unless provider.api_key? %>
-          <span class="badge badge-warn" title="No API key is configured for this provider; its models won't run.">no API key</span>
+          <span class="badge badge-warn" title="<%= t('.no_api_key_title') %>"><%= t('.no_api_key') %></span>
         <% end %>
       </div>
     </div>
@@ -18,10 +18,10 @@
       <%= button_to "", model_provider_path(provider), method: :patch,
             params: { enabled: !provider.enabled? }, form_class: "inline-form",
             class: "switch switch-lg #{'is-on' if provider.enabled?}",
-            title: provider.enabled? ? "Disable all #{provider.label} models" : "Enable #{provider.label}",
-            aria: { label: provider.enabled? ? "Disable #{provider.label}" : "Enable #{provider.label}" } %>
+            title: provider.enabled? ? t('.disable_all_provider', provider: provider.label) : t('.enable_provider', provider: provider.label),
+            aria: { label: provider.enabled? ? t('.disable_provider', provider: provider.label) : t('.enable_provider', provider: provider.label) } %>
     <% else %>
-      <span class="status-pill <%= 'is-on' if provider.enabled? %>"><%= provider.enabled? ? "On" : "Off" %></span>
+      <span class="status-pill <%= 'is-on' if provider.enabled? %>"><%= provider.enabled? ? t('.on') : t('.off') %></span>
     <% end %>
   </header>
 
@@ -32,13 +32,13 @@
           <div class="model-head">
             <span class="model-label"><%= model.label %></span>
             <% if model.last_seen_at.nil? %>
-              <span class="badge badge-warn" title="Not reported by pi on the last refresh.">stale</span>
+              <span class="badge badge-warn" title="<%= t('.stale_title') %>"><%= t('.stale') %></span>
             <% end %>
           </div>
           <div class="model-meta">
             <code class="model-key"><%= model.key %></code>
-            <% if model.context_window.present? %><span class="model-tag"><%= model.context_window / 1000 %>K context</span><% end %>
-            <% if model.reasoning? %><span class="model-tag">reasoning</span><% end %>
+            <% if model.context_window.present? %><span class="model-tag"><%= t('.context_window', size: model.context_window / 1000) %></span><% end %>
+            <% if model.reasoning? %><span class="model-tag"><%= t('.reasoning') %></span><% end %>
             <% if model.input_modalities.present? %><span class="model-tag"><%= model.input_modalities.join(" · ") %></span><% end %>
           </div>
         </div>
@@ -48,10 +48,10 @@
             <%= button_to "", model_item_path(model), method: :patch,
                   params: { enabled: !model.enabled? }, form_class: "inline-form",
                   class: "switch #{'is-on' if model.enabled?}",
-                  title: model.enabled? ? "Disable #{model.label}" : "Enable #{model.label}",
-                  aria: { label: model.enabled? ? "Disable #{model.label}" : "Enable #{model.label}" } %>
+                  title: model.enabled? ? t('.disable_model', model: model.label) : t('.enable_model', model: model.label),
+                  aria: { label: model.enabled? ? t('.disable_model', model: model.label) : t('.enable_model', model: model.label) } %>
           <% else %>
-            <span class="status-pill <%= 'is-on' if model.enabled? %>"><%= model.enabled? ? "On" : "Off" %></span>
+            <span class="status-pill <%= 'is-on' if model.enabled? %>"><%= model.enabled? ? t('.on') : t('.off') %></span>
           <% end %>
         </div>
       </li>

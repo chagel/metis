@@ -11,7 +11,7 @@
      data-theme-pref="<%= theme_pref %>">
   <button type="button" class="user-menu-trigger"
           data-action="click->user-menu#toggle"
-          aria-haspopup="true" aria-label="Open user menu">
+          aria-haspopup="true" aria-label="<%= t('.open_user_menu') %>">
     <%= avatar_for current_user, size: 32 %>
     <div class="who"><div class="nm"><%= current_user.display_label %></div></div>
     <svg class="user-menu-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor"
@@ -29,8 +29,8 @@
       </div>
       <button type="button" class="theme-toggle"
               data-action="click->user-menu#cycleTheme"
-              aria-label="Cycle theme: system, light, dark"
-              title="Cycle theme">
+              aria-label="<%= t('.cycle_theme_aria') %>"
+              title="<%= t('.cycle_theme') %>">
         <%# Each SVG is hidden unless the wrapper's data-theme-pref
             matches — so the visible icon always reflects the current
             preference (not the next state). Click cycles forward. %>
@@ -62,7 +62,7 @@
            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="8" cy="5.5" r="2.5"/><path d="M3 14c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5"/>
       </svg>
-      <span>Profile</span>
+      <span><%= t('.profile') %></span>
     <% end %>
 
     <%= link_to "/settings", class: "user-menu-item", role: "menuitem",
@@ -72,7 +72,7 @@
         <circle cx="8" cy="8" r="2.2"/>
         <path d="M13.5 8a5.5 5.5 0 00-.1-1.1l1.4-1-1.4-2.4-1.6.6a5.5 5.5 0 00-1.9-1.1L9.5 1h-3l-.4 1.9a5.5 5.5 0 00-1.9 1.1l-1.6-.6L1.2 5.9l1.4 1a5.5 5.5 0 000 2.2l-1.4 1 1.4 2.4 1.6-.6a5.5 5.5 0 001.9 1.1L6.5 15h3l.4-1.9a5.5 5.5 0 001.9-1.1l1.6.6 1.4-2.4-1.4-1c.07-.36.1-.73.1-1.1z"/>
       </svg>
-      <span>Settings</span>
+      <span><%= t('.settings') %></span>
     <% end %>
 
     <div class="user-menu-sep"></div>
@@ -83,7 +83,7 @@
            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M6 14H3.5A1.5 1.5 0 012 12.5v-9A1.5 1.5 0 013.5 2H6M10.5 11l3-3-3-3M13.5 8H6"/>
       </svg>
-      <span>Sign out</span>
+      <span><%= t('.sign_out') %></span>
     <% end %>
   </div>
 </div>

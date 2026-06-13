@@ -12,7 +12,7 @@
   <% end %>
   <% if user.errors.any? %>
     <div class="form-flash form-flash-err">
-      <%= pluralize(user.errors.count, "error") %> prevented saving your profile:
+      <%= pluralize(user.errors.count, "error") %> <%= t('.errors_prevented') %>
       <ul>
         <% user.errors.full_messages.each do |msg| %>
           <li><%= msg %></li>
@@ -22,73 +22,73 @@
   <% end %>
 
   <div class="profile-col">
-    <h2 class="profile-col-title">Preferences</h2>
+    <h2 class="profile-col-title"><%= t('.preferences') %></h2>
 
     <div class="form-row">
-      <label>Change avatar</label>
+      <label><%= t('.change_avatar') %></label>
       <%= render "avatar_editor", user: user %>
-      <p class="form-hint">JPG, PNG, WebP, or GIF — 2MB max.</p>
+      <p class="form-hint"><%= t('.avatar_hint') %></p>
     </div>
 
     <div class="form-row">
-      <%= form.label :display_name, "Display name" %>
+      <%= form.label :display_name, t('.display_name') %>
       <%= form.text_field :display_name, autocomplete: "name",
-            placeholder: "How others see you" %>
-      <p class="form-hint">Shown in the sidebar and conversation header.</p>
+            placeholder: t('.display_name_placeholder') %>
+      <p class="form-hint"><%= t('.display_name_hint') %></p>
     </div>
 
     <div class="form-row">
-      <%= form.label :timezone, "Timezone" %>
+      <%= form.label :timezone, t('.timezone') %>
       <%= form.select :timezone, timezone_options,
-            { include_blank: "Default" },
+            { include_blank: t('.default') },
             autocomplete: "off" %>
-      <p class="form-hint">Timestamps throughout the app render in this zone.</p>
+      <p class="form-hint"><%= t('.timezone_hint') %></p>
     </div>
 
     <div class="form-row">
-      <%= form.label :language, "Language" %>
+      <%= form.label :language, t('.language') %>
       <%= form.select :language,
             User::AVAILABLE_LANGUAGES.map { |code| [ language_label(code), code ] },
-            include_blank: "Default" %>
-      <p class="form-hint">More locales arrive as translations land.</p>
+            include_blank: t('.default') %>
+      <p class="form-hint"><%= t('.language_hint') %></p>
     </div>
 
     <div class="form-row">
-      <%= form.label :preferred_model, "Default model" %>
+      <%= form.label :preferred_model, t('.default_model') %>
       <%= form.select :preferred_model,
             grouped_options_for_select(Agent::Catalog.grouped_model_options, user.preferred_model),
-            include_blank: "Default" %>
-      <p class="form-hint">Used for new conversations — still overridable per chat.</p>
+            include_blank: t('.default') %>
+      <p class="form-hint"><%= t('.default_model_hint') %></p>
     </div>
 
     <div class="form-row">
-      <%= form.label :theme, "Theme" %>
+      <%= form.label :theme, t('.theme') %>
       <%= form.select :theme,
             User::THEMES.map { |key| [ key.capitalize, key ] },
-            include_blank: "Default" %>
-      <p class="form-hint">Persists across devices. Falls back to your OS preference.</p>
+            include_blank: t('.default') %>
+      <p class="form-hint"><%= t('.theme_hint') %></p>
     </div>
   </div>
 
   <div class="profile-col">
-    <h2 class="profile-col-title">Personalization</h2>
+    <h2 class="profile-col-title"><%= t('.personalization') %></h2>
 
     <div class="form-row">
-      <%= form.label :about_you, "About you" %>
+      <%= form.label :about_you, t('.about_you') %>
       <%= form.text_area :about_you, rows: 6,
-            placeholder: "Your role, what you work on, anything Metis should keep in mind." %>
-      <p class="form-hint">Rendered into every turn — keep it tight, not a memoir.</p>
+            placeholder: t('.about_you_placeholder') %>
+      <p class="form-hint"><%= t('.about_you_hint') %></p>
     </div>
 
     <div class="form-row">
-      <%= form.label :custom_instructions, "Custom instructions" %>
+      <%= form.label :custom_instructions, t('.custom_instructions') %>
       <%= form.text_area :custom_instructions, rows: 10,
-            placeholder: "e.g., Be terse. Don't apologize. Cite file:line when referencing code." %>
-      <p class="form-hint">How you want Metis to respond. Applied to every conversation.</p>
+            placeholder: t('.custom_instructions_placeholder') %>
+      <p class="form-hint"><%= t('.custom_instructions_hint') %></p>
     </div>
   </div>
 
   <div class="form-actions">
-    <%= form.submit "Save profile", class: "btn btn-primary" %>
+    <%= form.submit t('.submit'), class: "btn btn-primary" %>
   </div>
 <% end %>

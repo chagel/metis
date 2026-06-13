@@ -13,7 +13,7 @@
     <span class="art-actions">
       <% if open_url %>
         <%= link_to open_url, target: "_blank", rel: "noopener",
-                    class: "art-action", title: "Open", "aria-label": "Open" do %>
+                    class: "art-action", title: t('.open'), "aria-label": t('.open') do %>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
@@ -24,7 +24,7 @@
       <% end %>
       <%= link_to rails_blob_path(artifact, disposition: "attachment"),
                   class: "art-action art-action--ghost",
-                  title: "Download", "aria-label": "Download" do %>
+                  title: t('.download'), "aria-label": t('.download') do %>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>

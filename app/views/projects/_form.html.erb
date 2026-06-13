@@ -6,17 +6,17 @@
   <div class="field">
     <%= f.label :name %>
     <%= f.text_field :name, placeholder: "Metis", autocomplete: "off" %>
-    <p class="field-hint">A short name you recognize — "Metis", "Q4 planning", "Mom's birthday".</p>
+    <p class="field-hint"><%= t('.name_hint') %></p>
   </div>
 
   <div class="field">
-    <%= f.label :about, "About this project" %>
+    <%= f.label :about, t('.about_label') %>
     <%= f.text_area :about, rows: 5,
-          placeholder: "What's this project about? The agent reads this on every turn in this project.\n\nName the resources it maps to — e.g. \"GitHub repo chagel/metis, Linear project Metis\"." %>
-    <p class="field-hint">Freeform notes — conventions, constraints, who's involved, which repo or board it maps to. Shows up in the agent's context.</p>
+          placeholder: t('.about_placeholder') %>
+    <p class="field-hint"><%= t('.about_hint') %></p>
   </div>
 
   <div class="form-actions">
-    <%= f.submit(project.persisted? ? "Save" : "Create project", class: "btn btn-primary") %>
+    <%= f.submit(project.persisted? ? t('common.save') : t('.create'), class: "btn btn-primary") %>
   </div>
 <% end %>

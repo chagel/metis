@@ -2,15 +2,15 @@
 
 <main class="pane">
   <header class="pane-head">
-    <%= link_to connectors_path, class: "ico-btn", title: "Back to connectors" do %>
+    <%= link_to connectors_path, class: "ico-btn", title: t('.back') do %>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
         <path d="M10 3L5 8l5 5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     <% end %>
     <h1 class="pane-title"><%= @app&.name || @connector.name %></h1>
     <div style="flex:1"></div>
-    <%= button_to "Disconnect", connector_path(@connector), method: :delete, class: "btn btn-danger",
-          form: { data: { turbo_confirm: "Disconnect #{@connector.name}?" } } %>
+    <%= button_to t('.disconnect'), connector_path(@connector), method: :delete, class: "btn btn-danger",
+          form: { data: { turbo_confirm: t('.disconnect_confirm', name: @connector.name) } } %>
   </header>
 
   <div class="pane-body">
@@ -23,10 +23,9 @@
           <% if oauth_path.nil? %>
             <section class="conn-status">
               <div class="conn-status-main">
-                <div class="conn-status-title"><%= @app.name %> OAuth is not configured</div>
+                <div class="conn-status-title"><%= t('.oauth_unconfigured_title', name: @app.name) %></div>
                 <div class="conn-status-sub">
-                  This deployment hasn't set OAuth credentials for <%= @app.name %>.
-                  Ask your admin to configure it before connecting.
+                  <%= t('.oauth_unconfigured_sub', name: @app.name) %>
                 </div>
               </div>
             </section>
@@ -39,14 +38,14 @@
               <div class="conn-status-main">
                 <div class="conn-status-title">
                 <% if @credential.external_login.present? %>
-                  Connected as @<%= @credential.external_login %> on <%= @app.name %>
+                  <%= t('.connected_as', login: @credential.external_login, name: @app.name) %>
                 <% else %>
-                  Your <%= @app.name %> account is connected
+                  <%= t('.connected_account', name: @app.name) %>
                 <% end %>
               </div>
-                <div class="conn-status-sub">Re-authorize if access stops working.</div>
+                <div class="conn-status-sub"><%= t('.reauthorize_hint') %></div>
               </div>
-              <%= button_to "Re-authorize", oauth_path,
+              <%= button_to t('.reauthorize'), oauth_path,
                     data: { turbo: false }, class: "btn btn-ghost" %>
             </section>
           <% else %>
@@ -56,10 +55,10 @@
                 <circle cx="8" cy="8" r="6"/>
               </svg>
               <div class="conn-status-main">
-                <div class="conn-status-title">Not connected yet</div>
-                <div class="conn-status-sub">Each member connects their own <%= @app.name %> account.</div>
+                <div class="conn-status-title"><%= t('.not_connected') %></div>
+                <div class="conn-status-sub"><%= t('.each_member', name: @app.name) %></div>
               </div>
-              <%= button_to "Authorize on #{@app.name}", oauth_path,
+              <%= button_to t('.authorize_on', name: @app.name), oauth_path,
                     data: { turbo: false }, class: "btn btn-primary" %>
             </section>
           <% end %>
@@ -74,32 +73,29 @@
                 <%= hidden_field_tag "connector[bot_enabled]", "0" %>
                 <%= check_box_tag "connector[bot_enabled]", "1", @connector.bot_enabled? %>
                 <span class="conn-bot-main">
-                  <span class="conn-bot-title">Let the agent act as the GitHub bot</span>
+                  <span class="conn-bot-title"><%= t('.bot_title') %></span>
                   <span class="conn-bot-sub">
-                    Lets the agent post PR reviews as
-                    <code><%= GithubApp::Config.app_slug || "metis" %>[bot]</code>. Every
-                    member gets this, reaching every repo the App is installed on — scope
-                    it on GitHub.
+                    <%= t('.bot_sub_pre') %>
+                    <code><%= GithubApp::Config.app_slug || "metis" %>[bot]</code>. <%= t('.bot_sub_post') %>
                   </span>
                 </span>
               </label>
               <% if @installations.many? %>
                 <div class="field">
-                  <%= label_tag "connector[bot_installation_id]", "Act through installation" %>
+                  <%= label_tag "connector[bot_installation_id]", t('.act_through') %>
                   <%= select_tag "connector[bot_installation_id]",
                         options_for_select(
                           @installations.map { |i| [ "#{i["login"]} (#{i["type"].to_s.downcase})", i["id"] ] },
                           @connector.bot_installation_id
                         ),
-                        include_blank: "Choose an installation…" %>
+                        include_blank: t('.choose_installation') %>
                   <p class="field-hint">
-                    The App is installed in more than one place — the bot acts through
-                    the one you pick here.
+                    <%= t('.installation_hint') %>
                   </p>
                 </div>
               <% end %>
               <div class="form-actions">
-                <%= f.submit "Save", class: "btn btn-primary" %>
+                <%= f.submit t('common.save'), class: "btn btn-primary" %>
               </div>
             <% end %>
           </section>
@@ -110,13 +106,13 @@
             <div class="field">
               <%= label_tag :credential, @app.credential["label"] %>
               <%= password_field_tag :credential, nil, autocomplete: "off",
-                    placeholder: @credential ? "Set — leave blank to keep the current one" : nil %>
+                    placeholder: @credential ? t('.credential_placeholder') : nil %>
               <% if @app.credential["hint"] %>
                 <p class="field-hint"><%= @app.credential["hint"] %></p>
               <% end %>
             </div>
             <div class="form-actions">
-              <%= f.submit "Save", class: "btn btn-primary" %>
+              <%= f.submit t('common.save'), class: "btn btn-primary" %>
             </div>
           <% end %>
         <% end %>

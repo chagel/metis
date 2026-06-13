@@ -5,7 +5,7 @@
 <aside id="sidebar" class="sidebar settings-sidebar">
   <div class="ws">
     <div class="ws-crumb">
-      <%= link_to root_path, class: "ws-back", title: "Back to chat", "aria-label": "Back to chat" do %>
+      <%= link_to root_path, class: "ws-back", title: t('.back_to_chat'), "aria-label": t('.back_to_chat') do %>
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M10 3L5 8l5 5"/>
@@ -15,15 +15,15 @@
     </div>
   </div>
 
-  <nav class="settings-nav" aria-label="Settings sections">
-    <div class="grp-label">Settings</div>
+  <nav class="settings-nav" aria-label="<%= t('.sections') %>">
+    <div class="grp-label"><%= t('.settings') %></div>
     <%= link_to profile_path,
           class: "nav-item#{' on' if controller_name == 'profiles'}" do %>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
         <circle cx="8" cy="5.5" r="2.5"/>
         <path d="M3 14c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5" stroke-linecap="round"/>
       </svg>
-      <span>Profile</span>
+      <span><%= t('.profile') %></span>
     <% end %>
     <%= link_to account_path,
           class: "nav-item#{' on' if controller_name == 'accounts'}" do %>
@@ -32,7 +32,7 @@
         <circle cx="10.5" cy="5.5" r="3"/>
         <path d="M8.4 7.6L2.5 13.5M5 11l1.5 1.5M7 9l1.5 1.5"/>
       </svg>
-      <span>Account</span>
+      <span><%= t('.account') %></span>
     <% end %>
     <%= link_to team_path,
           class: "nav-item#{' on' if controller_name == 'teams'}" do %>
@@ -43,7 +43,7 @@
         <path d="M10.6 3.9a2.4 2.4 0 0 1 0 4.2"/>
         <path d="M11.3 9.3c1.7.4 2.9 1.7 2.9 3.7"/>
       </svg>
-      <span>Team</span>
+      <span><%= t('.team') %></span>
     <% end %>
     <%= link_to connectors_path,
           class: "nav-item#{' on' if controller_name == 'connectors'}" do %>
@@ -51,7 +51,7 @@
         <path d="M5.5 2v3.2M10.5 2v3.2M4 5.2h8v2.3a4 4 0 01-8 0V5.2zM8 11.5V14"
               stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <span>Connectors</span>
+      <span><%= t('.connectors') %></span>
     <% end %>
     <%= link_to projects_path,
           class: "nav-item#{' on' if controller_name == 'projects'}" do %>
@@ -59,7 +59,7 @@
         <path d="M2.5 4.5h4l1 1.2h6V13h-11z"
               stroke-linejoin="round"/>
       </svg>
-      <span>Projects</span>
+      <span><%= t('.projects') %></span>
     <% end %>
     <%= link_to skills_path,
           class: "nav-item#{' on' if controller_name == 'skills'}" do %>
@@ -67,7 +67,7 @@
         <path d="M3.5 3h9v3h-9zM3.5 9h9v3.5h-9zM2 4.5h1.5M2 11h1.5"
               stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <span>Skills</span>
+      <span><%= t('.skills') %></span>
     <% end %>
     <%= link_to workflows_path,
           class: "nav-item#{' on' if %w[workflows workflow_runs].include?(controller_name)}" do %>
@@ -75,7 +75,7 @@
            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M2.5 4h5l1 1.5h5M2.5 4v8h11V5.5M2.5 8h11"/>
       </svg>
-      <span>Workflows</span>
+      <span><%= t('.workflows') %></span>
     <% end %>
     <%= link_to models_path,
           class: "nav-item#{' on' if controller_name == 'models'}" do %>
@@ -83,7 +83,7 @@
         <path d="M8 1.5l5.5 3v7L8 14.5 2.5 11.5v-7zM8 1.5v6.5M8 8l5.5-3M8 8l-5.5-3"
               stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <span>Models</span>
+      <span><%= t('.models') %></span>
     <% end %>
   </nav>
 

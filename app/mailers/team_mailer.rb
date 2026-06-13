@@ -9,6 +9,6 @@ class TeamMailer < ApplicationMailer
     @accept_url = invitation_url(invitation.token)
 
     mail to: invitation.email,
-         subject: "#{@inviter.display_label} invited you to #{@team.name} on Metis"
+         subject: default_i18n_subject(inviter: @inviter.display_label, team: @team.name)
   end
 end

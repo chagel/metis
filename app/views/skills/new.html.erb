@@ -1,10 +1,10 @@
-<% content_for :title, "New skill" %>
+<% content_for :title, t(".title") %>
 
 <main class="pane">
   <header class="pane-head">
-    <h1 class="pane-title">New skill</h1>
+    <h1 class="pane-title"><%= t(".title") %></h1>
     <div style="flex:1"></div>
-    <%= link_to "Cancel", skills_path, class: "btn btn-ghost" %>
+    <%= link_to t("common.cancel"), skills_path, class: "btn btn-ghost" %>
   </header>
 
   <div class="pane-body">

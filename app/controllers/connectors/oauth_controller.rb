@@ -9,14 +9,14 @@ module Connectors
     # stays server-side, the opaque `state` guards the callback.
     def start
       app = ConnectorCatalog.find(params[:catalog_key])
-      return redirect_to(connectors_path, alert: "Unknown connector.") unless app&.mcp_oauth?
+      return redirect_to(connectors_path, alert: t("flash.connectors.oauth.start.unknown")) unless app&.mcp_oauth?
 
       # Fixed-URL servers (Notion) resolve to their catalog URL; per-instance
       # servers (Metabase) resolve from the user-supplied `inputs`.
       resource = resolved_url(app)
       if resource.nil?
         return redirect_to new_connector_path(app: app.key),
-                           alert: "Enter a valid https:// URL for your #{app.name} server."
+                           alert: t("flash.connectors.oauth.start.invalid_url", name: app.name)
       end
 
       provider = Mcp::Oauth::Provider.for(resource, redirect_uri: connector_oauth_callback_url)
@@ -30,13 +30,13 @@ module Connectors
       redirect_to provider.authorize_url(redirect_uri: connector_oauth_callback_url, state: state, pkce: pkce),
                   allow_other_host: true
     rescue Mcp::Oauth::Error => error
-      redirect_to connectors_path, alert: "Couldn't start that connection: #{error.message}"
+      redirect_to connectors_path, alert: t("flash.connectors.oauth.start.failed", message: error.message)
     end
 
     def callback
       flow = session.delete("mcp_oauth") || {}
-      return redirect_to(connectors_path, alert: "That connection expired — try again.") unless valid_state?(flow)
-      return redirect_to(connectors_path, alert: "Connection was cancelled.") if params[:code].blank?
+      return redirect_to(connectors_path, alert: t("flash.connectors.oauth.callback.expired")) unless valid_state?(flow)
+      return redirect_to(connectors_path, alert: t("flash.connectors.oauth.callback.cancelled")) if params[:code].blank?
 
       app = ConnectorCatalog.find(flow["catalog_key"])
       team = current_user.teams.find_by(id: flow["team_id"]) || current_user.personal_team
@@ -46,9 +46,9 @@ module Connectors
                                  redirect_uri: connector_oauth_callback_url)
 
       activate(team, app, provider, tokens, resource)
-      redirect_to connectors_path, notice: "#{app.name} connected."
+      redirect_to connectors_path, notice: t("flash.connectors.oauth.callback.notice", name: app.name)
     rescue Mcp::Oauth::Error => error
-      redirect_to connectors_path, alert: "Couldn't finish that connection: #{error.message}"
+      redirect_to connectors_path, alert: t("flash.connectors.oauth.callback.failed", message: error.message)
     end
 
     private

@@ -1,13 +1,13 @@
-<% content_for :title, "Connectors" %>
+<% content_for :title, t('.title') %>
 
 <main class="pane">
   <header class="pane-head">
-    <h1 class="pane-title">Connectors</h1>
+    <h1 class="pane-title"><%= t('.heading') %></h1>
   </header>
 
   <div class="pane-body">
     <div class="pane-inner">
-      <p class="pane-lead">Connect the agent to third-party apps over MCP.</p>
+      <p class="pane-lead"><%= t('.lead') %></p>
 
       <% @apps.group_by(&:category).each do |category, apps| %>
         <div class="cat-label"><%= category %></div>
@@ -35,36 +35,36 @@
                 <div class="app-name"><%= app.name %></div>
                 <% if connector_needs_setup?(app) %>
                   <span class="app-dot"
-                        title="Admin setup required — register an OAuth app (see docs/configuration.md)."
-                        aria-label="Admin setup required"></span>
+                        title="<%= t('.setup_required_title') %>"
+                        aria-label="<%= t('.setup_required') %>"></span>
                 <% end %>
               </div>
               <div class="app-desc"><%= app.description %></div>
               <div class="app-foot">
                 <% if wired %>
-                  <span class="app-state connected">Connected</span>
+                  <span class="app-state connected"><%= t('.connected') %></span>
                   <div style="flex:1"></div>
                   <% if team_manager? %>
-                    <%= link_to "Manage", edit_connector_path(connector), class: "btn btn-ghost" %>
+                    <%= link_to t('.manage'), edit_connector_path(connector), class: "btn btn-ghost" %>
                   <% end %>
                 <% elsif app.oauth? && (oauth_path = connector_authorize_path_for(app)) %>
                   <div style="flex:1"></div>
-                  <%= button_to(mine ? "Reconnect" : "Connect", oauth_path,
+                  <%= button_to(mine ? t('.reconnect') : t('.connect'), oauth_path,
                         data: { turbo: false }, class: "btn btn-primary") %>
                 <% elsif app.oauth? %>
-                  <span class="app-state">OAuth — coming soon</span>
+                  <span class="app-state"><%= t('.oauth_coming_soon') %></span>
                 <% elsif app.mcp_oauth? && app.inputs.any? %>
                   <%# Per-instance: collect the server URL on a form first. %>
                   <div style="flex:1"></div>
-                  <%= link_to(mine ? "Reconnect" : "Connect", new_connector_path(app: app.key),
+                  <%= link_to(mine ? t('.reconnect') : t('.connect'), new_connector_path(app: app.key),
                         class: "btn btn-primary") %>
                 <% elsif app.mcp_oauth? %>
                   <div style="flex:1"></div>
-                  <%= button_to(mine ? "Reconnect" : "Connect", connector_oauth_start_path(app.key),
+                  <%= button_to(mine ? t('.reconnect') : t('.connect'), connector_oauth_start_path(app.key),
                         data: { turbo: false }, class: "btn btn-primary") %>
                 <% elsif team_manager? %>
                   <div style="flex:1"></div>
-                  <%= link_to "Connect", new_connector_path(app: app.key), class: "btn btn-primary" %>
+                  <%= link_to t('.connect'), new_connector_path(app: app.key), class: "btn btn-primary" %>
                 <% end %>
               </div>
             </div>

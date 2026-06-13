@@ -15,7 +15,7 @@ class TeamsController < ApplicationController
       current_user.memberships.create!(team: @team, role: :owner)
     end
     session[:current_team_id] = @team.id
-    redirect_to team_path, notice: "#{@team.name} created."
+    redirect_to team_path, notice: t("flash.teams.create.notice", name: @team.name)
   rescue ActiveRecord::RecordInvalid
     render :new, status: :unprocessable_entity
   end

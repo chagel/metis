@@ -31,7 +31,7 @@ class SkillsController < ApplicationController
     write_skill_md!(@skill, params.dig(:skill, :skill_md))
 
     if @skill.save
-      redirect_to edit_skill_path(@skill), notice: "Skill created."
+      redirect_to edit_skill_path(@skill), notice: t("flash.skills.create.notice")
     else
       render :new, status: :unprocessable_entity
     end
@@ -46,7 +46,7 @@ class SkillsController < ApplicationController
     write_skill_md!(@skill, params.dig(:skill, :skill_md))
 
     if @skill.save
-      redirect_to edit_skill_path(@skill), notice: "Skill saved."
+      redirect_to edit_skill_path(@skill), notice: t("flash.skills.update.notice")
     else
       render :edit, status: :unprocessable_entity
     end
@@ -54,7 +54,7 @@ class SkillsController < ApplicationController
 
   def destroy
     @skill.destroy
-    redirect_to skills_path, notice: "#{@skill.slug} deleted."
+    redirect_to skills_path, notice: t("flash.skills.destroy.notice", slug: @skill.slug)
   end
 
   def import_form
@@ -62,11 +62,11 @@ class SkillsController < ApplicationController
 
   def import
     url = params[:url].to_s.strip
-    return redirect_to skills_path, alert: "Paste a GitHub URL or owner/repo." if url.blank?
+    return redirect_to skills_path, alert: t("flash.skills.import.blank_url") if url.blank?
 
     ImportSkillJob.perform_later(team_id: team.id, by_user_id: current_user.id, url: url)
     redirect_to skills_path,
-                notice: "Importing #{File.basename(url)} — it'll appear in Your skills shortly."
+                notice: t("flash.skills.import.notice", name: File.basename(url))
   end
 
   def add_file
@@ -74,29 +74,29 @@ class SkillsController < ApplicationController
     upload = params[:file]
 
     unless upload.respond_to?(:read)
-      return redirect_to edit_skill_path(@skill), alert: "Pick a file to upload."
+      return redirect_to edit_skill_path(@skill), alert: t("flash.skills.add_file.no_file")
     end
     unless Skill.valid_file_path?(path)
-      return redirect_to edit_skill_path(@skill), alert: "Invalid path — use a relative path under #{Skill::MAX_FILE_PATH_DEPTH} levels, segments like `ref/style.md`."
+      return redirect_to edit_skill_path(@skill), alert: t("flash.skills.add_file.invalid_path", depth: Skill::MAX_FILE_PATH_DEPTH)
     end
     if upload.size > Skill::MAX_FILE_SIZE
       return redirect_to edit_skill_path(@skill),
-             alert: "File too large — keep it under #{Skill::MAX_FILE_SIZE / 1.megabyte}MB."
+             alert: t("flash.skills.add_file.too_large", size: Skill::MAX_FILE_SIZE / 1.megabyte)
     end
 
     @skill.replace_file!(path, upload.read, upload.content_type.presence)
     @skill.update!(updated_by: current_user)
-    redirect_to edit_skill_path(@skill), notice: "Added #{path}."
+    redirect_to edit_skill_path(@skill), notice: t("flash.skills.add_file.notice", path: path)
   end
 
   def destroy_file
     attachment = @skill.files.find_by(id: params[:file_id])
-    return redirect_to edit_skill_path(@skill), alert: "File not found." unless attachment
+    return redirect_to edit_skill_path(@skill), alert: t("flash.skills.destroy_file.not_found") unless attachment
 
     rel = @skill.relative_path(attachment)
     attachment.purge
     @skill.update!(updated_by: current_user)
-    redirect_to edit_skill_path(@skill), notice: "Removed #{rel}."
+    redirect_to edit_skill_path(@skill), notice: t("flash.skills.destroy_file.notice", rel: rel)
   end
 
   def download_file

@@ -29,9 +29,9 @@ class Users::RegistrationsController < Devise::RegistrationsController
   def deny_registration_alert
     if allowed_domains.any?
       domains = allowed_domains.map { |domain| "@#{domain}" }.to_sentence
-      "Metis is invite-only — only #{domains} emails may register without an invitation."
+      t("flash.users.registrations.domain_only", domains: domains)
     else
-      "Metis is invite-only — ask a team admin to invite you."
+      t("flash.shared.invite_only")
     end
   end
 end

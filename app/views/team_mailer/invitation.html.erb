@@ -1,17 +1,15 @@
 <h1 style="margin:0 0 16px; font-size:20px; line-height:28px; font-weight:700; color:#1c1917;">
-  Join <%= @team.name %> on Metis
+  <%= t(".heading", team: @team.name) %>
 </h1>
 
 <p style="margin:0 0 24px; font-size:15px; line-height:24px; color:#44403c;">
-  <strong><%= @inviter.display_label %></strong> invited you to join
-  <strong><%= @team.name %></strong> with the <strong><%= @invitation.role %></strong> role.
+  <%= t(".body_html", inviter: tag.strong(@inviter.display_label), team: tag.strong(@team.name), role: tag.strong(@invitation.role)) %>
 </p>
 
-<%= render "email/cta", url: @accept_url, label: "Accept invitation" %>
+<%= render "email/cta", url: @accept_url, label: t(".accept") %>
 
 <hr style="border:none; border-top:1px solid #e7e5e4; margin:0 0 20px;">
 
 <p style="margin:0; font-size:13px; line-height:20px; color:#a8a29e;">
-  This invitation expires on <%= @invitation.expires_at.to_date.to_fs(:long) %>.
-  If you weren't expecting it, you can safely ignore this email.
+  <%= t(".expires", date: @invitation.expires_at.to_date.to_fs(:long)) %>
 </p>
