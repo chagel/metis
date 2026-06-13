@@ -11,6 +11,10 @@ module Metis
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 8.1
 
+    # Locale files are organized one folder per language (config/locales/en,
+    # config/locales/zh-CN, …); the default load_path glob is non-recursive.
+    config.i18n.load_path += Dir[Rails.root.join("config/locales/**/*.{rb,yml}")]
+
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.

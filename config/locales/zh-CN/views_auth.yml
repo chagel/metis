@@ -1,0 +1,63 @@
+"zh-CN":
+  devise:
+    sessions:
+      new:
+        title: "登录"
+        heading: "登录"
+        subtitle: "欢迎回到 Metis。"
+        sign_in_with: "使用 %{provider} 登录"
+        or: "或"
+        remember_me: "记住我"
+        submit: "登录"
+    registrations:
+      new:
+        title: "创建账户"
+        heading: "创建你的账户"
+        subtitle: "开始使用 Metis。"
+        sign_up_with: "使用 %{provider} 注册"
+        or: "或"
+        minimum_password_length:
+          one: "至少 %{count} 个字符"
+          other: "至少 %{count} 个字符"
+        submit: "创建账户"
+    passwords:
+      new:
+        title: "重置密码"
+        heading: "忘记密码？"
+        subtitle: "我们会向你发送一个重置密码的链接。"
+        submit: "发送重置说明"
+      edit:
+        title: "修改密码"
+        heading: "设置新密码"
+        new_password: "新密码"
+        confirm_new_password: "确认新密码"
+        minimum_password_length:
+          one: "至少 %{count} 个字符"
+          other: "至少 %{count} 个字符"
+        submit: "修改密码"
+    shared:
+      error_messages:
+        intro:
+          one: "有 %{count} 个问题导致无法保存："
+          other: "有 %{count} 个问题导致无法保存："
+      invitation_note:
+        prefix: "你的邀请对应的邮箱是"
+        suffix: "。请使用此邮箱地址 — 包括使用 Google 或 GitHub 继续时 — 以便与邀请相匹配。"
+      links:
+        sign_in: "登录"
+        create_account: "创建账户"
+        forgot_password: "忘记密码？"
+    mailer:
+      reset_password_instructions:
+        heading: "重置你的密码"
+        intro_prefix: "我们收到了重置你 Metis 账户密码的请求"
+        intro: "我们收到了重置你 Metis 账户（%{email}）密码的请求。"
+        reset_here: "在此重置："
+        cta: "重置密码"
+        ignore_notice: "如果你并未发起此请求，可以放心忽略此邮件 — 在你打开上面的链接并设置新密码之前，密码不会更改。"
+        signature: "Metis · 你的 AI 智能体工作区"
+  shared_conversations:
+    show:
+      workflow_fallback: "工作流"
+      shared_ago: "%{time}前分享"
+      powered_by_prefix: "技术支持"

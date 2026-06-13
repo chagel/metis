@@ -1,0 +1,144 @@
+"zh-CN":
+  skills:
+    files:
+      supporting_files: "支持文件"
+      intro_html: "pi 默认加载 <code>SKILL.md</code>。可添加你的 SKILL.md 所指向的\n    参考文档、脚本或示例 — pi 在加载此技能时可用其文件工具打开它们。"
+      delete_confirm: "删除 %{path}？"
+      add_file: "+ 添加文件"
+      file_label: "文件"
+      max_size_html: "最大 %{size}MB。"
+      filename_label: "文件名"
+      filename_placeholder: "style.md"
+      filename_hint_html: "根据你选择的文件自动填充。用斜杠表示文件夹 — 例如 <code>ref/style.md</code> 或 <code>scripts/run.sh</code>。<code>SKILL.md</code> 为保留名。"
+      add_file_submit: "添加文件"
+    form:
+      slug_placeholder: "summarize-doc"
+      slug_hint_html: "小写字母、数字和 <code>-</code>。将成为 pi 看到的目录名。"
+      description_placeholder: "智能体何时应使用此技能 — 一行说明。"
+      description_hint: "pi 读取此内容以决定是否加载该技能。"
+      skill_md_label: "SKILL.md"
+      skill_md_hint_html: "YAML 前置数据（<code>name</code>、<code>description</code>）告诉 pi 何时加载此技能。下方正文是匹配时它所看到的指令。"
+      enabled: "已启用"
+      save_skill: "保存技能"
+      create_skill: "创建技能"
+    skill:
+      enabled: "已启用"
+      disabled: "已禁用"
+    tab_builtin:
+      built_in: "内置"
+      empty: "此部署未附带内置技能。"
+      empty_hint_html: "在 <code>.pi/skills/&lt;slug&gt;/</code> 下放置一个含 <code>SKILL.md</code> 的目录即可附带一个。"
+    tab_marketplace:
+      installed: "已安装"
+      install: "安装"
+    tab_team:
+      empty_manager: "还没有团队技能。自己写一个、在对话中让智能体草拟\n        一个，或从市场拉取一个。"
+      create_a_skill: "创建技能"
+      empty_member: "此团队还没有技能。管理员可以添加。"
+    edit:
+      back_to_skills: "返回技能"
+      delete_confirm: "删除 %{slug}？"
+    import_form:
+      title: "导入技能"
+      github_source: "GitHub 来源"
+      url_placeholder: "owner/repo 或 github.com 网址"
+      url_hint_html: "必须指向一个含 <code>SKILL.md</code> 的文件夹。"
+      browse_marketplace: "浏览市场"
+    index:
+      title: "技能"
+      new: "新建"
+      your_skills: "你的技能"
+      built_in: "内置"
+      marketplace: "市场"
+    new:
+      title: "新建技能"
+  workflows:
+    break_row:
+      title: "运行将在此暂停 — 批准以继续，或请求更改以重新运行上面的步骤"
+      text: "暂停 — 等待你的批准"
+      remove_break: "移除暂停"
+    form:
+      name_placeholder: "排查并修复 Sentry 错误"
+      description_placeholder: "调查传入的错误，草拟修复，设置关卡，发布。"
+      default_project_label: "默认项目"
+      include_blank: "无 — 启动时选择"
+      default_project_hint: "每次运行都带一个项目启动；其规范通过 AGENTS.md 传达给智能体。此默认值可在每次运行时覆盖 — 若不设置，每次启动都必须选择一个。"
+      trigger_label: "触发器"
+      trigger_hint: "从目录手动运行。Webhook 和定时触发器将在后续版本中启用。"
+      steps_label: "步骤"
+      steps_hint_html: "每个提示步骤作为一轮智能体回合运行 — 名称只是标签，提示才是指令。在运行需要暂停以等待你批准的地方添加一个<strong>暂停</strong>（批准以继续，或请求更改以重新运行其上方的步骤）。将某步骤设为<strong>本地</strong>以在你自己的机器上运行（%{bridge_token_link}）。"
+      bridge_token: "桥接令牌"
+      add_prompt_step: "添加提示步骤"
+      add_break: "添加暂停"
+      create_workflow: "创建工作流"
+    step_row:
+      name_placeholder: "步骤名称"
+      where_runs: "此步骤在何处运行"
+      run_cloud_title: "作为普通云端回合运行"
+      run_cloud: "云端"
+      run_local_title: "将此步骤委派给你已注册的机器"
+      run_local: "本地"
+      remove_step: "移除步骤"
+      prompt_placeholder: "智能体在此步骤中应该做什么？"
+    workflow:
+      steps: {one: "%{count} 个步骤", other: "%{count} 个步骤"}
+      breaks: {one: "%{count} 个暂停", other: "%{count} 个暂停"}
+      project_suffix: "· %{name}"
+    edit:
+      back_to_workflows: "返回工作流"
+      delete_confirm: "删除 %{name}？现有运行将继续进行。"
+    index:
+      title: "工作流"
+      new: "新建"
+      empty: "还没有工作流。工作流是智能体自主运行的已保存配方，会在关卡处暂停以等待你的批准。"
+      create_first: "创建你的第一个工作流"
+    new:
+      title: "新建工作流"
+  workflow_runs:
+    gate:
+      review_needed: "需要审阅"
+      approval_needed: "需要批准"
+      final_step_desc: "这是工作流的最后一步 — 你的批准将完成整个运行。"
+      paused_desc: "智能体在此特意暂停。批准以让它继续，或拒绝以停止运行。"
+      view_output: "查看步骤输出"
+      feedback_placeholder: "可选 — 告诉智能体要更改什么，然后点击「请求更改」。"
+      routed: "已路由给你的团队"
+      cancel_run: "取消运行"
+      request_changes: "请求更改"
+      approve_finish: "批准并完成"
+      approve_continue: "批准并继续"
+    meta:
+      workflow: "工作流"
+      steps: {one: "%{count} 个步骤", other: "%{count} 个步骤"}
+      gates: {one: "%{count} 个关卡", other: "%{count} 个关卡"}
+      agent_duration: "智能体 %{duration}"
+      wall_duration: "· 实际 %{duration}"
+      cost: "· %{cost}"
+    run_status:
+      paused: "已暂停以等待你的批准 — 请见上方关卡。"
+      worker_working: "%{worker} 正在处理此步骤。"
+      delegated_waiting: "已委派 — 等待一台持有桥接令牌的机器来认领。"
+      cancel_run: "取消运行"
+      running: "智能体正在运行此工作流…"
+      workflow_status: "工作流%{status}。"
+      continue_conversation: "继续对话"
+    sidebar_pill:
+      review: "审阅"
+      local: "本地"
+      done: "完成"
+    timeline:
+      triggered: "已触发"
+      workflow_prefix: "· 工作流"
+      runtime_label: "· 运行时 %{runtime}"
+      step_number: "步骤 %{number}"
+      running: "运行中"
+      local_runs_html: "此步骤在你的某台机器上运行。正在运行的\n              <code>metis</code> 守护进程会在下次轮询时自动认领它。"
+      nothing_html: "没有进程认领它？在 %{link} 中设置桥接 —\n              令牌和守护进程都在那里。守护进程只认领其配置\n              映射到某个检出的项目。"
+      account_settings: "账户设置"
+      view_turn: "查看回合 →"
+      gate_title: "关卡 · %{name}"
+      gate_review: "审阅"
+      paused_duration: "已暂停 %{duration}"
+      the_reviewer: "审阅者"
+      rejected: "已拒绝"
+      approved: "已批准"

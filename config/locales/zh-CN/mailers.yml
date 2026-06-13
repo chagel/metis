@@ -1,0 +1,14 @@
+"zh-CN":
+  team_mailer:
+    invitation:
+      subject: "%{inviter} 邀请你加入 Metis 上的 %{team}"
+      heading: "加入 Metis 上的 %{team}"
+      body_html: "%{inviter} 邀请你以%{role}角色加入 %{team}。"
+      body_text: "%{inviter} 邀请你以%{role}角色加入 %{team}。"
+      accept: "接受邀请"
+      accept_link: "接受邀请："
+      expires: "此邀请将于 %{date} 过期。如果你并未预期收到它，可以放心忽略此邮件。"
+      signature: "Metis · 你的 AI 智能体工作区"
+  email:
+    cta:
+      fallback: "或将此链接粘贴到浏览器中："

@@ -1,0 +1,36 @@
+"zh-CN":
+  helpers:
+    workflows:
+      running: "运行中"
+      review: "审阅"
+      completed: "已完成"
+      failed: "失败"
+      cancelled: "已取消"
+      on_machine: "在 %{name} 的机器上"
+      waiting_for_machine: "等待机器"
+    activity:
+      working: "处理中…"
+      reasoning: "推理"
+      activity: "活动"
+      tool_calls:
+        one: "%{count} 次工具调用"
+        other: "%{count} 次工具调用"
+    tokens:
+      in: "%{value} 输入"
+      out: "%{value} 输出"
+      cached: "%{value} 缓存"
+    time_buckets:
+      today: "今天"
+      yesterday: "昨天"
+      this_week: "本周"
+      this_month: "本月"
+      older: "更早"
+    languages:
+      en: "English"
+      zh-CN: "简体中文"
+    sidebar_empty:
+      team: "还没有团队对话 — 向团队开放一个对话即可开始。"
+      starred: "还没有收藏的对话 — 收藏一个以便随手取用。"
+      active: "还没有对话 — 在右侧开始一个。"
+    share:
+      default_description: "一个从 Metis 分享的对话。"

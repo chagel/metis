@@ -1,0 +1,65 @@
+# Additional translations at https://github.com/heartcombo/devise/wiki/I18n
+
+"zh-CN":
+  devise:
+    confirmations:
+      confirmed: "你的邮箱地址已成功确认。"
+      send_instructions: "几分钟内你将收到一封邮件，内含确认邮箱地址的说明。"
+      send_paranoid_instructions: "如果你的邮箱地址存在于我们的数据库中，几分钟内你将收到一封邮件，内含确认邮箱地址的说明。"
+    failure:
+      already_authenticated: "你已登录。"
+      inactive: "你的账户尚未激活。"
+      invalid: "%{authentication_keys}或密码无效。"
+      locked: "你的账户已被锁定。"
+      last_attempt: "在账户被锁定前，你还有一次尝试机会。"
+      not_found_in_database: "%{authentication_keys}或密码无效。"
+      timeout: "你的会话已过期。请重新登录以继续。"
+      unauthenticated: "继续操作前你需要先登录或注册。"
+      unconfirmed: "继续操作前你需要先确认邮箱地址。"
+    mailer:
+      confirmation_instructions:
+        subject: "确认说明"
+      reset_password_instructions:
+        subject: "重置密码说明"
+      unlock_instructions:
+        subject: "解锁说明"
+      email_changed:
+        subject: "邮箱已变更"
+      password_change:
+        subject: "密码已变更"
+    omniauth_callbacks:
+      failure: "无法通过%{kind}对你进行身份验证，原因：“%{reason}”。"
+      success: "已成功通过%{kind}账户完成身份验证。"
+    passwords:
+      no_token: "你无法在未通过密码重置邮件的情况下访问此页面。如果你确实来自密码重置邮件，请确认使用了邮件中提供的完整网址。"
+      send_instructions: "几分钟内你将收到一封邮件，内含重置密码的说明。"
+      send_paranoid_instructions: "如果你的邮箱地址存在于我们的数据库中，几分钟内你将在邮箱收到密码恢复链接。"
+      updated: "你的密码已成功修改，现已登录。"
+      updated_not_active: "你的密码已成功修改。"
+    registrations:
+      destroyed: "再见！你的账户已成功注销。期待很快再次见到你。"
+      signed_up: "欢迎！你已成功注册。"
+      signed_up_but_inactive: "你已成功注册。但由于账户尚未激活，我们无法为你登录。"
+      signed_up_but_locked: "你已成功注册。但由于账户已被锁定，我们无法为你登录。"
+      signed_up_but_unconfirmed: "一封含确认链接的邮件已发送至你的邮箱地址。请点击链接以激活账户。"
+      update_needs_confirmation: "你已成功更新账户，但我们需要验证你的新邮箱地址。请检查邮箱并点击确认链接以确认新邮箱地址。"
+      updated: "你的账户已成功更新。"
+      updated_but_not_signed_in: "你的账户已成功更新，但由于密码已更改，你需要重新登录。"
+    sessions:
+      signed_in: "登录成功。"
+      signed_out: "退出成功。"
+      already_signed_out: "退出成功。"
+    unlocks:
+      send_instructions: "几分钟内你将收到一封邮件，内含解锁账户的说明。"
+      send_paranoid_instructions: "如果你的账户存在，几分钟内你将收到一封邮件，内含解锁账户的说明。"
+      unlocked: "你的账户已成功解锁。请登录以继续。"
+  errors:
+    messages:
+      already_confirmed: "已确认过，请尝试登录"
+      confirmation_period_expired: "需在%{period}内确认，请重新申请"
+      expired: "已过期，请重新申请"
+      not_found: "未找到"
+      not_locked: "未被锁定"
+      not_saved:
+        one: "有 1 个错误导致此%{resource}无法保存："
+        other: "有 %{count} 个错误导致此%{resource}无法保存："

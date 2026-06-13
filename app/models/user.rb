@@ -28,7 +28,7 @@ class User < ApplicationRecord
   # Locales the UI is translated into. v1 ships English only; the
   # selector is here so future locales drop in without a schema or
   # controller change.
-  AVAILABLE_LANGUAGES = %w[en].freeze
+  AVAILABLE_LANGUAGES = %w[en zh-CN].freeze
 
   # `system` defers to the OS / browser preference (handled by the
   # no-flash script in the head). Explicit `light`/`dark` overrides it.

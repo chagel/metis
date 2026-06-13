@@ -1,0 +1,16 @@
+"zh-CN":
+  activerecord:
+    errors:
+      models:
+        skill:
+          attributes:
+            slug:
+              invalid: "只能包含小写字母、数字和连字符"
+        project:
+          attributes:
+            name:
+              invalid: "不能包含换行符"
+        invitation:
+          attributes:
+            email:
+              taken: "已有一个待处理的邀请"

@@ -1,0 +1,64 @@
+"zh-CN":
+  artifact_previews:
+    show:
+      back: "返回"
+      view_mode: "查看模式"
+      fullscreen: "全屏"
+      download: "下载"
+  layouts:
+    head:
+      title: "Metis"
+    application:
+      title: "Metis"
+      brand: "Metis"
+    chat:
+      open_menu: "打开菜单"
+      undo: "撤销"
+    mailer:
+      brand: "Metis"
+      tagline: "你的 AI 智能体工作区"
+    settings:
+      open_menu: "打开菜单"
+  models:
+    index:
+      title: "模型"
+      heading: "模型"
+      refresh: "刷新"
+      refreshing: "刷新中…"
+      intro: "此部署在新对话编辑器中提供的提供商和模型。"
+      intro_superuser: "刷新以从 pi 拉取最新内容，然后开启你想要的项。"
+      intro_managed: "由管理员管理。"
+      empty: "目录为空。"
+      empty_refresh_html: "点击 %{refresh} 以从 pi 填充。"
+      empty_managed: "管理员尚未填充。"
+    provider:
+      enabled_count: "%{total} 个中已启用 %{enabled} 个"
+      no_api_key: "无 API 密钥"
+      no_api_key_title: "未为此提供商配置 API 密钥；其模型将无法运行。"
+      disable_all_provider: "禁用所有 %{provider} 模型"
+      enable_provider: "启用 %{provider}"
+      disable_provider: "禁用 %{provider}"
+      "on": "开"
+      "off": "关"
+      stale: "已过期"
+      stale_title: "上次刷新时 pi 未报告。"
+      context_window: "%{size}K 上下文"
+      reasoning: "推理"
+      disable_model: "禁用 %{model}"
+      enable_model: "启用 %{model}"
+  pwa:
+    manifest:
+      name: "Metis"
+      description: "Metis。"
+  shared:
+    team_switcher:
+      switch_team: "切换团队"
+      teams: "团队"
+      team_settings: "团队设置"
+    user_menu:
+      open_user_menu: "打开用户菜单"
+      cycle_theme_aria: "切换主题：跟随系统、浅色、深色"
+      cycle_theme: "切换主题"
+      profile: "个人资料"
+      settings: "设置"
+      sign_out: "退出"

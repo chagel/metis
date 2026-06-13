@@ -1,0 +1,121 @@
+"zh-CN":
+  flash:
+    authorization:
+      not_team_admin: "你没有管理该团队的权限。"
+      not_team_owner: "只有团队所有者才能执行此操作。"
+      not_superuser: "只有超级用户才能更改模型目录。"
+      personal_unavailable: "该功能在你的个人工作区中不可用。"
+    shared:
+      invite_only: "Metis 仅限邀请注册 — 请让团队管理员邀请你。"
+    skills:
+      create:
+        notice: "技能已创建。"
+      update:
+        notice: "技能已保存。"
+      destroy:
+        notice: "%{slug} 已删除。"
+      import:
+        blank_url: "请粘贴 GitHub 网址或 owner/repo。"
+        notice: "正在导入 %{name} — 稍后将出现在「你的技能」中。"
+      add_file:
+        no_file: "请选择要上传的文件。"
+        invalid_path: "路径无效 — 请使用 %{depth} 层以内的相对路径，例如 `ref/style.md`。"
+        too_large: "文件过大 — 请保持在 %{size}MB 以内。"
+        notice: "已添加 %{path}。"
+      destroy_file:
+        not_found: "未找到文件。"
+        notice: "已移除 %{rel}。"
+    teams:
+      create:
+        notice: "%{name} 已创建。"
+    connectors:
+      update:
+        notice: "连接器已保存。"
+      destroy:
+        notice: "%{name} 已断开连接。"
+      create:
+        notice: "%{name} 已连接。"
+      oauth:
+        start:
+          unknown: "未知的连接器。"
+          invalid_url: "请为你的 %{name} 服务器输入有效的 https:// 网址。"
+          failed: "无法开始该连接：%{message}"
+        callback:
+          expired: "该连接已过期 — 请重试。"
+          cancelled: "连接已取消。"
+          notice: "%{name} 已连接。"
+          failed: "无法完成该连接：%{message}"
+    profiles:
+      update:
+        notice: "个人资料已保存。"
+    workflows:
+      create:
+        notice: "工作流已创建。"
+      update:
+        notice: "工作流已保存。"
+      destroy:
+        notice: "%{name} 已删除。"
+    models:
+      refresh:
+        notice: "正在后台从 pi 刷新目录 — 请稍后重新加载。"
+    invitations:
+      accept:
+        expired: "该邀请已过期。"
+        wrong_email: "此邀请发送至 %{email}。"
+        notice: "你已加入 %{name}。"
+        already_member: "你已经是 %{name} 的成员。"
+        already_used: "该邀请已被使用。"
+    projects:
+      create:
+        notice: "项目已创建。"
+      update:
+        notice: "项目已保存。"
+      destroy:
+        notice: "%{name} 已删除。"
+        alert: "%{name} %{error}。"
+    settings:
+      teams:
+        update:
+          notice: "团队已重命名。"
+        destroy:
+          notice: "%{name} 已删除。"
+      memberships:
+        update:
+          owner_role: "你无法更改所有者的角色。"
+          unassignable: "该角色无法分配。"
+          notice: "%{name} 现在是%{role}。"
+        destroy:
+          owner_removal: "所有者无法被移除。"
+          self_removal: "请使用「退出团队」来移除你自己。"
+          notice: "%{name} 已移除。"
+        transfer:
+          already_owner: "他们已经是所有者。"
+          notice: "%{name} 现在是所有者。"
+        leave:
+          owner_must_transfer: "退出前请先转移所有权或删除团队。"
+          notice: "你已退出 %{name}。"
+      accounts:
+        bridge_token:
+          notice: "桥接令牌已生成。请立即复制 — 它不会再次显示。"
+        update:
+          notice: "账户已更新。"
+        destroy:
+          notice: "你的账户已被删除。"
+      invitations:
+        create:
+          notice: "邀请已发送至 %{email}。"
+        resend:
+          too_soon: "该邀请刚刚发送过 — 请几分钟后再试。"
+          notice: "邀请已重新发送至 %{email}。"
+        destroy:
+          notice: "邀请已撤销。"
+    users:
+      omniauth_callbacks:
+        failure:
+          cancelled: "登录已取消。"
+        identity_already_linked: "此 %{provider} 账户已关联到另一个 Metis 用户。"
+        sign_in_failed: "登录失败。"
+        connected: "已连接到 %{provider}。"
+        github_connected: "已连接到 GitHub。请在你希望它访问的仓库上安装 Metis 应用，然后返回此处。"
+      registrations:
+        domain_only: "Metis 仅限邀请注册 — 只有 %{domains} 邮箱可在无邀请的情况下注册。"

@@ -27,6 +27,7 @@ en:
       older: "Older"
     languages:
       en: "English"
+      zh-CN: "简体中文"
     sidebar_empty:
       team: "No team conversations yet — open one to your team to start."
       starred: "No starred conversations yet — star one to keep it handy."

@@ -1,0 +1,82 @@
+"zh-CN":
+  conversations:
+    composer:
+      clear_workflow: "清除工作流"
+      project: "项目"
+      default_project: "默认项目"
+      placeholder_new_with_workflows: "随便问，或输入 / 调用命令…"
+      placeholder_new: "随便问点什么，开始新对话…"
+      placeholder_message: "给智能体发消息…"
+      attach: "附加照片或文件"
+      model: "模型"
+      toggle_team_visibility: "切换此对话的团队可见性"
+      team: "团队"
+    composer_actions:
+      stop: "停止"
+      send: "发送"
+      start: "开始"
+    convo:
+      running: "运行中"
+    convo_sentinel:
+      loading: "加载中…"
+    share:
+      team_access: "团队访问"
+      team_access_desc: "成员可以只读方式打开此对话。"
+      shared_link: "分享链接"
+      shared_link_desc: "任何拥有链接的人都能查看此对话。"
+      public_link: "公开链接"
+      copy: "复制"
+    sidebar:
+      new_chat: "新对话"
+      search: "搜索对话"
+      tab_me: "我的"
+      tab_team: "团队"
+      tab_starred: "已收藏"
+      needs_you: "需要你处理"
+      no_matches: "无匹配项。"
+    star:
+      unstar: "取消收藏对话"
+      star: "收藏对话"
+    archived:
+      title: "已归档的对话"
+      heading: "已归档的对话"
+      count:
+        one: "%{count} 个已归档对话"
+        other: "%{count} 个已归档对话"
+      archived_ago: "%{time}前归档"
+      empty: "没有已归档的对话。"
+    index:
+      title: "新对话"
+      heading: "你在想些什么？"
+      tagline: "Metis 是一个面向个人和团队的开源、可自托管的智能体平台。"
+    run:
+      chat: "对话"
+    show:
+      shared_by: "由 %{name} 分享"
+      started_ago: "%{time}前开始"
+      workflow: "工作流"
+      share_conversation: "分享对话"
+      archive_conversation: "归档对话"
+      archived_banner: "此对话已归档。恢复后即可继续聊天。"
+      forked_from_html: "派生自 %{link}。"
+      forked_from_other: "派生自另一个对话。"
+      jump_to_latest: "跳到最新"
+      new_messages: "新消息"
+      read_only_note: "只读 — 此对话由 %{name} 分享给你的团队。"
+  messages:
+    artifact_card:
+      open: "打开"
+      download: "下载"
+    copy:
+      title: "复制消息"
+      aria_label: "复制消息到剪贴板"
+    fork:
+      title: "从此处派生出新线程"
+      aria_label: "从这条消息派生对话"
+    message:
+      step_tag: "步骤"
+      local_tag: "本地"
+      review_tag: "审阅"
+      timestamp_ago: "%{time}前"
+      stamp_ago: "%{sender} · %{time}前"
+      stopped: "已停止"

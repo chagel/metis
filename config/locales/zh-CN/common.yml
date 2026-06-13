@@ -1,0 +1,9 @@
+"zh-CN":
+  common:
+    save: "保存"
+    cancel: "取消"
+    delete: "删除"
+    edit: "编辑"
+    remove: "移除"
+    restore: "恢复"
+    import: "导入"
