@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -88,6 +89,32 @@ func statusService(logf func(string, ...any)) error {
 	default:
 		return fmt.Errorf("service status not supported on %s", runtime.GOOS)
 	}
+}
+
+// logService follows the daemon's output: the launchd log file on
+// macOS, the user journal on Linux (the systemd unit logs there, not
+// to a file).
+func logService() error {
+	switch runtime.GOOS {
+	case "darwin":
+		logPath := filepath.Join(filepath.Dir(configPath()), "daemon.log")
+		return passthrough("tail", "-n", "50", "-F", logPath)
+	case "linux":
+		return passthrough("journalctl", "--user", "-u", "metis-bridge.service", "-n", "50", "-f")
+	default:
+		return fmt.Errorf("log not supported on %s", runtime.GOOS)
+	}
+}
+
+func passthrough(name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	cmd.Stdout, cmd.Stderr, cmd.Stdin = os.Stdout, os.Stderr, os.Stdin
+	err := cmd.Run()
+	var exit *exec.ExitError
+	if errors.As(err, &exit) && exit.ExitCode() == -1 {
+		return nil // ^C lands on the whole foreground group; not a failure
+	}
+	return err
 }
 
 // launchdPid pulls the "pid = N" line out of `launchctl print` output.
