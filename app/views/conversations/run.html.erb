@@ -30,7 +30,8 @@
     <div class="wf-tl-wrap">
       <%# The gate card renders inline, under the step it blocks; the whole
           timeline is one broadcast region, so it stays live. %>
-      <%= render "workflow_runs/timeline", run: @workflow_run, conversation: @conversation %>
+      <%= render "workflow_runs/timeline", run: @workflow_run, conversation: @conversation,
+            auto_claim: current_user.auto_claim_tasks %>
     </div>
   </div>
 

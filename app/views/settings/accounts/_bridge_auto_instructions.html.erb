@@ -1,0 +1,38 @@
+<%# Auto-claim daemon setup — one paste-into-your-agent block: install the
+    Go daemon, write its config with the token, run it as a login service.
+    Locals: token, host, base_url, skill_url, fresh_token (true on the
+    generating request — only then is the plaintext token real). %>
+<% token_value = fresh_token ? token : "<regenerate your token in account settings — shown once>" %>
+<% setup = <<~TEXT.strip
+  Set up the Metis bridge daemon on this machine. It runs as a login service, auto-claims workflow steps marked Local, and works them with my own coding agent in per-task git worktrees.
+
+  1. Install the daemon (one static Go binary):
+
+  go install github.com/chagel/metis/clients/metis@latest
+  # or from a checkout: cd clients/metis && go build -o /usr/local/bin/metis .
+
+  2. Write ~/.metis/config.json (`metis init` scaffolds it) — the daemon only claims steps whose Metis project is mapped to a checkout here:
+
+  {
+    "agent": "claude",
+    "servers": [
+      {
+        "name": "#{host}",
+        "server": "#{base_url}",
+        "token": "#{token_value}",
+        "projects": { "<metis project name>": "~/path/to/its/checkout" }
+      }
+    ]
+  }
+
+  3. Install it as a login service and verify it polls:
+
+  metis install
+  tail -5 ~/.metis/daemon.log
+
+  4. Optional: install the ops guide where you discover skills, for future troubleshooting:
+
+  curl -fsSL --create-dirs #{skill_url} -o ~/.claude/skills/metis-bridge/SKILL.md
+TEXT
+%>
+<%= render "settings/accounts/bridge_code_block", text: setup %>

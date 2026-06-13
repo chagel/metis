@@ -12,12 +12,22 @@ module Api
       # The claim queue, read-only — a client picks by repo instead of
       # blind-claiming FIFO.
       def index
-        render json: { tasks: claim_queue.map { |task| index_entry(task) } }
+        render json: {
+          auto_claim: current_bridge_user.auto_claim_tasks,
+          tasks: claim_queue.map { |task| index_entry(task) }
+        }
       end
 
       # Claims FIFO, or a specific task via ?id=, or scoped via ?project=
       # — 409 when that task is gone (claimed, settled, or never yours).
+      #
+      # A blind (id-less) claim is the daemon's unattended poll; in manual
+      # mode we refuse it so the toggle is authoritative regardless of which
+      # daemon version is installed. Deliberate id-scoped picks (the web
+      # Claim button, MCP get_next_task(task_id)) are never gated.
       def claim
+        return head :no_content if params[:id].blank? && !current_bridge_user.auto_claim_tasks
+
         task = Task.claim_next_for(current_bridge_user, client: bridge_client_name,
                                    id: params[:id], project: params[:project])
         return render json: claim_payload(task) if task

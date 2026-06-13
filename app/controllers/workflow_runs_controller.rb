@@ -34,13 +34,33 @@ class WorkflowRunsController < ApplicationController
     respond_to_decision
   end
 
+  # Manual claim from the run timeline (auto-claim off). Delegates to
+  # the id-scoped atomic claim so it grabs this step, not FIFO.
+  def claim
+    run = find_run(:workflow_run_id)
+    return head :not_found unless run.conversation.accessible_to?(current_user)
+
+    task = Task.claim_next_for(current_user, client: "metis-web", id: params[:id])
+    if task
+      step_name = task.display_name
+      step_name = t("task.default_name") if step_name == "the step"
+      redirect_to run.conversation, notice: t("flash.workflow_runs.claim.claimed", step: step_name)
+    else
+      redirect_to run.conversation, alert: t("flash.workflow_runs.claim.unavailable")
+    end
+  end
+
   private
 
   # Gate actions follow visibility: the launcher always, teammates only on
   # team-visible runs — a personal run's gates are not the team's to act on.
   def set_run
-    @run = WorkflowRun.where(team_id: current_user.teams.select(:id)).find(params[:id])
+    @run = find_run(:id)
     head :not_found unless @run.conversation.accessible_to?(current_user)
+  end
+
+  def find_run(param_key = :id)
+    WorkflowRun.where(team: current_user.teams).find(params[param_key])
   end
 
   def set_workflow

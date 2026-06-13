@@ -31,6 +31,7 @@ Rails.application.routes.draw do
       post :reject
       post :request_changes
     end
+    post "tasks/:id/claim", to: "workflow_runs#claim", as: :claim_run_task
   end
 
   resources :teams, only: %i[new create] do
@@ -58,7 +59,8 @@ Rails.application.routes.draw do
     end
 
     resource :account, only: %i[show update destroy], controller: "settings/accounts"
-    post "account/bridge_token", to: "settings/accounts#bridge_token", as: :account_bridge_token
+    post  "account/bridge_token", to: "settings/accounts#bridge_token", as: :account_bridge_token
+    patch "account/bridge_prefs", to: "settings/accounts#bridge_prefs", as: :account_bridge_prefs
     resource :profile, only: %i[show update]
 
     post  "profile/detect_timezone", to: "profiles#detect_timezone", as: :detect_timezone_profile

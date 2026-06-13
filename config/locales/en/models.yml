@@ -1,4 +1,6 @@
 en:
+  task:
+    default_name: "the step"
   activerecord:
     errors:
       models:

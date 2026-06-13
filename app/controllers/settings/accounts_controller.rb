@@ -1,11 +1,7 @@
-# Account credentials — change email or password, delete the account —
-# for the signed-in user. Profile *preferences* live in
-# ProfilesController; this is the security surface, so credential changes
-# go through Devise's password-protected update.
 class Settings::AccountsController < ApplicationController
   layout "settings"
 
-  before_action :set_user, only: %i[show update bridge_token]
+  before_action :set_user, only: %i[show update bridge_token bridge_prefs]
 
   def show
   end
@@ -15,6 +11,11 @@ class Settings::AccountsController < ApplicationController
     @new_bridge_token = @user.generate_bridge_token!
     flash.now[:notice] = t("flash.settings.accounts.bridge_token.notice")
     render :show
+  end
+
+  def bridge_prefs
+    @user.update(bridge_prefs_params)
+    redirect_to account_path
   end
 
   def update
@@ -52,5 +53,9 @@ class Settings::AccountsController < ApplicationController
 
   def account_params
     params.require(:user).permit(:email, :password, :password_confirmation, :current_password)
+  end
+
+  def bridge_prefs_params
+    params.require(:user).permit(:auto_claim_tasks)
   end
 end

@@ -100,84 +100,90 @@
           <%= t('.local_bridge_hint_pre') %> <strong><%= t('.local') %></strong> <%= t('.local_bridge_hint_post') %>
         </p>
 
-        <% if @new_bridge_token.present? %>
-          <% bridge_setup = <<~TEXT.strip
-            Set up the Metis bridge daemon on this machine. It runs as a login service, auto-claims workflow steps marked Local, and works them with my own coding agent in per-task git worktrees.
-
-            1. Install the daemon (one static Go binary):
-
-            go install github.com/chagel/metis/clients/metis@latest
-            # or from a checkout: cd clients/metis && go build -o /usr/local/bin/metis .
-
-            2. Write ~/.metis/config.json (`metis init` scaffolds it) — the daemon only claims steps whose Metis project is mapped to a checkout here:
-
-            {
-              "agent": "claude",
-              "servers": [
-                {
-                  "name": "#{request.host}",
-                  "server": "#{request.base_url}",
-                  "token": "#{@new_bridge_token}",
-                  "projects": { "<metis project name>": "~/path/to/its/checkout" }
-                }
-              ]
-            }
-
-            3. Install it as a login service and verify it polls:
-
-            metis install
-            tail -5 ~/.metis/daemon.log
-
-            4. Optional: install the ops guide where you discover skills, for future troubleshooting:
-
-            curl -fsSL --create-dirs #{api_bridge_skill_url} -o ~/.claude/skills/metis-bridge/SKILL.md
-          TEXT
-          %>
-          <div class="bridge-token">
-            <p class="bridge-token-hint">
-              <%= t('.bridge_token_hint') %>
-            </p>
-            <div class="token-row">
-              <pre class="token bridge-paste"><%= bridge_setup %></pre>
-              <button type="button" class="token-copy" title="<%= t('.copy_instructions') %>"
-                      aria-label="<%= t('.copy_instructions_aria') %>"
-                      data-controller="copy"
-                      data-copy-text-value="<%= bridge_setup %>"
-                      data-action="copy#copy">
-                <svg class="ico-copy" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
-                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/>
-                  <path d="M3.4 10.5A1.4 1.4 0 0 1 2.5 9.2V3.6A1.4 1.4 0 0 1 3.9 2.2h5.3a1.4 1.4 0 0 1 1.3.9"/>
-                </svg>
-                <svg class="ico-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
-                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M3.5 8.4l3 3 6-6.2"/>
-                </svg>
-                <span class="lbl-copy"><%= t('.copy') %></span>
-                <span class="lbl-done"><%= t('.copied') %></span>
-              </button>
+        <% if @user.bridge_token_digest.present? %>
+          <% if @new_bridge_token.present? %>
+            <div class="bridge-status bridge-status--fresh">
+              <span class="dev-dot"></span>
+              <span class="form-hint"><%= t('.token_generated_once') %></span>
             </div>
+          <% else %>
+            <div class="bridge-status">
+              <span class="dev-dot on"></span>
+              <span class="form-hint">
+                <%= t('.token_active') %>
+                <% if @user.bridge_seen_at %>
+                  <%= t('.machine_connected', machine: @user.bridge_client.presence || t('.a_machine'), ago: time_ago_in_words(@user.bridge_seen_at)) %>
+                <% else %>
+                  <%= t('.no_machine_yet') %>
+                <% end %>
+              </span>
+            </div>
+          <% end %>
+
+          <%= form_with model: @user, url: account_bridge_prefs_path, method: :patch,
+                class: "bridge-mode-form", data: { controller: "auto-submit" } do |f| %>
+            <fieldset class="bridge-mode-selector">
+              <legend class="bridge-mode-legend"><%= t('.claim_mode') %></legend>
+              <div class="bridge-mode-opts">
+                <label class="bridge-mode-opt">
+                  <%= f.radio_button :auto_claim_tasks, true,
+                        checked: @user.auto_claim_tasks,
+                        data: { action: "change->auto-submit#submit" } %>
+                  <span class="bridge-mode-chip">
+                    <span class="bridge-mode-dot bridge-mode-dot--auto"></span>
+                    <%= t('.mode_auto') %>
+                  </span>
+                </label>
+                <label class="bridge-mode-opt">
+                  <%= f.radio_button :auto_claim_tasks, false,
+                        checked: !@user.auto_claim_tasks,
+                        data: { action: "change->auto-submit#submit" } %>
+                  <span class="bridge-mode-chip">
+                    <span class="bridge-mode-dot bridge-mode-dot--manual"></span>
+                    <%= t('.mode_manual') %>
+                  </span>
+                </label>
+              </div>
+            </fieldset>
+          <% end %>
+
+          <div class="bridge-instr">
+            <% if @user.auto_claim_tasks %>
+              <div class="bridge-instr-head">
+                <span class="bridge-instr-title"><%= t('.daemon_setup') %></span>
+                <span class="bridge-instr-badge"><%= t('.mode_auto') %></span>
+              </div>
+              <p class="form-hint"><%= t('.auto_desc') %></p>
+              <%= render "settings/accounts/bridge_auto_instructions",
+                    token: bridge_token_for_display(@user, @new_bridge_token),
+                    fresh_token: @new_bridge_token.present?,
+                    host: request.host, base_url: request.base_url,
+                    skill_url: api_bridge_skill_url %>
+            <% else %>
+              <div class="bridge-instr-head">
+                <span class="bridge-instr-title"><%= t('.manual_claim') %></span>
+                <span class="bridge-instr-badge bridge-instr-badge--manual"><%= t('.mode_manual') %></span>
+              </div>
+              <p class="form-hint"><%= t('.manual_desc') %></p>
+              <%= render "settings/accounts/bridge_manual_instructions",
+                    token: bridge_token_for_display(@user, @new_bridge_token),
+                    fresh_token: @new_bridge_token.present?,
+                    base_url: request.base_url, skill_url: api_bridge_skill_url %>
+            <% end %>
+          </div>
+
+          <div class="danger-row">
+            <p class="form-hint"><%= t('.regenerate_revokes') %></p>
+            <%= button_to t('.regenerate_token'), account_bridge_token_path,
+                  method: :post, class: "btn btn-ghost", form: { class: "inline-form" } %>
+          </div>
+        <% else %>
+          <div class="danger-row">
+            <p class="form-hint"><%= t('.no_token_yet') %></p>
+            <%= button_to t('.generate_token'), account_bridge_token_path,
+                  method: :post, class: "btn btn-ghost", form: { class: "inline-form" } %>
           </div>
         <% end %>
-
-        <div class="danger-row">
-          <p class="form-hint">
-            <% if @user.bridge_token_digest.present? %>
-              <%= t('.token_active') %>
-              <% if @user.bridge_seen_at %>
-                <%= t('.machine_connected', machine: @user.bridge_client.presence || t('.a_machine'), ago: time_ago_in_words(@user.bridge_seen_at)) %>
-              <% else %>
-                <%= t('.no_machine_yet') %>
-              <% end %>
-              <%= t('.regenerate_revokes') %>
-            <% else %>
-              <%= t('.no_token_yet') %>
-            <% end %>
-          </p>
-          <%= button_to (@user.bridge_token_digest.present? ? t('.regenerate_token') : t('.generate_token')),
-                account_bridge_token_path, method: :post, class: "btn btn-ghost",
-                form: { class: "inline-form" } %>
-        </div>
       </section>
 
       <section class="settings-card settings-card-danger">

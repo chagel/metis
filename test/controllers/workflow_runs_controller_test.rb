@@ -110,6 +110,51 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".wf-tl-localguide", count: 0
   end
 
+  test "an unclaimed delegated step shows a manual claim button when auto-claim is off" do
+    @user.update!(auto_claim_tasks: false)
+    conversation = @user.conversations.create!(team: @team)
+    run = @team.workflow_runs.create!(conversation: conversation, status: :awaiting_local)
+    task = run.tasks.create!(position: 0, name: "impl", status: :running, delegated: true)
+
+    get conversation_path(conversation)
+    assert_select ".wf-tl-claim-btn", text: "Claim"
+    assert_select "form[action=?]", workflow_run_claim_run_task_path(run, task)
+  end
+
+  test "auto-claim on hides the manual claim button" do
+    @user.update!(auto_claim_tasks: true)
+    conversation = @user.conversations.create!(team: @team)
+    run = @team.workflow_runs.create!(conversation: conversation, status: :awaiting_local)
+    run.tasks.create!(position: 0, name: "impl", status: :running, delegated: true)
+
+    get conversation_path(conversation)
+    assert_select ".wf-tl-claim-btn", count: 0
+    assert_match "claims it automatically", response.body
+  end
+
+  test "claim grabs the delegated step for the user, manual mode" do
+    conversation = @user.conversations.create!(team: @team)
+    run = @team.workflow_runs.create!(conversation: conversation, status: :awaiting_local)
+    task = run.tasks.create!(position: 0, name: "impl", status: :running, delegated: true)
+
+    post workflow_run_claim_run_task_path(run, task)
+    assert_redirected_to conversation
+    assert_equal @user, task.reload.claimed_by_user
+    assert_equal "metis-web", task.claimed_by
+  end
+
+  test "claiming an already-claimed step reports it is unavailable" do
+    conversation = @user.conversations.create!(team: @team)
+    run = @team.workflow_runs.create!(conversation: conversation, status: :awaiting_local)
+    task = run.tasks.create!(position: 0, name: "impl", status: :running, delegated: true,
+                             claimed_by_user: @user, claimed_by: "Apollo")
+
+    post workflow_run_claim_run_task_path(run, task)
+    assert_redirected_to conversation
+    follow_redirect!
+    assert_match "no longer available", response.body
+  end
+
   test "a claimed delegated step shows the elapsed ticker and latest progress" do
     conversation = @user.conversations.create!(team: @team)
     run = @team.workflow_runs.create!(conversation: conversation, status: :awaiting_local)

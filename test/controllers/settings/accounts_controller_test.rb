@@ -14,19 +14,58 @@ class Settings::AccountsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form.account-form"
   end
 
-  test "bridge_token generates a token and shows it once" do
+  test "bridge_token generates a token and shows the manual setup with the plaintext once" do
+    @user.update!(auto_claim_tasks: false)
     post account_bridge_token_path
     assert_response :success
     assert @user.reload.bridge_token_digest.present?
-    # The paste-into-your-agent blob carries skill install, mcp add, and token.
-    assert_select ".bridge-token .bridge-paste", /mbt_/
-    assert_select ".bridge-token .bridge-paste", /go install/
-    assert_select ".bridge-token .bridge-paste", /metis install/
-    assert_select ".bridge-token .bridge-paste", %r{api/bridge/skill}
+    # In manual mode the all-in-one block installs the skill, points at the
+    # MCP endpoint, and carries the freshly minted plaintext.
+    assert_select ".bridge-paste", /mbt_/
+    assert_select ".bridge-paste", %r{api/bridge/skill}
+    assert_select ".bridge-paste", %r{api/bridge/mcp}
+    assert_select ".bridge-paste", { text: /…/, count: 0 }, "plaintext, not redacted, on generation"
+    assert_select ".bridge-status--fresh"
 
-    # Shown only on the generating response, never again.
+    # Instructions stay on a normal reload, but the plaintext is gone — the
+    # block tells the user to regenerate rather than pasting a dead token.
     get account_path
-    assert_select ".bridge-token .bridge-paste", count: 0
+    assert_select ".bridge-paste", /Regenerate my bridge token/
+    assert_select ".bridge-paste", { text: /mbt_…/, count: 0 }, "no dead redacted token pasted on reload"
+    assert_select ".bridge-status--fresh", count: 0
+  end
+
+  test "auto mode shows the daemon setup block, with the live token only when fresh" do
+    post account_bridge_token_path                 # auto is the default
+    assert_select ".bridge-instr-badge", text: "Auto"
+    assert_select ".bridge-paste", /go install/
+    assert_select ".bridge-paste", /metis install/
+    assert_select ".bridge-paste", /"token": "mbt_/, "fresh generation embeds the live token"
+
+    get account_path
+    assert_select ".bridge-paste", { text: /mbt_…/, count: 0 }, "no dead redacted token in the daemon config on reload"
+    assert_select ".bridge-paste", /regenerate your token/
+  end
+
+  test "the claim-mode selector is hidden until a token exists, then visible" do
+    get account_path
+    assert_select ".bridge-mode-selector", count: 0
+
+    @user.generate_bridge_token!
+    get account_path
+    assert_select ".bridge-mode-selector"
+    # Auto is the default selection.
+    assert_select "input[name=?][value=true][checked]", "user[auto_claim_tasks]"
+  end
+
+  test "bridge_prefs persists the auto-claim preference" do
+    @user.generate_bridge_token!
+    patch account_bridge_prefs_path, params: { user: { auto_claim_tasks: "1" } }
+    assert_redirected_to account_path
+    assert @user.reload.auto_claim_tasks
+
+    patch account_bridge_prefs_path, params: { user: { auto_claim_tasks: "0" } }
+    assert_not @user.reload.auto_claim_tasks
   end
 
   test "bridge_token regenerates and rotates the digest" do

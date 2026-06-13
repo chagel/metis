@@ -15,6 +15,13 @@ module ApplicationHelper
     (team_entries + repo_entries).sort_by { |e| e[:slug] }
   end
 
+  # The token to embed in the bridge setup blocks: the plaintext when it
+  # was just generated this request (shown once), otherwise the redacted
+  # hint so the instructions always have something to show.
+  def bridge_token_for_display(user, new_token)
+    new_token.presence || user.bridge_token_hint_label
+  end
+
   # Render Markdown (GitHub-flavored) message content to safe HTML.
   # Raw HTML in the source is escaped (unsafe: false) and dangerous
   # link schemes are neutralized, so agent output is safe to display.

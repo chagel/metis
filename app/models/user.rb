@@ -87,8 +87,16 @@ class User < ApplicationRecord
   # minted digest must not be blocked by unrelated profile validations.
   def generate_bridge_token!
     token = "mbt_#{SecureRandom.urlsafe_base64(32)}"
-    update_column(:bridge_token_digest, self.class.bridge_token_digest(token))
+    update_columns(bridge_token_digest: self.class.bridge_token_digest(token),
+                   bridge_token_hint: token.last(4))
     token
+  end
+
+  # A redacted, identifiable label for the token on normal page loads —
+  # the plaintext is never stored, so the instruction blocks fall back to
+  # this when @new_bridge_token isn't set. Last 4 chars only; not a secret.
+  def bridge_token_hint_label
+    "mbt_…#{bridge_token_hint}" if bridge_token_hint.present?
   end
 
   def self.authenticate_bridge_token(token)

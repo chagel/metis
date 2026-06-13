@@ -1,0 +1,31 @@
+<%# Manual claim — one paste-into-your-agent block: install the bridge
+    skill, configure the MCP server with the token, list tasks on demand.
+    Locals: token, base_url, skill_url, fresh_token (true on the
+    generating request, false on a normal reload). %>
+<% setup = if fresh_token
+  <<~TEXT.strip
+  Set up the Metis bridge for manual claiming. I'll pick which tasks to work on myself.
+
+  1. Install the bridge skill (adds /metis-bridge commands):
+
+  curl -fsSL --create-dirs #{skill_url} -o ~/.claude/skills/metis-bridge/SKILL.md
+
+  2. Configure the bridge with my token and list available tasks:
+
+  My Metis bridge token is #{token}. Configure the MCP server at #{base_url}/api/bridge/mcp with an Authorization header using my token. Then list my available tasks and let me pick one to work on.
+  TEXT
+  else
+  <<~TEXT.strip
+  Set up the Metis bridge for manual claiming. I'll pick which tasks to work on myself.
+
+  1. Install the bridge skill (adds /metis-bridge commands):
+
+  curl -fsSL --create-dirs #{skill_url} -o ~/.claude/skills/metis-bridge/SKILL.md
+
+  2. Configure the bridge and start working:
+
+  Regenerate my bridge token in the account settings to get a fresh one, then configure the MCP server at #{base_url}/api/bridge/mcp with an Authorization header using my token. Then list my available tasks and let me pick one to work on.
+  TEXT
+  end
+%>
+<%= render "settings/accounts/bridge_code_block", text: setup %>

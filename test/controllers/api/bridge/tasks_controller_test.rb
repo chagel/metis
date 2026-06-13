@@ -81,6 +81,38 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     assert_nil run.tasks.first.reload.claimed_by, "listing must not claim"
   end
 
+  test "index exposes the user's auto-claim preference for the daemon" do
+    get "/api/bridge/tasks", headers: auth
+    assert_equal true, JSON.parse(response.body)["auto_claim"], "auto is the default"
+
+    @user.update!(auto_claim_tasks: false)
+    get "/api/bridge/tasks", headers: auth
+    assert_equal false, JSON.parse(response.body)["auto_claim"]
+  end
+
+  test "manual mode refuses the daemon's blind claim but honors id-scoped picks" do
+    run = dispatch_run
+    @user.update!(auto_claim_tasks: false)
+
+    get "/api/bridge/tasks/next", headers: auth
+    assert_response :no_content, "a blind FIFO poll claims nothing in manual mode"
+    get "/api/bridge/tasks/next", params: { project: "any" }, headers: auth
+    assert_response :no_content, "a blind project-scoped poll is also refused"
+    assert_nil run.tasks.first.reload.claimed_by, "manual mode left the task in the queue"
+
+    get "/api/bridge/tasks/next", params: { id: run.tasks.first.id }, headers: auth
+    assert_response :success, "a deliberate id-scoped pick still works in manual mode"
+    assert_equal run.tasks.first.id, JSON.parse(response.body)["task_id"]
+  end
+
+  test "auto mode claims blindly by default" do
+    run = dispatch_run
+    assert @user.auto_claim_tasks, "auto is the default"
+    get "/api/bridge/tasks/next", headers: auth
+    assert_response :success
+    assert_equal run.tasks.first.id, JSON.parse(response.body)["task_id"]
+  end
+
   test "index excludes claimed tasks and other teams' tasks" do
     dispatch_run
     Task.claim_next_for(@user)

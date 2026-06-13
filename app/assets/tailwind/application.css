@@ -1384,6 +1384,53 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
 .token-copy.is-copied .ico-copy, .token-copy.is-copied .lbl-copy { display:none; }
 .token-copy.is-copied .ico-check, .token-copy.is-copied .lbl-done { display:inline; }
 
+/* Bridge token status row */
+.bridge-status { display:flex; align-items:center; gap:8px; margin-top:10px; }
+.bridge-status .dev-dot { margin-left:0; }
+.bridge-status--fresh {
+  padding:8px 12px; border-radius:10px;
+  background:var(--gold-soft); border:1px solid var(--gold-line);
+}
+.bridge-status--fresh .dev-dot { background:var(--gold); opacity:1; }
+.bridge-status--fresh .form-hint { color:var(--gold); }
+
+/* Bridge claim-mode selector — segmented radio chips */
+.bridge-mode-selector { border:none; padding:0; margin:14px 0 0; }
+.bridge-mode-legend {
+  font-family:var(--fm); font-size:10px; font-weight:500; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--faint); margin-bottom:8px;
+}
+.bridge-mode-opts {
+  display:inline-flex; background:var(--bg); border:1px solid var(--line);
+  border-radius:10px; padding:3px;
+}
+.bridge-mode-opt { display:inline-grid; }
+.bridge-mode-opt input { grid-area:1/1; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
+.bridge-mode-chip {
+  grid-area:1/1; display:flex; align-items:center; gap:6px; pointer-events:none;
+  font-size:13px; font-weight:500; color:var(--ink-3);
+  padding:6px 14px; border-radius:7px; transition:background-color .12s, color .12s;
+}
+.bridge-mode-opt input:checked + .bridge-mode-chip {
+  background:var(--card); color:var(--ink); box-shadow:var(--sh-sm);
+}
+.bridge-mode-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.bridge-mode-dot--auto { background:var(--accent-fg); }
+.bridge-mode-dot--manual { background:var(--gold); }
+
+/* Bridge instruction panel (auto / manual) */
+.bridge-instr { margin-top:14px; padding-top:14px; border-top:1px solid var(--line); }
+.bridge-instr-head { display:flex; align-items:baseline; gap:10px; margin-bottom:8px; }
+.bridge-instr-title { font-size:13px; font-weight:600; color:var(--ink); }
+.bridge-instr .form-hint { margin-bottom:12px; }
+.bridge-instr-badge {
+  font-family:var(--fm); font-size:10px; font-weight:600; letter-spacing:.04em;
+  text-transform:uppercase; padding:2px 8px; border-radius:999px; white-space:nowrap;
+  color:var(--accent-fg); background:var(--accent-soft);
+}
+.bridge-instr-badge--manual { color:var(--gold); background:var(--gold-soft); }
+.bridge-instr .bridge-token { margin-bottom:0; }
+
 /* ───────────── connector marketplace ───────────── */
 .pane-lead { font-size:13.5px; color:var(--ink-3); margin-bottom:18px; }
 .cat-label {
@@ -2143,6 +2190,12 @@ body.drawer-open { overflow:hidden; }
 .wf-tl-localguide { margin-top:8px; font-size:13px; color:var(--ink-2); line-height:1.6; }
 .wf-tl-localguide a { color:var(--accent-fg); }
 .wf-tl-localguide-sub { margin-top:4px; font-size:12px; color:var(--ink-3); }
+.wf-tl-claim-btn {
+  display:inline-flex; align-items:center; gap:5px; cursor:pointer; margin-top:6px;
+  font-family:var(--fm); font-size:12px; border:none; border-radius:6px;
+  padding:3px 12px; background:var(--accent-soft); color:var(--accent-fg);
+}
+.wf-tl-claim-hint { margin-top:4px; font-size:12px; color:var(--ink-3); }
 
 /* The gate partial inline on the timeline: the wf-tl-node stands in for
    the partial's own mark. */
