@@ -32,6 +32,16 @@ func TestLaunchdPlistEscapesXML(t *testing.T) {
 	}
 }
 
+func TestLaunchdPid(t *testing.T) {
+	report := "com.metiser.bridge = {\n\tactive count = 1\n\tpid = 4242\n\tstate = running\n}"
+	if got := launchdPid(report); got != " (pid 4242)" {
+		t.Fatalf("launchdPid = %q", got)
+	}
+	if got := launchdPid("state = not running"); got != "" {
+		t.Fatalf("pidless report must yield empty, got %q", got)
+	}
+}
+
 func TestSystemdUnit(t *testing.T) {
 	unit := systemdUnit("/home/m/.local/bin/metis", "/opt/x/bin:/usr/bin")
 	for _, want := range []string{

@@ -39,11 +39,76 @@ func installService(logf func(string, ...any)) error {
 	}
 }
 
+// stopService halts the running service until the next login or
+// `metis install`. The service definition stays in place. A mid-task
+// stop abandons in-flight claims — the agent subprocess (its own
+// process group) is orphaned and the server reclaims the silent task.
+func stopService(logf func(string, ...any)) error {
+	switch runtime.GOOS {
+	case "darwin":
+		if out, err := exec.Command("launchctl", "bootout", launchdDomain()+"/"+launchdLabel).CombinedOutput(); err != nil {
+			return fmt.Errorf("not running? launchctl bootout: %s", strings.TrimSpace(string(out)))
+		}
+		logf("service %s stopped — starts again at next login or metis install", launchdLabel)
+		return nil
+	case "linux":
+		if out, err := exec.Command("systemctl", "--user", "stop", "metis-bridge.service").CombinedOutput(); err != nil {
+			return fmt.Errorf("systemctl stop: %s", strings.TrimSpace(string(out)))
+		}
+		logf("service metis-bridge stopped — starts again at next login or metis install")
+		return nil
+	default:
+		return fmt.Errorf("service stop not supported on %s", runtime.GOOS)
+	}
+}
+
+func statusService(logf func(string, ...any)) error {
+	logPath := filepath.Join(filepath.Dir(configPath()), "daemon.log")
+	switch runtime.GOOS {
+	case "darwin":
+		if _, err := os.Stat(launchdPlistPath()); err != nil {
+			logf("not installed — run: metis install")
+			return nil
+		}
+		out, err := exec.Command("launchctl", "print", launchdDomain()+"/"+launchdLabel).Output()
+		if err != nil {
+			logf("installed but stopped — start with: metis install")
+			return nil
+		}
+		logf("running%s (logs: %s)", launchdPid(string(out)), logPath)
+		return nil
+	case "linux":
+		if _, err := os.Stat(systemdUnitPath()); err != nil {
+			logf("not installed — run: metis install")
+			return nil
+		}
+		state, _ := exec.Command("systemctl", "--user", "is-active", "metis-bridge.service").Output()
+		logf("%s (logs: journalctl --user -u metis-bridge; also %s)", strings.TrimSpace(string(state)), logPath)
+		return nil
+	default:
+		return fmt.Errorf("service status not supported on %s", runtime.GOOS)
+	}
+}
+
+// launchdPid pulls the "pid = N" line out of `launchctl print` output.
+func launchdPid(report string) string {
+	for _, line := range strings.Split(report, "\n") {
+		if trimmed := strings.TrimSpace(line); strings.HasPrefix(trimmed, "pid = ") {
+			return " (pid " + strings.TrimPrefix(trimmed, "pid = ") + ")"
+		}
+	}
+	return ""
+}
+
+func launchdDomain() string {
+	return "gui/" + strconv.Itoa(os.Getuid())
+}
+
 func uninstallService(logf func(string, ...any)) error {
 	switch runtime.GOOS {
 	case "darwin":
 		plist := launchdPlistPath()
-		_ = exec.Command("launchctl", "bootout", "gui/"+strconv.Itoa(os.Getuid())+"/"+launchdLabel).Run()
+		_ = exec.Command("launchctl", "bootout", launchdDomain()+"/"+launchdLabel).Run()
 		if err := os.Remove(plist); err != nil && !os.IsNotExist(err) {
 			return err
 		}
@@ -132,9 +197,8 @@ func installLaunchd(binary, logPath string, logf func(string, ...any)) error {
 	if err := os.WriteFile(plist, []byte(launchdPlist(binary, logPath, os.Getenv("PATH"))), 0o644); err != nil {
 		return err
 	}
-	domain := "gui/" + strconv.Itoa(os.Getuid())
-	_ = exec.Command("launchctl", "bootout", domain+"/"+launchdLabel).Run()
-	if out, err := exec.Command("launchctl", "bootstrap", domain, plist).CombinedOutput(); err != nil {
+	_ = exec.Command("launchctl", "bootout", launchdDomain()+"/"+launchdLabel).Run()
+	if out, err := exec.Command("launchctl", "bootstrap", launchdDomain(), plist).CombinedOutput(); err != nil {
 		return fmt.Errorf("launchctl bootstrap: %s", strings.TrimSpace(string(out)))
 	}
 	logf("service %s running (logs: %s)", launchdLabel, logPath)

@@ -88,6 +88,8 @@ metis gc         # sweep settled task worktrees now
 ```sh
 metis install    # copies the binary to /usr/local/bin (or ~/.local/bin)
                         # and registers launchd (macOS) / systemd --user (Linux)
+metis status     # installed? running? (with pid and log path)
+metis stop       # halt until next login or metis install
 metis uninstall  # stop + remove the service (binary stays)
 ```
 
