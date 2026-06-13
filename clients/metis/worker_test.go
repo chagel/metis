@@ -21,7 +21,7 @@ type stubServer struct {
 	results     []map[string]any
 	state       TaskState
 	goneOnEvent bool
-	claimable   *Task
+	claimable   []*Task
 	claimStatus int
 	server      *httptest.Server
 }
@@ -37,12 +37,12 @@ func newStubServer(t *testing.T) *stubServer {
 			w.WriteHeader(stub.claimStatus)
 			return
 		}
-		if stub.claimable == nil {
+		if len(stub.claimable) == 0 {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
-		task := stub.claimable
-		stub.claimable = nil
+		task := stub.claimable[0]
+		stub.claimable = stub.claimable[1:]
 		_ = json.NewEncoder(w).Encode(task)
 	})
 	mux.HandleFunc("POST /api/bridge/tasks/{id}/events", func(w http.ResponseWriter, r *http.Request) {
@@ -138,7 +138,7 @@ func initRepo(t *testing.T) (repo, root string) {
 func testConfig(server, repo, root string, mutate func(*Config)) *Config {
 	cfg := &Config{
 		Servers: []*Server{{Name: "test", Server: server, Token: "mbt_x",
-			Projects: map[string]string{"proj": repo}}},
+			Projects: map[string]string{"proj": repo}, MaxWorkers: 1}},
 		Client: "testbox", Agent: "claude",
 		WorkspacesRoot:    root,
 		HeartbeatInterval: 1000, CancelPollInterval: 1000, InactivityTimeout: 30,

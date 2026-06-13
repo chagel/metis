@@ -28,20 +28,22 @@ const configSkeleton = `{
 // Server is one Metis deployment this machine works for. Tokens and
 // projects are per-server: different instances, different identities.
 type Server struct {
-	Name     string            `json:"name"`
-	Server   string            `json:"server"`
-	Token    string            `json:"token"`
-	Projects map[string]string `json:"projects"`
+	Name       string            `json:"name"`
+	Server     string            `json:"server"`
+	Token      string            `json:"token"`
+	Projects   map[string]string `json:"projects"`
+	MaxWorkers int               `json:"max_workers"`
 }
 
 // Config holds the daemon's settings. All intervals are seconds. The
 // flat server/token/projects trio is accepted as single-server
 // shorthand for the servers list.
 type Config struct {
-	Servers  []*Server         `json:"servers"`
-	Server   string            `json:"server"`
-	Token    string            `json:"token"`
-	Projects map[string]string `json:"projects"`
+	Servers    []*Server         `json:"servers"`
+	Server     string            `json:"server"`
+	Token      string            `json:"token"`
+	Projects   map[string]string `json:"projects"`
+	MaxWorkers int               `json:"max_workers"`
 
 	Client             string   `json:"client"`
 	Agent              string   `json:"agent"`
@@ -92,7 +94,7 @@ func (c *Config) normalize() error {
 		if token == "" {
 			token = os.Getenv("METIS_BRIDGE_TOKEN")
 		}
-		c.Servers = []*Server{{Server: c.Server, Token: token, Projects: c.Projects}}
+		c.Servers = []*Server{{Server: c.Server, Token: token, Projects: c.Projects, MaxWorkers: c.MaxWorkers}}
 	}
 	if len(c.Servers) == 0 {
 		return errors.New(`config needs "servers" (or the single-server "server"/"token"/"projects" shorthand)`)
@@ -127,6 +129,9 @@ func (s *Server) normalize() error {
 	}
 	if len(s.Projects) == 0 {
 		return fmt.Errorf(`server %q needs "projects" — the daemon only claims tasks it has a checkout for`, s.Name)
+	}
+	if s.MaxWorkers < 1 {
+		s.MaxWorkers = 1
 	}
 	// Project names are matched case-insensitively, mirroring the
 	// server's ?project= claim filter — the daemon must never claim a

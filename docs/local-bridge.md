@@ -407,6 +407,10 @@ headless in a per-task worktree, heartbeats progress, and submits the
 result. It is **multi-server**: one daemon polls any number of Metis
 deployments (dev and prod), each with its own token, projects, and
 worktree namespace — one unreachable server never blocks the others.
+It is **parallel per server**: each server's `max_workers` (default 1)
+sets how many claimed tasks run concurrently, every worker in its own
+worktree and process group; a long task on one server never starves
+another, and parent-checkout git operations are serialized per repo.
 `metis install` registers it as a login service (launchd /
 systemd --user) with the user's PATH baked in, since agent CLIs live in
 version-manager shims a bare service PATH can't see.

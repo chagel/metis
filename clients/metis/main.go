@@ -87,7 +87,7 @@ func usage() {
 
 Usage: metis <init|once|run|gc|install|uninstall>
   init       write a config skeleton to ~/.metis/config.json (or $METIS_BRIDGE_CONFIG)
-  once       one poll → work the claimed task → exit
+  once       one poll → work the claimed tasks → exit
   run        poll forever
   gc         sweep settled task worktrees
   install    install the binary and register a login service (launchd / systemd --user)

@@ -37,6 +37,7 @@ metis init       # writes ~/.metis/config.json
       "name": "prod",
       "server": "https://your-metis-host",
       "token": "mbt_…",              // /settings/account → Local bridge on THAT deployment
+      "max_workers": 2,              // concurrent tasks for this server (default 1)
       "projects": {
         "metis-api": "~/Workspaces/metis"   // Metis project name → local checkout
       }
@@ -56,7 +57,12 @@ per-server (different deployments, different identities), and each
 server's worktrees live apart under
 `workspaces_root/<server-name>/`. A single deployment can use the flat
 `server` / `token` / `projects` shorthand at the top level instead of
-`servers`. One unreachable server never blocks the others.
+`servers` (`max_workers` works there too). One unreachable server never
+blocks the others, and a long task on one never starves the rest:
+each server fills its own `max_workers` slots independently, every
+worker in its own worktree with its own agent subprocess. Size
+`max_workers` to what the machine (and your API budget) can carry —
+each slot is a whole headless coding agent.
 
 The daemon only claims tasks whose workflow project it has a checkout
 for (the `?project=` claim filter) — it never blind-claims. Optional
@@ -72,7 +78,7 @@ two machines both called "mbp" would alias each other.
 ## Run
 
 ```sh
-metis once       # one poll → work the claimed task → exit (good first run)
+metis once       # one poll → work the claimed tasks → exit (good first run)
 metis run        # poll forever
 metis gc         # sweep settled task worktrees now
 ```
@@ -91,9 +97,9 @@ service definition — services get a bare PATH, and the agent CLIs
 usually live in version-manager shims. Logs: `~/.metis/daemon.log`.
 
 **Config edits need no restart**: the daemon hot-reloads `config.json`
-between tasks (never mid-task) — a valid edit swaps in by the next
-poll, an invalid one is logged and ignored, keeping the previous config
-running. Restart (`metis install` again, which also re-validates) only
+while idle (never mid-task) — a valid edit swaps in once running tasks
+finish, an invalid one is logged and ignored, keeping the previous
+config running. Restart (`metis install` again, which also re-validates) only
 for binary upgrades or PATH changes. Project names match
 case-insensitively, mirroring the server.
 

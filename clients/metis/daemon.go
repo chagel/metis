@@ -18,9 +18,9 @@ type target struct {
 }
 
 // Daemon is the poll loop: claim per server per project (both
-// alphabetical, so behavior is deterministic), work one task at a time,
-// sweep worktrees hourly. When watching a config path, edits hot-reload
-// between tasks — never mid-task.
+// alphabetical, so behavior is deterministic), work up to each server's
+// max_workers tasks concurrently, sweep worktrees hourly. When watching
+// a config path, edits hot-reload while idle — never mid-task.
 type Daemon struct {
 	cfg        *Config
 	targets    []*target
@@ -29,6 +29,9 @@ type Daemon struct {
 	lastGC     time.Time
 	configPath string
 	configSeen time.Time
+	running    map[string]int
+	total      int
+	done       chan string
 }
 
 func NewDaemon(cfg *Config, logf func(string, ...any)) (*Daemon, error) {
@@ -36,7 +39,8 @@ func NewDaemon(cfg *Config, logf func(string, ...any)) (*Daemon, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Daemon{cfg: cfg, agent: agent, targets: buildTargets(cfg), logf: logf}, nil
+	return &Daemon{cfg: cfg, agent: agent, targets: buildTargets(cfg), logf: logf,
+		running: map[string]int{}, done: make(chan string, 64)}, nil
 }
 
 func buildTargets(cfg *Config) []*target {
@@ -64,11 +68,14 @@ func (d *Daemon) WatchConfig(path string) {
 	}
 }
 
-// maybeReload swaps in an edited config between tasks. An invalid edit
-// is logged once and the daemon keeps running on the previous config —
-// the same refuse-to-crash-loop posture as `metis install`.
+// maybeReload swaps in an edited config while the daemon is idle. An
+// invalid edit is logged once and the daemon keeps running on the
+// previous config — the same refuse-to-crash-loop posture as
+// `metis install`. The idle guard keeps in-flight workers on the
+// targets they were dispatched with and the slot accounting honest
+// across the target rebuild.
 func (d *Daemon) maybeReload() {
-	if d.configPath == "" {
+	if d.configPath == "" || d.total > 0 {
 		return
 	}
 	info, err := os.Stat(d.configPath)
@@ -94,23 +101,20 @@ func (d *Daemon) maybeReload() {
 func (d *Daemon) Run(once bool) error {
 	d.logf("metis %s — %s polling %s", version, d.cfg.Client, strings.Join(d.describeTargets(), "; "))
 	for {
+		d.reap()
 		d.maybeReload()
-		task, from, err := d.nextTask()
+		started, err := d.dispatch()
 		switch {
 		case err != nil:
 			if once {
 				return err
 			}
 			d.logf("claim failed: %v", err)
-			time.Sleep(time.Duration(d.cfg.PollInterval) * time.Second)
-		case task != nil:
-			worker := &Worker{api: from.api, cfg: d.cfg, server: from.server,
-				task: task, agent: d.agent, logf: d.logf}
-			worker.Run()
-		case once:
+		case once && started == 0:
 			d.logf("queue empty")
-		default:
-			time.Sleep(time.Duration(d.cfg.PollInterval) * time.Second)
+		}
+		if once {
+			d.drain()
 		}
 		if time.Since(d.lastGC) > time.Hour {
 			d.GC()
@@ -118,7 +122,103 @@ func (d *Daemon) Run(once bool) error {
 		if once {
 			return nil
 		}
+		if started == 0 {
+			d.idle()
+		}
 	}
+}
+
+// dispatch fills every server's free worker slots in deterministic
+// order, claiming until each is full or its queue is empty. A claim
+// error on one server must not stop the others (dev being down is no
+// reason to ignore prod) — the error is returned only when every server
+// failed and nothing was started.
+func (d *Daemon) dispatch() (int, error) {
+	started := 0
+	var firstErr error
+	failures := 0
+	for _, t := range d.targets {
+		if err := d.fill(t, &started); err != nil {
+			if firstErr == nil {
+				firstErr = fmt.Errorf("%s: %w", t.server.Name, err)
+			}
+			failures++
+		}
+	}
+	if failures == len(d.targets) && started == 0 {
+		return 0, firstErr
+	}
+	return started, nil
+}
+
+func (d *Daemon) fill(t *target, started *int) error {
+	for d.running[t.server.Name] < t.server.MaxWorkers {
+		task, err := d.claim(t)
+		if err != nil {
+			return err
+		}
+		if task == nil {
+			return nil
+		}
+		d.running[t.server.Name]++
+		d.total++
+		*started++
+		worker := &Worker{api: t.api, cfg: d.cfg, server: t.server,
+			task: task, agent: d.agent, logf: d.logf}
+		go func(name string) {
+			worker.Run()
+			d.done <- name
+		}(t.server.Name)
+	}
+	return nil
+}
+
+func (d *Daemon) claim(t *target) (*Task, error) {
+	for _, project := range t.projects {
+		task, err := t.api.Claim(project)
+		if err != nil {
+			d.logf("claim %s/%s: %v", t.server.Name, project, err)
+			return nil, err
+		}
+		if task != nil {
+			return task, nil
+		}
+	}
+	return nil, nil
+}
+
+// reap collects finished workers without blocking; idle additionally
+// waits for one to finish or the poll interval to elapse, whichever
+// comes first — a freed slot refills immediately, an empty queue is
+// re-polled on the interval.
+func (d *Daemon) reap() {
+	for {
+		select {
+		case name := <-d.done:
+			d.finish(name)
+		default:
+			return
+		}
+	}
+}
+
+func (d *Daemon) idle() {
+	select {
+	case name := <-d.done:
+		d.finish(name)
+	case <-time.After(time.Duration(d.cfg.PollInterval) * time.Second):
+	}
+}
+
+func (d *Daemon) drain() {
+	for d.total > 0 {
+		d.finish(<-d.done)
+	}
+}
+
+func (d *Daemon) finish(server string) {
+	d.running[server]--
+	d.total--
 }
 
 func (d *Daemon) GC() {
@@ -129,38 +229,14 @@ func (d *Daemon) GC() {
 	}
 }
 
-// nextTask claims across servers; a claim error on one server must not
-// stop the others (dev being down is no reason to ignore prod). The
-// error is returned only when every server failed.
-func (d *Daemon) nextTask() (*Task, *target, error) {
-	var firstErr error
-	failures := 0
-	for _, t := range d.targets {
-		for _, project := range t.projects {
-			task, err := t.api.Claim(project)
-			if err != nil {
-				d.logf("claim %s/%s: %v", t.server.Name, project, err)
-				if firstErr == nil {
-					firstErr = fmt.Errorf("%s: %w", t.server.Name, err)
-				}
-				failures++
-				break // next server — this one is unreachable or rejecting
-			}
-			if task != nil {
-				return task, t, nil
-			}
-		}
-	}
-	if failures == len(d.targets) {
-		return nil, nil, firstErr
-	}
-	return nil, nil, nil
-}
-
 func (d *Daemon) describeTargets() []string {
 	described := make([]string, 0, len(d.targets))
 	for _, t := range d.targets {
-		described = append(described, fmt.Sprintf("%s (%s)", t.server.Name, strings.Join(t.projects, ", ")))
+		workers := ""
+		if t.server.MaxWorkers > 1 {
+			workers = fmt.Sprintf(" ×%d", t.server.MaxWorkers)
+		}
+		described = append(described, fmt.Sprintf("%s (%s)%s", t.server.Name, strings.Join(t.projects, ", "), workers))
 	}
 	return described
 }

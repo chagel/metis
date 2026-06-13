@@ -123,6 +123,31 @@ func TestEnvTokenFillsTokenlessServer(t *testing.T) {
 	}
 }
 
+func TestMaxWorkersDefaultsToOne(t *testing.T) {
+	cfg, err := LoadConfig(writeConfig(t,
+		`{"server": "http://x", "token": "t", "projects": {"p": "/p"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Servers[0].MaxWorkers != 1 {
+		t.Fatalf("max_workers = %d, want default 1", cfg.Servers[0].MaxWorkers)
+	}
+
+	// Set explicitly — on a servers entry and via the flat shorthand.
+	cfg, err = LoadConfig(writeConfig(t, `{
+	  "servers": [{"name": "prod", "server": "http://x", "token": "t",
+	    "projects": {"p": "/p"}, "max_workers": 3}]
+	}`))
+	if err != nil || cfg.Servers[0].MaxWorkers != 3 {
+		t.Fatalf("max_workers = %d, %v, want 3", cfg.Servers[0].MaxWorkers, err)
+	}
+	cfg, err = LoadConfig(writeConfig(t,
+		`{"server": "http://x", "token": "t", "projects": {"p": "/p"}, "max_workers": 2}`))
+	if err != nil || cfg.Servers[0].MaxWorkers != 2 {
+		t.Fatalf("shorthand max_workers = %d, %v, want 2", cfg.Servers[0].MaxWorkers, err)
+	}
+}
+
 func TestProjectLookupIsCaseInsensitive(t *testing.T) {
 	cfg, err := LoadConfig(writeConfig(t,
 		`{"server": "http://x", "token": "t", "projects": {"metis": "/code/metis"}}`))

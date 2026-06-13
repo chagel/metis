@@ -7,10 +7,22 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
 const metaFile = ".metis-task.json"
+
+// repoLocks serializes parent-checkout git mutations: parallel workers
+// (and the gc sweep) may share one configured checkout, and concurrent
+// worktree add/prune/remove race on its .git metadata.
+var repoLocks sync.Map
+
+func lockRepo(repo string) func() {
+	mu, _ := repoLocks.LoadOrStore(repo, &sync.Mutex{})
+	mu.(*sync.Mutex).Lock()
+	return mu.(*sync.Mutex).Unlock
+}
 
 // Worktree is the per-task isolation: a git worktree off the project's
 // configured checkout, on a metis/<ref> branch — the task never touches
@@ -34,6 +46,7 @@ func (w Worktree) Prepare() error {
 	if err := os.MkdirAll(w.Root, 0o755); err != nil {
 		return err
 	}
+	defer lockRepo(w.Repo)()
 	if err := w.git("worktree", "prune"); err != nil {
 		return err
 	}
@@ -126,7 +139,9 @@ func GCWorktrees(root string, repoFor func(ref string) string, ttl time.Duration
 			continue
 		}
 		if repo := repoFor(entry.Name()); repo != "" {
+			unlock := lockRepo(repo)
 			_ = exec.Command("git", "-C", repo, "worktree", "remove", "--force", path).Run()
+			unlock()
 		}
 		_ = os.RemoveAll(path)
 		logf("gc: removed %s", path)
