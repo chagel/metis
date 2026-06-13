@@ -11,12 +11,25 @@ written — every gap becomes their guess, and reviewers will verify the
 result against your text. Completeness beats brevity; spend length on
 substance, never padding.
 
-## Deliverables — always both
+## Deliverables
 
 1. **Save the spec as a markdown file** in the working directory
    (`<kebab-title>-spec.md`) so it ships as a downloadable artifact.
+   *(always)*
 2. **Include the full spec text in your reply** — the message is the
-   version people review and quote.
+   version people review and quote. *(always)*
+3. **For any UI-facing change, also build an HTML mockup** — save a
+   self-contained `<kebab-title>-mockup.html` in the working directory
+   and link it from the spec. It's the visual reference reviewers check
+   the implementation against, so the words and the picture can't drift.
+   Make it standalone (inline CSS, no build step, no external assets so
+   it opens straight in a browser), cover every state the change
+   introduces — empty / populated / loading / error, and each
+   breakpoint that matters — and use realistic copy and data, not lorem
+   ipsum. Match the repo's existing look where one exists; it's a
+   reference for layout, states, and copy, not production code. Skip
+   only when the change has no visible surface (pure API, job, schema,
+   refactor).
 
 ## The closed-world test
 
@@ -71,7 +84,8 @@ Behavior and seams, not method bodies — code only at signature level.
 
 ## Interfaces & data
 Exact request/response examples, schema or jsonb shapes, enum values,
-user-visible copy verbatim.
+user-visible copy verbatim. For UI changes, link the mockup
+(`<kebab-title>-mockup.html`) here and call out the states it shows.
 
 ## Edge cases
 Each one paired with its expected behavior — an edge case without a
@@ -82,7 +96,8 @@ What an eager implementer might do that you explicitly don't want.
 
 ## Acceptance
 How a reviewer verifies each requirement: runnable commands (lint,
-tests, curl) and observable behaviors, ideally mapped R-by-R.
+tests, curl) and observable behaviors, ideally mapped R-by-R. For UI
+requirements, the built screen should match the mockup.
 ```
 
 Numbered requirements with mapped acceptance are the traceability

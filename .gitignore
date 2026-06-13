@@ -49,6 +49,7 @@
 /.pi/skills/*
 /.claude/skills/
 !/.pi/skills/writing-spec/
+!/.pi/skills/refresh-metis-docs/
 
 # Local design mockups — kept on the author's machine, not shared in-repo.
 /docs/mockups/
