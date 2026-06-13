@@ -6,11 +6,32 @@
           attributes:
             slug:
               invalid: "只能包含小写字母、数字和连字符"
+              reserved: "已被内置仓库技能占用"
         project:
           attributes:
             name:
               invalid: "不能包含换行符"
+            base:
+              has_active_runs: "仍有进行中的工作流运行 — 请先完成或取消它们"
         invitation:
           attributes:
             email:
               taken: "已有一个待处理的邀请"
+              already_member: "已经是此团队的成员"
+        workflow:
+          attributes:
+            default_project_id:
+              not_in_team: "不在此团队中"
+            steps:
+              needs_prompt: "%{label} 需要一个提示词"
+        connector:
+          attributes:
+            definition:
+              missing_field: "%{transport} 连接器必须包含 %{required}"
+        user:
+          attributes:
+            preferred_model:
+              not_available: "不是可用的模型"
+            avatar:
+              too_large: "必须小于 %{size}MB"
+              invalid_type: "必须是 JPEG、PNG、WebP 或 GIF"

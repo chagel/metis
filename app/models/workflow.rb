@@ -22,7 +22,7 @@ class Workflow < ApplicationRecord
     return if default_project_id.blank?
     return if team&.projects&.exists?(default_project_id)
 
-    errors.add(:default_project_id, "is not in this team")
+    errors.add(:default_project_id, :not_in_team)
   end
 
   # A blank prompt would silently become a pause-only checkpoint; require one.
@@ -31,7 +31,7 @@ class Workflow < ApplicationRecord
       next if step["prompt"].to_s.strip.present?
 
       label = step["name"].presence || "Step #{i + 1}"
-      errors.add(:steps, "#{label} needs a prompt")
+      errors.add(:steps, :needs_prompt, label: label)
     end
   end
 end

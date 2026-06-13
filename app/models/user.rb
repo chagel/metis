@@ -255,7 +255,7 @@ class User < ApplicationRecord
     return if preferred_model.blank?
     return if Agent::Catalog.known_model?(preferred_model)
 
-    errors.add(:preferred_model, "is not an available model")
+    errors.add(:preferred_model, :not_available)
   end
 
   # Every user gets a personal team (a team of one) at signup.
@@ -272,10 +272,10 @@ class User < ApplicationRecord
 
     blob = avatar.blob
     if blob.byte_size > AVATAR_MAX_BYTES
-      errors.add(:avatar, "must be under #{AVATAR_MAX_BYTES / 1.megabyte}MB")
+      errors.add(:avatar, :too_large, size: AVATAR_MAX_BYTES / 1.megabyte)
     end
     unless AVATAR_CONTENT_TYPES.include?(blob.content_type)
-      errors.add(:avatar, "must be JPEG, PNG, WebP, or GIF")
+      errors.add(:avatar, :invalid_type)
     end
   end
 end

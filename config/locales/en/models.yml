@@ -6,11 +6,32 @@ en:
           attributes:
             slug:
               invalid: "only lowercase letters, numbers, and hyphens"
+              reserved: "is reserved by a built-in repo skill"
         project:
           attributes:
             name:
               invalid: "can't contain line breaks"
+            base:
+              has_active_runs: "still has active workflow runs — finish or cancel them first"
         invitation:
           attributes:
             email:
               taken: "already has a pending invitation"
+              already_member: "is already a member of this team"
+        workflow:
+          attributes:
+            default_project_id:
+              not_in_team: "is not in this team"
+            steps:
+              needs_prompt: "%{label} needs a prompt"
+        connector:
+          attributes:
+            definition:
+              missing_field: "must include a %{required} for a %{transport} connector"
+        user:
+          attributes:
+            preferred_model:
+              not_available: "is not an available model"
+            avatar:
+              too_large: "must be under %{size}MB"
+              invalid_type: "must be JPEG, PNG, WebP, or GIF"

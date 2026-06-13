@@ -24,7 +24,7 @@ class Project < ApplicationRecord
   def forbid_active_runs
     return unless WorkflowRun.active.where(conversation_id: conversations.select(:id)).exists?
 
-    errors.add(:base, "still has active workflow runs — finish or cancel them first")
+    errors.add(:base, :has_active_runs)
     throw :abort
   end
 end

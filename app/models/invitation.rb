@@ -73,6 +73,6 @@ class Invitation < ApplicationRecord
     return if team.nil? || email.blank?
     return unless team.members.exists?(email: email)
 
-    errors.add(:email, "is already a member of this team")
+    errors.add(:email, :already_member)
   end
 end

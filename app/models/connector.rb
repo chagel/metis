@@ -55,6 +55,6 @@ class Connector < ApplicationRecord
     required = stdio? ? "command" : "url"
     return if definition[required].present?
 
-    errors.add(:definition, "must include a #{required} for a #{transport} connector")
+    errors.add(:definition, :missing_field, required: required, transport: transport)
   end
 end

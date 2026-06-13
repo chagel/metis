@@ -71,14 +71,14 @@ class ConversationsController < ApplicationController
 
   def archive
     @conversation.archive!
-    flash[:notice] = "Conversation archived."
+    flash[:notice] = t("flash.conversations.archive.notice")
     flash[:undo_archive_id] = @conversation.id # consumed by the toast Undo
     redirect_to root_path
   end
 
   def unarchive
     @conversation.unarchive!
-    flash[:notice] = "Conversation restored."
+    flash[:notice] = t("flash.conversations.unarchive.notice")
     redirect_to @conversation
   end
 

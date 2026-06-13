@@ -154,6 +154,6 @@ class Skill < ApplicationRecord
     return if slug.blank?
     return unless Agent::Workspace.repo_slugs.include?(slug)
 
-    errors.add(:slug, "is reserved by a built-in repo skill")
+    errors.add(:slug, :reserved)
   end
 end

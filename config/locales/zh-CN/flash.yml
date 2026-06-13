@@ -47,8 +47,14 @@
           failed: "无法完成该连接：%{message}"
     composer:
       blank_new: "输入消息以开始一段对话。"
+      pick_project: "请选择一个项目来启动此工作流。"
       upload_too_large: "%{filename} 太大（上限 %{size} MB）。"
       upload_unsupported_type: "%{filename} 的文件类型不受支持。"
+    conversations:
+      archive:
+        notice: "对话已归档。"
+      unarchive:
+        notice: "对话已恢复。"
     profiles:
       update:
         notice: "个人资料已保存。"

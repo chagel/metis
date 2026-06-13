@@ -47,8 +47,14 @@ en:
           failed: "Couldn't finish that connection: %{message}"
     composer:
       blank_new: "Type a message to start a conversation."
+      pick_project: "Pick a project to launch this workflow."
       upload_too_large: "%{filename} is too large (max %{size} MB)."
       upload_unsupported_type: "%{filename} has an unsupported file type."
+    conversations:
+      archive:
+        notice: "Conversation archived."
+      unarchive:
+        notice: "Conversation restored."
     profiles:
       update:
         notice: "Profile saved."
