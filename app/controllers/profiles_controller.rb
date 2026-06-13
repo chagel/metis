@@ -9,6 +9,9 @@ class ProfilesController < ApplicationController
     @user = current_user
     @user.assign_attributes(profile_params)
     if @user.save(context: :profile_update)
+      # with_user_locale captured the old language before this action ran;
+      # re-point I18n so the turbo_stream response renders in the new one.
+      I18n.locale = @user.language.presence || I18n.default_locale
       respond_to do |format|
         format.turbo_stream do
           flash.now[:notice] = t("flash.profiles.update.notice")

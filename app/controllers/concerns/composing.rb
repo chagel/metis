@@ -44,10 +44,11 @@ module Composing
   def upload_error(uploads)
     uploads.each do |upload|
       if upload.size > Message::MAX_UPLOAD_SIZE
-        return "#{upload.original_filename} is too large (max #{Message::MAX_UPLOAD_SIZE / 1.megabyte} MB)."
+        return t("flash.composer.upload_too_large",
+                 filename: upload.original_filename, size: Message::MAX_UPLOAD_SIZE / 1.megabyte)
       end
       unless Message::ALLOWED_CONTENT_TYPES.include?(upload.content_type)
-        return "#{upload.original_filename} has an unsupported file type."
+        return t("flash.composer.upload_unsupported_type", filename: upload.original_filename)
       end
     end
     nil

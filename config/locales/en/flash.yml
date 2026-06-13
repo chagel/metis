@@ -45,6 +45,10 @@ en:
           cancelled: "Connection was cancelled."
           notice: "%{name} connected."
           failed: "Couldn't finish that connection: %{message}"
+    composer:
+      blank_new: "Type a message to start a conversation."
+      upload_too_large: "%{filename} is too large (max %{size} MB)."
+      upload_unsupported_type: "%{filename} has an unsupported file type."
     profiles:
       update:
         notice: "Profile saved."

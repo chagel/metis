@@ -45,6 +45,10 @@
           cancelled: "连接已取消。"
           notice: "%{name} 已连接。"
           failed: "无法完成该连接：%{message}"
+    composer:
+      blank_new: "输入消息以开始一段对话。"
+      upload_too_large: "%{filename} 太大（上限 %{size} MB）。"
+      upload_unsupported_type: "%{filename} 的文件类型不受支持。"
     profiles:
       update:
         notice: "个人资料已保存。"
