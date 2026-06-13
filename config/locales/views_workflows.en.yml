@@ -133,7 +133,6 @@ en:
       step_number: "Step %{number}"
       running: "Running"
       local_runs_html: "This step runs on one of your machines. A running\n              <code>metis</code> daemon claims it automatically on its next\n              poll."
-      copy: "Copy"
       nothing_html: "Nothing picking it up? Set up the bridge in\n              %{link} — the token and daemon live there. A\n              daemon only claims projects its config maps to a checkout."
       account_settings: "account settings"
       view_turn: "view turn →"
