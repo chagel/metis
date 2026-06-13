@@ -25,8 +25,8 @@ class User < ApplicationRecord
 
   after_create :create_personal_team
 
-  # Locales the UI is translated into. v1 ships English only; the
-  # selector is here so future locales drop in without a schema or
+  # Locales the UI is translated into. New locales drop in by adding a
+  # folder under config/locales/ and an entry here — no schema or
   # controller change.
   AVAILABLE_LANGUAGES = %w[en zh-CN].freeze
 

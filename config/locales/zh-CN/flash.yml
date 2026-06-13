@@ -39,7 +39,7 @@
         start:
           unknown: "未知的连接器。"
           invalid_url: "请为你的 %{name} 服务器输入有效的 https:// 网址。"
-          failed: "无法开始该连接：%{message}"
+          failed: "无法发起该连接：%{message}"
         callback:
           expired: "该连接已过期 — 请重试。"
           cancelled: "连接已取消。"

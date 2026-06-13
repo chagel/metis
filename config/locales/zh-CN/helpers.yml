@@ -7,7 +7,7 @@
       failed: "失败"
       cancelled: "已取消"
       on_machine: "在 %{name} 的机器上"
-      waiting_for_machine: "等待机器"
+      waiting_for_machine: "等待机器接入"
     activity:
       working: "处理中…"
       reasoning: "推理"

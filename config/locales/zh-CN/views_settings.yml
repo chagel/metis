@@ -33,7 +33,7 @@
       bot_title: "让智能体以 GitHub 机器人身份操作"
       bot_sub_pre: "允许智能体以下列身份发布 PR 审阅："
       bot_sub_post: "每位成员都会获得此权限，可触及应用已安装的每个仓库 — 请在 GitHub 上限定其范围。"
-      act_through: "通过安装进行操作"
+      act_through: "通过安装实例进行操作"
       choose_installation: "选择一个安装…"
       installation_hint: "应用安装在多个位置 — 机器人将通过你在此选择的那一个进行操作。"
       credential_placeholder: "已设置 — 留空以保留当前凭据"

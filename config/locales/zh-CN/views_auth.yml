@@ -60,4 +60,4 @@
     show:
       workflow_fallback: "工作流"
       shared_ago: "%{time}前分享"
-      powered_by_prefix: "技术支持"
+      powered_by_prefix: "由…提供"
