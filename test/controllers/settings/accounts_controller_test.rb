@@ -37,7 +37,8 @@ class Settings::AccountsControllerTest < ActionDispatch::IntegrationTest
 
   test "auto mode shows the daemon setup block, with the live token only when fresh" do
     post account_bridge_token_path                 # auto is the default
-    assert_select ".bridge-instr-badge", text: "Auto"
+    assert_select "input.bridge-switch-input[checked]", true, "auto-claim switch is on by default"
+    assert_select ".bridge-tab .bridge-mode-dot--auto", true, "the auto tab is marked current"
     assert_select ".bridge-paste", /go install/
     assert_select ".bridge-paste", /metis install/
     assert_select ".bridge-paste", /"token": "mbt_/, "fresh generation embeds the live token"
@@ -55,23 +56,23 @@ class Settings::AccountsControllerTest < ActionDispatch::IntegrationTest
     # attribute (aria-label/title) it corrupts the markup and the paste
     # block renders garbage. Assert the real translations resolved instead.
     assert_select "span.translation_missing", count: 0
-    assert_select ".bridge-mode-selector", /自动/
-    assert_select ".bridge-mode-selector", /手动/
-    assert_select ".bridge-instr-title", /守护进程设置/
+    assert_select ".bridge-switch-label", /自动认领任务/
+    assert_select ".bridge-tab", /守护进程设置/
+    assert_select ".bridge-tab", /手动认领/
     assert_select ".token-copy[aria-label=?]", "复制设置说明到剪贴板"
     # The paste block holds only the setup text, never leaked button markup.
     assert_select ".bridge-paste", { text: /data-controller|aria-label/, count: 0 }
   end
 
-  test "the claim-mode selector is hidden until a token exists, then visible" do
+  test "the claim-mode switch is hidden until a token exists, then on by default" do
     get account_path
-    assert_select ".bridge-mode-selector", count: 0
+    assert_select ".bridge-switch", count: 0
 
     @user.generate_bridge_token!
     get account_path
-    assert_select ".bridge-mode-selector"
-    # Auto is the default selection.
-    assert_select "input[name=?][value=true][checked]", "user[auto_claim_tasks]"
+    assert_select ".bridge-switch"
+    # Auto is the default — the switch is on.
+    assert_select "input.bridge-switch-input[checked]"
   end
 
   test "bridge_prefs persists the auto-claim preference" do

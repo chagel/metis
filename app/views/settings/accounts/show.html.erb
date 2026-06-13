@@ -122,54 +122,51 @@
 
           <%= form_with model: @user, url: account_bridge_prefs_path, method: :patch,
                 class: "bridge-mode-form", data: { controller: "auto-submit" } do |f| %>
-            <fieldset class="bridge-mode-selector">
-              <legend class="bridge-mode-legend"><%= t('.claim_mode') %></legend>
-              <div class="bridge-mode-opts">
-                <label class="bridge-mode-opt">
-                  <%= f.radio_button :auto_claim_tasks, true,
-                        checked: @user.auto_claim_tasks,
-                        data: { action: "change->auto-submit#submit" } %>
-                  <span class="bridge-mode-chip">
-                    <span class="bridge-mode-dot bridge-mode-dot--auto"></span>
-                    <%= t('.mode_auto') %>
-                  </span>
-                </label>
-                <label class="bridge-mode-opt">
-                  <%= f.radio_button :auto_claim_tasks, false,
-                        checked: !@user.auto_claim_tasks,
-                        data: { action: "change->auto-submit#submit" } %>
-                  <span class="bridge-mode-chip">
-                    <span class="bridge-mode-dot bridge-mode-dot--manual"></span>
-                    <%= t('.mode_manual') %>
-                  </span>
-                </label>
-              </div>
-            </fieldset>
+            <label class="bridge-switch">
+              <%= f.check_box :auto_claim_tasks,
+                    { checked: @user.auto_claim_tasks, class: "bridge-switch-input",
+                      data: { action: "change->auto-submit#submit" } }, "1", "0" %>
+              <span class="bridge-switch-track"><span class="bridge-switch-thumb"></span></span>
+              <span class="bridge-switch-text">
+                <span class="bridge-switch-label"><%= t('.auto_claim_label') %></span>
+                <span class="bridge-switch-hint"><%= t('.auto_claim_switch_hint') %></span>
+              </span>
+            </label>
           <% end %>
 
-          <div class="bridge-instr">
-            <% if @user.auto_claim_tasks %>
-              <div class="bridge-instr-head">
-                <span class="bridge-instr-title"><%= t('.daemon_setup') %></span>
-                <span class="bridge-instr-badge"><%= t('.mode_auto') %></span>
-              </div>
+          <%# View-only tabs — read either setup regardless of the active
+              mode. The setting above is the switch; these just toggle which
+              instructions show. The dot marks the currently-active mode. %>
+          <div class="bridge-instr" data-controller="tabs"
+               data-tabs-active-value="<%= @user.auto_claim_tasks ? "auto" : "manual" %>">
+            <div class="bridge-tabs" role="tablist">
+              <button type="button" class="bridge-tab" role="tab" data-tab="auto"
+                      data-tabs-target="tab" data-action="tabs#select">
+                <% if @user.auto_claim_tasks %><span class="bridge-tab-dot bridge-mode-dot--auto"></span><% end %>
+                <%= t('.daemon_setup') %>
+              </button>
+              <button type="button" class="bridge-tab" role="tab" data-tab="manual"
+                      data-tabs-target="tab" data-action="tabs#select">
+                <% unless @user.auto_claim_tasks %><span class="bridge-tab-dot bridge-mode-dot--manual"></span><% end %>
+                <%= t('.manual_claim') %>
+              </button>
+            </div>
+
+            <div class="bridge-panel" data-tab="auto" data-tabs-target="panel" <%= "hidden" unless @user.auto_claim_tasks %>>
               <p class="form-hint"><%= t('.auto_desc') %></p>
               <%= render "settings/accounts/bridge_auto_instructions",
                     token: bridge_token_for_display(@user, @new_bridge_token),
                     fresh_token: @new_bridge_token.present?,
                     host: request.host, base_url: request.base_url,
                     skill_url: api_bridge_skill_url %>
-            <% else %>
-              <div class="bridge-instr-head">
-                <span class="bridge-instr-title"><%= t('.manual_claim') %></span>
-                <span class="bridge-instr-badge bridge-instr-badge--manual"><%= t('.mode_manual') %></span>
-              </div>
+            </div>
+            <div class="bridge-panel" data-tab="manual" data-tabs-target="panel" <%= "hidden" if @user.auto_claim_tasks %>>
               <p class="form-hint"><%= t('.manual_desc') %></p>
               <%= render "settings/accounts/bridge_manual_instructions",
                     token: bridge_token_for_display(@user, @new_bridge_token),
                     fresh_token: @new_bridge_token.present?,
                     base_url: request.base_url, skill_url: api_bridge_skill_url %>
-            <% end %>
+            </div>
           </div>
 
           <div class="danger-row">

@@ -1395,40 +1395,44 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
 .bridge-status--fresh .form-hint { color:var(--gold); }
 
 /* Bridge claim-mode selector — segmented radio chips */
-.bridge-mode-selector { border:none; padding:0; margin:14px 0 0; }
-.bridge-mode-legend {
-  font-family:var(--fm); font-size:10px; font-weight:500; letter-spacing:.06em;
-  text-transform:uppercase; color:var(--faint); margin-bottom:8px;
+/* Bridge claim mode — a switch for the setting, view-only tabs to read either setup */
+.bridge-mode-form { margin:16px 0 0; }
+.bridge-switch { display:flex; align-items:flex-start; gap:12px; cursor:pointer; }
+.bridge-switch-input { position:absolute; width:1px; height:1px; opacity:0; }
+.bridge-switch-track {
+  flex:none; position:relative; width:38px; height:22px; margin-top:1px;
+  background:var(--line); border-radius:999px; transition:background-color .15s;
 }
-.bridge-mode-opts {
-  display:inline-flex; background:var(--bg); border:1px solid var(--line);
-  border-radius:10px; padding:3px;
+.bridge-switch-thumb {
+  position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%;
+  background:var(--card); box-shadow:var(--sh-sm); transition:transform .15s;
 }
-.bridge-mode-opt { display:inline-grid; }
-.bridge-mode-opt input { grid-area:1/1; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
-.bridge-mode-chip {
-  grid-area:1/1; display:flex; align-items:center; gap:6px; pointer-events:none;
-  font-size:13px; font-weight:500; color:var(--ink-3);
-  padding:6px 14px; border-radius:7px; transition:background-color .12s, color .12s;
-}
-.bridge-mode-opt input:checked + .bridge-mode-chip {
-  background:var(--card); color:var(--ink); box-shadow:var(--sh-sm);
-}
+.bridge-switch-input:checked + .bridge-switch-track { background:var(--accent-fg); }
+.bridge-switch-input:checked + .bridge-switch-track .bridge-switch-thumb { transform:translateX(16px); }
+.bridge-switch-input:focus-visible + .bridge-switch-track { outline:2px solid var(--accent-fg); outline-offset:2px; }
+.bridge-switch-text { display:flex; flex-direction:column; gap:2px; }
+.bridge-switch-label { font-size:13px; font-weight:600; color:var(--ink); }
+.bridge-switch-hint { font-size:12px; color:var(--ink-3); line-height:1.45; }
+
 .bridge-mode-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
 .bridge-mode-dot--auto { background:var(--accent-fg); }
 .bridge-mode-dot--manual { background:var(--gold); }
 
-/* Bridge instruction panel (auto / manual) */
+/* Bridge instruction panel — view-only tabs */
 .bridge-instr { margin-top:14px; padding-top:14px; border-top:1px solid var(--line); }
-.bridge-instr-head { display:flex; align-items:baseline; gap:10px; margin-bottom:8px; }
-.bridge-instr-title { font-size:13px; font-weight:600; color:var(--ink); }
-.bridge-instr .form-hint { margin-bottom:12px; }
-.bridge-instr-badge {
-  font-family:var(--fm); font-size:10px; font-weight:600; letter-spacing:.04em;
-  text-transform:uppercase; padding:2px 8px; border-radius:999px; white-space:nowrap;
-  color:var(--accent-fg); background:var(--accent-soft);
+.bridge-tabs {
+  display:inline-flex; background:var(--bg); border:1px solid var(--line);
+  border-radius:10px; padding:3px; margin-bottom:14px;
 }
-.bridge-instr-badge--manual { color:var(--gold); background:var(--gold-soft); }
+.bridge-tab {
+  display:flex; align-items:center; gap:6px; border:none; background:none; cursor:pointer;
+  font-size:13px; font-weight:500; color:var(--ink-3);
+  padding:6px 14px; border-radius:7px; transition:background-color .12s, color .12s;
+}
+.bridge-tab.is-active { background:var(--card); color:var(--ink); box-shadow:var(--sh-sm); }
+.bridge-tab-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.bridge-panel[hidden] { display:none; }
+.bridge-instr .form-hint { margin-bottom:12px; }
 .bridge-instr .bridge-token { margin-bottom:0; }
 
 /* ───────────── connector marketplace ───────────── */
