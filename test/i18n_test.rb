@@ -1,11 +1,8 @@
 require "test_helper"
 
 # Guardrail for the i18n extraction: the English baseline must be complete.
-# A translator can add `config/locales/*.<lang>.yml` and the whole UI
-# localizes with no Ruby/ERB change — that only holds if every key the app
-# defines has a real value and every key a view references resolves. The
-# latter is enforced by config.i18n.raise_on_missing_translations in the
-# test env, which makes any rendered "translation missing" fail a test.
+# Defined keys are checked here; referenced keys are caught at render time
+# by config.i18n.raise_on_missing_translations (test env).
 class I18nTest < ActiveSupport::TestCase
   LOCALE_FILES = Rails.root.glob("config/locales/*.en.yml").freeze
 

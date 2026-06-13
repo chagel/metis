@@ -28,8 +28,10 @@
 <% elsif user_signed_in? %>
   <h2><%= t('.wrong_account_heading') %></h2>
   <p class="auth-sub">
-    <%= t('.wrong_account_pre') %> <strong><%= @invitation.email %></strong><%= t('.wrong_account_mid') %>
-    <strong><%= current_user.email %></strong><%= t('.wrong_account_post', email: @invitation.email) %>
+    <%= t('.wrong_account_html',
+          invited_email: tag.strong(@invitation.email),
+          current_email: tag.strong(current_user.email),
+          email: @invitation.email) %>
   </p>
   <%= button_to t('.sign_out'), destroy_user_session_path, method: :delete, class: "auth-submit" %>
 

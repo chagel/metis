@@ -29,8 +29,7 @@ en:
       intro_superuser: "Refresh to pull the latest from pi, then toggle on what you want."
       intro_managed: "Managed by an administrator."
       empty: "The catalog is empty."
-      empty_refresh_prefix: "Click "
-      empty_refresh_suffix: " to populate it from pi."
+      empty_refresh_html: "Click %{refresh} to populate it from pi."
       empty_managed: "An administrator hasn't populated it yet."
     provider:
       enabled_count: "%{enabled} of %{total} enabled"

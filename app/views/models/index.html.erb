@@ -28,7 +28,7 @@
           <div class="pane-empty">
             <p><%= t('.empty') %></p>
             <% if current_user.superuser? %>
-              <p><%= t('.empty_refresh_prefix') %><strong><%= t('.refresh') %></strong><%= t('.empty_refresh_suffix') %></p>
+              <p><%= t('.empty_refresh_html', refresh: tag.strong(t('.refresh'))) %></p>
             <% else %>
               <p><%= t('.empty_managed') %></p>
             <% end %>
