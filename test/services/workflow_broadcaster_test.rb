@@ -1,4 +1,5 @@
 require "test_helper"
+require "turbo/broadcastable/test_helper"
 
 class WorkflowBroadcasterTest < ActiveSupport::TestCase
   include Turbo::Broadcastable::TestHelper

@@ -14,6 +14,12 @@ en:
         awaiting_approval: "Awaiting approval"
         awaiting_local: "Awaiting local"
         done: "Done"
+      card:
+        workflow: "Workflow"
+        step: "step %{current}/%{total}"
+        review_gate: "review gate"
+        completed: "completed"
+        ago: "%{time} ago"
     filters:
       all: "All projects"
       mine: "Mine"
@@ -24,12 +30,6 @@ en:
         h24: "24h"
         d7: "7d"
         all: "All"
-      card:
-        workflow: "Workflow"
-        step: "step %{current}/%{total}"
-        review_gate: "review gate"
-        completed: "completed"
-        ago: "%{time} ago"
     actors:
       live: "live"
       expand: "Show actors"
