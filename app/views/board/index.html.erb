@@ -4,7 +4,7 @@
   <header class="board-head">
     <div>
       <h1><%= t(".title") %></h1>
-      <div class="board-sub"><%= t(".subtitle", count: @board.lanes.sum { |lane| lane.columns.values.sum(&:size) }) %></div>
+      <div class="board-sub"><%= t(".subtitle", count: @board.count) %></div>
     </div>
   </header>
 

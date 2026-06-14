@@ -40,6 +40,10 @@ class Board
     runs.any?
   end
 
+  def count
+    runs.size
+  end
+
   # Visible runs awaiting someone's action — the "needs you" badge count.
   def needs_you_count
     runs.count { |run| run.awaiting_approval? || run.awaiting_local? }
