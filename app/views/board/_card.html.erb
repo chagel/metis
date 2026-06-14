@@ -1,0 +1,68 @@
+<% current, total = board_step_counts(run) %>
+<% step = board_current_step(run) %>
+<%= link_to conversation_path(run.conversation),
+      id: dom_id(run, :board),
+      class: "board-card",
+      data: { turbo_frame: "main", title: board_card_title(run) } do %>
+  <span class="board-card-ac board-card-ac--<%= board_card_accent(run, column) %>"></span>
+
+  <div class="board-card-top">
+    <% if (ref = board_card_ref(run)) %>
+      <span class="board-card-ref"><%= ref %></span>
+    <% end %>
+    <span class="board-card-flow"><%= board_workflow_name(run) %></span>
+  </div>
+
+  <div class="board-card-title"><%= board_card_title(run) %></div>
+
+  <div class="board-card-meta">
+    <span class="board-pips">
+      <% run.tasks.each do |task| %>
+        <span class="board-pip <%= board_pip_class(task) %>"></span>
+      <% end %>
+    </span>
+    <span class="board-step-n">
+      <%= t("board.index.card.step", current: current, total: total) %>
+      <% if step&.name.present? %> · <%= step.name %><% end %>
+    </span>
+  </div>
+
+  <% case column %>
+  <% when :running %>
+    <div class="board-runbar"><i></i></div>
+  <% when :awaiting_approval %>
+    <div class="board-actor">
+      <span class="board-who">
+        <%= avatar_for run.conversation.user, size: 19, css: "board-av" %>
+        <%= run.conversation.user.display_label %>
+      </span>
+      <span class="board-tag"><%= t("board.index.card.review_gate") %></span>
+    </div>
+  <% when :awaiting_local %>
+    <% task = run.tasks.find { |t| t.delegated? && t.running? } %>
+    <div class="board-actor">
+      <% if task&.claimed_by_user %>
+        <span class="board-machine">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+          <%= task.claimed_label %>
+        </span>
+        <span class="board-dot board-dot--live"></span>
+      <% else %>
+        <span class="board-machine board-machine--waiting"><%= wf_local_label(run) %></span>
+      <% end %>
+    </div>
+  <% when :done %>
+    <div class="board-actor">
+      <span class="board-who board-who--muted">
+        <% if run.completed? %>
+          <span class="board-av board-av--ok">✓</span><%= t("board.index.card.completed") %>
+        <% else %>
+          <span class="board-dot board-dot--fail"></span><%= wf_run_status_label(run) %>
+        <% end %>
+      </span>
+      <% if run.settled_at %>
+        <span class="board-tag"><%= t("board.index.card.ago", time: time_ago_in_words(run.settled_at)) %></span>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

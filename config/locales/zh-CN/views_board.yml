@@ -1,0 +1,21 @@
+zh-CN:
+  board:
+    index:
+      title: "运行看板"
+      subtitle:
+        other: "%{count} 个运行"
+      axis: "项目 / 状态"
+      empty: "暂无运行。启动一个工作流后会出现在这里。"
+      read_only: "只读 · 状态由工作流引擎掌管"
+      no_project: "无项目"
+      columns:
+        running: "运行中"
+        awaiting_approval: "待审批"
+        awaiting_local: "待本地处理"
+        done: "已完成"
+      card:
+        workflow: "工作流"
+        step: "第 %{current}/%{total} 步"
+        review_gate: "审批关卡"
+        completed: "已完成"
+        ago: "%{time}前"

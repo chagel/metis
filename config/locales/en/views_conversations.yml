@@ -36,6 +36,9 @@ en:
       copied: "Copied"
     sidebar:
       new_chat: "New chat"
+      primary_nav: "Primary navigation"
+      chats: "Chats"
+      board: "Board"
       search: "Search conversations"
       tab_me: "Me"
       tab_team: "Team"

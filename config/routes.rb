@@ -25,6 +25,8 @@ Rails.application.routes.draw do
     end
   end
 
+  get "board", to: "board#index"
+
   resources :workflow_runs, only: %i[create] do
     member do
       post :approve

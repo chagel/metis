@@ -1,0 +1,32 @@
+<% content_for :title, t(".title") %>
+
+<main class="board">
+  <header class="board-head">
+    <div>
+      <h1><%= t(".title") %></h1>
+      <div class="board-sub"><%= t(".subtitle", count: @board.lanes.sum { |lane| lane.columns.values.sum(&:size) }) %></div>
+    </div>
+  </header>
+
+  <div class="board-scroll" id="board_grid">
+    <% if @board.any? %>
+      <div class="board-cols">
+        <div class="board-col-h corner"><%= t(".axis") %></div>
+        <% Board::COLUMNS.each do |column| %>
+          <div class="board-col-h">
+            <span class="board-col-dot board-col-dot--<%= column %>"></span>
+            <%= board_column_label(column) %>
+          </div>
+        <% end %>
+      </div>
+
+      <% @board.lanes.each do |lane| %>
+        <%= render "board/lane", lane: lane %>
+      <% end %>
+    <% else %>
+      <div class="board-empty"><%= t(".empty") %></div>
+    <% end %>
+  </div>
+
+  <div class="board-foot"><%= t(".read_only") %></div>
+</main>

@@ -1,0 +1,22 @@
+en:
+  board:
+    index:
+      title: "Run Board"
+      subtitle:
+        one: "%{count} run"
+        other: "%{count} runs"
+      axis: "project / status"
+      empty: "No runs yet. Start a workflow to see it here."
+      read_only: "Read-only · status owned by the workflow engine"
+      no_project: "No project"
+      columns:
+        running: "Running"
+        awaiting_approval: "Awaiting approval"
+        awaiting_local: "Awaiting local"
+        done: "Done"
+      card:
+        workflow: "Workflow"
+        step: "step %{current}/%{total}"
+        review_gate: "review gate"
+        completed: "completed"
+        ago: "%{time} ago"

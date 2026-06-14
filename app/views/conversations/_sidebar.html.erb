@@ -20,6 +20,18 @@
     <% end %>
   </div>
 
+  <%# Section links do a full Turbo Drive visit (not a #main frame swap) so
+      the server-rendered active state re-renders with the sidebar. %>
+  <nav class="prnav" aria-label="<%= t('.primary_nav') %>">
+    <%= link_to t('.chats'), conversations_path,
+          class: "prnav-item#{' on' unless controller_name == 'board'}" %>
+    <%= link_to board_path,
+          class: "prnav-item#{' on' if controller_name == 'board'}" do %>
+      <%= t('.board') %>
+      <% if @needs_you.present? %><span class="prnav-badge"><%= @needs_you.size %></span><% end %>
+    <% end %>
+  </nav>
+
   <div class="search">
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
       <circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/>

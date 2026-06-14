@@ -1,0 +1,22 @@
+<div class="board-lane">
+  <div class="board-lane-lbl">
+    <div class="board-proj">
+      <% if lane.project %>
+        <%= lane.project.name %>
+      <% else %>
+        <span class="board-proj-none"><%= t("board.index.no_project") %></span>
+      <% end %>
+    </div>
+  </div>
+
+  <% Board::COLUMNS.each do |column| %>
+    <div class="board-cell">
+      <% lane.columns[column].each do |run| %>
+        <%= render "board/card", run: run, column: column %>
+      <% end %>
+      <% if lane.columns[column].empty? %>
+        <div class="board-cell-empty"></div>
+      <% end %>
+    </div>
+  <% end %>
+</div>
