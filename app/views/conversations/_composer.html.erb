@@ -10,7 +10,12 @@
      form_data.merge!(controller: "workflow-launch",
                       action: "skill-palette:launch->workflow-launch#selectFromPalette",
                       workflow_launch_runs_path_value: workflow_runs_path,
-                      workflow_launch_chat_path_value: conversations_path)
+                      workflow_launch_chat_path_value: conversations_path,
+                      workflow_launch_start_run_title_value: t(".start_run"),
+                      workflow_launch_start_title_value: t(".start"),
+                      workflow_launch_default_project_value: t(".default_named"),
+                      workflow_launch_pick_project_value: t(".pick_project"),
+                      workflow_launch_work_on_value: t(".work_on"))
    end %>
 <% workflow_palette = launchable.map { |w|
      { id: w.id, name: w.name, steps: w.steps.size, gates: w.gate_count,

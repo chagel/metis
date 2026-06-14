@@ -51,6 +51,8 @@ en:
       name: "Metis"
       description: "Metis."
   shared:
+    # Set client-side by elapsed_timer_controller; %{time} is filled in JS.
+    working_for: "Working for %{time}"
     team_switcher:
       switch_team: "Switch team"
       teams: "Teams"

@@ -4,6 +4,13 @@ en:
       clear_workflow: "Clear workflow"
       project: "Project"
       default_project: "Default project"
+      # Set client-side by workflow_launch_controller; %{…} tokens are
+      # filled in JS, so they must not be passed to t().
+      start_run: "Start run"
+      start: "Start"
+      default_named: "Default — %{project}"
+      pick_project: "Pick a project…"
+      work_on: "What should the %{name} run work on?"
       placeholder_new_with_workflows: "Ask anything, or / for commands…"
       placeholder_new: "Ask anything to start a new chat…"
       placeholder_message: "Message the agent…"
@@ -26,6 +33,7 @@ en:
       shared_link_desc: "Anyone with the link can view this chat."
       public_link: "Public link"
       copy: "Copy"
+      copied: "Copied"
     sidebar:
       new_chat: "New chat"
       search: "Search conversations"

@@ -5,6 +5,7 @@ import { Controller } from "@hotwired/stimulus"
 // by the server (Turbo Stream) when the share token is created/revoked.
 export default class extends Controller {
   static targets = ["panel", "url", "copyButton"]
+  static values = { copied: String }
 
   connect() {
     this._onDocClick = (event) => {
@@ -35,7 +36,7 @@ export default class extends Controller {
     try {
       await navigator.clipboard.writeText(this.urlTarget.value)
       const original = this.copyButtonTarget.textContent
-      this.copyButtonTarget.textContent = "Copied"
+      this.copyButtonTarget.textContent = this.copiedValue
       setTimeout(() => { this.copyButtonTarget.textContent = original }, 1500)
     } catch {
       this.urlTarget.select()

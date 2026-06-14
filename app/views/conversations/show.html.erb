@@ -49,7 +49,7 @@
           copy the public link; owner-only controls (revoke/create, archive)
           are gated on can_manage / @read_only. %>
       <% if !@conversation.archived? && (!@read_only || @conversation.shared?) %>
-        <div class="share" data-controller="share">
+        <div class="share" data-controller="share" data-share-copied-value="<%= t('conversations.share.copied') %>">
           <button type="button"
                   class="chat-action"
                   data-action="click->share#toggle"

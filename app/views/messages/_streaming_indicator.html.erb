@@ -9,7 +9,8 @@
      class="working-status"
      data-controller="elapsed-timer"
      data-elapsed-timer-started-at-value="<%= message.started_at.to_i * 1000 %>"
-     data-elapsed-timer-phase-value="<%= phase %>">
+     data-elapsed-timer-phase-value="<%= phase %>"
+     data-elapsed-timer-working-for-value="<%= t('shared.working_for') %>">
   <span class="msg-indicator" aria-hidden="true">&#x25CF;</span>
   <span class="working-label" data-elapsed-timer-target="label" role="status" aria-live="polite"></span>
 </div>

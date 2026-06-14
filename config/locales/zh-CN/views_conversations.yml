@@ -4,6 +4,13 @@
       clear_workflow: "清除工作流"
       project: "项目"
       default_project: "默认项目"
+      # 由 workflow_launch_controller 在客户端设置；%{…} 占位符在 JS 中填充，
+      # 不要传给 t()。
+      start_run: "启动运行"
+      start: "开始"
+      default_named: "默认 — %{project}"
+      pick_project: "请选择一个项目…"
+      work_on: "%{name} 运行应处理什么？"
       placeholder_new_with_workflows: "随便问，或输入 / 调用命令…"
       placeholder_new: "随便问点什么，开始新对话…"
       placeholder_message: "给智能体发消息…"
@@ -26,6 +33,7 @@
       shared_link_desc: "任何拥有链接的人都能查看此对话。"
       public_link: "公开链接"
       copy: "复制"
+      copied: "已复制"
     sidebar:
       new_chat: "新对话"
       search: "搜索对话"

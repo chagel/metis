@@ -10,7 +10,7 @@ import { Controller } from "@hotwired/stimulus"
 // the phase instead — "Resuming sandbox… 4s" — and reverts to "Working for Ns"
 // once the broadcaster re-renders this element with no phase.
 export default class extends Controller {
-  static values = { startedAt: Number, phase: String }
+  static values = { startedAt: Number, phase: String, workingFor: String }
   static targets = ["label"]
 
   connect() {
@@ -33,6 +33,6 @@ export default class extends Controller {
     const t = seconds < 60
       ? `${seconds}s`
       : `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s`
-    return this.phaseValue ? `${this.phaseValue}… ${t}` : `Working for ${t}`
+    return this.phaseValue ? `${this.phaseValue}… ${t}` : this.workingForValue.replace("%{time}", t)
   }
 }

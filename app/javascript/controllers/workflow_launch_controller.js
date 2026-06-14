@@ -8,7 +8,13 @@ import { Controller } from "@hotwired/stimulus"
 // The controller is on the <form>, so this.element is the form.
 export default class extends Controller {
   static targets = ["chip", "chipName", "field", "project", "projectBlank"]
-  static values = { runsPath: String, chatPath: String }
+  static values = {
+    runsPath: String, chatPath: String,
+    // Server-translated UI copy (Stimulus values render in the user's locale).
+    // defaultProject and workOn carry %{project}/%{name} tokens filled below.
+    startRunTitle: String, startTitle: String,
+    defaultProject: String, pickProject: String, workOn: String
+  }
 
   // Handles skill-palette:launch — event.detail is { id, name }.
   selectFromPalette(event) {
@@ -17,19 +23,19 @@ export default class extends Controller {
     this.chipNameTarget.textContent = name
     this.chipTarget.hidden = false
     this.element.action = this.runsPathValue
-    this.setSendTitle("Start run")
+    this.setSendTitle(this.startRunTitleValue)
     // Every run needs a project (daemons claim local steps per project),
     // so blank either resolves to the workflow's default or forces a pick.
     if (this.hasProjectBlankTarget) {
       this.projectBlankTarget.textContent = default_project
-        ? `Default — ${default_project}`
-        : "Pick a project…"
+        ? this.defaultProjectValue.replace("%{project}", default_project)
+        : this.pickProjectValue
       this.projectTarget.required = !default_project
     }
     // Lead with what step 1 actually does (your input is folded into it),
     // then the workflow's description, then a generic fallback.
     const hint = (intro || "").trim() || (description || "").trim()
-    this.setPlaceholder(hint || `What should the ${name} run work on?`)
+    this.setPlaceholder(hint || this.workOnValue.replace("%{name}", name))
   }
 
   clear(event) {
@@ -38,7 +44,7 @@ export default class extends Controller {
     this.chipTarget.hidden = true
     if (this.hasProjectTarget) this.projectTarget.required = false
     this.element.action = this.chatPathValue
-    this.setSendTitle("Start")
+    this.setSendTitle(this.startTitleValue)
     this.restorePlaceholder()
   }
 

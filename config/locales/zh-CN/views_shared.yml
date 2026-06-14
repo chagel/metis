@@ -51,6 +51,8 @@
       name: "Metis"
       description: "Metis。"
   shared:
+    # 由 elapsed_timer_controller 在客户端设置；%{time} 在 JS 中填充。
+    working_for: "已运行 %{time}"
     team_switcher:
       switch_team: "切换团队"
       teams: "团队"
