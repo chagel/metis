@@ -1,8 +1,11 @@
 # Workflows
 
 > Status: **shipped through Phase 3** (PR #55); Phase 4 (triggers +
-> notifications) deferred. UI mockups live at
-> `docs/mockups/workflows.html` (git-ignored, local-only).
+> notifications) deferred. **Local delegation** — steps that run on the
+> user's own machine via the bridge — shipped as a separate effort (see
+> [`local-bridge.md`](local-bridge.md)). Phases 5–8 below are planned.
+> UI mockups live at `docs/mockups/workflows.html` (git-ignored,
+> local-only).
 
 A **workflow** is a saved, multi-step recipe the agent runs on its own,
 pausing at **gates** where a human decides before it crosses to the next
@@ -330,13 +333,76 @@ deferred.
   signature-verified). Scheduled triggers via Solid Queue recurring.
 - Gate notifications: in-app + email (Slack later).
 
-### Phase 5 — Later
-- Promote-a-chat-to-a-workflow.
-- Structured-outcome branching (declared labels only).
-- Project memory — separate effort, not here.
-- **Local delegation** — run a step's turn on the user's own machine
-  (Claude Code / Codex / pi against their real repo) via the bridge.
-  Separate effort; see [`local-bridge.md`](local-bridge.md).
+### Future phases — the topology axis
+
+v1 is *linear + gates*. The next phases add the other shapes from
+Anthropic's [Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents)
+(parallelization, evaluator-optimizer, routing) — but each is bent to
+fit the one rule that already governs this engine: **pi executes; Rails
+governs.** The engine never reads agent output; it sequences turns and
+gates, and when it must branch it branches on a *declared label* the
+agent emits, never on inspected diffs or logs. (We deliberately do **not**
+adopt the dynamic-workflow / programmatic-tool-calling direction — see
+"Out of scope" below.)
+
+#### Phase 5 — Parallel fan-out / fan-in (delegated steps only)
+Anthropic's *parallelization* pattern, made VISION-legal by the one
+constraint that shapes everything: the partial unique index
+`index_messages_on_one_in_progress_turn` lets a conversation hold exactly
+**one** in-flight assistant turn, and a run is one conversation — so
+cloud-turn parallelism inside a run is physically impossible. Delegated
+steps don't run as turns (they park and are pulled), so fan-out is
+**delegation-only**:
+
+- A step at one `position` fans out into a *group* of delegated `Task`s.
+  The bridge's existing `max_workers` + `Task.claim_next_for`
+  (`FOR UPDATE SKIP LOCKED`) already lets N machines each claim a distinct
+  one — no new transport.
+- `WorkflowAdvanceJob#advance` gains a group barrier: hold at `:wait`
+  until every task at that position settles (each via
+  `complete_delegated_task!`, not the single-turn `settle`), then advance
+  to a synthesis step whose `step_prompt` folds in each sibling's report.
+- Cloud-turn parallelism (child sub-runs fanned into a parent) is **out
+  of scope here** — it needs a second conversation per branch. Revisit
+  only if delegated fan-out proves the shape.
+
+#### Phase 6 — Declared-label gates (model-as-reviewer)
+Anthropic's *evaluator-optimizer* loop, with the engine still blind to
+content. `WorkflowRun#request_changes!` already implements "re-run the
+step with feedback, gate again, iterate" — today human-driven. A step's
+skill emits a declared `outcome: pass|revise` + `feedback` label:
+
+- `revise` → the existing `request_changes!` path with the emitted
+  feedback as the next prompt, bounded by a `MAX_ROUNDS` cap.
+- `pass` → advance.
+- Rails sequences on a label pi *declares*; it never judges quality
+  itself. Auto-gates the steps that have an objective bar, leaving human
+  `approval` for the ones that don't.
+
+#### Phase 7 — Declared-label routing (branching)
+The structured-outcome branching the Guardrails section already promises,
+stated as a phase. Anthropic's *routing* pattern: a step emits a small
+declared `outcome` label; the engine picks the next step (and possibly a
+different model via the conversation's `settings`) from a *declared* map
+in the workflow's jsonb. Builds directly on Phase 6's label channel.
+Rails reads the label, never the content.
+
+#### Phase 8 — Promote-a-chat-to-a-workflow
+Capture a proven ad-hoc conversation as a reusable `Workflow` template
+(steps + gates inferred from its turn/gate history).
+
+#### Out of scope (deliberately)
+- **Programmatic tool calling / code-execution orchestration.** The
+  dynamic-workflow direction — the model writes code that orchestrates
+  tools (Anthropic's
+  [code execution with MCP](https://www.anthropic.com/engineering/code-execution-with-mcp)
+  and [advanced tool use](https://www.anthropic.com/engineering/advanced-tool-use))
+  — is a **pi harness** capability, not an engine one. Putting a
+  code-execution runtime and tool orchestration on the Rails side walks
+  straight into the `VISION.md` "no Rails-side MCP runtime" /
+  "pi executes, Rails governs" wall. If pi gains it, the engine consumes
+  a stronger turn unchanged and Rails adds nothing.
+- **Project memory** — separate effort, not here.
 
 ## Open questions / known gaps
 

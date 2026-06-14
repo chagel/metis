@@ -76,7 +76,8 @@ Themes, in impact order:
 | **Expansion trigger** | The flywheel's ignition: a power user finishes a skill mid-conversation, then invites a teammate into a team built around it — in one click. This is the growth lever; it ranks above the next three connectors. Builds on the team-of-one → real-teams path (invitations, memberships UI, shared connectors and conversations). |
 | **Moat depth** | Make accumulated skills sticky and self-improving: skill versioning, team libraries, usage analytics, and a reject/edit learning signal captured at ingestion (Metis owns ingestion, so this stays "Rails governs, pi executes"). Beyond GitHub import — export, registry, or git-backed publishing. |
 | **Neutrality, loud** | Turn our #1 differentiator from a buried implementation detail into positioning: a visible provider switch, and a day-zero ritual when a notable model drops ("Metis runs it now"). Influence is recurring attention. |
-| **Connectors as fuel** | Slack, Notion, Metabase next — each ranked by what shareable skills it unlocks across a team's stack, not by checklist order. Configuration on top of `pi-mcp-adapter`. GitHub and Linear shipped; Google via `gws` fallback. |
+| **Workflows as depth axis** | Shipped: linear runs + human gates + local delegation (the time/depth axis — see [`docs/workflows.md`](docs/workflows.md)). Next is *topology*, each shape from Anthropic's [Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents) bent to fit `pi executes; Rails governs`: parallel fan-out over delegated steps (Phase 5), declared-label gates that let a skill’s `outcome: pass\|revise` auto-review a step (Phase 6), and declared-label routing/branching (Phase 7). The engine still never reads agent output — it branches only on a label pi declares. Programmatic tool calling / code-execution orchestration stays out: it’s a pi-harness capability, not a Rails one. |
+| **Connectors as fuel** | Slack, Notion, Metabase next — each ranked by what shareable skills it unlocks across a team's stack, not by checklist order. Configuration on top of `pi-mcp-adapter`. GitHub and Linear shipped; Google via `gws` fallback. As the catalogue grows, plan **progressive tool disclosure** — stage only the connectors a run's `Project#external_refs` actually binds into per-turn `.mcp.json`, rather than the whole team catalogue (Anthropic's tool-search lesson; orthogonal to the engine, doesn't touch the "no Rails-side MCP runtime" line). Measure tool-definition token share via `context_usage` first. |
 | **Projects as container** | Build on the v1 scaffold: a Project becomes the unit a team's skills/connectors attach to (the moat's storage shape) — richer external-ref types, project-scoped skills/connectors, project-level conversation defaults. |
 | **Dual GitHub persona** | **Shipped**: two GitHub MCP servers staged at once — `github` (`ghu_`, acts as the operator) and `github_bot` (`ghs_`, acts as `<slug>[bot]`). `GithubApp::InstallationToken` mints the bot bearer with the install id auto-resolved from the App's sole install; `McpConfig` stages `github_bot` automatically when `GITHUB_APP_ID` + `GITHUB_APP_PRIVATE_KEY` are set. The reviewing-code skill posts PR reviews via `github_bot` (GitHub forbids approving your own PR), everything else via `github`. No team/shared-credential concept. See [`docs/connectors.md`](docs/connectors.md). |
 | **Web UI** | A design system in the Hotwire stack — consistent component set + design tokens. |
@@ -92,3 +93,10 @@ Themes, in impact order:
 - [ ] **A day-zero model ritual.** When a notable model drops, a
   same-day "Metis runs it now" note — architecture as recurring
   attention.
+- [ ] **Workflow fan-out + declared-label gates.** The depth axis's
+  next compounding step: parallel delegated steps (reuse the bridge's
+  `max_workers` + `SKIP LOCKED` claim), then a skill-emitted
+  `outcome: pass|revise` label that auto-reviews a step — turning the
+  existing human `request_changes!` loop model-driven without the engine
+  ever reading agent output. See [`docs/workflows.md`](docs/workflows.md)
+  Phases 5–6.
