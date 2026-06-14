@@ -1366,23 +1366,25 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
   background:var(--card); border:1px solid var(--line); border-radius:7px;
   padding:9px 11px; color:var(--ink);
 }
-.token-row { display:flex; gap:8px; align-items:flex-start; }
-.token-row .token { flex:1; min-width:0; }
+.token-row { position:relative; }
 .bridge-token .token.bridge-paste {
   margin:0; white-space:pre-wrap; overflow-wrap:break-word; word-break:normal;
-  font-size:11.5px; line-height:1.6; padding:12px 14px;
+  font-size:11.5px; line-height:1.6; padding:12px 14px; padding-right:40px;
 }
+/* Minimal ghost icon button, floated in the block's corner — matches .msg-copy */
 .token-copy {
-  flex:none; display:inline-flex; align-items:center; gap:6px;
-  font-size:12px; font-weight:600; color:var(--ink-2); cursor:pointer;
-  background:var(--card); border:1px solid var(--line); border-radius:7px; padding:8px 12px;
+  position:absolute; top:8px; right:8px;
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:5px; border:0; border-radius:6px; background:transparent;
+  color:var(--faint); cursor:pointer; transition:color .15s, background .15s;
 }
-.token-copy:hover { border-color:var(--line-2); color:var(--ink); }
-.token-copy svg { width:14px; height:14px; }
-.token-copy .ico-check, .token-copy .lbl-done { display:none; }
-.token-copy.is-copied { color:#3fb950; border-color:#3fb950; }
-.token-copy.is-copied .ico-copy, .token-copy.is-copied .lbl-copy { display:none; }
-.token-copy.is-copied .ico-check, .token-copy.is-copied .lbl-done { display:inline; }
+.token-copy:hover { color:var(--ink); background:var(--bg); box-shadow:var(--sh-sm); }
+.token-copy:active { transform:scale(.96); }
+.token-copy svg { width:13px; height:13px; }
+.token-copy .ico-check { display:none; }
+.token-copy.is-copied { color:var(--accent-fg); }
+.token-copy.is-copied .ico-copy { display:none; }
+.token-copy.is-copied .ico-check { display:inline; }
 
 /* Bridge token status row */
 .bridge-status { display:flex; align-items:center; gap:8px; margin-top:10px; }

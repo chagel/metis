@@ -187,8 +187,6 @@ en:
       bridge_code_block:
         copy_instructions: "Copy setup instructions"
         copy_instructions_aria: "Copy setup instructions to clipboard"
-        copy: "Copy"
-        copied: "Copied"
     teams:
       show:
         title: "Team"

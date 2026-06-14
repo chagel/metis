@@ -187,8 +187,6 @@
       bridge_code_block:
         copy_instructions: "复制设置说明"
         copy_instructions_aria: "复制设置说明到剪贴板"
-        copy: "复制"
-        copied: "已复制"
     teams:
       show:
         title: "团队"
