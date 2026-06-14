@@ -99,9 +99,17 @@ body.app-shell { overflow:hidden; }
 
 /* ───────────── shell ───────────── */
 .app {
+  --rail-w:62px;
   display:grid; grid-template-columns:300px 1fr;
   height:100vh; height:100dvh; padding:10px; gap:10px;
+  transition:grid-template-columns .3s cubic-bezier(.4,0,.2,1);
 }
+/* Desktop collapse: the sidebar column shrinks to an icon rail. The
+   handle lives on the seam between the panels (see .sidebar-seam),
+   never in the header. State is persisted client-side by the sidebar
+   controller; .sidebar-no-anim suppresses the transition on restore. */
+.app.sidebar-collapsed { grid-template-columns:var(--rail-w) 1fr; }
+.app.sidebar-no-anim { transition:none; }
 /* Drawer-only chrome — invisible on desktop. Media query below
    flips display + behaviour for narrow viewports. */
 .sidebar-toggle, .sidebar-backdrop { display:none; }
@@ -118,7 +126,63 @@ turbo-frame#main { display:contents; }
 turbo-frame#convos { display:contents; }
 
 /* ───────────── sidebar ───────────── */
-.sidebar { background:var(--side); display:flex; flex-direction:column; min-height:0; }
+.sidebar { position:relative; background:var(--side); display:flex; flex-direction:column; min-height:0; }
+/* The real sidebar content is transparent to layout (display:contents),
+   so .ws / .search / .convos / .user-menu stay direct flex children of
+   .sidebar. When collapsed it's hidden and the icon rail takes over. */
+.sidebar-full { display:contents; }
+.app.sidebar-collapsed .sidebar-full { display:none; }
+
+/* Icon rail — shown only when collapsed. */
+.sidebar-rail { display:none; }
+.app.sidebar-collapsed .sidebar-rail {
+  display:flex; flex-direction:column; align-items:center;
+  gap:6px; padding:14px 0; flex:1; min-height:0;
+}
+.sidebar-rail-logo {
+  font-family:var(--fd); font-weight:700; font-size:18px; color:var(--ink);
+  width:38px; height:38px; display:grid; place-items:center;
+  margin-bottom:6px; cursor:pointer; border-radius:10px;
+  transition:background-color .15s;
+}
+.sidebar-rail-logo:hover { background:var(--card); }
+.sidebar-rail .ico-btn { width:38px; height:38px; }
+.sidebar-rail .ico-btn svg { width:18px; height:18px; }
+/* Avatar pinned to the foot of the rail, mirroring the user menu. */
+.sidebar-rail-avatar {
+  margin-top:auto; padding:0; border:none; background:none; cursor:pointer;
+  width:38px; height:38px; display:grid; place-items:center; border-radius:50%;
+  transition:box-shadow .15s;
+}
+.sidebar-rail-avatar:hover { box-shadow:0 0 0 2px var(--accent-glow); }
+
+/* The seam between the two panels carries the collapse handle. A wide,
+   invisible hover zone straddles the border; the chevron pill fades in
+   on hover and stays pinned to the sidebar's edge so re-opening is
+   discoverable without permanent chrome. */
+.sidebar-seam {
+  position:absolute; top:0; bottom:0; right:-15px; width:18px;
+  z-index:35; cursor:pointer;
+}
+.sidebar-collapse {
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%) scale(.82);
+  width:22px; height:48px; border-radius:8px;
+  background:var(--card); border:1px solid var(--line);
+  color:var(--ink-3); display:grid; place-items:center;
+  cursor:pointer; opacity:0; pointer-events:none;
+  box-shadow:var(--sh-md);
+  transition:opacity .16s,transform .16s,background-color .15s,color .15s;
+}
+.sidebar-seam:hover .sidebar-collapse,
+.sidebar-collapse:focus-visible {
+  opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1);
+}
+.sidebar-collapse:hover { background:var(--bg); color:var(--ink); }
+.sidebar-collapse svg { width:13px; height:13px; transition:transform .3s cubic-bezier(.4,0,.2,1); }
+.app.sidebar-collapsed .sidebar-collapse svg { transform:rotate(180deg); }
+.app.sidebar-no-anim .sidebar-collapse svg { transition:none; }
+
 .ws { display:flex; align-items:center; gap:9px; padding:14px 8px 18px; }
 .ws-name { font-family:var(--fd); font-weight:600; font-size:16px; letter-spacing:-.01em; }
 .ico-btn {
@@ -1911,6 +1975,14 @@ body.auth-shell { min-height:100vh; display:grid; place-items:center; padding:24
     transition:transform .25s ease;
   }
   .app.sidebar-open .sidebar { transform:translateX(0); }
+
+  /* The desktop collapse-to-rail is meaningless in the drawer; the
+     hamburger owns open/close here. Force the full content back and
+     hide the seam/rail in case the rail state was set on desktop. */
+  .sidebar-seam { display:none; }
+  .sidebar-rail, .app.sidebar-collapsed .sidebar-rail { display:none; }
+  .sidebar-full, .app.sidebar-collapsed .sidebar-full { display:contents; }
+  .app.sidebar-collapsed { grid-template-columns:1fr; }
 
   /* Right pane fills the viewport edge-to-edge with no card radius. */
   .chat, .pane {

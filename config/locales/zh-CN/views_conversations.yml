@@ -42,6 +42,9 @@
       tab_starred: "已收藏"
       needs_you: "需要你处理"
       no_matches: "无匹配项。"
+      collapse: "收起侧边栏"
+      expand: "展开侧边栏"
+      rail: "已收起的侧边栏"
     star:
       unstar: "取消收藏对话"
       star: "收藏对话"

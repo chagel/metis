@@ -5,14 +5,15 @@
     bottom and fetches the next page as a turbo_stream when it scrolls
     into view. %>
 <aside id="sidebar" class="sidebar" data-controller="conversation-filter">
+  <div class="sidebar-full">
   <div class="ws">
     <div class="ws-crumb">
       <span class="ws-name">Metis</span>
       <%= render "shared/team_switcher" %>
     </div>
     <div style="flex:1"></div>
-    <%= link_to conversations_path, class: "ico-btn", title: t('.new_chat'),
-          data: { turbo_frame: "main" } do %>
+    <%= link_to conversations_path, class: "ico-btn", title: "#{t('.new_chat')} ⌘N",
+          data: { turbo_frame: "main", sidebar_target: "newChat" } do %>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
         <path d="M8 3v10M3 8h10" stroke-linecap="round"/>
       </svg>
@@ -74,4 +75,39 @@
   </nav>
 
   <%= render "shared/user_menu" %>
+  </div>
+
+  <%# Icon rail shown when the sidebar is collapsed. Clicking the logo or
+      a control expands; search/new-chat open the full sidebar via the
+      controller before acting. %>
+  <nav class="sidebar-rail" aria-label="<%= t('.rail') %>">
+    <span class="sidebar-rail-logo" data-action="click->sidebar#expand" title="<%= t('.expand') %>">M</span>
+    <%= link_to conversations_path, class: "ico-btn", title: "#{t('.new_chat')} ⌘N",
+          data: { turbo_frame: "main", action: "click->sidebar#expand" } do %>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+        <path d="M8 3v10M3 8h10" stroke-linecap="round"/>
+      </svg>
+    <% end %>
+    <button type="button" class="ico-btn" title="<%= t('.search') %> ⌘F"
+            data-action="click->sidebar#expandAndSearch">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+        <circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <button type="button" class="sidebar-rail-avatar" title="<%= t('.expand') %>"
+            aria-label="<%= t('.expand') %>" data-action="click->sidebar#expand">
+      <%= avatar_for current_user, size: 32 %>
+    </button>
+  </nav>
+
+  <%# The collapse handle lives on the seam between sidebar and main. %>
+  <div class="sidebar-seam">
+    <button type="button" class="sidebar-collapse"
+            data-action="click->sidebar#toggleCollapse"
+            aria-label="<%= t('.collapse') %>" title="<%= t('.collapse') %> ⌘B">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M10 3L5 8l5 5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
 </aside>
