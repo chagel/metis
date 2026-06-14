@@ -29,23 +29,27 @@ class BoardPresence
 
   # Team members, those with an open gate first.
   def people
-    gates = gates_by_launcher
-    @team.members.map { |member|
-      refs = gates[member.id] || []
-      Person.new(member: member, gate_ref: refs.first, gate_count: refs.size)
-    }.sort_by { |person| [ person.idle? ? 1 : 0, person.member.display_label.downcase ] }
+    @people ||= begin
+      gates = gates_by_launcher
+      @team.members.map { |member|
+        refs = gates[member.id] || []
+        Person.new(member: member, gate_ref: refs.first, gate_count: refs.size)
+      }.sort_by { |person| [ person.idle? ? 1 : 0, person.member.display_label.downcase ] }
+    end
   end
 
   # Every member that has minted a bridge token, online ones first.
   def machines
-    claimed = claimed_task_by_user
-    bridge_members.map { |member|
-      Machine.new(
-        owner: member, client: member.bridge_client,
-        online: online?(member), seen_at: member.bridge_seen_at,
-        task_ref: claimed[member.id]&.ref
-      )
-    }.sort_by { |machine| [ machine.online? ? 0 : 1, -(machine.seen_at&.to_i || 0) ] }
+    @machines ||= begin
+      claimed = claimed_task_by_user
+      bridge_members.map { |member|
+        Machine.new(
+          owner: member, client: member.bridge_client,
+          online: online?(member), seen_at: member.bridge_seen_at,
+          task_ref: claimed[member.id]&.ref
+        )
+      }.sort_by { |machine| [ machine.online? ? 0 : 1, -(machine.seen_at&.to_i || 0) ] }
+    end
   end
 
   def online_count

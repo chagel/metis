@@ -21,7 +21,6 @@ en:
         completed: "completed"
         ago: "%{time} ago"
     actors:
-      title: "Actors"
       live: "live"
       expand: "Show actors"
       summary_people:
