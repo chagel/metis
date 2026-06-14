@@ -40,6 +40,11 @@ class Board
     runs.any?
   end
 
+  # Visible runs awaiting someone's action — the "needs you" badge count.
+  def needs_you_count
+    runs.count { |run| run.awaiting_approval? || run.awaiting_local? }
+  end
+
   private
 
   attr_reader :team, :user, :window
@@ -55,7 +60,8 @@ class Board
       scope = scope.where(status: ACTIVE_STATUSES)
                    .or(WorkflowRun.where(conversation_id: visible, updated_at: window.ago..))
     end
-    scope.includes(:workflow, :tasks, conversation: :project)
+    scope.includes(:workflow, { tasks: :claimed_by_user },
+                   conversation: [ :project, { user: { avatar_attachment: :blob } } ])
          .order(updated_at: :desc).to_a
   end
 

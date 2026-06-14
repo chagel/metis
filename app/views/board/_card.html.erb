@@ -60,9 +60,9 @@
           <span class="board-dot board-dot--fail"></span><%= wf_run_status_label(run) %>
         <% end %>
       </span>
-      <% if run.settled_at %>
-        <span class="board-tag"><%= t("board.index.card.ago", time: time_ago_in_words(run.settled_at)) %></span>
-      <% end %>
+      <%# updated_at is the terminal transition's timestamp — the settle
+          moment — and avoids settled_at's per-card message query. %>
+      <span class="board-tag"><%= t("board.index.card.ago", time: time_ago_in_words(run.updated_at)) %></span>
     </div>
   <% end %>
 <% end %>
