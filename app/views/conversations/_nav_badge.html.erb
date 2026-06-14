@@ -1,0 +1,7 @@
+<%# Stable-id slot so WorkflowBroadcaster#refresh_board can replace the
+    "needs you" count live; empty (but present) when nothing awaits. %>
+<span id="board_nav_badge" class="prnav-badge-slot">
+  <% if count.to_i.positive? %>
+    <span class="prnav-badge"><%= count %></span>
+  <% end %>
+</span>

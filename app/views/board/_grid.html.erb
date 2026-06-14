@@ -1,0 +1,22 @@
+<%# The board grid region. Extracted so the first render (index) and the live
+    Turbo Stream replace (WorkflowBroadcaster#refresh_board) share one
+    template — the root id is the broadcast target. %>
+<div class="board-scroll" id="board_grid">
+  <% if board.any? %>
+    <div class="board-cols">
+      <div class="board-col-h corner"><%= t("board.index.axis") %></div>
+      <% Board::COLUMNS.each do |column| %>
+        <div class="board-col-h">
+          <span class="board-col-dot board-col-dot--<%= column %>"></span>
+          <%= board_column_label(column) %>
+        </div>
+      <% end %>
+    </div>
+
+    <% board.lanes.each do |lane| %>
+      <%= render "board/lane", lane: lane %>
+    <% end %>
+  <% else %>
+    <div class="board-empty"><%= t("board.index.empty") %></div>
+  <% end %>
+</div>

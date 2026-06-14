@@ -28,7 +28,7 @@
     <%= link_to board_path,
           class: "prnav-item#{' on' if controller_name == 'board'}" do %>
       <%= t('.board') %>
-      <% if @needs_you.present? %><span class="prnav-badge"><%= @needs_you.size %></span><% end %>
+      <%= render "conversations/nav_badge", count: @needs_you&.size %>
     <% end %>
   </nav>
 

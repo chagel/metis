@@ -1,0 +1,30 @@
+<%# Board scope / project / done-window filters. Server-rendered, encoded in
+    the URL so a filtered board is shareable and survives reload. Links
+    navigate the #main frame (the board swaps, the sidebar stays put). %>
+<div class="board-filters">
+  <%= link_to t("board.filters.all"), board_filter_path(scope: :all),
+        class: "board-chip#{' is-on' if board_scope_active?(:all)}" %>
+  <%= link_to t("board.filters.mine"), board_filter_path(scope: :mine),
+        class: "board-chip#{' is-on' if board_scope_active?(:mine)}" %>
+  <%= link_to board_filter_path(scope: :needs_me),
+        class: "board-chip#{' is-on' if board_scope_active?(:needs_me)}" do %>
+    <%= t("board.filters.needs_me") %><% if @needs_you&.any? %><span class="board-chip-n"><%= @needs_you.size %></span><% end %>
+  <% end %>
+
+  <% if @project %>
+    <%= link_to board_filter_path(project: nil), class: "board-chip is-on board-chip--clear" do %>
+      <%= @project.name %>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+    <% end %>
+  <% end %>
+
+  <span class="board-filters-sep"></span>
+
+  <div class="board-done" role="group" aria-label="<%= t('board.filters.done_window.label') %>">
+    <% %w[24h 7d all].each do |window| %>
+      <%= link_to t("board.filters.done_window.#{window == '24h' ? 'h24' : window == '7d' ? 'd7' : 'all'}"),
+            board_filter_path(done: window),
+            class: "board-done-opt#{' is-on' if board_done_active?(window)}" %>
+    <% end %>
+  </div>
+</div>

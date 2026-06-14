@@ -26,6 +26,7 @@ Rails.application.routes.draw do
   end
 
   get "board", to: "board#index"
+  get "board/actors", to: "board#actors", as: :board_actors
 
   resources :workflow_runs, only: %i[create] do
     member do

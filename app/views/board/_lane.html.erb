@@ -2,7 +2,8 @@
   <div class="board-lane-lbl">
     <div class="board-proj">
       <% if lane.project %>
-        <%= lane.project.name %>
+        <%= link_to lane.project.name, board_path(project: lane.project.id),
+              class: "board-proj-link", title: t("board.filters.filter_project", name: lane.project.name) %>
       <% else %>
         <span class="board-proj-none"><%= t("board.index.no_project") %></span>
       <% end %>

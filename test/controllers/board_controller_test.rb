@@ -67,4 +67,46 @@ class BoardControllerTest < ActionDispatch::IntegrationTest
     assert_select "#board_actors_panel .board-arow-nm.board-mono", text: /Apollo/
     assert_select "#board_actors_panel .board-lite", text: /online/
   end
+
+  test "actors action returns a turbo stream replacing the bar" do
+    sign_in @user
+    get board_actors_path
+    assert_response :success
+    assert_match "text/vnd.turbo-stream", response.media_type
+    assert_select "turbo-stream[action=replace][target=board_actors]"
+  end
+
+  test "scope=mine hides a teammate's team run" do
+    teammate = User.create!(email: "mate@example.com", password: "password123")
+    @team.memberships.create!(user: teammate, role: :member)
+    mine = new_run(status: :running)
+    theirs_conv = teammate.conversations.create!(team: @team, project: @project, visibility: :team)
+    theirs = @team.workflow_runs.create!(conversation: theirs_conv, status: :running)
+
+    sign_in @user
+    get board_path(scope: "mine")
+    assert_select "##{ActionView::RecordIdentifier.dom_id(mine, :board)}"
+    assert_select "##{ActionView::RecordIdentifier.dom_id(theirs, :board)}", count: 0
+  end
+
+  test "done=24h hides an old terminal run that done=all reveals" do
+    old = new_run(status: :completed)
+    old.update_columns(updated_at: 3.days.ago)
+    sel = "##{ActionView::RecordIdentifier.dom_id(old, :board)}"
+
+    sign_in @user
+    get board_path(done: "24h")
+    assert_select sel, count: 0
+    get board_path(done: "all")
+    assert_select sel
+  end
+
+  test "an unknown scope falls back to all" do
+    run = new_run(status: :running)
+    sign_in @user
+    get board_path(scope: "bogus")
+    assert_response :success
+    assert_select ".board-chip.is-on", text: /All projects/
+    assert_select "##{ActionView::RecordIdentifier.dom_id(run, :board)}"
+  end
 end

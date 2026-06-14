@@ -15,6 +15,7 @@ class WorkflowBroadcaster
     replace("composer", "workflow_runs/run_status")
     refresh_run_page
     refresh_sidebar
+    refresh_board
   end
 
   # An engine-started turn has no controller to append its message rows (the
@@ -58,8 +59,7 @@ class WorkflowBroadcaster
   # personal one — a private run's status must not transit teammates'
   # streams. A no-op for anyone whose row isn't currently rendered.
   def refresh_sidebar
-    members = @conversation.visibility_team? ? @conversation.team.members : [ @conversation.user ]
-    members.each do |member|
+    audience.each do |member|
       Turbo::StreamsChannel.broadcast_replace_to(
         member,
         target: dom_id(@conversation, :wf_status),
@@ -67,5 +67,30 @@ class WorkflowBroadcaster
         locals: { conversation: @conversation, run: @run }
       )
     end
+  end
+
+  # The cross-project board is per-viewer (visibility-scoped), so re-render
+  # the grid, the actors bar, and the nav badge from each member's vantage.
+  # A no-op for anyone not currently on the board (the target id is absent).
+  def refresh_board
+    team = @conversation.team
+    audience.each do |member|
+      board = Board.for(team: team, user: member)
+      Turbo::StreamsChannel.broadcast_replace_to(
+        member, target: "board_grid", partial: "board/grid", locals: { board: board }
+      )
+      Turbo::StreamsChannel.broadcast_replace_to(
+        member, target: "board_actors",
+        partial: "board/actors", locals: { presence: BoardPresence.for(team: team, user: member) }
+      )
+      Turbo::StreamsChannel.broadcast_replace_to(
+        member, target: "board_nav_badge",
+        partial: "conversations/nav_badge", locals: { count: board.needs_you_count }
+      )
+    end
+  end
+
+  def audience
+    @audience ||= @conversation.visibility_team? ? @conversation.team.members.to_a : [ @conversation.user ]
   end
 end

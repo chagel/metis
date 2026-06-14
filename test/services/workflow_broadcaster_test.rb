@@ -1,6 +1,8 @@
 require "test_helper"
 
 class WorkflowBroadcasterTest < ActiveSupport::TestCase
+  include Turbo::Broadcastable::TestHelper
+
   setup do
     @user = User.create!(email: "wfb-#{SecureRandom.hex(4)}@example.com", password: "password123")
     @team = @user.personal_team
@@ -10,6 +12,34 @@ class WorkflowBroadcasterTest < ActiveSupport::TestCase
   test "refresh renders gate/composer/timeline outside a request" do
     @run.tasks.create!(position: 0, gate: :auto, status: :running)
     assert_nothing_raised { WorkflowBroadcaster.new(@run).refresh }
+  end
+
+  test "refresh broadcasts the board regions to the run's audience" do
+    @run.tasks.create!(position: 0, gate: :auto, status: :running)
+    streams = capture_turbo_stream_broadcasts(@user) { WorkflowBroadcaster.new(@run).refresh }
+    targets = streams.map { |stream| stream["target"] }
+    assert_includes targets, "board_grid"
+    assert_includes targets, "board_actors"
+    assert_includes targets, "board_nav_badge"
+  end
+
+  test "a personal run's board does not transit a teammate's stream" do
+    teammate = User.create!(email: "wfb-mate-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    @team.memberships.create!(user: teammate, role: :member)
+    @run.tasks.create!(position: 0, gate: :auto, status: :running)
+
+    streams = capture_turbo_stream_broadcasts(teammate) { WorkflowBroadcaster.new(@run).refresh }
+    assert_empty streams.map { |stream| stream["target"] } & %w[board_grid board_actors]
+  end
+
+  test "a team-visible run's board reaches every member" do
+    teammate = User.create!(email: "wfb-mate-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    @team.memberships.create!(user: teammate, role: :member)
+    @run.conversation.update!(visibility: :team)
+    @run.tasks.create!(position: 0, gate: :auto, status: :running)
+
+    streams = capture_turbo_stream_broadcasts(teammate) { WorkflowBroadcaster.new(@run).refresh }
+    assert_includes streams.map { |stream| stream["target"] }, "board_grid"
   end
 
   test "refresh renders the completion summary for a finished run" do

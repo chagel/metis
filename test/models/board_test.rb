@@ -92,4 +92,41 @@ class BoardTest < ActiveSupport::TestCase
   test "empty board reports none" do
     refute Board.for(team: @team, user: @user).any?
   end
+
+  def board_runs(**opts)
+    Board.for(team: @team, user: @user, **opts).lanes.flat_map { |lane| lane.columns.values }.flatten
+  end
+
+  test "scope mine keeps only the viewer's own runs" do
+    teammate = User.create!(email: "mate-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    @team.memberships.create!(user: teammate, role: :member)
+    mine = new_run(user: @user)
+    theirs = new_run(user: teammate, visibility: :team)
+
+    runs = board_runs(scope: :mine)
+    assert_includes runs, mine
+    refute_includes runs, theirs
+  end
+
+  test "scope needs_me keeps only awaiting runs" do
+    new_run(status: :running)
+    approval = new_run(status: :awaiting_approval)
+    local = new_run(status: :awaiting_local)
+
+    assert_equal [ approval, local ].map(&:id).sort, board_runs(scope: :needs_me).map(&:id).sort
+  end
+
+  test "project_id filters to one project's runs" do
+    other = @team.projects.create!(name: "Atlas")
+    here = new_run(project: @project)
+    new_run(project: other)
+
+    assert_equal [ here ], board_runs(project_id: @project.id)
+  end
+
+  test "window all lifts the terminal age bound" do
+    old = new_run(status: :completed, updated_at: 3.days.ago)
+    refute_includes board_runs, old
+    assert_includes board_runs(window: nil), old
+  end
 end

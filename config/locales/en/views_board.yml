@@ -14,6 +14,16 @@ en:
         awaiting_approval: "Awaiting approval"
         awaiting_local: "Awaiting local"
         done: "Done"
+    filters:
+      all: "All projects"
+      mine: "Mine"
+      needs_me: "Needs me"
+      filter_project: "Filter to %{name}"
+      done_window:
+        label: "Done window"
+        h24: "24h"
+        d7: "7d"
+        all: "All"
       card:
         workflow: "Workflow"
         step: "step %{current}/%{total}"

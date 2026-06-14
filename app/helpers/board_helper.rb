@@ -8,6 +8,25 @@ module BoardHelper
     t("board.index.columns.#{column}")
   end
 
+  # A board URL carrying the current filters with one facet overridden.
+  # Defaults read the controller's assigns, so callers override only what
+  # they change.
+  def board_filter_path(scope: @scope, done: @done, project: @project_id)
+    query = {}
+    query[:scope] = scope unless scope == :all
+    query[:done] = done unless done == "24h"
+    query[:project] = project if project.present?
+    board_path(query)
+  end
+
+  def board_scope_active?(scope)
+    @scope == scope
+  end
+
+  def board_done_active?(done)
+    @done == done
+  end
+
   # The accent class for a card, by column — except a terminal run in the
   # Done column that failed/cancelled gets the danger accent.
   def board_card_accent(run, column)
