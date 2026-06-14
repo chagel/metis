@@ -58,12 +58,12 @@
               <button type="button" class="bridge-tab" role="tab" data-tab="auto"
                       data-tabs-target="tab" data-action="tabs#select">
                 <% if @user.auto_claim_tasks %><span class="bridge-tab-dot bridge-mode-dot--auto"></span><% end %>
-                <%= t('.daemon_setup') %>
+                <%= t('.tab_daemon') %>
               </button>
               <button type="button" class="bridge-tab" role="tab" data-tab="manual"
                       data-tabs-target="tab" data-action="tabs#select">
                 <% unless @user.auto_claim_tasks %><span class="bridge-tab-dot bridge-mode-dot--manual"></span><% end %>
-                <%= t('.manual_claim') %>
+                <%= t('.tab_mcp') %>
               </button>
             </div>
 

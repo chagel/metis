@@ -180,9 +180,9 @@
         generate_token: "生成令牌"
         auto_claim_label: "自动认领任务"
         auto_claim_switch_hint: "开启后，你的守护进程会自动认领被委派的步骤。关闭则由你自己认领每个步骤。"
-        daemon_setup: "守护进程设置"
+        tab_daemon: "守护进程"
         auto_desc: "在你的机器上安装 metis 守护进程。它作为登录服务运行，监听被委派的任务并自动认领 — 无需提示。下方的代码块即是你所需的全部。"
-        manual_claim: "手动认领"
+        tab_mcp: "MCP"
         manual_desc: "由你自己认领任务，而非无人值守运行。将下方代码块粘贴到你的编码智能体中 — 它会安装桥接技能、配置令牌，并让你按需列出和认领任务。"
       bridge_code_block:
         copy_instructions: "复制设置说明"

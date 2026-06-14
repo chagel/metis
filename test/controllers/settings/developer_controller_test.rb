@@ -57,8 +57,8 @@ class Settings::DeveloperControllerTest < ActionDispatch::IntegrationTest
     # block renders garbage. Assert the real translations resolved instead.
     assert_select "span.translation_missing", count: 0
     assert_select ".bridge-switch-label", /自动认领任务/
-    assert_select ".bridge-tab", /守护进程设置/
-    assert_select ".bridge-tab", /手动认领/
+    assert_select ".bridge-tab", /守护进程/
+    assert_select ".bridge-tab", /MCP/
     assert_select ".token-copy[aria-label=?]", "复制设置说明到剪贴板"
     # The paste block holds only the setup text, never leaked button markup.
     assert_select ".bridge-paste", { text: /data-controller|aria-label/, count: 0 }
