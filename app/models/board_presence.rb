@@ -84,7 +84,7 @@ class BoardPresence
 
     Task.where(claimed_by_user_id: bridge_members.map(&:id), status: :running, delegated: true)
         .joins(workflow_run: :conversation)
-        .merge(Conversation.accessible_to(user))
+        .merge(team.conversations.accessible_to(user))
         .includes(workflow_run: :workflow)
         .order(claimed_at: :desc)
         .group_by(&:claimed_by_user_id)

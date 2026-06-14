@@ -100,6 +100,23 @@ class BoardPresenceTest < ActiveSupport::TestCase
     assert_nil machine.task_ref
   end
 
+  test "machine does not surface a claimed ref from another team the member shares" do
+    member = add_member
+    member.generate_bridge_token!
+
+    # A separate team the member also belongs to but the viewer does not.
+    other_team = Team.create!(name: "Other-#{SecureRandom.hex(3)}", personal: false)
+    other_team.memberships.create!(user: member, role: :admin)
+    other_project = other_team.projects.create!(name: "Other")
+    conversation = member.conversations.create!(team: other_team, project: other_project, visibility: :team)
+    run = other_team.workflow_runs.create!(conversation: conversation, status: :awaiting_local)
+    run.tasks.create!(position: 0, delegated: true, status: :running,
+                      claimed_by_user: member, claimed_at: Time.current)
+
+    machine = BoardPresence.for(team: @team, user: @user).machines.find { |m| m.owner == member }
+    assert_nil machine.task_ref, "a run in another team must not leak onto this team's board"
+  end
+
   test "no bridge users yields no machines" do
     add_member
     assert_empty BoardPresence.for(team: @team, user: @user).machines
