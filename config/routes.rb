@@ -59,8 +59,9 @@ Rails.application.routes.draw do
     end
 
     resource :account, only: %i[show update destroy], controller: "settings/accounts"
-    post  "account/bridge_token", to: "settings/accounts#bridge_token", as: :account_bridge_token
-    patch "account/bridge_prefs", to: "settings/accounts#bridge_prefs", as: :account_bridge_prefs
+    resource :developer, only: %i[show], controller: "settings/developer"
+    post  "developer/bridge_token", to: "settings/developer#bridge_token", as: :developer_bridge_token
+    patch "developer/bridge_prefs", to: "settings/developer#bridge_prefs", as: :developer_bridge_prefs
     resource :profile, only: %i[show update]
 
     post  "profile/detect_timezone", to: "profiles#detect_timezone", as: :detect_timezone_profile

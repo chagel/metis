@@ -109,12 +109,13 @@ en:
           owner_must_transfer: "Transfer ownership or delete the team before leaving."
           notice: "You left %{name}."
       accounts:
-        bridge_token:
-          notice: "Bridge token generated. Copy it now — it won't be shown again."
         update:
           notice: "Account updated."
         destroy:
           notice: "Your account has been deleted."
+      developer:
+        bridge_token:
+          notice: "Bridge token generated. Copy it now — it won't be shown again."
       invitations:
         create:
           notice: "Invitation sent to %{email}."

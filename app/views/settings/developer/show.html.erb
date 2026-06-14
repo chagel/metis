@@ -1,0 +1,102 @@
+<% content_for :title, t('.title') %>
+
+<main class="pane">
+  <header class="pane-head">
+    <h1 class="pane-title"><%= t('.heading') %></h1>
+  </header>
+
+  <div class="pane-body">
+    <div class="pane-inner">
+      <section class="settings-card">
+        <div class="settings-card-head">
+          <span class="settings-card-title"><%= t('.local_bridge') %></span>
+        </div>
+        <p class="form-hint">
+          <%= t('.local_bridge_hint_pre') %> <strong><%= t('.local') %></strong> <%= t('.local_bridge_hint_post') %>
+        </p>
+
+        <% if @user.bridge_token_digest.present? %>
+          <% if @new_bridge_token.present? %>
+            <div class="bridge-status bridge-status--fresh">
+              <span class="dev-dot"></span>
+              <span class="form-hint"><%= t('.token_generated_once') %></span>
+            </div>
+          <% else %>
+            <div class="bridge-status">
+              <span class="dev-dot on"></span>
+              <span class="form-hint">
+                <%= t('.token_active') %>
+                <% if @user.bridge_seen_at %>
+                  <%= t('.machine_connected', machine: @user.bridge_client.presence || t('.a_machine'), ago: time_ago_in_words(@user.bridge_seen_at)) %>
+                <% else %>
+                  <%= t('.no_machine_yet') %>
+                <% end %>
+              </span>
+            </div>
+          <% end %>
+
+          <%= form_with model: @user, url: developer_bridge_prefs_path, method: :patch,
+                class: "bridge-mode-form", data: { controller: "auto-submit" } do |f| %>
+            <label class="bridge-switch">
+              <%= f.check_box :auto_claim_tasks,
+                    { checked: @user.auto_claim_tasks, class: "bridge-switch-input",
+                      data: { action: "change->auto-submit#submit" } }, "1", "0" %>
+              <span class="bridge-switch-track"><span class="bridge-switch-thumb"></span></span>
+              <span class="bridge-switch-text">
+                <span class="bridge-switch-label"><%= t('.auto_claim_label') %></span>
+                <span class="bridge-switch-hint"><%= t('.auto_claim_switch_hint') %></span>
+              </span>
+            </label>
+          <% end %>
+
+          <%# View-only tabs — read either setup regardless of the active
+              mode. The setting above is the switch; these just toggle which
+              instructions show. The dot marks the currently-active mode. %>
+          <div class="bridge-instr" data-controller="tabs"
+               data-tabs-active-value="<%= @user.auto_claim_tasks ? "auto" : "manual" %>">
+            <div class="bridge-tabs" role="tablist">
+              <button type="button" class="bridge-tab" role="tab" data-tab="auto"
+                      data-tabs-target="tab" data-action="tabs#select">
+                <% if @user.auto_claim_tasks %><span class="bridge-tab-dot bridge-mode-dot--auto"></span><% end %>
+                <%= t('.daemon_setup') %>
+              </button>
+              <button type="button" class="bridge-tab" role="tab" data-tab="manual"
+                      data-tabs-target="tab" data-action="tabs#select">
+                <% unless @user.auto_claim_tasks %><span class="bridge-tab-dot bridge-mode-dot--manual"></span><% end %>
+                <%= t('.manual_claim') %>
+              </button>
+            </div>
+
+            <div class="bridge-panel" data-tab="auto" data-tabs-target="panel" <%= "hidden" unless @user.auto_claim_tasks %>>
+              <p class="form-hint"><%= t('.auto_desc') %></p>
+              <%= render "settings/developer/bridge_auto_instructions",
+                    token: bridge_token_for_display(@user, @new_bridge_token),
+                    fresh_token: @new_bridge_token.present?,
+                    host: request.host, base_url: request.base_url,
+                    skill_url: api_bridge_skill_url %>
+            </div>
+            <div class="bridge-panel" data-tab="manual" data-tabs-target="panel" <%= "hidden" if @user.auto_claim_tasks %>>
+              <p class="form-hint"><%= t('.manual_desc') %></p>
+              <%= render "settings/developer/bridge_manual_instructions",
+                    token: bridge_token_for_display(@user, @new_bridge_token),
+                    fresh_token: @new_bridge_token.present?,
+                    base_url: request.base_url, skill_url: api_bridge_skill_url %>
+            </div>
+          </div>
+
+          <div class="danger-row">
+            <p class="form-hint"><%= t('.regenerate_revokes') %></p>
+            <%= button_to t('.regenerate_token'), developer_bridge_token_path,
+                  method: :post, class: "btn btn-ghost", form: { class: "inline-form" } %>
+          </div>
+        <% else %>
+          <div class="danger-row">
+            <p class="form-hint"><%= t('.no_token_yet') %></p>
+            <%= button_to t('.generate_token'), developer_bridge_token_path,
+                  method: :post, class: "btn btn-ghost", form: { class: "inline-form" } %>
+          </div>
+        <% end %>
+      </section>
+    </div>
+  </div>
+</main>

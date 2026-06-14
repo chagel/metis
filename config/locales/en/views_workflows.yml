@@ -137,7 +137,7 @@ en:
       local_runs_manual_html: "This step runs on one of your machines. Auto-claim is\n              off — claim it manually below, or enable auto-claim in\n              %{link}."
       claim_step: "Claim"
       claim_step_hint: "Claims this task for your daemon to pick up on its next poll."
-      account_settings: "account settings"
+      developer_settings: "developer settings"
       view_turn: "view turn →"
       gate_title: "Gate · %{name}"
       gate_review: "review"

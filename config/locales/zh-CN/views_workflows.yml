@@ -137,7 +137,7 @@
       local_runs_manual_html: "此步骤在你的某台机器上运行。自动认领已\n              关闭 — 在下方手动认领，或在 %{link} 中\n              启用自动认领。"
       claim_step: "认领"
       claim_step_hint: "认领此任务，供你的守护进程在下次轮询时接手。"
-      account_settings: "账户设置"
+      developer_settings: "开发者设置"
       view_turn: "查看回合 →"
       gate_title: "关卡 · %{name}"
       gate_review: "审阅"

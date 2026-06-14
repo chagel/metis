@@ -1,21 +1,9 @@
 class Settings::AccountsController < ApplicationController
   layout "settings"
 
-  before_action :set_user, only: %i[show update bridge_token bridge_prefs]
+  before_action :set_user, only: %i[show update]
 
   def show
-  end
-
-  # The plaintext is shown once and never stored.
-  def bridge_token
-    @new_bridge_token = @user.generate_bridge_token!
-    flash.now[:notice] = t("flash.settings.accounts.bridge_token.notice")
-    render :show
-  end
-
-  def bridge_prefs
-    @user.update(bridge_prefs_params)
-    redirect_to account_path
   end
 
   def update
@@ -53,9 +41,5 @@ class Settings::AccountsController < ApplicationController
 
   def account_params
     params.require(:user).permit(:email, :password, :password_confirmation, :current_password)
-  end
-
-  def bridge_prefs_params
-    params.require(:user).permit(:auto_claim_tasks)
   end
 end

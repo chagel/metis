@@ -109,12 +109,13 @@
           owner_must_transfer: "退出前请先转移所有权或删除团队。"
           notice: "你已退出 %{name}。"
       accounts:
-        bridge_token:
-          notice: "桥接令牌已生成。请立即复制 — 它不会再次显示。"
         update:
           notice: "账户已更新。"
         destroy:
           notice: "你的账户已被删除。"
+      developer:
+        bridge_token:
+          notice: "桥接令牌已生成。请立即复制 — 它不会再次显示。"
       invitations:
         create:
           notice: "邀请已发送至 %{email}。"

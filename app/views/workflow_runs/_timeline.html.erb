@@ -102,10 +102,10 @@
             <% if auto_claim %>
               <p><%= t(".local_runs_html") %></p>
               <p class="wf-tl-localguide-sub">
-                <%= t(".nothing_html", link: link_to(t(".account_settings"), account_path)) %>
+                <%= t(".nothing_html", link: link_to(t(".developer_settings"), developer_path)) %>
               </p>
             <% else %>
-              <p><%= t(".local_runs_manual_html", link: link_to(t(".account_settings"), account_path)) %></p>
+              <p><%= t(".local_runs_manual_html", link: link_to(t(".developer_settings"), developer_path)) %></p>
               <%= button_to t(".claim_step"), workflow_run_claim_run_task_path(run, task),
                     method: :post, class: "wf-tl-claim-btn", form: { data: { turbo_frame: "_top" } } %>
               <p class="wf-tl-claim-hint"><%= t(".claim_step_hint") %></p>

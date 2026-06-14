@@ -135,6 +135,7 @@
       skills: "技能"
       workflows: "工作流"
       models: "模型"
+      developer: "开发者"
     accounts:
       show:
         title: "账户"
@@ -157,6 +158,13 @@
         connected_accounts: "已连接的账户"
         connected_accounts_hint: "已关联到你账户的登录提供商。"
         connected: "已连接"
+        delete_account: "删除账户"
+        delete_account_hint: "永久删除你的账户和对话。此操作无法撤销。"
+        delete_account_confirm: "删除你的账户？此操作将永久删除你的对话且无法撤销。"
+    developer:
+      show:
+        title: "开发者"
+        heading: "开发者"
         local_bridge: "本地桥接"
         local_bridge_hint_pre: "设为"
         local: "本地"
@@ -176,9 +184,6 @@
         auto_desc: "在你的机器上安装 metis 守护进程。它作为登录服务运行，监听被委派的任务并自动认领 — 无需提示。下方的代码块即是你所需的全部。"
         manual_claim: "手动认领"
         manual_desc: "由你自己认领任务，而非无人值守运行。将下方代码块粘贴到你的编码智能体中 — 它会安装桥接技能、配置令牌，并让你按需列出和认领任务。"
-        delete_account: "删除账户"
-        delete_account_hint: "永久删除你的账户和对话。此操作无法撤销。"
-        delete_account_confirm: "删除你的账户？此操作将永久删除你的对话且无法撤销。"
       bridge_code_block:
         copy_instructions: "复制设置说明"
         copy_instructions_aria: "复制设置说明到剪贴板"

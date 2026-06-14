@@ -28,7 +28,7 @@
 
   <div class="field">
     <%= f.label :steps, t(".steps_label") %>
-    <p class="field-hint"><%= t(".steps_hint_html", bridge_token_link: link_to(t(".bridge_token"), account_path)) %></p>
+    <p class="field-hint"><%= t(".steps_hint_html", bridge_token_link: link_to(t(".bridge_token"), developer_path)) %></p>
     <div class="wf-steps" data-controller="workflow-editor">
       <div class="wf-steps-list" data-workflow-editor-target="list"
            data-action="dragover->workflow-editor#dragOver">

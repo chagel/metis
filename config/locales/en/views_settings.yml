@@ -135,6 +135,7 @@ en:
       skills: "Skills"
       workflows: "Workflows"
       models: "Models"
+      developer: "Developer"
     accounts:
       show:
         title: "Account"
@@ -157,6 +158,13 @@ en:
         connected_accounts: "Connected accounts"
         connected_accounts_hint: "Sign-in providers linked to your account."
         connected: "Connected"
+        delete_account: "Delete account"
+        delete_account_hint: "Permanently removes your account and conversations. This cannot be undone."
+        delete_account_confirm: "Delete your account? This permanently removes your conversations and cannot be undone."
+    developer:
+      show:
+        title: "Developer"
+        heading: "Developer"
         local_bridge: "Local bridge"
         local_bridge_hint_pre: "A workflow step set to"
         local: "Local"
@@ -176,9 +184,6 @@ en:
         auto_desc: "Install the metis daemon on your machine. It runs as a login service, watches for delegated tasks, and claims them automatically — no prompting. The block below is all you need."
         manual_claim: "Manual claim"
         manual_desc: "Claim tasks yourself instead of running unattended. Paste the block below into your coding agent — it installs the bridge skill, configures the token, and lets you list and claim tasks on demand."
-        delete_account: "Delete account"
-        delete_account_hint: "Permanently removes your account and conversations. This cannot be undone."
-        delete_account_confirm: "Delete your account? This permanently removes your conversations and cannot be undone."
       bridge_code_block:
         copy_instructions: "Copy setup instructions"
         copy_instructions_aria: "Copy setup instructions to clipboard"
