@@ -7,5 +7,6 @@ class BoardController < ApplicationController
 
   def index
     @board = Board.for(team: current_team, user: current_user)
+    @presence = BoardPresence.for(team: current_team, user: current_user)
   end
 end

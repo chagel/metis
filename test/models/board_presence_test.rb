@@ -1,0 +1,107 @@
+require "test_helper"
+
+class BoardPresenceTest < ActiveSupport::TestCase
+  setup do
+    @user = User.create!(email: "pres-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    @team = @user.personal_team
+    @project = @team.projects.create!(name: "Cheese")
+  end
+
+  def add_member(**attrs)
+    member = User.create!(email: "m-#{SecureRandom.hex(4)}@example.com", password: "password123", **attrs)
+    @team.memberships.create!(user: member, role: :member)
+    member
+  end
+
+  def awaiting_run(user: @user, visibility: :personal)
+    conversation = user.conversations.create!(team: @team, project: @project, visibility: visibility)
+    run = @team.workflow_runs.create!(conversation: conversation, status: :awaiting_approval)
+    run.tasks.create!(position: 0, gate: :approval, status: :awaiting_approval, name: "review")
+    run
+  end
+
+  test "people attribute a gate to the run launcher and sort gated first" do
+    gated = add_member
+    add_member # idle member
+    awaiting_run(user: gated, visibility: :team)
+
+    people = BoardPresence.for(team: @team, user: @user).people
+    gated_person = people.find { |person| person.member == gated }
+
+    assert_equal 1, gated_person.gate_count
+    refute gated_person.idle?
+    assert_match(/-/, gated_person.gate_ref)
+    assert_equal gated_person, people.first, "gated members sort first"
+    assert people.last.idle?, "idle members sort last"
+  end
+
+  test "a teammate's personal awaiting run does not leak as a gate" do
+    other = add_member
+    awaiting_run(user: other, visibility: :personal)
+
+    person = BoardPresence.for(team: @team, user: @user).people.find { |p| p.member == other }
+    assert person.idle?
+  end
+
+  test "machines list only members with a bridge token" do
+    with_bridge = add_member
+    with_bridge.generate_bridge_token!
+    add_member # no token
+
+    machines = BoardPresence.for(team: @team, user: @user).machines
+    assert_equal [ with_bridge.id ], machines.map { |m| m.owner.id }
+  end
+
+  test "online when seen within the window, stale otherwise" do
+    fresh = add_member
+    fresh.generate_bridge_token!
+    fresh.update_columns(bridge_seen_at: 30.seconds.ago, bridge_client: "Apollo")
+
+    old = add_member
+    old.generate_bridge_token!
+    old.update_columns(bridge_seen_at: (BoardPresence::ONLINE_WINDOW + 1.minute).ago)
+
+    machines = BoardPresence.for(team: @team, user: @user).machines.index_by { |m| m.owner.id }
+    assert machines[fresh.id].online?
+    assert_equal "Apollo", machines[fresh.id].client
+    refute machines[old.id].online?
+  end
+
+  test "boundary: a machine exactly at the window is stale" do
+    member = add_member
+    member.generate_bridge_token!
+    member.update_columns(bridge_seen_at: BoardPresence::ONLINE_WINDOW.ago)
+
+    machine = BoardPresence.for(team: @team, user: @user).machines.first
+    refute machine.online?
+  end
+
+  test "machine surfaces the ref of a visible claimed task" do
+    member = add_member
+    member.generate_bridge_token!
+    conversation = @user.conversations.create!(team: @team, project: @project, visibility: :team)
+    run = @team.workflow_runs.create!(conversation: conversation, status: :awaiting_local)
+    task = run.tasks.create!(position: 0, delegated: true, status: :running,
+                             claimed_by_user: member, claimed_at: Time.current)
+
+    machine = BoardPresence.for(team: @team, user: @user).machines.first
+    assert_equal task.ref, machine.task_ref
+  end
+
+  test "machine does not leak a private run's claimed ref" do
+    member = add_member
+    member.generate_bridge_token!
+    conversation = member.conversations.create!(team: @team, project: @project, visibility: :personal)
+    run = @team.workflow_runs.create!(conversation: conversation, status: :awaiting_local)
+    run.tasks.create!(position: 0, delegated: true, status: :running,
+                      claimed_by_user: member, claimed_at: Time.current)
+
+    machine = BoardPresence.for(team: @team, user: @user).machines.first
+    assert_nil machine.task_ref
+  end
+
+  test "no bridge users yields no machines" do
+    add_member
+    assert_empty BoardPresence.for(team: @team, user: @user).machines
+  end
+end

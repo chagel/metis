@@ -49,4 +49,20 @@ class BoardControllerTest < ActionDispatch::IntegrationTest
     get board_path
     assert_select ".board-empty"
   end
+
+  test "renders the actor rail with people and a no-machines state" do
+    sign_in @user
+    get board_path
+    assert_select "#board_rail .board-arow .board-arow-nm", text: /board-ctrl@example.com/
+    assert_select "#board_rail .board-rail-empty"
+  end
+
+  test "renders a connected machine when a member holds a bridge token" do
+    @user.generate_bridge_token!
+    @user.update_columns(bridge_seen_at: 10.seconds.ago, bridge_client: "Apollo")
+    sign_in @user
+    get board_path
+    assert_select "#board_rail .board-arow .board-arow-nm.board-mono", text: /Apollo/
+    assert_select "#board_rail .board-lite", text: /online/
+  end
 end

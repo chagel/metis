@@ -42,6 +42,18 @@ module BoardHelper
     run.tasks.find { |task| !task.completed? } || run.tasks.last
   end
 
+  # Compact single-unit "last seen" label for a machine heartbeat.
+  def board_seen_ago(time)
+    return t("board.rail.never") if time.blank?
+
+    seconds = (Time.current - time).to_i
+    return "#{seconds}s" if seconds < 60
+    return "#{seconds / 60}m" if seconds < 3600
+    return "#{seconds / 3600}h" if seconds < 86_400
+
+    "#{seconds / 86_400}d"
+  end
+
   # The pip fill class mirroring the timeline's step states.
   def board_pip_class(task)
     case wf_step_state(task)

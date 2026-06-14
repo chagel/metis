@@ -1,0 +1,24 @@
+<div class="board-arow">
+  <span class="board-arow-m">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+  </span>
+  <div class="board-arow-main">
+    <div class="board-arow-nm board-mono">
+      <%= machine.owner.display_label %><% if machine.client.present? %> · <%= machine.client %><% end %>
+    </div>
+    <div class="board-arow-st">
+      <% if machine.task_ref %>
+        <%= t("board.rail.working", ref: machine.task_ref) %>
+      <% else %>
+        <%= t("board.rail.no_task") %>
+      <% end %>
+    </div>
+  </div>
+  <div class="board-arow-r">
+    <span class="board-lite">
+      <span class="board-dot <%= machine.online? ? "board-dot--live" : "" %>"></span>
+      <%= machine.online? ? t("board.rail.online") : t("board.rail.stale") %>
+    </span>
+    <span class="board-arow-st"><%= t("board.rail.seen", ago: board_seen_ago(machine.seen_at)) %></span>
+  </div>
+</div>

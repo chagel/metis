@@ -1,0 +1,31 @@
+<aside class="board-rail" id="board_rail">
+  <header class="board-rail-head">
+    <h2><%= t("board.rail.title") %></h2>
+    <span class="board-dot board-dot--live"></span>
+    <small><%= t("board.rail.live") %></small>
+  </header>
+
+  <div class="board-rail-body">
+    <div class="board-rsec">
+      <%= t("board.rail.people") %>
+      <span class="board-rsec-ct"><%= presence.people.size %></span>
+    </div>
+    <% presence.people.each do |person| %>
+      <%= render "board/person_row", person: person %>
+    <% end %>
+
+    <div class="board-rsec">
+      <%= t("board.rail.machines") %>
+      <span class="board-rsec-ct"><%= presence.machines.size %></span>
+    </div>
+    <% if presence.machines.any? %>
+      <% presence.machines.each do |machine| %>
+        <%= render "board/machine_row", machine: machine %>
+      <% end %>
+    <% else %>
+      <div class="board-rail-empty"><%= t("board.rail.no_machines") %></div>
+    <% end %>
+
+    <p class="board-rail-note"><%= t("board.rail.presence_note") %></p>
+  </div>
+</aside>

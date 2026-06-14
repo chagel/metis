@@ -1,5 +1,6 @@
 <% content_for :title, t(".title") %>
 
+<div class="board-pane">
 <main class="board">
   <header class="board-head">
     <div>
@@ -30,3 +31,6 @@
 
   <div class="board-foot"><%= t(".read_only") %></div>
 </main>
+
+<%= render "board/rail", presence: @presence %>
+</div>
