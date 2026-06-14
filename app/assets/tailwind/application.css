@@ -64,6 +64,27 @@
   --fb:'Figtree',-apple-system,BlinkMacSystemFont,sans-serif;
   --fm:'Spline Sans Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
 }
+
+/* ───────────── CJK locale typography ─────────────
+   The Latin webfonts are unicode-range-subset to Latin, so Han glyphs
+   already fall through — here we name the system CJK faces explicitly
+   (consistent across macOS/Windows/Linux) and undo Latin-only tracking
+   that reads as cramped on Han glyphs. No webfont is shipped: chat is
+   unbounded-glyph and can't be subset, and system CJK fonts are good. */
+html[lang^="zh"] {
+  --fd:'Schibsted Grotesk','PingFang SC','Microsoft YaHei','Noto Sans SC',-apple-system,sans-serif;
+  --fb:'Figtree','PingFang SC','Microsoft YaHei','Noto Sans SC',-apple-system,sans-serif;
+  --fm:'Spline Sans Mono','PingFang SC','Microsoft YaHei','Noto Sans SC',ui-monospace,monospace;
+}
+html[lang^="zh"] .ws-name,
+html[lang^="zh"] .chat-title,
+html[lang^="zh"] .welcome h1,
+html[lang^="zh"] .pane-title,
+html[lang^="zh"] .auth-word,
+html[lang^="zh"] .auth-card h2,
+html[lang^="zh"] .wf-gate-title { letter-spacing:0; }
+html[lang^="zh"] .chat-content { line-height:1.75; }
+
 :root[data-theme="dark"] {
   /* neutral palette — dark (cool slate) */
   --bg:#0e1014; --canvas:#15171d; --side:#0e1014; --card:#1c1f28;
@@ -86,7 +107,7 @@ body {
   font-family:var(--fb);
   background:var(--bg);
   color:var(--ink);
-  -webkit-font-smoothing:antialiased;
+  -webkit-font-smoothing:auto;
 }
 body.app-shell { overflow:hidden; }
 ::selection { background:var(--accent-soft); color:var(--accent-fg); }
