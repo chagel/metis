@@ -2,7 +2,7 @@
     Go daemon, write its config with the token, run it as a login service.
     Locals: token, host, base_url, skill_url, fresh_token (true on the
     generating request — only then is the plaintext token real). %>
-<% token_value = fresh_token ? token : "<regenerate your token in account settings — shown once>" %>
+<% token_value = fresh_token ? token : "<regenerate your token on the Developer settings page — shown once>" %>
 <% setup = <<~TEXT.strip
   Set up the Metis bridge daemon on this machine. It runs as a login service, auto-claims workflow steps marked Local, and works them with my own coding agent in per-task git worktrees.
 
