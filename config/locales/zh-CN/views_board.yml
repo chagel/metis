@@ -19,9 +19,16 @@ zh-CN:
         review_gate: "审批关卡"
         completed: "已完成"
         ago: "%{time}前"
-    rail:
+    actors:
       title: "活跃对象"
       live: "实时"
+      expand: "显示活跃对象"
+      summary_people:
+        other: "%{count} 名成员"
+      gates_badge:
+        other: "%{count} 个关卡"
+      machines_summary: "%{online}/%{total}"
+      overflow: "+%{count}"
       people: "成员"
       machines: "机器 · 守护客户端"
       reviewing: "正在审阅 %{ref}"

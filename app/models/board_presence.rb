@@ -48,6 +48,10 @@ class BoardPresence
     }.sort_by { |machine| [ machine.online? ? 0 : 1, -(machine.seen_at&.to_i || 0) ] }
   end
 
+  def online_count
+    machines.count(&:online?)
+  end
+
   private
 
   attr_reader :team, :user

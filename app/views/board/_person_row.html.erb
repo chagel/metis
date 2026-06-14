@@ -4,17 +4,17 @@
     <div class="board-arow-nm"><%= person.member.display_label %></div>
     <div class="board-arow-st">
       <% if person.idle? %>
-        <%= t("board.rail.no_gates") %>
+        <%= t("board.actors.no_gates") %>
       <% else %>
-        <%= t("board.rail.reviewing", ref: person.gate_ref) %>
+        <%= t("board.actors.reviewing", ref: person.gate_ref) %>
       <% end %>
     </div>
   </div>
   <div class="board-arow-r">
     <% if person.idle? %>
-      <span class="board-pill board-pill--idle"><%= t("board.rail.idle") %></span>
+      <span class="board-pill board-pill--idle"><%= t("board.actors.idle") %></span>
     <% else %>
-      <span class="board-pill board-pill--gold"><%= t("board.rail.gate_count", count: person.gate_count) %></span>
+      <span class="board-pill board-pill--gold"><%= t("board.actors.gate_count", count: person.gate_count) %></span>
     <% end %>
   </div>
 </div>

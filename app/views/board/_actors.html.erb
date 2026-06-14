@@ -1,0 +1,65 @@
+<%# The board's actor presence: a compact indicator bar in the header that
+    expands into a details panel. Read-only. Reuses the shared `dropdown`
+    controller (open class + outside-click/Escape). The whole component and
+    the panel carry stable ids so Phase 3 can make them a broadcast target. %>
+<% gate_total = presence.people.sum(&:gate_count) %>
+<% shown_people = presence.people.first(6) %>
+<% people_overflow = presence.people.size - shown_people.size %>
+<div class="board-actors" id="board_actors" data-controller="dropdown">
+  <button type="button" class="board-actors-bar" data-action="click->dropdown#toggle"
+          aria-haspopup="true" aria-expanded="false"
+          aria-controls="board_actors_panel" aria-label="<%= t("board.actors.expand") %>">
+    <span class="board-dot board-dot--live"></span>
+    <span class="board-actors-lbl"><%= t("board.actors.live") %></span>
+
+    <span class="board-actors-stack" title="<%= t("board.actors.summary_people", count: presence.people.size) %>">
+      <% shown_people.each do |person| %>
+        <span class="board-actors-av<%= " is-gated" unless person.idle? %>">
+          <%= avatar_for person.member, size: 22, css: "board-actors-av-img" %>
+        </span>
+      <% end %>
+      <% if people_overflow.positive? %>
+        <span class="board-actors-ov"><%= t("board.actors.overflow", count: people_overflow) %></span>
+      <% end %>
+    </span>
+    <% if gate_total.positive? %>
+      <span class="board-actors-gates"><%= t("board.actors.gates_badge", count: gate_total) %></span>
+    <% end %>
+
+    <span class="board-actors-mach">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+      <span class="board-mono board-actors-ct"><%= t("board.actors.machines_summary", online: presence.online_count, total: presence.machines.size) %></span>
+      <span class="board-actors-dots">
+        <% presence.machines.first(6).each do |machine| %>
+          <span class="board-dot <%= "board-dot--live" if machine.online? %>"></span>
+        <% end %>
+      </span>
+    </span>
+
+    <svg class="board-actors-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
+  </button>
+
+  <div class="board-actors-panel" id="board_actors_panel" role="menu">
+    <div class="board-rsec">
+      <%= t("board.actors.people") %>
+      <span class="board-rsec-ct"><%= presence.people.size %></span>
+    </div>
+    <% presence.people.each do |person| %>
+      <%= render "board/person_row", person: person %>
+    <% end %>
+
+    <div class="board-rsec">
+      <%= t("board.actors.machines") %>
+      <span class="board-rsec-ct"><%= presence.machines.size %></span>
+    </div>
+    <% if presence.machines.any? %>
+      <% presence.machines.each do |machine| %>
+        <%= render "board/machine_row", machine: machine %>
+      <% end %>
+    <% else %>
+      <div class="board-actors-empty"><%= t("board.actors.no_machines") %></div>
+    <% end %>
+
+    <p class="board-actors-note"><%= t("board.actors.presence_note") %></p>
+  </div>
+</div>

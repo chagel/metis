@@ -20,9 +20,18 @@ en:
         review_gate: "review gate"
         completed: "completed"
         ago: "%{time} ago"
-    rail:
+    actors:
       title: "Actors"
       live: "live"
+      expand: "Show actors"
+      summary_people:
+        one: "%{count} member"
+        other: "%{count} members"
+      gates_badge:
+        one: "%{count} gate"
+        other: "%{count} gates"
+      machines_summary: "%{online}/%{total}"
+      overflow: "+%{count}"
       people: "People"
       machines: "Machines · daemon clients"
       reviewing: "reviewing %{ref}"

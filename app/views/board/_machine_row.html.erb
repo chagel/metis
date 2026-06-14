@@ -8,17 +8,17 @@
     </div>
     <div class="board-arow-st">
       <% if machine.task_ref %>
-        <%= t("board.rail.working", ref: machine.task_ref) %>
+        <%= t("board.actors.working", ref: machine.task_ref) %>
       <% else %>
-        <%= t("board.rail.no_task") %>
+        <%= t("board.actors.no_task") %>
       <% end %>
     </div>
   </div>
   <div class="board-arow-r">
     <span class="board-lite">
       <span class="board-dot <%= machine.online? ? "board-dot--live" : "" %>"></span>
-      <%= machine.online? ? t("board.rail.online") : t("board.rail.stale") %>
+      <%= machine.online? ? t("board.actors.online") : t("board.actors.stale") %>
     </span>
-    <span class="board-arow-st"><%= t("board.rail.seen", ago: board_seen_ago(machine.seen_at)) %></span>
+    <span class="board-arow-st"><%= t("board.actors.seen", ago: board_seen_ago(machine.seen_at)) %></span>
   </div>
 </div>

@@ -44,7 +44,7 @@ module BoardHelper
 
   # Compact single-unit "last seen" label for a machine heartbeat.
   def board_seen_ago(time)
-    return t("board.rail.never") if time.blank?
+    return t("board.actors.never") if time.blank?
 
     seconds = (Time.current - time).to_i
     return "#{seconds}s" if seconds < 60

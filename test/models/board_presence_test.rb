@@ -117,6 +117,19 @@ class BoardPresenceTest < ActiveSupport::TestCase
     assert_nil machine.task_ref, "a run in another team must not leak onto this team's board"
   end
 
+  test "online_count tallies only machines within the window" do
+    fresh = add_member
+    fresh.generate_bridge_token!
+    fresh.update_columns(bridge_seen_at: 20.seconds.ago)
+    stale = add_member
+    stale.generate_bridge_token!
+    stale.update_columns(bridge_seen_at: (BoardPresence::ONLINE_WINDOW + 1.minute).ago)
+
+    presence = BoardPresence.for(team: @team, user: @user)
+    assert_equal 2, presence.machines.size
+    assert_equal 1, presence.online_count
+  end
+
   test "no bridge users yields no machines" do
     add_member
     assert_empty BoardPresence.for(team: @team, user: @user).machines

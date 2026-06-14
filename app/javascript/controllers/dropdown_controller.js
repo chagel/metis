@@ -24,6 +24,7 @@ export default class extends Controller {
 
   open() {
     this.element.classList.add("open")
+    this.syncExpanded(true)
     // Defer so the click that opened it doesn't immediately close it.
     setTimeout(() => {
       document.addEventListener("click", this.onDocClick)
@@ -33,7 +34,13 @@ export default class extends Controller {
 
   close() {
     this.element.classList.remove("open")
+    this.syncExpanded(false)
     document.removeEventListener("click", this.onDocClick)
     document.removeEventListener("keydown", this.onKey)
+  }
+
+  // Reflect open state on a trigger that opts in with aria-expanded.
+  syncExpanded(open) {
+    this.element.querySelector("[aria-expanded]")?.setAttribute("aria-expanded", open)
   }
 }
