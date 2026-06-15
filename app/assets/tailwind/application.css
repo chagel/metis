@@ -2690,7 +2690,7 @@ body.drawer-open { overflow:hidden; }
 }
 .board-tag { margin-left:auto; font-family:var(--fm); font-size:10px; color:var(--faint); }
 
-.board-empty { padding:60px 22px; text-align:center; color:var(--ink-3); }
+.board-empty { padding:60px 22px; text-align:center; font-size:13.5px; color:var(--ink-3); }
 .board-foot {
   padding:9px 22px; border-top:1px solid var(--line);
   font-size:11px; color:var(--ink-3);
