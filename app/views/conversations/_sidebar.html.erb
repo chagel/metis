@@ -20,13 +20,17 @@
     <% end %>
   </div>
 
-  <%# Section links do a full Turbo Drive visit (not a #main frame swap) so
-      the server-rendered active state re-renders with the sidebar. %>
-  <nav class="prnav" aria-label="<%= t('.primary_nav') %>">
+  <%# Section links do a full Turbo Drive visit so the server-rendered active
+      state is right on load; the nav-tabs controller re-syncs it when a
+      conversation is opened as a #main frame swap (sidebar doesn't re-render
+      then, so Board would otherwise stay lit). %>
+  <nav class="prnav" aria-label="<%= t('.primary_nav') %>" data-controller="nav-tabs">
     <%= link_to t('.chats'), conversations_path,
-          class: "prnav-item#{' on' unless controller_name == 'board'}" %>
+          class: "prnav-item#{' on' unless controller_name == 'board'}",
+          data: { nav_tabs_target: "link" } %>
     <%= link_to board_path,
-          class: "prnav-item#{' on' if controller_name == 'board'}" do %>
+          class: "prnav-item#{' on' if controller_name == 'board'}",
+          data: { nav_tabs_target: "link" } do %>
       <%= t('.board') %>
       <%= render "conversations/nav_badge", count: @needs_you&.size %>
     <% end %>
