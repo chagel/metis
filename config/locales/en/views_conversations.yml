@@ -91,6 +91,7 @@ en:
       step_tag: "Step"
       local_tag: "Local"
       review_tag: "Review"
+      handoff_tag: "Workflow"
       timestamp_ago: "%{time} ago"
       stamp_ago: "%{sender} · %{time} ago"
       stopped: "Stopped"

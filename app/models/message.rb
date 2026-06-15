@@ -3,8 +3,9 @@ class Message < ApplicationRecord
   enum :streaming_status, { pending: 0, streaming: 1, done: 2, errored: 3, canceled: 4 }
   # Workflow timeline records render as markers, not chat bubbles:
   # step_prompt (engine-injected instruction), local_report (a delegated
-  # step's outcome), review (a gate decision).
-  enum :kind, { chat: 0, step_prompt: 1, local_report: 2, review: 3 }
+  # step's outcome), review (a gate decision), handoff (a run Metis spun
+  # off from this chat).
+  enum :kind, { chat: 0, step_prompt: 1, local_report: 2, review: 3, handoff: 4 }
 
   belongs_to :conversation, touch: true
   # The human behind a user message (composer or gate reviewer); nil on

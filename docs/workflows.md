@@ -176,8 +176,35 @@ end
 # 5. Start a run — WorkflowRun.start(workflow:, team:, user:, project:, input:)
 #    creates an untitled Conversation (auto-titled from the first turn) +
 #    run + tasks, folds `input` into step 1, then enqueues the advance job.
-#    Callers: the new-chat composer launcher and (Phase 4) triggers.
+#    Callers: the new-chat composer launcher, (Phase 4) triggers, and the
+#    in-chat handoff below.
 ```
+
+### Starting a run from inside a chat
+
+An operator can discuss a spec in a normal chat and then say "start the
+*ship* workflow on project *metis* to do this" — the agent spins the run off
+without leaving the chat. The path rides the one-directional turn stream
+rather than a callback:
+
+- A pi extension (`.pi/extensions/metis-workflow/index.ts`) registers one
+  model-callable tool, `metis_start_workflow(workflow, project?, note?)`.
+  Its handler only returns an ack — it never reaches back into Metis.
+- Metis already reads every pi event in `ChatJob`. When it sees the
+  `metis_start_workflow` tool call, `ChatJob#handoff_workflow` hands the args
+  to **`Agent::WorkflowHandoff`** (guarded — a handoff hiccup never crashes
+  the turn).
+- `WorkflowHandoff` resolves the workflow + project **by name** for the team
+  (`Workflow.named` / `Project.named`, project falling back to the chat's own
+  then the workflow default), seeds `input:` with the chat's transcript
+  (`Agent::TranscriptDigest`) plus the agent's `note`, and calls
+  `WorkflowRun.start`. It then posts a `kind: :handoff` message back into the
+  chat — a link to the new run on success, a precise error otherwise.
+
+The tool's ack is decoupled from the real outcome (Metis acts out of band),
+so the posted note — not the agent's reply — is the operator's source of
+truth. Shipping a new/changed extension reaches every runtime on deploy
+**except docker**, which bakes extensions into its image (`rake docker:image`).
 
 Why this is safe without new infra:
 

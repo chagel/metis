@@ -135,9 +135,6 @@ module Agent
 
     private
 
-    HISTORY_CHAR_BUDGET = 12_000
-    HISTORY_MESSAGE_TRUNCATE = 2_000
-
     # The sandbox holding pi's transcript was reaped; replay the conversation
     # from the DB so a fresh sandbox keeps the thread. The warning is
     # load-bearing — the workspace files are gone too, so the agent must not
@@ -161,42 +158,9 @@ module Agent
       MD
     end
 
-    # Quote the most recent turns within budget, walking newest-first so a long
-    # reaped conversation only decrypts the messages it keeps; mark how many
-    # older ones were dropped.
+    # Addresses the agent in the first person — it's reading its own past turns.
     def restored_transcript
-      rows = @conversation.replayable_history.reverse_order
-      kept = []
-      total = 0
-      truncated = false
-      rows.each do |message|
-        line = transcript_quote(message)
-        next unless line
-        if kept.any? && total + line.length > HISTORY_CHAR_BUDGET
-          truncated = true
-          break
-        end
-
-        kept.unshift(line)
-        total += line.length
-      end
-
-      if truncated
-        omitted = rows.size - kept.size
-        kept.unshift("_[#{omitted} earlier message#{'s' unless omitted == 1} omitted]_")
-      end
-      kept.join("\n\n")
-    end
-
-    # The `> ` framing reads as quoted transcript and keeps a markdown heading
-    # in the content from manufacturing a Metis section.
-    def transcript_quote(message)
-      text = message.content.to_s.strip
-      return nil if text.blank?
-
-      speaker = message.user? ? "Operator" : "You"
-      quoted = text.truncate(HISTORY_MESSAGE_TRUNCATE).each_line.map { |line| "> #{line.chomp}" }.join("\n")
-      "**#{speaker}:**\n#{quoted}"
+      TranscriptDigest.new(@conversation, agent_label: "You").to_s
     end
 
     # The hosted GitHub/Linear MCP servers take repo/project as per-call

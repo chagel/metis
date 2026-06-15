@@ -3,7 +3,8 @@
       prompts, delegated steps' reports, and gate decisions. %>
   <% modifier, tag = { "step_prompt" => [ "", t('.step_tag') ],
                        "local_report" => [ " msg-step--local", t('.local_tag') ],
-                       "review" => [ " msg-step--review", t('.review_tag') ] }.fetch(message.kind) %>
+                       "review" => [ " msg-step--review", t('.review_tag') ],
+                       "handoff" => [ " msg-step--handoff", t('.handoff_tag') ] }.fetch(message.kind) %>
   <div id="<%= dom_id(message) %>" class="msg-step<%= modifier %>">
     <span class="msg-step-tag"><%= tag %></span>
     <div class="chat-content"><%= markdown(message.content) %></div>

@@ -145,3 +145,8 @@ en:
       the_reviewer: "The reviewer"
       rejected: "rejected"
       approved: "approved"
+  handoff:
+    started: "🚀 Started the **%{workflow}** workflow on **%{project}** → [open the run](%{url})"
+    no_workflow: "⚠️ Couldn't start a workflow — no enabled workflow named **%{name}** on this team."
+    no_project: "⚠️ Couldn't start the **%{workflow}** workflow — name a project to run it on, or set the workflow's default project."
+    failed: "⚠️ Something went wrong starting the workflow — nothing was launched."

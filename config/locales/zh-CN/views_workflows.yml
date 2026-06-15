@@ -145,3 +145,8 @@
       the_reviewer: "审阅者"
       rejected: "已拒绝"
       approved: "已批准"
+  handoff:
+    started: "🚀 已启动 **%{workflow}** 工作流（项目 **%{project}**）→ [打开运行](%{url})"
+    no_workflow: "⚠️ 无法启动工作流 — 团队中没有名为 **%{name}** 的已启用工作流。"
+    no_project: "⚠️ 无法启动 **%{workflow}** 工作流 — 请指定运行的项目，或设置该工作流的默认项目。"
+    failed: "⚠️ 启动工作流时出错 — 未启动任何运行。"

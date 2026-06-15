@@ -91,6 +91,7 @@
       step_tag: "步骤"
       local_tag: "本地"
       review_tag: "审阅"
+      handoff_tag: "工作流"
       timestamp_ago: "%{time}前"
       stamp_ago: "%{sender} · %{time}前"
       stopped: "已停止"

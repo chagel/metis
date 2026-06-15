@@ -18,6 +18,9 @@ class Project < ApplicationRecord
   before_destroy :forbid_active_runs, prepend: true
 
   scope :recent, -> { order(updated_at: :desc) }
+  # Case-insensitive name match — the agent names a project the way the
+  # operator said it, not by id (Agent::WorkflowHandoff).
+  scope :named, ->(name) { where("LOWER(name) = LOWER(?)", name.to_s.strip) }
 
   private
 

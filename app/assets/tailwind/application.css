@@ -2544,6 +2544,9 @@ body.drawer-open { overflow:hidden; }
 .msg-step--review .msg-step-tag { color:var(--gold); }
 .msg-step--local { border-left-color:var(--accent); }
 .msg-step--local .msg-step-tag { color:var(--accent-fg); }
+/* A run spun off from this chat — same accent as a launched run pill. */
+.msg-step--handoff { border-left-color:var(--accent); }
+.msg-step--handoff .msg-step-tag { color:var(--accent-fg); }
 
 /* ═══════════════════════════════════════════════════════════
    Run Board — cross-project kanban of WorkflowRuns. Read-only.
