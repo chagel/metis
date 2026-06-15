@@ -1,6 +1,7 @@
 require "test_helper"
 
 class Agent::WorkflowHandoffTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
   include Rails.application.routes.url_helpers
 
   setup do
@@ -24,20 +25,28 @@ class Agent::WorkflowHandoffTest < ActiveSupport::TestCase
     Agent::WorkflowHandoff.from_tool_call(@conversation, args)
   end
 
-  test "starts a run for a named workflow, seeded with the chat, and posts a confirmation" do
+  test "queues a run for a named workflow, seeded with the chat, and posts a confirmation" do
     assert_difference -> { WorkflowRun.count } => 1, -> { @conversation.messages.handoff.count } => 1 do
       handoff("workflow" => "ship", "project" => "metis", "note" => "build the widget")
     end
 
     run = WorkflowRun.last
+    assert run.queued?, "chat handoffs queue rather than start immediately"
     assert_equal @workflow, run.workflow
     assert_equal @project, run.conversation.project
     assert_includes run.input, "build the widget"
     assert_includes run.input, "here is the spec we agreed"
 
     note = @conversation.messages.handoff.last
+    assert_match(/Queued/, note.content)
     assert_match(/Ship/, note.content)
     assert_match(/#{Regexp.escape(conversation_path(run.conversation))}/, note.content)
+  end
+
+  test "the queued run is not advanced until launched" do
+    assert_no_enqueued_jobs(only: WorkflowAdvanceJob) do
+      handoff("workflow" => "ship")
+    end
   end
 
   test "name matching is case-insensitive" do

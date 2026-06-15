@@ -115,6 +115,8 @@
       wall_duration: "· 实际 %{duration}"
       cost: "· %{cost}"
     run_status:
+      queued: "已加入队列 — 查看上方注入的上下文，准备好后再启动。"
+      start_run: "启动运行"
       paused: "已暂停以等待你的批准 — 请见上方关卡。"
       worker_working: "%{worker} 正在处理此步骤。"
       delegated_waiting: "已委派 — 等待一台持有桥接令牌的机器来认领。"
@@ -146,7 +148,7 @@
       rejected: "已拒绝"
       approved: "已批准"
   handoff:
-    started: "🚀 已启动 **%{workflow}** 工作流（项目 **%{project}**）→ [打开运行](%{url})"
+    queued: "🕓 已将 **%{workflow}** 工作流加入队列（项目 **%{project}**）→ [查看并启动运行](%{url})"
     no_workflow: "⚠️ 无法启动工作流 — 团队中没有名为 **%{name}** 的已启用工作流。"
     no_project: "⚠️ 无法启动 **%{workflow}** 工作流 — 请指定运行的项目，或设置该工作流的默认项目。"
     failed: "⚠️ 启动工作流时出错 — 未启动任何运行。"

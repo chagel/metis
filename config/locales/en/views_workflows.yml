@@ -115,6 +115,8 @@ en:
       wall_duration: "· wall %{duration}"
       cost: "· %{cost}"
     run_status:
+      queued: "Queued — review the seeded context above, then start when ready."
+      start_run: "Start run"
       paused: "Paused for your approval — see the gate above."
       worker_working: "%{worker} is working on this step."
       delegated_waiting: "Delegated — waiting for a machine with a bridge token to pick it up."
@@ -146,7 +148,7 @@ en:
       rejected: "rejected"
       approved: "approved"
   handoff:
-    started: "🚀 Started the **%{workflow}** workflow on **%{project}** → [open the run](%{url})"
+    queued: "🕓 Queued the **%{workflow}** workflow on **%{project}** → [review & start the run](%{url})"
     no_workflow: "⚠️ Couldn't start a workflow — no enabled workflow named **%{name}** on this team."
     no_project: "⚠️ Couldn't start the **%{workflow}** workflow — name a project to run it on, or set the workflow's default project."
     failed: "⚠️ Something went wrong starting the workflow — nothing was launched."

@@ -9,6 +9,7 @@ en:
       read_only: "Read-only · status owned by the workflow engine"
       no_project: "No project"
       columns:
+        queued: "Queued"
         running: "Running"
         awaiting_approval: "Awaiting approval"
         awaiting_local: "Awaiting local"
@@ -17,6 +18,7 @@ en:
         workflow: "Workflow"
         step: "step %{current}/%{total}"
         review_gate: "review gate"
+        queued_tag: "to start"
         completed: "completed"
         ago: "%{time} ago"
     filters:

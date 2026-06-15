@@ -30,6 +30,7 @@ Rails.application.routes.draw do
 
   resources :workflow_runs, only: %i[create] do
     member do
+      post :start
       post :approve
       post :reject
       post :request_changes

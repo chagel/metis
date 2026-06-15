@@ -1,6 +1,6 @@
 module BoardHelper
   ACCENT_FOR_COLUMN = {
-    running: "run", awaiting_approval: "appr",
+    queued: "queue", running: "run", awaiting_approval: "appr",
     awaiting_local: "local", done: "done"
   }.freeze
 

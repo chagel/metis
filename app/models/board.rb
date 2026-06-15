@@ -4,19 +4,20 @@
 class Board
   DONE_WINDOW = 24.hours
 
-  COLUMNS = %i[running awaiting_approval awaiting_local done].freeze
+  COLUMNS = %i[queued running awaiting_approval awaiting_local done].freeze
 
   # Statuses whose runs are shown regardless of age; terminal runs are
   # bounded by the Done window.
-  ACTIVE_STATUSES = %i[pending running awaiting_approval awaiting_local].freeze
+  ACTIVE_STATUSES = %i[queued pending running awaiting_approval awaiting_local].freeze
 
   SCOPES = %i[all mine needs_me].freeze
   # The Done-column recency choices; "all" lifts the age bound entirely.
   DONE_WINDOWS = { "24h" => 24.hours, "7d" => 7.days, "2w" => 2.weeks,
                    "1m" => 1.month, "all" => nil }.freeze
 
-  # Maps the seven WorkflowRun statuses onto the four board columns.
+  # Maps the eight WorkflowRun statuses onto the five board columns.
   COLUMN_FOR_STATUS = {
+    "queued" => :queued,
     "pending" => :running, "running" => :running,
     "awaiting_approval" => :awaiting_approval,
     "awaiting_local" => :awaiting_local,
@@ -54,7 +55,7 @@ class Board
 
   # Visible runs awaiting someone's action — the "needs you" badge count.
   def needs_you_count
-    runs.count { |run| run.awaiting_approval? || run.awaiting_local? }
+    runs.count { |run| run.queued? || run.awaiting_approval? || run.awaiting_local? }
   end
 
   private

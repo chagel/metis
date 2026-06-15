@@ -9,6 +9,7 @@ zh-CN:
       read_only: "只读 · 状态类型基于工作流引擎"
       no_project: "无项目"
       columns:
+        queued: "队列中"
         running: "运行中"
         awaiting_approval: "待审批"
         awaiting_local: "待本地处理"
@@ -17,6 +18,7 @@ zh-CN:
         workflow: "工作流"
         step: "第 %{current}/%{total} 步"
         review_gate: "审批关卡"
+        queued_tag: "待启动"
         completed: "已完成"
         ago: "%{time}前"
     filters:

@@ -198,13 +198,29 @@ rather than a callback:
   (`Workflow.named` / `Project.named`, project falling back to the chat's own
   then the workflow default), seeds `input:` with the chat's transcript
   (`Agent::TranscriptDigest`) plus the agent's `note`, and calls
-  `WorkflowRun.start`. It then posts a `kind: :handoff` message back into the
-  chat — a link to the new run on success, a precise error otherwise.
+  `WorkflowRun.start(autostart: false)` — which **queues** the run rather than
+  starting it (see below). It then posts a `kind: :handoff` message back into
+  the chat — a link to the queued run on success, a precise error otherwise.
 
 The tool's ack is decoupled from the real outcome (Metis acts out of band),
 so the posted note — not the agent's reply — is the operator's source of
 truth. Shipping a new/changed extension reaches every runtime on deploy
 **except docker**, which bakes extensions into its image (`rake docker:image`).
+
+### The `queued` status
+
+A chat handoff shouldn't start a run blind — the operator should see what got
+seeded first. `WorkflowRun` has a `queued` status (and `WorkflowRun.start`
+takes `autostart:`, default `true`): a queued run is built (conversation +
+tasks) but **not advanced** — nothing enqueues `WorkflowAdvanceJob` until a
+human calls `WorkflowRun#launch!` (the run page's "Start run" button →
+`WorkflowRunsController#start`). The composer launcher keeps `autostart: true`
+(explicit "go now"); the chat handoff uses `autostart: false`.
+
+`queued` counts as `active` (blocks deleting its project) and `awaiting` (it
+needs a person to start it, so it shows under "needs you"). On the run board
+it's the **first column**, ahead of `running`. A future per-team auto-start
+toggle would just flip the handoff's `autostart:`.
 
 Why this is safe without new infra:
 

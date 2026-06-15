@@ -10,9 +10,11 @@
  * How it works: the tool itself only returns an acknowledgement. Metis is
  * watching the turn's event stream (ChatJob) and, when it sees this tool call,
  * acts server-side — it resolves the workflow + project, creates a new
- * conversation + WorkflowRun, seeds the run with this chat's transcript, and
- * posts a link back into the chat (Agent::WorkflowHandoff). The agent cannot
- * see the run's outcome from here; Metis's posted note is the source of truth.
+ * conversation + WorkflowRun seeded with this chat's transcript, leaves it
+ * QUEUED (not started), and posts a link back into the chat
+ * (Agent::WorkflowHandoff). The operator reviews the seeded context and starts
+ * the run themselves. The agent cannot see the outcome from here; Metis's
+ * posted note is the source of truth.
  *
  * Placement:
  *   Project-local: .pi/extensions/metis-workflow/index.ts   ← this file
@@ -27,16 +29,16 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
     label: "Start Metis Workflow",
     description:
       "Spin off a new Metis workflow run from this chat. Metis creates a " +
-      "separate conversation, seeds it with this chat's context, and runs the " +
-      "named workflow's steps independently. Use when the operator asks to " +
-      "start, kick off, or run a named workflow (e.g. \"start the ship workflow " +
-      "on project metis to do this\").",
+      "separate conversation seeded with this chat's context and QUEUES the " +
+      "named workflow — the operator reviews the seeded context and starts it " +
+      "themselves. Use when the operator asks to start, kick off, queue, or run " +
+      "a named workflow (e.g. \"start the ship workflow on project metis to do this\").",
     promptSnippet: "Start a named Metis workflow run from this chat",
     promptGuidelines: [
       "Use metis_start_workflow only when the operator explicitly asks to start, kick off, or run a named workflow.",
       "Pass `workflow` as the operator named it (e.g. \"ship\"). Pass `project` if they named one; omit it to use this chat's project.",
       "Put a short, self-contained summary of what the run should accomplish — the spec you concluded together — in `note`.",
-      "This hands off to a separate run you cannot observe from here. After calling it, tell the operator the run has started and to follow the link Metis posts into the chat.",
+      "This queues a separate run you cannot observe from here. After calling it, tell the operator the run is queued for their review and to follow the link Metis posts into the chat to start it.",
     ],
     parameters: Type.Object({
       workflow: Type.String({
@@ -65,9 +67,9 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
             type: "text",
             text:
               `Requested a "${workflow}" workflow run${where}. Metis is creating ` +
-              `the run from this chat's context and will post a link to it here. ` +
-              `You can't follow its progress from this chat — let the operator ` +
-              `know it has started.`,
+              `the run from this chat's context and will queue it, then post a link ` +
+              `here. It won't start until the operator reviews and starts it — let ` +
+              `them know it's queued for their review.`,
           },
         ],
         details: { workflow, project: project ?? null },

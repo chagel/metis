@@ -28,6 +28,15 @@ class BoardTest < ActiveSupport::TestCase
     assert_equal [ done ], columns[:done]
   end
 
+  test "queued runs land in the queued column, which sorts first" do
+    queued = new_run(status: :queued)
+
+    columns = Board.for(team: @team, user: @user).lanes.first.columns
+
+    assert_equal :queued, Board::COLUMNS.first
+    assert_equal [ queued ], columns[:queued]
+  end
+
   test "column_totals counts runs per column across lanes" do
     other = @team.projects.create!(name: "Atlas")
     new_run(status: :running, project: @project)

@@ -3,7 +3,13 @@
 <div id="composer" class="composer-wrap">
   <div class="composer-inner">
     <div class="wf-run-note">
-      <% if run.awaiting_approval? %>
+      <% if run.queued? %>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <%= t(".queued") %>
+        <%= button_to t(".start_run"), start_workflow_run_path(run), method: :post,
+              class: "wf-run-start", form: { class: "inline-form", data: { turbo_frame: "_top" } } %>
+      <% elsif run.awaiting_approval? %>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
         <%= t(".paused") %>

@@ -33,10 +33,10 @@ module Agent
         team: @conversation.team, user: @conversation.user,
         workflow: workflow, project: project, input: build_input,
         settings: @conversation.settings || {}, visibility: @conversation.visibility,
-        trigger_summary: "Spun off from a chat"
+        trigger_summary: "Spun off from a chat", autostart: false
       )
-      notify(t("started", workflow: workflow.name, project: project.name,
-                          url: Rails.application.routes.url_helpers.conversation_path(run.conversation)))
+      notify(t("queued", workflow: workflow.name, project: project.name,
+                         url: Rails.application.routes.url_helpers.conversation_path(run.conversation)))
     rescue StandardError => e
       Rails.logger.error("WorkflowHandoff failed for conversation #{@conversation.id}: #{e.class}: #{e.message}")
       notify(t("failed"))

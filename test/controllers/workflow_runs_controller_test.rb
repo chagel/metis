@@ -54,6 +54,17 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "start launches a queued run and redirects to its conversation" do
+    conversation = @user.conversations.create!
+    run = @team.workflow_runs.create!(conversation: conversation, status: :queued)
+    run.tasks.create!(position: 0, name: "a", prompt: "a", gate: :auto)
+
+    post start_workflow_run_path(run)
+
+    assert run.reload.pending?, "a queued run leaves the queue when started"
+    assert_redirected_to conversation
+  end
+
   test "a teammate cannot act on a personal run's gate" do
     team = shared_team
     conversation = @user.conversations.create!(team: team)

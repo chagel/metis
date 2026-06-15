@@ -28,6 +28,14 @@
   </div>
 
   <% case column %>
+  <% when :queued %>
+    <div class="board-actor">
+      <span class="board-who">
+        <%= avatar_for run.conversation.user, size: 19, css: "board-av" %>
+        <%= run.conversation.user.display_label %>
+      </span>
+      <span class="board-tag"><%= t("board.index.card.queued_tag") %></span>
+    </div>
   <% when :running %>
     <div class="board-runbar"><i></i></div>
   <% when :awaiting_approval %>
