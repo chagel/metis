@@ -34,6 +34,7 @@ class Agent::WorkflowHandoffTest < ActiveSupport::TestCase
     assert run.queued?, "chat handoffs queue rather than start immediately"
     assert_equal @workflow, run.workflow
     assert_equal @project, run.conversation.project
+    assert_equal "build the widget", run.conversation.title, "the note titles the queued run"
     assert_includes run.input, "build the widget"
     assert_includes run.input, "here is the spec we agreed"
 
@@ -41,6 +42,11 @@ class Agent::WorkflowHandoffTest < ActiveSupport::TestCase
     assert_match(/Queued/, note.content)
     assert_match(/Ship/, note.content)
     assert_match(/#{Regexp.escape(conversation_path(run.conversation))}/, note.content)
+  end
+
+  test "falls back to the workflow name for the title when no note is given" do
+    handoff("workflow" => "ship")
+    assert_equal "Ship workflow", WorkflowRun.last.conversation.title
   end
 
   test "the queued run is not advanced until launched" do

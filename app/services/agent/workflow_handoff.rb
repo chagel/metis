@@ -35,6 +35,9 @@ module Agent
         settings: @conversation.settings || {}, visibility: @conversation.visibility,
         trigger_summary: "Spun off from a chat", autostart: false
       )
+      # A queued run never runs a turn, so auto-titling can't name it — give
+      # it a friendly title now from the agent's note, else the workflow name.
+      run.conversation.update!(title: handoff_title(workflow))
       notify(t("queued", workflow: workflow.name, project: project.name,
                          url: Rails.application.routes.url_helpers.conversation_path(run.conversation)))
     rescue StandardError => e
@@ -66,6 +69,10 @@ module Agent
       transcript = TranscriptDigest.new(@conversation).to_s
       preamble = "Context from the chat that started this run:\n\n#{transcript}" if transcript.present?
       [ preamble, arg(:note).presence ].compact.join("\n\n").presence
+    end
+
+    def handoff_title(workflow)
+      arg(:note).presence&.truncate(Conversation::TITLE_MAX) || "#{workflow.name} workflow"
     end
 
     def notify(content)
