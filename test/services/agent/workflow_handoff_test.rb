@@ -58,7 +58,7 @@ class Agent::WorkflowHandoffTest < ActiveSupport::TestCase
     input = WorkflowRun.last.input
     assert_includes input, "fifa-spec.md"
     assert_includes input, "/files/blobs/redirect/", "carries the durable Active Storage download URL"
-    assert_includes input, "curl", "tells the run how to fetch them"
+    assert_includes input, "download", "tells the run to fetch them, tool-agnostic"
   end
 
   test "the queued run is not advanced until launched" do

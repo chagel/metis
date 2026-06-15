@@ -74,15 +74,15 @@ module Agent
 
     # The run starts in a fresh sandbox without the chat's files, but every
     # attachment already has a durable public download URL (the same link the
-    # chat's artifact cards use). List them so the run can curl what it needs —
+    # chat's artifact cards use). List them so the run can fetch what it needs —
     # references in the transcript like `artifacts/spec.md` are dead paths
     # from another sandbox; these links are not.
     def files_block
       links = chat_attachments.map { |attachment| "- #{attachment.filename}: #{blob_url(attachment)}" }
       return if links.empty?
 
-      "Files from the chat — fetch with `curl -L -o <name> <url>` before relying " \
-        "on them (they are not in this run's workspace):\n#{links.join("\n")}"
+      "Files from the chat (download them before relying on them — they are not " \
+        "in this run's workspace yet):\n#{links.join("\n")}"
     end
 
     # The latest attachment per filename across the chat — artifacts the agent

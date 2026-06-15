@@ -45,6 +45,26 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal baseline, grown, "each sidebar row must not add queries"
   end
 
+  test "a queued workflow run shows a Start pill in the sidebar's needs-you section" do
+    conversation = @user.conversations.create!(title: "Queued handoff")
+    @user.personal_team.workflow_runs.create!(conversation: conversation, status: :queued)
+    sign_in @user
+
+    get conversations_path
+    assert_response :success
+    assert_select ".convos-pinned .convo .convo-pill--start", text: "Start"
+  end
+
+  test "an awaiting-approval workflow run shows a Review pill in the sidebar" do
+    conversation = @user.conversations.create!(title: "Gated run")
+    @user.personal_team.workflow_runs.create!(conversation: conversation, status: :awaiting_approval)
+    sign_in @user
+
+    get conversations_path
+    assert_response :success
+    assert_select ".convos-pinned .convo .convo-pill", text: "Review"
+  end
+
   test "a solo personal conversation shows no avatars in the sidebar or sender row in the chat" do
     conversation = @user.conversations.create!(title: "Just me")
     conversation.messages.create!(role: :user, content: "hi", streaming_status: :done, sender: @user)
