@@ -81,6 +81,13 @@ class WorkflowRunTest < ActiveSupport::TestCase
     assert run.tasks.second.approval?
   end
 
+  test ".start titles the conversation when a title is given" do
+    run = WorkflowRun.start(team: @team, user: @user, title: "My run",
+                            project: @team.projects.create!(name: "Titled"),
+                            steps: [ { "name" => "a", "prompt" => "a" } ])
+    assert_equal "My run", run.conversation.title
+  end
+
   test ".start defaults to a workflow's own steps" do
     workflow = @team.workflows.create!(
       name: "Two-step",

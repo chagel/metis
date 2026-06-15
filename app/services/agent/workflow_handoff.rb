@@ -29,15 +29,15 @@ module Agent
       project = resolve_project(workflow)
       return notify(t("no_project", workflow: workflow.name)) unless project
 
+      # A queued run never runs a turn, so auto-titling can't name it — title
+      # it now from the agent's note, else the workflow name.
       run = WorkflowRun.start(
         team: @conversation.team, user: @conversation.user,
         workflow: workflow, project: project, input: build_input,
         settings: @conversation.settings || {}, visibility: @conversation.visibility,
-        trigger_summary: "Spun off from a chat", autostart: false
+        trigger_summary: "Spun off from a chat", autostart: false,
+        title: handoff_title(workflow)
       )
-      # A queued run never runs a turn, so auto-titling can't name it — give
-      # it a friendly title now from the agent's note, else the workflow name.
-      run.conversation.update!(title: handoff_title(workflow))
       notify(t("queued", workflow: workflow.name, project: project.name,
                          url: Rails.application.routes.url_helpers.conversation_path(run.conversation)))
     rescue StandardError => e
@@ -72,7 +72,7 @@ module Agent
     end
 
     def handoff_title(workflow)
-      arg(:note).presence&.truncate(Conversation::TITLE_MAX) || "#{workflow.name} workflow"
+      arg(:note).presence&.truncate(Conversation::TITLE_MAX) || workflow.run_title
     end
 
     def notify(content)

@@ -90,6 +90,14 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert WorkflowRun.order(:id).last.conversation.visibility_team?
   end
 
+  test "a launcher run is titled from the workflow up front" do
+    project = @team.projects.create!(name: "R&D")
+    workflow = @team.workflows.create!(name: "Triage", default_project: project,
+                                       steps: [ { "name" => "a", "prompt" => "a" } ])
+    post workflow_runs_path, params: { workflow_id: workflow.id, content: "go" }
+    assert_equal "Triage workflow", WorkflowRun.order(:id).last.conversation.title
+  end
+
   test "an awaiting run pins in a teammate's sidebar and shared tab" do
     team = shared_team
     conversation = @user.conversations.create!(team: team, visibility: :team, title: "ZZ team run")

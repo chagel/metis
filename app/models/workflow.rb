@@ -19,6 +19,12 @@ class Workflow < ApplicationRecord
     steps.count { |step| step["gate"] == "approval" }
   end
 
+  # A friendly default title for a run of this workflow, when there's no
+  # better subject to name it from (Agent::WorkflowHandoff, the launcher).
+  def run_title
+    "#{name} workflow"
+  end
+
   private
 
   def default_project_in_team

@@ -30,15 +30,17 @@ class WorkflowRun < ApplicationRecord
   # launcher starts immediately.
   def self.start(team:, user:, project:, workflow: nil, steps: nil,
                  input: nil, settings: {}, visibility: :personal,
-                 trigger_summary: "Started by you", autostart: true)
+                 trigger_summary: "Started by you", autostart: true, title: nil)
     raise ArgumentError, "every workflow run needs a project" if project.nil?
 
     steps ||= workflow&.steps || []
     run = transaction do
-      # No title — auto-titling names each run from its first turn, so runs
-      # of one workflow get distinct names.
+      # With no `title:` the conversation stays untitled so auto-titling names
+      # it from its first turn; callers that won't get a useful first-turn
+      # title (the launcher, a queued handoff) pass a friendly one up front.
       conversation = user.conversations.create!(
-        team: team, project: project, settings: settings || {}, visibility: visibility
+        team: team, project: project, settings: settings || {},
+        visibility: visibility, title: title
       )
       run = create!(
         team: team, workflow: workflow, conversation: conversation,
