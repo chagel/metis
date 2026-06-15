@@ -27,11 +27,14 @@
   </header>
 
   <div class="stream">
-    <div class="wf-tl-wrap">
+    <%# data-auto-claim survives the timeline's broadcast replace (it's on the
+        wrapper, not inside #workflow_timeline), so it carries this viewer's
+        preference into every live update — the unclaimed-local card toggles
+        its auto/manual variant off it in CSS. %>
+    <div class="wf-tl-wrap" data-auto-claim="<%= current_user.auto_claim_tasks %>">
       <%# The gate card renders inline, under the step it blocks; the whole
           timeline is one broadcast region, so it stays live. %>
-      <%= render "workflow_runs/timeline", run: @workflow_run, conversation: @conversation,
-            auto_claim: current_user.auto_claim_tasks %>
+      <%= render "workflow_runs/timeline", run: @workflow_run, conversation: @conversation %>
     </div>
   </div>
 

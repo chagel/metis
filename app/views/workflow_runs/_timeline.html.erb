@@ -2,10 +2,11 @@
     step's turn, and each gate decision. "view turn →" jumps into the
     chat anchored at that step's message. Root id is the
     broadcast/replace target; request-safe (run + conversation only).
-    `auto_claim` decides the unclaimed-local branch — the viewer's own
-    preference on a request, defaults to manual on broadcasts (broadcasts
-    have no current_user, so showing the Claim button is safe for all). %>
-<% auto_claim = local_assigns.fetch(:auto_claim, false) %>
+    The unclaimed-local card renders BOTH the auto and manual variants;
+    which one shows is a per-viewer CSS toggle keyed off
+    `.wf-tl-wrap[data-auto-claim]` (set once at request render, outside
+    this replaced region) — a broadcast has no current_user, so it can't
+    pick the variant server-side. %>
 <div id="workflow_timeline">
 <div class="wf-tl">
   <div class="wf-tl-item">
@@ -100,17 +101,18 @@
           </div>
         <% elsif task.delegated? && task.running? %>
           <div class="wf-tl-localguide">
-            <% if auto_claim %>
+            <div class="wf-tl-localguide-auto">
               <p><%= t(".local_runs_html") %></p>
               <p class="wf-tl-localguide-sub">
                 <%= t(".nothing_html", link: link_to(t(".developer_settings"), developer_path)) %>
               </p>
-            <% else %>
+            </div>
+            <div class="wf-tl-localguide-manual">
               <p><%= t(".local_runs_manual_html", link: link_to(t(".developer_settings"), developer_path)) %></p>
               <%= button_to t(".claim_step"), workflow_run_claim_run_task_path(run, task),
                     method: :post, class: "wf-tl-claim-btn", form: { data: { turbo_frame: "_top" } } %>
               <p class="wf-tl-claim-hint"><%= t(".claim_step_hint") %></p>
-            <% end %>
+            </div>
           </div>
         <% end %>
         <% if task.delegated? && (task.result_agent || task.result_model) %>

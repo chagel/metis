@@ -2289,7 +2289,13 @@ body.drawer-open { overflow:hidden; }
   box-shadow:0 0 0 3px var(--accent-soft), var(--sh-md);
 }
 
-/* Unclaimed local step: how to claim it, and where the bridge lives. */
+/* Unclaimed local step: how to claim it, and where the bridge lives. Both
+   the auto and manual variants render; the viewer's preference on the
+   wrapper decides which shows (manual is the safe default for broadcasts,
+   which carry no preference). */
+.wf-tl-localguide-auto { display:none; }
+.wf-tl-wrap[data-auto-claim="true"] .wf-tl-localguide-auto { display:block; }
+.wf-tl-wrap[data-auto-claim="true"] .wf-tl-localguide-manual { display:none; }
 .wf-tl-localguide { margin-top:8px; font-size:13px; color:var(--ink-2); line-height:1.6; }
 .wf-tl-localguide a { color:var(--accent-fg); }
 .wf-tl-localguide-sub { margin-top:4px; font-size:12px; color:var(--ink-3); }
