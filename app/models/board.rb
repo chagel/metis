@@ -12,7 +12,8 @@ class Board
 
   SCOPES = %i[all mine needs_me].freeze
   # The Done-column recency choices; "all" lifts the age bound entirely.
-  DONE_WINDOWS = { "24h" => 24.hours, "7d" => 7.days, "all" => nil }.freeze
+  DONE_WINDOWS = { "24h" => 24.hours, "7d" => 7.days, "2w" => 2.weeks,
+                   "1m" => 1.month, "all" => nil }.freeze
 
   # Maps the seven WorkflowRun statuses onto the four board columns.
   COLUMN_FOR_STATUS = {

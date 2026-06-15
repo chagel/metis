@@ -42,8 +42,8 @@
   <span class="board-filters-sep"></span>
 
   <div class="board-done" role="group" aria-label="<%= t('board.filters.done_window.label') %>">
-    <% %w[24h 7d all].each do |window| %>
-      <%= link_to t("board.filters.done_window.#{window == '24h' ? 'h24' : window == '7d' ? 'd7' : 'all'}"),
+    <% Board::DONE_WINDOWS.each_key do |window| %>
+      <%= link_to t("board.filters.done_window.#{window}"),
             board_filter_path(done: window),
             class: "board-done-opt#{' is-on' if board_done_active?(window)}" %>
     <% end %>

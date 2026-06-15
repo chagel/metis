@@ -137,6 +137,26 @@ class BoardControllerTest < ActionDispatch::IntegrationTest
     assert_select sel
   end
 
+  test "done=2w reveals a terminal run older than the 7d window" do
+    old = new_run(status: :completed)
+    old.update_columns(updated_at: 10.days.ago)
+    sel = "##{ActionView::RecordIdentifier.dom_id(old, :board)}"
+
+    sign_in @user
+    get board_path(done: "7d")
+    assert_select sel, count: 0
+    get board_path(done: "2w")
+    assert_select sel
+  end
+
+  test "the done-window toggle offers every configured window" do
+    sign_in @user
+    get board_path
+    assert_select ".board-done .board-done-opt", count: Board::DONE_WINDOWS.size
+    assert_select ".board-done .board-done-opt", text: "2w"
+    assert_select ".board-done .board-done-opt", text: "1m"
+  end
+
   test "an unknown scope falls back to all" do
     run = new_run(status: :running)
     sign_in @user

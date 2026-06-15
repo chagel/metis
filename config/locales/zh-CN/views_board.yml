@@ -31,8 +31,10 @@ zh-CN:
         clear: "清除"
       done_window:
         label: "完成窗口"
-        h24: "24小时"
-        d7: "7天"
+        "24h": "24小时"
+        "7d": "7天"
+        "2w": "2周"
+        "1m": "1个月"
         all: "全部"
     actors:
       live: "实时"

@@ -33,8 +33,10 @@ en:
         clear: "Clear"
       done_window:
         label: "Done window"
-        h24: "24h"
-        d7: "7d"
+        "24h": "24h"
+        "7d": "7d"
+        "2w": "2w"
+        "1m": "1m"
         all: "All"
     actors:
       live: "live"
