@@ -125,6 +125,7 @@
       workflow_status: "工作流%{status}。"
       continue_conversation: "继续对话"
     sidebar_pill:
+      start: "启动"
       review: "审阅"
       local: "本地"
       done: "完成"

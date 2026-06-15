@@ -2407,6 +2407,10 @@ body.drawer-open { overflow:hidden; }
   letter-spacing:.03em; text-transform:uppercase; padding:2px 7px; border-radius:999px;
   background:var(--gold-soft); color:var(--gold); border:1px solid var(--gold-line);
 }
+.convo-pill--start {
+  background:var(--info-soft); color:var(--info);
+  border-color:color-mix(in srgb, var(--info) 35%, transparent);
+}
 .convo-check { flex:none; width:13px; height:13px; margin-left:6px; color:var(--ink-3); }
 .convo-fail { flex:none; width:6px; height:6px; border-radius:50%; background:var(--danger); margin-left:6px; }
 

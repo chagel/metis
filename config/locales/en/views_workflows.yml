@@ -125,6 +125,7 @@ en:
       workflow_status: "Workflow %{status}."
       continue_conversation: "Continue the conversation"
     sidebar_pill:
+      start: "Start"
       review: "Review"
       local: "Local"
       done: "Done"

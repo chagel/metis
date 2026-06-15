@@ -2,6 +2,8 @@
     pending/running — ChatBroadcaster's running dot covers a live turn. %>
 <% id = dom_id(conversation, :wf_status) %>
 <% case run.status %>
+<% when "queued" %>
+  <span class="convo-pill convo-pill--start" id="<%= id %>"><%= t(".start") %></span>
 <% when "awaiting_approval" %>
   <span class="convo-pill" id="<%= id %>"><%= t(".review") %></span>
 <% when "awaiting_local" %>

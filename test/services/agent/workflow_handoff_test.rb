@@ -49,6 +49,18 @@ class Agent::WorkflowHandoffTest < ActiveSupport::TestCase
     assert_equal "Ship workflow", WorkflowRun.last.conversation.title
   end
 
+  test "appends download links for the chat's artifacts to the run input" do
+    msg = @conversation.messages.create!(role: :assistant, content: "shipped the spec", streaming_status: :done)
+    msg.artifacts.attach(io: StringIO.new("# spec"), filename: "fifa-spec.md", content_type: "text/markdown")
+
+    handoff("workflow" => "ship")
+
+    input = WorkflowRun.last.input
+    assert_includes input, "fifa-spec.md"
+    assert_includes input, "/files/blobs/redirect/", "carries the durable Active Storage download URL"
+    assert_includes input, "curl", "tells the run how to fetch them"
+  end
+
   test "the queued run is not advanced until launched" do
     assert_no_enqueued_jobs(only: WorkflowAdvanceJob) do
       handoff("workflow" => "ship")

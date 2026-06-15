@@ -63,12 +63,48 @@ module Agent
       @conversation.project || workflow.default_project
     end
 
-    # The run's subject: the chat that led here, plus the agent's own summary
-    # of what to do. WorkflowRun.start folds this into the first step's prompt.
+    # The run's subject: the chat that led here, the agent's own summary of
+    # what to do, and download links for the files the chat produced.
+    # WorkflowRun.start folds this into the first step's prompt.
     def build_input
       transcript = TranscriptDigest.new(@conversation).to_s
       preamble = "Context from the chat that started this run:\n\n#{transcript}" if transcript.present?
-      [ preamble, arg(:note).presence ].compact.join("\n\n").presence
+      [ preamble, arg(:note).presence, files_block ].compact.join("\n\n").presence
+    end
+
+    # The run starts in a fresh sandbox without the chat's files, but every
+    # attachment already has a durable public download URL (the same link the
+    # chat's artifact cards use). List them so the run can curl what it needs —
+    # references in the transcript like `artifacts/spec.md` are dead paths
+    # from another sandbox; these links are not.
+    def files_block
+      links = chat_attachments.map { |attachment| "- #{attachment.filename}: #{blob_url(attachment)}" }
+      return if links.empty?
+
+      "Files from the chat — fetch with `curl -L -o <name> <url>` before relying " \
+        "on them (they are not in this run's workspace):\n#{links.join("\n")}"
+    end
+
+    # The latest attachment per filename across the chat — artifacts the agent
+    # wrote and files the operator uploaded.
+    def chat_attachments
+      by_name = {}
+      @conversation.messages.chronological.with_attached_artifacts.with_attached_files.each do |message|
+        (message.artifacts.attachments + message.files.attachments).each do |attachment|
+          by_name[attachment.filename.to_s] = attachment
+        end
+      end
+      by_name.values
+    end
+
+    def blob_url(attachment)
+      Rails.application.routes.url_helpers.rails_blob_url(
+        attachment, disposition: "attachment", **blob_url_options
+      )
+    end
+
+    def blob_url_options
+      Rails.application.config.action_mailer.default_url_options.presence || { host: "localhost", port: 3000 }
     end
 
     def handoff_title(workflow)
