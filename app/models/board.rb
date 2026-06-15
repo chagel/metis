@@ -51,6 +51,11 @@ class Board
     runs.size
   end
 
+  # Run count per status column, summed across every lane.
+  def column_totals
+    @column_totals ||= COLUMNS.index_with { |column| lanes.sum { |lane| lane.columns[column].size } }
+  end
+
   # Visible runs awaiting someone's action — the "needs you" badge count.
   def needs_you_count
     runs.count { |run| run.awaiting_approval? || run.awaiting_local? }

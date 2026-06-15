@@ -4,7 +4,9 @@ zh-CN:
       title: "运行看板"
       subtitle:
         other: "%{count} 个运行"
-      axis: "项目 / 状态"
+      axis:
+        project: "项目"
+        status: "状态"
       empty: "暂无运行。启动一个工作流后会出现在这里。"
       read_only: "只读 · 状态类型基于工作流引擎"
       no_project: "无项目"

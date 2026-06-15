@@ -28,6 +28,19 @@ class BoardTest < ActiveSupport::TestCase
     assert_equal [ done ], columns[:done]
   end
 
+  test "column_totals counts runs per column across lanes" do
+    other = @team.projects.create!(name: "Atlas")
+    new_run(status: :running, project: @project)
+    new_run(status: :running, project: other)
+    new_run(status: :awaiting_approval, project: @project)
+
+    totals = Board.for(team: @team, user: @user).column_totals
+    assert_equal 2, totals[:running]
+    assert_equal 1, totals[:awaiting_approval]
+    assert_equal 0, totals[:awaiting_local]
+    assert_equal 0, totals[:done]
+  end
+
   test "pending folds into running and terminal states fold into done" do
     pending   = new_run(status: :pending)
     failed    = new_run(status: :failed)

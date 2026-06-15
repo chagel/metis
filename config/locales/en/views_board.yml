@@ -5,7 +5,9 @@ en:
       subtitle:
         one: "%{count} run"
         other: "%{count} runs"
-      axis: "project / status"
+      axis:
+        project: "project"
+        status: "status"
       empty: "No runs yet. Start a workflow to see it here."
       read_only: "Read-only · status owned by the workflow engine"
       no_project: "No project"

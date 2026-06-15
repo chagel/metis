@@ -4,11 +4,18 @@
 <div class="board-scroll" id="board_grid">
   <% if board.any? %>
     <div class="board-cols">
-      <div class="board-col-h corner"><%= t("board.index.axis") %></div>
+      <div class="board-col-h corner">
+        <span class="board-axis"><%= t("board.index.axis.project") %><span class="board-axis-arr" aria-hidden="true">↓</span></span>
+        <span class="board-axis-sep" aria-hidden="true">/</span>
+        <span class="board-axis"><%= t("board.index.axis.status") %><span class="board-axis-arr" aria-hidden="true">→</span></span>
+      </div>
       <% Board::COLUMNS.each do |column| %>
         <div class="board-col-h">
           <span class="board-col-dot board-col-dot--<%= column %>"></span>
           <%= board_column_label(column) %>
+          <% if board.column_totals[column].positive? %>
+            <span class="board-col-n"><%= board.column_totals[column] %></span>
+          <% end %>
         </div>
       <% end %>
     </div>
