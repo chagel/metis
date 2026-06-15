@@ -2577,8 +2577,6 @@ body.drawer-open { overflow:hidden; }
 .board-head h1 {
   font-family:var(--fd); font-weight:700; font-size:21px; letter-spacing:-.02em;
 }
-.board-sub { color:var(--ink-3); font-size:12.5px; margin-top:3px; }
-
 .board-scroll { overflow:auto; padding:0 18px 22px; flex:1; }
 .board-cols, .board-lane {
   display:grid;

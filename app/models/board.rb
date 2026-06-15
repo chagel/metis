@@ -47,10 +47,6 @@ class Board
     runs.any?
   end
 
-  def count
-    runs.size
-  end
-
   # Run count per status column, summed across every lane.
   def column_totals
     @column_totals ||= COLUMNS.index_with { |column| lanes.sum { |lane| lane.columns[column].size } }

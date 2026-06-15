@@ -2,8 +2,6 @@ zh-CN:
   board:
     index:
       title: "运行看板"
-      subtitle:
-        other: "%{count} 个运行"
       axis:
         project: "项目"
         status: "状态"

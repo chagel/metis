@@ -4,7 +4,6 @@
   <header class="board-head">
     <div class="board-head-main">
       <h1><%= t(".title") %></h1>
-      <div class="board-sub"><%= t(".subtitle", count: @board.count) %></div>
       <%= render "board/filters" %>
     </div>
     <%= render "board/actors", presence: @presence, poll_query: board_filter_query %>

@@ -2,9 +2,6 @@ en:
   board:
     index:
       title: "Run Board"
-      subtitle:
-        one: "%{count} run"
-        other: "%{count} runs"
       axis:
         project: "project"
         status: "status"
