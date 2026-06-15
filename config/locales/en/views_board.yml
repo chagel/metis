@@ -50,7 +50,7 @@ en:
       machines_summary: "%{online}/%{total}"
       overflow: "+%{count}"
       people: "People"
-      machines: "Machines · daemon clients"
+      machines: "Machines"
       reviewing: "reviewing %{ref}"
       no_gates: "no open gates"
       idle: "idle"

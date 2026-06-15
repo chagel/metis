@@ -46,7 +46,7 @@ zh-CN:
       machines_summary: "%{online}/%{total}"
       overflow: "+%{count}"
       people: "成员"
-      machines: "机器 · 守护客户端"
+      machines: "机器"
       reviewing: "正在审阅 %{ref}"
       no_gates: "无待处理关卡"
       idle: "空闲"
