@@ -5,9 +5,11 @@
 <% gate_total = presence.people.sum(&:gate_count) %>
 <% shown_people = presence.people.first(6) %>
 <% people_overflow = presence.people.size - shown_people.size %>
+<%# poll_query carries the board's active filters so the ~20s refetch stays
+    in sync with the filtered grid; absent (broadcast re-render) → unfiltered. %>
 <div class="board-actors" id="board_actors"
      data-controller="dropdown poll"
-     data-poll-url-value="<%= board_actors_path %>">
+     data-poll-url-value="<%= board_actors_path(local_assigns.fetch(:poll_query, {})) %>">
   <button type="button" class="board-actors-bar" data-action="click->dropdown#toggle"
           aria-haspopup="true" aria-expanded="false"
           aria-controls="board_actors_panel" aria-label="<%= t("board.actors.expand") %>">

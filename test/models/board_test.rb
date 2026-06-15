@@ -116,12 +116,23 @@ class BoardTest < ActiveSupport::TestCase
     assert_equal [ approval, local ].map(&:id).sort, board_runs(scope: :needs_me).map(&:id).sort
   end
 
-  test "project_id filters to one project's runs" do
+  test "project_ids filters to the selected projects' runs" do
     other = @team.projects.create!(name: "Atlas")
+    third = @team.projects.create!(name: "Brie")
     here = new_run(project: @project)
-    new_run(project: other)
+    there = new_run(project: other)
+    new_run(project: third)
 
-    assert_equal [ here ], board_runs(project_id: @project.id)
+    runs = board_runs(project_ids: [ @project.id, other.id ])
+    assert_equal [ here, there ].map(&:id).sort, runs.map(&:id).sort
+  end
+
+  test "empty project_ids does not filter by project" do
+    other = @team.projects.create!(name: "Atlas")
+    a = new_run(project: @project)
+    b = new_run(project: other)
+
+    assert_equal [ a, b ].map(&:id).sort, board_runs(project_ids: []).map(&:id).sort
   end
 
   test "window all lifts the terminal age bound" do

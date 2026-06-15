@@ -21,10 +21,16 @@ en:
         completed: "completed"
         ago: "%{time} ago"
     filters:
-      all: "All projects"
       mine: "Mine"
       needs_me: "Needs me"
       filter_project: "Filter to %{name}"
+      projects:
+        all: "All projects"
+        count:
+          one: "%{count} project"
+          other: "%{count} projects"
+        apply: "Apply"
+        clear: "Clear"
       done_window:
         label: "Done window"
         h24: "24h"

@@ -6,7 +6,7 @@ zh-CN:
         other: "%{count} 个运行"
       axis: "项目 / 状态"
       empty: "暂无运行。启动一个工作流后会出现在这里。"
-      read_only: "只读 · 状态由工作流引擎掌管"
+      read_only: "只读 · 状态类型基于工作流引擎"
       no_project: "无项目"
       columns:
         running: "运行中"
@@ -20,10 +20,15 @@ zh-CN:
         completed: "已完成"
         ago: "%{time}前"
     filters:
-      all: "全部项目"
       mine: "我的"
       needs_me: "需要我"
       filter_project: "筛选至 %{name}"
+      projects:
+        all: "全部项目"
+        count:
+          other: "%{count} 个项目"
+        apply: "应用"
+        clear: "清除"
       done_window:
         label: "完成窗口"
         h24: "24小时"

@@ -24,15 +24,15 @@ class Board
 
   Lane = Struct.new(:project, :columns, keyword_init: true)
 
-  def self.for(team:, user:, scope: :all, project_id: nil, window: DONE_WINDOW)
-    new(team: team, user: user, scope: scope, project_id: project_id, window: window)
+  def self.for(team:, user:, scope: :all, project_ids: [], window: DONE_WINDOW)
+    new(team: team, user: user, scope: scope, project_ids: project_ids, window: window)
   end
 
-  def initialize(team:, user:, scope: :all, project_id: nil, window: DONE_WINDOW)
+  def initialize(team:, user:, scope: :all, project_ids: [], window: DONE_WINDOW)
     @team = team
     @user = user
     @scope = scope
-    @project_id = project_id
+    @project_ids = Array(project_ids)
     @window = window
   end
 
@@ -57,17 +57,14 @@ class Board
 
   private
 
-  attr_reader :team, :user, :scope, :project_id, :window
+  attr_reader :team, :user, :scope, :project_ids, :window
 
   def runs
     @runs ||= load_runs
   end
 
   def load_runs
-    conversations = team.conversations.accessible_to(user)
-    conversations = conversations.where(user_id: user.id) if scope == :mine
-    conversations = conversations.where(project_id: project_id) if project_id
-    ids = conversations.select(:id)
+    ids = team.conversations.board_visible(user, scope, project_ids).select(:id)
 
     runs = WorkflowRun.where(conversation_id: ids)
     if scope == :needs_me

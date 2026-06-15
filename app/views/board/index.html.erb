@@ -7,7 +7,7 @@
       <div class="board-sub"><%= t(".subtitle", count: @board.count) %></div>
       <%= render "board/filters" %>
     </div>
-    <%= render "board/actors", presence: @presence %>
+    <%= render "board/actors", presence: @presence, poll_query: board_filter_query %>
   </header>
 
   <%= render "board/grid", board: @board %>

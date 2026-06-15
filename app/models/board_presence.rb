@@ -18,13 +18,15 @@ class BoardPresence
     end
   end
 
-  def self.for(team:, user:)
-    new(team: team, user: user)
+  def self.for(team:, user:, scope: :all, project_ids: [])
+    new(team: team, user: user, scope: scope, project_ids: project_ids)
   end
 
-  def initialize(team:, user:)
+  def initialize(team:, user:, scope: :all, project_ids: [])
     @team = team
     @user = user
+    @scope = scope
+    @project_ids = Array(project_ids)
   end
 
   # Team members, those with an open gate first.
@@ -58,7 +60,7 @@ class BoardPresence
 
   private
 
-  attr_reader :team, :user
+  attr_reader :team, :user, :scope, :project_ids
 
   def online?(member)
     member.bridge_seen_at.present? && member.bridge_seen_at > ONLINE_WINDOW.ago
@@ -68,14 +70,17 @@ class BoardPresence
     @bridge_members ||= team.members.select { |member| member.bridge_token_digest.present? }
   end
 
-  def visible_conversation_ids
-    team.conversations.accessible_to(user).select(:id)
+  # The same conversation set the grid draws from, so the bar's gates and
+  # claimed-task refs track the active filters (the roster of people and
+  # machines stays team-wide — only what they're shown doing narrows).
+  def visible_conversations
+    team.conversations.board_visible(user, scope, project_ids)
   end
 
   # launcher user id => [gate refs], from awaiting-approval runs the viewer
   # can see. A team-visible gate is attributed to the run's launcher.
   def gates_by_launcher
-    WorkflowRun.where(conversation_id: visible_conversation_ids)
+    WorkflowRun.where(conversation_id: visible_conversations.select(:id))
                .awaiting_approval
                .includes(:tasks, :conversation, :workflow)
                .each_with_object(Hash.new { |h, k| h[k] = [] }) do |run, acc|
@@ -92,7 +97,7 @@ class BoardPresence
 
     Task.where(claimed_by_user_id: bridge_members.map(&:id), status: :running, delegated: true)
         .joins(workflow_run: :conversation)
-        .merge(team.conversations.accessible_to(user))
+        .merge(visible_conversations)
         .includes(workflow_run: :workflow)
         .order(claimed_at: :desc)
         .group_by(&:claimed_by_user_id)

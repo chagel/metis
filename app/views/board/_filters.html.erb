@@ -2,20 +2,41 @@
     the URL so a filtered board is shareable and survives reload. Links
     navigate the #main frame (the board swaps, the sidebar stays put). %>
 <div class="board-filters">
-  <%= link_to t("board.filters.all"), board_filter_path(scope: :all),
-        class: "board-chip#{' is-on' if board_scope_active?(:all)}" %>
-  <%= link_to t("board.filters.mine"), board_filter_path(scope: :mine),
+  <%= link_to t("board.filters.mine"), board_scope_toggle_path(:mine),
         class: "board-chip#{' is-on' if board_scope_active?(:mine)}" %>
-  <%= link_to board_filter_path(scope: :needs_me),
+  <%= link_to board_scope_toggle_path(:needs_me),
         class: "board-chip#{' is-on' if board_scope_active?(:needs_me)}" do %>
     <%= t("board.filters.needs_me") %><% if @needs_you&.any? %><span class="board-chip-n"><%= @needs_you.size %></span><% end %>
   <% end %>
 
-  <% if @project %>
-    <%= link_to board_filter_path(project: nil), class: "board-chip is-on board-chip--clear" do %>
-      <%= @project.name %>
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-    <% end %>
+  <% if @projects.any? %>
+    <%# Multi-select project checklist. A GET form inside #main, so applying
+        advances the URL (shareable) like the chips. Reuses the dropdown
+        controller for open/close. %>
+    <div class="board-projfilter" data-controller="dropdown">
+      <button type="button" class="board-chip board-chip--drop<%= ' is-on' if @project_ids.any? %>"
+              data-action="click->dropdown#toggle" aria-haspopup="true" aria-expanded="false">
+        <%= board_projects_label %>
+        <svg class="board-chip-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
+      </button>
+
+      <%= form_with url: board_path, method: :get, class: "board-projfilter-panel", role: "menu" do %>
+        <%= hidden_field_tag :scope, @scope unless board_scope_active?(:all) %>
+        <%= hidden_field_tag :done, @done unless board_done_active?("24h") %>
+        <% @projects.each do |project| %>
+          <label class="board-checkrow">
+            <%= check_box_tag "projects[]", project.id, board_project_selected?(project), class: "board-check-in" %>
+            <span class="board-check" aria-hidden="true"></span>
+            <span class="board-checkrow-nm"><%= project.name %></span>
+          </label>
+        <% end %>
+        <div class="board-projfilter-foot">
+          <%= link_to t("board.filters.projects.clear"), board_filter_path(projects: []),
+                class: "board-projfilter-clear#{' is-off' if @project_ids.empty?}" %>
+          <button type="submit" class="board-projfilter-apply"><%= t("board.filters.projects.apply") %></button>
+        </div>
+      <% end %>
+    </div>
   <% end %>
 
   <span class="board-filters-sep"></span>

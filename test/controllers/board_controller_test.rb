@@ -76,6 +76,13 @@ class BoardControllerTest < ActionDispatch::IntegrationTest
     assert_select "turbo-stream[action=replace][target=board_actors]"
   end
 
+  test "the actors poll url carries the active filters" do
+    sign_in @user
+    get board_path(scope: "mine", projects: [ @project.id ])
+    assert_select "#board_actors[data-poll-url-value*='scope=mine']"
+    assert_select "#board_actors[data-poll-url-value*='projects']"
+  end
+
   test "scope=mine hides a teammate's team run" do
     teammate = User.create!(email: "mate@example.com", password: "password123")
     @team.memberships.create!(user: teammate, role: :member)
@@ -87,6 +94,32 @@ class BoardControllerTest < ActionDispatch::IntegrationTest
     get board_path(scope: "mine")
     assert_select "##{ActionView::RecordIdentifier.dom_id(mine, :board)}"
     assert_select "##{ActionView::RecordIdentifier.dom_id(theirs, :board)}", count: 0
+  end
+
+  test "projects checklist filters to the selected projects" do
+    other = @team.projects.create!(name: "Atlas")
+    excluded = @team.projects.create!(name: "Brie")
+    here = new_run(status: :running)
+    there = @team.workflow_runs.create!(
+      conversation: @user.conversations.create!(team: @team, project: other), status: :running
+    )
+    gone = @team.workflow_runs.create!(
+      conversation: @user.conversations.create!(team: @team, project: excluded), status: :running
+    )
+
+    sign_in @user
+    get board_path(projects: [ @project.id, other.id ])
+    assert_select "##{ActionView::RecordIdentifier.dom_id(here, :board)}"
+    assert_select "##{ActionView::RecordIdentifier.dom_id(there, :board)}"
+    assert_select "##{ActionView::RecordIdentifier.dom_id(gone, :board)}", count: 0
+    assert_select ".board-projfilter .board-chip", text: /2 projects/
+  end
+
+  test "the projects checklist renders a checkbox per team project" do
+    @team.projects.create!(name: "Atlas")
+    sign_in @user
+    get board_path
+    assert_select ".board-projfilter-panel input[type=checkbox][name='projects[]']", count: 2
   end
 
   test "done=24h hides an old terminal run that done=all reveals" do
@@ -106,7 +139,8 @@ class BoardControllerTest < ActionDispatch::IntegrationTest
     sign_in @user
     get board_path(scope: "bogus")
     assert_response :success
-    assert_select ".board-chip.is-on", text: /All projects/
+    assert_select ".board-chip.is-on", count: 0
+    assert_select ".board-projfilter .board-chip--drop", text: /All projects/
     assert_select "##{ActionView::RecordIdentifier.dom_id(run, :board)}"
   end
 end

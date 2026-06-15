@@ -40,6 +40,16 @@ class Conversation < ApplicationRecord
   scope :accessible_to, ->(user) {
     where(visibility: :team).or(where(user_id: user.id))
   }
+  # The conversation set a board view draws from: visible to the user,
+  # narrowed by the board's scope (mine) and project filter. Shared by the
+  # grid (Board) and the actor bar (BoardPresence) so they can't diverge.
+  # Run-level facets (done window, needs_me) stay with each caller.
+  scope :board_visible, ->(user, board_scope, project_ids) {
+    rel = accessible_to(user)
+    rel = rel.where(user_id: user.id) if board_scope == :mine
+    rel = rel.where(project_id: project_ids) if project_ids.present?
+    rel
+  }
   # Everything a sidebar row asks per conversation — the run pill, the
   # running dot, participant avatars — batched for the whole page.
   scope :preloaded_for_sidebar, -> {

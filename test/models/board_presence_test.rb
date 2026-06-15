@@ -130,6 +130,38 @@ class BoardPresenceTest < ActiveSupport::TestCase
     assert_equal 1, presence.online_count
   end
 
+  test "gates track the active project filter" do
+    gated = add_member
+    atlas = @team.projects.create!(name: "Atlas")
+    conversation = gated.conversations.create!(team: @team, project: @project, visibility: :team)
+    @team.workflow_runs.create!(conversation: conversation, status: :awaiting_approval)
+         .tasks.create!(position: 0, gate: :approval, status: :awaiting_approval, name: "review")
+
+    unfiltered = BoardPresence.for(team: @team, user: @user).people.find { |p| p.member == gated }
+    assert_equal 1, unfiltered.gate_count
+
+    filtered = BoardPresence.for(team: @team, user: @user, project_ids: [ atlas.id ])
+                            .people.find { |p| p.member == gated }
+    assert filtered.idle?, "a gate outside the filtered projects must not show"
+  end
+
+  test "claimed task ref tracks the active project filter" do
+    member = add_member
+    member.generate_bridge_token!
+    atlas = @team.projects.create!(name: "Atlas")
+    conversation = @user.conversations.create!(team: @team, project: @project, visibility: :team)
+    run = @team.workflow_runs.create!(conversation: conversation, status: :awaiting_local)
+    task = run.tasks.create!(position: 0, delegated: true, status: :running,
+                             claimed_by_user: member, claimed_at: Time.current)
+
+    shown = BoardPresence.for(team: @team, user: @user).machines.find { |m| m.owner == member }
+    assert_equal task.ref, shown.task_ref
+
+    hidden = BoardPresence.for(team: @team, user: @user, project_ids: [ atlas.id ])
+                          .machines.find { |m| m.owner == member }
+    assert_nil hidden.task_ref, "a claim outside the filtered projects must not show"
+  end
+
   test "no bridge users yields no machines" do
     add_member
     assert_empty BoardPresence.for(team: @team, user: @user).machines
