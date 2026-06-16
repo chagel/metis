@@ -290,6 +290,32 @@ class Users::OmniauthCallbacksControllerTest < ActionDispatch::IntegrationTest
     assert_match(/already linked/i, flash[:alert])
   end
 
+  test "connecting a GitHub account already owned by another user wires the connector without claiming the identity" do
+    # Two metis accounts, one GitHub account: the second user must still be
+    # able to connect GitHub. The identity stays with the first owner (sign-in
+    # needs a single owner), but the connector — backed by a per-user grant and
+    # ConnectorCredential — wires through for the second user.
+    owner = User.create!(email: "owner-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    owner.identities.create!(provider: "github", uid: "shared-42")
+
+    me = User.create!(email: "me-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    sign_in me
+    mock_github(uid: "shared-42", login: "mgc", email: me.email,
+                scope: "user:email repo read:user", connect: "github")
+
+    assert_no_difference("Identity.count", "the identity stays with its first owner") do
+      assert_difference("ConnectorCredential.count", 1) do
+        get user_github_omniauth_callback_path
+      end
+    end
+
+    assert_equal owner, Identity.find_by(provider: "github", uid: "shared-42").user
+    cred = me.personal_team.connectors.find_by(catalog_key: "github").credential_for(me)
+    assert_equal me, cred.user
+    assert me.oauth_grants.exists?(provider: "github"), "the second user gets their own grant"
+    assert_nil flash[:alert], "must not surface the already-linked alert on the connect path"
+  end
+
   test "a connector activation failure during connect-flow does not block sign-in" do
     mock_github(uid: "conn-fail-1", login: "mgc", email: "ok@example.com",
                 scope: "user:email repo read:user", connect: "github")

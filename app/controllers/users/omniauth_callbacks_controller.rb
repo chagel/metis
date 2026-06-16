@@ -27,7 +27,7 @@ class Users::OmniauthCallbacksController < Devise::OmniauthCallbacksController
 
     target =
       if was_signed_in
-        attach_identity(current_user, auth)
+        attach_identity(current_user, auth, connecting: params["connect"].present?)
       else
         signup_email = User.trusted_email(auth) || User.noreply_email(auth)
         User.from_omniauth(auth, allow_signup: registration_allowed_for?(signup_email))
@@ -117,11 +117,20 @@ class Users::OmniauthCallbacksController < Devise::OmniauthCallbacksController
     ]
   end
 
-  def attach_identity(user, auth)
+  # `connecting` is true when the callback was triggered by a "Connect
+  # <app>" button (omniauth.params["connect"] present), false for a bare
+  # sign-in link.
+  def attach_identity(user, auth, connecting:)
     user.identities.find_or_create_by!(provider: auth.provider, uid: auth.uid.to_s)
     user
   rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
     # (provider, uid) is owned by another user; both errors mean the same thing.
-    raise IdentityAlreadyLinked
+    # A connector authorization doesn't need a global sign-in identity — its
+    # OauthGrant and ConnectorCredential are already per-user — so let the same
+    # provider account back connectors on multiple metis users. Block only the
+    # bare sign-in link, where a shared uid would make sign-in ambiguous.
+    raise IdentityAlreadyLinked unless connecting
+
+    user
   end
 end
