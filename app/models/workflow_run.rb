@@ -102,7 +102,7 @@ class WorkflowRun < ApplicationRecord
     return unless task
 
     task.update!(status: :completed, approved_by: by, decided_at: Time.current)
-    append_review %(\#{reviewer(by)} approved "\#{task.display_name}"), sender: by
+    append_review %(#{reviewer(by)} approved "#{task.display_name}"), sender: by
     running!
     WorkflowAdvanceJob.perform_later(id)
   end
@@ -136,7 +136,7 @@ class WorkflowRun < ApplicationRecord
   # killing its client needs a person, not another cycle.
   def fail_silent_task!(task)
     task.update!(status: :failed, decided_at: Time.current)
-    append_local_note %(Gave up on "\#{task.display_name}" — every machine that claimed it went silent (\#{task.reclaims_count} reclaims).)
+    append_local_note %(Gave up on "#{task.display_name}" — every machine that claimed it went silent (#{task.reclaims_count} reclaims).)
     failed!
     WorkflowBroadcaster.new(self).refresh
   end
@@ -151,9 +151,9 @@ class WorkflowRun < ApplicationRecord
     waited_on_local = task.running?
     task.update!(status: :rejected, approved_by: by, decided_at: Time.current)
     append_review((if waited_on_local
-      %(\#{reviewer(by)} cancelled the run while "\#{task.display_name}" waited on a machine)
+      %(#{reviewer(by)} cancelled the run while "#{task.display_name}" waited on a machine)
                    else
-      %(\#{reviewer(by)} rejected "\#{task.display_name}" and cancelled the run)
+      %(#{reviewer(by)} rejected "#{task.display_name}" and cancelled the run)
                    end), sender: by)
     cancelled!
   end
@@ -174,16 +174,16 @@ class WorkflowRun < ApplicationRecord
         **Task::UNCLAIMED_ATTRS,
         status: :running, approved_by: by, dispatched_at: Time.current,
         result: {}, reclaims_count: 0,
-        prompt: "\#{task.prompt}\n\nRequested changes: \#{feedback}"
+        prompt: "#{task.prompt}\n\nRequested changes: #{feedback}"
       )
-      append_review "\#{reviewer(by)} requested changes — \#{feedback}", sender: by
+      append_review "#{reviewer(by)} requested changes — #{feedback}", sender: by
       awaiting_local!
       WorkflowBroadcaster.new(self).refresh
     else
       task.update!(status: :running, approved_by: by)
       running!
       user, assistant = ConversationTurn.start(
-        conversation, content: "\#{reviewer(by)} requested changes — \#{feedback}", kind: :review, sender: by
+        conversation, content: "#{reviewer(by)} requested changes — #{feedback}", kind: :review, sender: by
       )
       task.update!(assistant_message: assistant)
       WorkflowBroadcaster.new(self).append_turn(user, assistant)
@@ -195,10 +195,10 @@ class WorkflowRun < ApplicationRecord
   # The delegated step's timeline trace — a plain message, never a turn.
   def append_local_report(task)
     line = task.result_failed? ? "Failed" : "Done"
-    line += " on \#{task.claimed_label.presence || "a local machine"}"
-    line += " — \#{task.result_summary}" if task.result_summary
+    line += " on #{task.claimed_label.presence || "a local machine"}"
+    line += " — #{task.result_summary}" if task.result_summary
     url = task.result_artifact_urls.first
-    line += " → \#{url}" if url
+    line += " → #{url}" if url
 
     append_local_note(line)
   end
