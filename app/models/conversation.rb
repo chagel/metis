@@ -140,8 +140,8 @@ class Conversation < ApplicationRecord
     title.presence || "Untitled conversation"
   end
 
-  # No-op once a title exists, so the caller (Message after_commit) can
-  # fire on every assistant turn without worrying about double-writes.
+  # No-op once a title exists, so the caller (Message after_commit on user
+  # rows) can fire on every user turn without worrying about double-writes.
   def generate_title_async!
     return if title.present?
     GenerateConversationTitleJob.perform_later(id)
