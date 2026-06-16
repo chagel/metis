@@ -39,11 +39,12 @@ class Message < ApplicationRecord
   # An in-flight turn: the assistant message still pending or streaming.
   scope :inflight, -> { assistant.where(streaming_status: %i[pending streaming]) }
 
-  # Once an assistant turn finishes, the conversation has enough context
-  # (first user msg + first assistant reply) for a good title. Gating on
-  # title.blank? makes this fire at most once and respects a user rename
-  # that happened before this callback runs.
-  after_commit :enqueue_title_generation, on: %i[create update]
+  # Generate the title the moment the user's message lands — in parallel
+  # with the (possibly slow) assistant reply — so the conversation never
+  # sits at "Untitled" for the length of the turn. The user message alone
+  # is enough context; generate_title_async! is idempotent and respects a
+  # user rename, so firing on every user turn is harmless.
+  after_commit :enqueue_title_generation, on: :create
 
   def attachments?
     images.attached? || files.attached?
@@ -63,7 +64,7 @@ class Message < ApplicationRecord
   private
 
   def enqueue_title_generation
-    return unless assistant? && done? && saved_change_to_streaming_status?
+    return unless user? && chat?
     conversation.generate_title_async!
   end
 end

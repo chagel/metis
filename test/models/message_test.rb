@@ -36,28 +36,29 @@ class MessageTest < ActiveSupport::TestCase
     assert_in_delta 4.2, message.duration, 0.001
   end
 
-  test "enqueues title generation when an assistant message transitions to done" do
-    @conversation.messages.create!(role: :user, content: "hi", streaming_status: :done)
-    assistant = @conversation.messages.create!(role: :assistant, content: "", streaming_status: :pending)
-
+  test "enqueues title generation as soon as the user's chat message lands" do
     assert_enqueued_with(job: GenerateConversationTitleJob, args: [ @conversation.id ]) do
-      assistant.update!(content: "hello back", streaming_status: :done)
+      @conversation.messages.create!(role: :user, content: "hi", streaming_status: :done)
     end
   end
 
   test "does not enqueue title generation when the title already exists" do
     @conversation.update!(title: "Already named")
-    @conversation.messages.create!(role: :user, content: "hi", streaming_status: :done)
-    assistant = @conversation.messages.create!(role: :assistant, content: "", streaming_status: :pending)
 
     assert_no_enqueued_jobs only: GenerateConversationTitleJob do
-      assistant.update!(content: "hello back", streaming_status: :done)
+      @conversation.messages.create!(role: :user, content: "hi", streaming_status: :done)
     end
   end
 
-  test "does not enqueue on user-message create" do
+  test "does not enqueue on a workflow-marker user message" do
     assert_no_enqueued_jobs only: GenerateConversationTitleJob do
-      @conversation.messages.create!(role: :user, content: "hi", streaming_status: :done)
+      @conversation.messages.create!(role: :user, content: "step 1", streaming_status: :done, kind: :step_prompt)
+    end
+  end
+
+  test "does not enqueue on assistant-message create" do
+    assert_no_enqueued_jobs only: GenerateConversationTitleJob do
+      @conversation.messages.create!(role: :assistant, content: "", streaming_status: :pending)
     end
   end
 end
