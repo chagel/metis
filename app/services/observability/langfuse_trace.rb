@@ -101,7 +101,7 @@ module Observability
 
     def tool_calls = @message.tool_calls || []
 
-    # Honour the content-export toggle: metadata-only by default because
+    # Honor the content-export toggle: metadata-only by default because
     # Message#content is encrypted at rest.
     def content(value)
       return nil unless self.class.config.langfuse_include_content

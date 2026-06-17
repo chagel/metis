@@ -8,7 +8,7 @@ Before changing code, read [`VISION.md`](VISION.md) — what Metis is, the
 rules we hold to, and what we explicitly **won't build**. Most of the
 guardrails (no second agent backend, no CLI-as-connector, no Rails-side
 MCP runtime, no polymorphic owner, no SPA, no per-user provider keys)
-are inverses of temptations already present in this codebase. Honour
+are inverses of temptations already present in this codebase. Honor
 them, or argue them on a PR — don't drift into them.
 
 ## Overview

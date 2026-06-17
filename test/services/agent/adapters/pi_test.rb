@@ -42,7 +42,7 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
   RUBY
 
   # A runtime that yields a caller-supplied stub session, bypassing any
-  # real pi process — so adapter behaviour is tested in isolation.
+  # real pi process — so adapter behavior is tested in isolation.
   class FakeRuntime
     attr_reader :touched_skill_slugs
     attr_accessor :status_sink

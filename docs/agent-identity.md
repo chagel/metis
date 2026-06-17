@@ -51,7 +51,7 @@ sections render only when set):
   install public ones.
 - **Conventions** — projected inputs rewrite each turn; sandbox
   boundary; identity-bearing connectors carry the operator's handle;
-  honour a subdirectory project's own `AGENTS.md` / `CLAUDE.md`.
+  honor a subdirectory project's own `AGENTS.md` / `CLAUDE.md`.
 
 What it deliberately does **not** include: metis's product guardrails
 (the "what we won't build" rules from [`../VISION.md`](../VISION.md)).

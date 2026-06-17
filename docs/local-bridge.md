@@ -455,7 +455,7 @@ What shipped, against the spec:
 - **Active cancellation.** `GET /api/bridge/tasks/:id` polled between
   agent events; the agent process is terminated when the task settles
   or the claim moves — the unattended upgrade of stop-on-410 (which the
-  daemon also honours on every heartbeat post).
+  daemon also honors on every heartbeat post).
 - **Argument hygiene.** Commands are exec arrays (never a shell), and
   per-CLI blocklists strip user-supplied `agent_args` that would break
   the stream protocol or leak into another session.
