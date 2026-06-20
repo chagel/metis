@@ -49,6 +49,40 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     assert_match %r{^http.+/files/blobs/}, prior["artifacts"].first["url"]
   end
 
+  test "claim payload carries the workflow orientation block" do
+    workflow = @team.workflows.create!(name: "ship", steps: [])
+    run = WorkflowRun.start(team: @team, user: @user, workflow: workflow,
+                            project: @team.projects.create!(name: "Orient"), steps: [
+      { "name" => "Write the spec", "prompt" => "spec it" },
+      { "name" => "Build the feature", "prompt" => "build", "run" => "local" },
+      { "name" => "Open the PR", "prompt" => "pr it" }
+    ])
+    WorkflowAdvanceJob.perform_now(run.id)        # start cloud step 0
+    run.tasks.find_by(position: 0).assistant_message.update!(streaming_status: :done)
+    WorkflowAdvanceJob.perform_now(run.id)        # settle 0, dispatch the local step 1
+
+    get "/api/bridge/tasks/next", headers: auth
+    assert_response :success
+    workflow_block = JSON.parse(response.body).dig("context", "workflow")
+    assert_equal "ship", workflow_block["name"]
+    assert_equal 2, workflow_block["step"]
+    assert_equal 3, workflow_block["total_steps"]
+    assert_equal "Build the feature", workflow_block["step_name"]
+    assert_equal(
+      [ { "number" => 1, "name" => "Write the spec", "status" => "done" },
+        { "number" => 2, "name" => "Build the feature", "status" => "current" },
+        { "number" => 3, "name" => "Open the PR", "status" => "pending" } ],
+      workflow_block["steps"]
+    )
+  end
+
+  test "claim payload omits the workflow block for a single-step run" do
+    dispatch_run
+    get "/api/bridge/tasks/next", headers: auth
+    assert_response :success
+    assert_not_includes JSON.parse(response.body)["context"].keys, "workflow"
+  end
+
   test "claim payload carries the run input so a later step knows the subject" do
     run = WorkflowRun.start(team: @team, user: @user, input: "review pr 75",
                             project: @team.projects.create!(name: "Subject"), steps: [ LOCAL_STEP ])

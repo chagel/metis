@@ -47,7 +47,7 @@ class WorkflowAdvanceJobTest < ActiveSupport::TestCase
     assert run.tasks.find_by(position: 1).completed?
   end
 
-  test "a later step's prompt restates the run input" do
+  test "a later step's prompt restates the run input under an orientation header" do
     run = WorkflowRun.start(team: @team, user: @user, input: "review pr 75",
                             project: @team.projects.find_or_create_by!(name: "Engine"), steps: [
       { "name" => "a", "prompt" => "do a", "gate" => AUTO },
@@ -58,7 +58,45 @@ class WorkflowAdvanceJobTest < ActiveSupport::TestCase
     advance(run)
 
     prompts = run.conversation.messages.where(kind: :step_prompt).order(:created_at).map(&:content)
-    assert_equal [ "review pr 75\n\ndo a", "review pr 75\n\ndo b" ], prompts
+    assert_equal [ <<~STEP0.strip, <<~STEP1.strip ], prompts
+      **Multi-step run · step 1 of 2 — "a"**
+
+      Steps in this run:
+      1. a — current step
+      2. b — pending
+
+      review pr 75
+
+      do a
+    STEP0
+      **Multi-step run · step 2 of 2 — "b"**
+
+      Steps in this run:
+      1. a — done
+      2. b — current step
+
+      review pr 75
+
+      do b
+    STEP1
+  end
+
+  test "a named workflow's header names the workflow" do
+    workflow = @team.workflows.create!(name: "ship", steps: [])
+    run = WorkflowRun.start(team: @team, user: @user, workflow: workflow,
+                            project: @team.projects.find_or_create_by!(name: "Engine"), steps: [
+      { "name" => "Build", "prompt" => "do a", "gate" => AUTO },
+      { "name" => "Ship", "prompt" => "do b", "gate" => AUTO }
+    ])
+    advance(run)
+    header = run.conversation.messages.where(kind: :step_prompt).first.content
+    assert_match %r{\A\*\*Workflow: ship · step 1 of 2 — "Build"\*\*}, header
+  end
+
+  test "a single-step run gets no orientation header" do
+    run = start([ { "name" => "only", "prompt" => "do it", "gate" => AUTO } ])
+    advance(run)
+    assert_equal "do it", run.conversation.messages.where(kind: :step_prompt).first.content
   end
 
   test "an approval step runs its prompt as a turn, then pauses for review" do
@@ -91,6 +129,9 @@ class WorkflowAdvanceJobTest < ActiveSupport::TestCase
     advance(run)
     assert run.tasks.find_by(position: 0).skipped?
     assert run.tasks.find_by(position: 1).running?
+    header = run.conversation.messages.where(kind: :step_prompt).first.content
+    assert_includes header, "1. noop — skipped"
+    assert_includes header, "2. real — current step"
   end
 
   test "an approval gate pauses the run; approving resumes it" do

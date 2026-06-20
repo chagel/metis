@@ -95,6 +95,16 @@ en:
     new:
       title: "New workflow"
   workflow_runs:
+    step_header:
+      title_named: 'Workflow: %{name} · step %{n} of %{total} — "%{step_name}"'
+      title_adhoc: 'Multi-step run · step %{n} of %{total} — "%{step_name}"'
+      outline_intro: "Steps in this run:"
+      outline_line: "%{number}. %{name} — %{status}"
+      status:
+        done: "done"
+        current: "current step"
+        skipped: "skipped"
+        pending: "pending"
     gate:
       review_needed: "Review needed"
       approval_needed: "Approval needed"

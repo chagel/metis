@@ -80,7 +80,26 @@ class WorkflowAdvanceJob < ApplicationJob
     subject = (run.input if task.position.positive?)
     reports = run.tasks.completed.where(position: ...task.position).reorder(position: :desc)
                  .take_while(&:delegated?).reverse.map { |prior| delegated_report(prior) }
-    [ subject, *reports, task.prompt ].compact_blank.join("\n\n")
+    body = [ subject, *reports, task.prompt ].compact_blank.join("\n\n")
+    [ workflow_header(run, task), body ].compact_blank.join("\n\n")
+  end
+
+  # A self-orientation block prepended to every step so each turn knows the
+  # workflow, its step count, where it is now, and the status of the rest.
+  # Omitted for a single-step run — there is no handoff to orient against.
+  def workflow_header(run, task)
+    overview = task.step_overview
+    return if overview.size < 2
+
+    scope = "workflow_runs.step_header"
+    title = I18n.t("#{scope}.#{run.workflow ? :title_named : :title_adhoc}",
+                   name: run.workflow&.name, n: task.step_number,
+                   total: overview.size, step_name: task.step_label)
+    lines = overview.map do |step|
+      I18n.t("#{scope}.outline_line", number: step[:number], name: step[:name],
+             status: I18n.t("#{scope}.status.#{step[:status]}"))
+    end
+    [ "**#{title}**", [ I18n.t("#{scope}.outline_intro"), *lines ].join("\n") ].join("\n\n")
   end
 
   def delegated_report(task)

@@ -95,6 +95,16 @@
     new:
       title: "新建工作流"
   workflow_runs:
+    step_header:
+      title_named: '工作流：%{name} · 第 %{n} / %{total} 步 — "%{step_name}"'
+      title_adhoc: '多步运行 · 第 %{n} / %{total} 步 — "%{step_name}"'
+      outline_intro: "本次运行的步骤："
+      outline_line: "%{number}. %{name} — %{status}"
+      status:
+        done: "已完成"
+        current: "当前步骤"
+        skipped: "已跳过"
+        pending: "待处理"
     gate:
       review_needed: "需要审阅"
       approval_needed: "需要批准"

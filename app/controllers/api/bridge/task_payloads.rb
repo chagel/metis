@@ -40,8 +40,26 @@ module Api
           context: {
             input: run.input.presence,
             project: project_context(run),
-            prior_steps: prior_step_summaries(run, task)
+            prior_steps: prior_step_summaries(run, task),
+            workflow: workflow_context(task)
           }.compact
+        }
+      end
+
+      # The same step-outline framing the cloud header carries, as a
+      # structured object so a delegated step is oriented identically.
+      # nil for a single-step run — dropped by context.compact.
+      def workflow_context(task)
+        overview = task.step_overview
+        return if overview.size < 2
+
+        run = task.workflow_run
+        {
+          name: run.workflow&.name,
+          step: task.step_number,
+          total_steps: overview.size,
+          step_name: task.step_label,
+          steps: overview
         }
       end
 
