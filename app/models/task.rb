@@ -117,11 +117,6 @@ class Task < ApplicationRecord
     position + 1
   end
 
-  def total_steps
-    workflow_run.tasks.size
-  end
-
-  # Outline name: the step's own name, or "Step N" when blank.
   def step_label
     name.presence || "Step #{step_number}"
   end
