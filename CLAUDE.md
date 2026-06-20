@@ -70,8 +70,9 @@ keeps the raw payload for native view helpers.
 
 1. `ConversationTurn.start` is the single place a turn is born — it creates a
    `user` message and a `pending` `assistant` message, then enqueues `ChatJob`.
-   The composer (`MessagesController` via the `Composing` concern) and the
-   workflow engine both go through it.
+   The composer (`MessagesController` via the `Composing` concern), the
+   workflow engine, and the from-chat workflow handoff (`Agent::WorkflowHandoff`,
+   via the agent's `metis_start_workflow` tool) all go through it.
 2. `ChatJob#perform` runs one turn: it gets the adapter, calls `#stream`, and
    for each `UiEvent` hands it to `ChatBroadcaster` while buffering text.
 3. `ChatBroadcaster` maps each `UiEvent` to a Turbo Stream broadcast on the
@@ -190,7 +191,12 @@ backing `Conversation`, one `Task` per step. A run **requires a project**:
 `WorkflowRun.start` takes `project:` and raises without one, and a project
 with active runs can't be deleted — daemons claim delegated steps per
 project, so a project-less run could never be auto-claimed. The run `input`
-is restated into every step's prompt, not just the first.
+is restated into every step's prompt, not just the first, and a multi-step
+run prepends a self-orientation header to each step prompt
+(`WorkflowAdvanceJob#workflow_header`). A run can also be launched from
+inside a chat — `Agent::WorkflowHandoff` turns the agent's
+`metis_start_workflow` tool call into a `WorkflowRun.start`, folding the
+chat transcript + attachment links into the run `input`.
 `WorkflowAdvanceJob` is the engine: it starts each step as a normal turn via
 `ConversationTurn.start`, parks the run on `awaiting_approval` when a step's
 `gate` is `approval` (approve / request changes / reject in the run UI), and
@@ -213,12 +219,12 @@ cancelled or reclaimed. Metis never drives the user's machine — the local
 agent pulls. **`clients/metis/`** is the unattended client: a Go daemon
 (`metis`, stdlib-only, its own `go test` suite + CI job) that polls one or
 more deployments, runs pi / Claude Code / Codex headless in per-task git
-worktrees under `~/.metis/` (up to `max_workers` tasks concurrently), and
+worktrees under `~/.metis/worktrees/` (up to `max_workers` tasks concurrently), and
 installs as a login service via `metis install`.
 
 The **run board** (`BoardController`, `docs/workflows.md`) is a read-only
 cross-project view of every visible `WorkflowRun`, grouped into status
-columns (running / awaiting_approval / awaiting_local / done) within
+columns (queued / running / awaiting_approval / awaiting_local / done) within
 per-project swimlanes, plus an actor rail of who/what is acting (people
 with open gates, bridge machines with a coarse online/stale light). Two
 table-less read models back it — `Board` (the grid) and `BoardPresence`
