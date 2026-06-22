@@ -4,16 +4,24 @@
  * Adds two tools analogous to Claude Code's web capabilities:
  *
  *   web_fetch  — fetch a URL and return readable text (strips HTML)
- *   web_search — search the web with no API key, via DuckDuckGo
- *                (default) or a SearXNG instance
+ *   web_search — search the web, preferring a stable keyed provider and
+ *                falling back to keyless options
  *
- * Configuration (optional — search works with no configuration):
+ * Search providers are tried in priority order; the first one that is
+ * configured is used (Serper > Brave > SearXNG > DuckDuckGo). DuckDuckGo is
+ * the keyless last resort — it rate-limits datacenter IPs, so it routinely
+ * fails inside a sandbox; configure one of the others for reliability.
+ *
+ * Configuration (optional — search falls back to DuckDuckGo with none):
+ *   SERPER_API_KEY — Serper.dev API key. Google results via a fast, cheap
+ *                 REST API that works from datacenter IPs. Get one at
+ *                 https://serper.dev.
+ *   BRAVE_SEARCH_API_KEY — Brave Search API key. An independent index, also
+ *                 datacenter-friendly. Get one at https://brave.com/search/api/.
  *   SEARXNG_URL — base URL of a SearXNG instance, e.g. https://searx.example.
- *                 When set, search uses its JSON API instead of DuckDuckGo.
  *                 The instance must have the `json` format enabled
- *                 (search.formats in its settings.yml). This is the most
- *                 reliable keyless option — DuckDuckGo rate-limits
- *                 datacenter IPs, so it can fail inside a sandbox.
+ *                 (search.formats in its settings.yml). Keyless, but you
+ *                 operate the instance.
  *
  * Placement:
  *   Project-local: .pi/extensions/web-tools/index.ts   ← this file
@@ -257,6 +265,94 @@ async function searxngSearch(
   }));
 }
 
+async function serperSearch(
+  query: string,
+  count: number,
+  signal: AbortSignal,
+): Promise<SearchResult[]> {
+  const res = await fetch("https://google.serper.dev/search", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-KEY": process.env.SERPER_API_KEY as string,
+    },
+    body: JSON.stringify({ q: query, num: count }),
+    signal,
+  });
+  if (res.status === 401 || res.status === 403) {
+    throw new Error(
+      `Serper rejected the API key (HTTP ${res.status}) — check SERPER_API_KEY.`,
+    );
+  }
+  if (res.status === 429) {
+    throw new Error("Serper rate limit / credits exhausted (HTTP 429).");
+  }
+  if (!res.ok) throw new Error(`Serper HTTP ${res.status}`);
+
+  const data = (await res.json().catch(() => null)) as {
+    organic?: Array<{ title?: string; link?: string; snippet?: string }>;
+  } | null;
+
+  return (data?.organic ?? []).slice(0, count).map((r) => ({
+    title: r.title ?? "",
+    url: r.link ?? "",
+    snippet: r.snippet ?? "",
+  }));
+}
+
+async function braveSearch(
+  query: string,
+  count: number,
+  signal: AbortSignal,
+): Promise<SearchResult[]> {
+  const url = new URL("https://api.search.brave.com/res/v1/web/search");
+  url.searchParams.set("q", query);
+  url.searchParams.set("count", String(count));
+
+  const res = await fetch(url.toString(), {
+    headers: {
+      Accept: "application/json",
+      "Accept-Encoding": "gzip",
+      "X-Subscription-Token": process.env.BRAVE_SEARCH_API_KEY as string,
+    },
+    signal,
+  });
+  if (res.status === 401 || res.status === 403) {
+    throw new Error(
+      `Brave Search rejected the API key (HTTP ${res.status}) — check BRAVE_SEARCH_API_KEY.`,
+    );
+  }
+  if (res.status === 429) {
+    throw new Error("Brave Search rate limit reached (HTTP 429) — try again shortly.");
+  }
+  if (!res.ok) throw new Error(`Brave Search HTTP ${res.status}`);
+
+  const data = (await res.json().catch(() => null)) as {
+    web?: { results?: Array<{ title?: string; url?: string; description?: string }> };
+  } | null;
+
+  return (data?.web?.results ?? []).slice(0, count).map((r) => ({
+    title: r.title ?? "",
+    url: r.url ?? "",
+    snippet: r.description ?? "",
+  }));
+}
+
+// Ordered by reliability: a configured keyed/self-hosted provider first,
+// the keyless DuckDuckGo scraper last. Each turn uses the first provider
+// whose config is present.
+function selectSearchProviders(): Array<{
+  name: string;
+  run: (q: string, n: number, s: AbortSignal) => Promise<SearchResult[]>;
+}> {
+  const providers = [];
+  if (process.env.SERPER_API_KEY) providers.push({ name: "Serper", run: serperSearch });
+  if (process.env.BRAVE_SEARCH_API_KEY) providers.push({ name: "Brave", run: braveSearch });
+  if (process.env.SEARXNG_URL) providers.push({ name: "SearXNG", run: searxngSearch });
+  providers.push({ name: "DuckDuckGo", run: duckDuckGoSearch });
+  return providers;
+}
+
 // ---------------------------------------------------------------------------
 // Extension entry point
 // ---------------------------------------------------------------------------
@@ -357,8 +453,8 @@ export default function webToolsExtension(pi: ExtensionAPI) {
     label: "Web Search",
     description:
       "Search the web and return the top results (title, URL, snippet). " +
-      "No API key required — uses DuckDuckGo by default, or a SearXNG " +
-      "instance when SEARXNG_URL is set.",
+      "Uses Serper (SERPER_API_KEY) or Brave (BRAVE_SEARCH_API_KEY) when set, " +
+      "a SearXNG instance when SEARXNG_URL is set, or keyless DuckDuckGo as a fallback.",
     promptSnippet: "Search the web for current information",
     promptGuidelines: [
       "Use web_search when the user asks about recent events, news, or anything that may have changed after your training cutoff.",
@@ -379,20 +475,28 @@ export default function webToolsExtension(pi: ExtensionAPI) {
       const { query, count = 5 } = params;
       const n = Math.min(Math.max(count, 1), 10);
 
-      const provider = process.env.SEARXNG_URL ? "SearXNG" : "DuckDuckGo";
-      onUpdate?.({ content: [{ type: "text", text: `Searching ${provider}: ${query} …` }] });
+      // Try providers in priority order; fall through to the next only when
+      // one errors, so a flaky keyless fallback can still rescue the turn.
+      const providers = selectSearchProviders();
+      let results: SearchResult[] | null = null;
+      let provider = providers[0].name;
+      const failures: string[] = [];
+      for (const candidate of providers) {
+        provider = candidate.name;
+        onUpdate?.({ content: [{ type: "text", text: `Searching ${provider}: ${query} …` }] });
+        try {
+          results = await candidate.run(query, n, signal);
+          break;
+        } catch (err: unknown) {
+          failures.push(`${candidate.name}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
 
-      let results: SearchResult[];
-      try {
-        results = process.env.SEARXNG_URL
-          ? await searxngSearch(query, n, signal)
-          : await duckDuckGoSearch(query, n, signal);
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
+      if (results === null) {
         return {
-          content: [{ type: "text", text: `Search error: ${msg}` }],
+          content: [{ type: "text", text: `Search error — all providers failed:\n${failures.join("\n")}` }],
           isError: true,
-          details: {},
+          details: { query, failures },
         };
       }
 

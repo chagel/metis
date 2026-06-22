@@ -15,6 +15,8 @@ cp .env.example .env
 | `METIS_AGENT_RUNTIME` | `local` (default), `docker`, `e2b`, or `daytona` |
 | `METIS_AGENT_PROVIDER` / `METIS_AGENT_MODEL` | default LLM provider/model for pi |
 | Provider API keys — `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, … | see [Providers](#providers) |
+| `SERPER_API_KEY` / `BRAVE_SEARCH_API_KEY` | web-search backend for the agent's `web_search` tool — recommended (DuckDuckGo rate-limits sandbox IPs); see [Web search](#web-search) |
+| `SEARXNG_URL` | keyless web-search alternative — base URL of a self-hosted SearXNG with the JSON format enabled; see [Web search](#web-search) |
 | `METIS_DOCKER_IMAGE` | image for the `docker` runtime (default `metis-pi`) |
 | `METIS_DOCKER_RUNTIME` | OCI runtime for `docker`-runtime containers — unset = daemon default (`runc`); `runsc` for gVisor (see [coding runtime](coding-runtime.md)) |
 | `E2B_API_KEY` / `METIS_E2B_TEMPLATE` | required by the `e2b` runtime |
@@ -100,6 +102,29 @@ locally works here. The new-chat composer's model list is the deployment
 LLM catalog — synced from pi and curated by a superuser at **Settings →
 Models**. After setting a provider's key, click **Refresh** there to pull
 that provider's models into the catalog, then enable the ones to offer.
+
+## Web search
+
+The agent's `web_search` tool comes from the bundled **web-tools** pi
+extension (`.pi/extensions/web-tools/`). It picks a backend per turn from
+the first configured provider, then falls through to the next only on error:
+
+1. **Serper.dev** — set `SERPER_API_KEY`. Google results via a fast, cheap
+   REST API that works from datacenter IPs. Get a key at
+   [serper.dev](https://serper.dev).
+2. **Brave Search API** — set `BRAVE_SEARCH_API_KEY`. An independent index,
+   also datacenter-friendly. Get a key at
+   [brave.com/search/api](https://brave.com/search/api/).
+3. **SearXNG** — set `SEARXNG_URL` to a self-hosted instance with the `json`
+   format enabled (`search.formats` in its `settings.yml`). Keyless, but you
+   operate the instance.
+4. **DuckDuckGo** — the keyless last resort, used when none is set. It
+   rate-limits datacenter IPs (returns a 202 bot-challenge), so it routinely
+   fails inside the `docker`/`e2b`/`daytona` sandbox runtimes — configure
+   Serper or Brave for reliable search there.
+
+The keys are shared, deployment-level resources (no per-user keys), plumbed
+into the sandbox by `Agent::Runtime::Base#sandbox_env`.
 
 ## Email & account access
 

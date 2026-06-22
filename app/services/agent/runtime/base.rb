@@ -193,6 +193,15 @@ module Agent
           env["GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND"] = "file"
         end
 
+        # Deployment-level web-search config consumed by the web-tools
+        # extension's web_search tool. Not per-user — a shared backend for
+        # reliable search from the sandbox (DuckDuckGo rate-limits datacenter
+        # IPs). See config/initializers/agent.rb.
+        agent = Rails.application.config.x.agent
+        env["SERPER_API_KEY"] = agent.serper_api_key if agent.serper_api_key.present?
+        env["BRAVE_SEARCH_API_KEY"] = agent.brave_search_api_key if agent.brave_search_api_key.present?
+        env["SEARXNG_URL"] = agent.searxng_url if agent.searxng_url.present?
+
         env
       end
 

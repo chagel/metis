@@ -144,3 +144,14 @@ Rails.application.config.x.agent.api_keys =
   Rails.application.config.x.agent.provider_metadata.filter_map do |provider, meta|
     [ provider, ENV[meta[:env]] ] if meta[:env]
   end.to_h.compact_blank
+
+# Web-search backend for the agent's `web_search` tool (the web-tools pi
+# extension). A shared, deployment-level resource — no per-user keys. The
+# extension picks the first configured provider (Serper > Brave > SearXNG),
+# and falls back to keyless DuckDuckGo when none is set. DuckDuckGo
+# rate-limits datacenter IPs, so configure Serper (https://serper.dev) or
+# Brave (https://brave.com/search/api/) for reliable search from the sandbox
+# runtimes. Plumbed into the sandbox by Agent::Runtime::Base#sandbox_env.
+Rails.application.config.x.agent.serper_api_key = ENV["SERPER_API_KEY"].presence
+Rails.application.config.x.agent.brave_search_api_key = ENV["BRAVE_SEARCH_API_KEY"].presence
+Rails.application.config.x.agent.searxng_url = ENV["SEARXNG_URL"].presence

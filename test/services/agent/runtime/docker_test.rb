@@ -39,6 +39,17 @@ class Agent::Runtime::DockerTest < ActiveSupport::TestCase
     config.docker_runtime = original
   end
 
+  def with_search_config(serper: nil, brave: nil, searxng: nil)
+    config = Rails.application.config.x.agent
+    originals = [ config.serper_api_key, config.brave_search_api_key, config.searxng_url ]
+    config.serper_api_key = serper
+    config.brave_search_api_key = brave
+    config.searxng_url = searxng
+    yield
+  ensure
+    config.serper_api_key, config.brave_search_api_key, config.searxng_url = originals
+  end
+
   test "session_dir is the in-container session path" do
     assert_equal Pathname.new("/metis/sessions"), @runtime.session_dir
   end
@@ -187,6 +198,26 @@ class Agent::Runtime::DockerTest < ActiveSupport::TestCase
     )
 
     assert_equal "ghu_live", @runtime.sandbox_env["GH_TOKEN"]
+  end
+
+  test "sandbox_env carries the deployment web-search config when set" do
+    with_search_config(serper: "serper-key", brave: "brave-key", searxng: "https://searx.example") do
+      env = @runtime.sandbox_env
+
+      assert_equal "serper-key", env["SERPER_API_KEY"]
+      assert_equal "brave-key", env["BRAVE_SEARCH_API_KEY"]
+      assert_equal "https://searx.example", env["SEARXNG_URL"]
+    end
+  end
+
+  test "sandbox_env omits web-search keys when the deployment sets none" do
+    with_search_config(serper: nil, brave: nil, searxng: nil) do
+      env = @runtime.sandbox_env
+
+      assert_nil env["SERPER_API_KEY"]
+      assert_nil env["BRAVE_SEARCH_API_KEY"]
+      assert_nil env["SEARXNG_URL"]
+    end
   end
 
   test "run provisions the workspace and yields the session — no archive" do
