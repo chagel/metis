@@ -122,10 +122,6 @@
       no_conversations: "此项目还没有对话。"
       runs: "运行"
       no_runs: "此项目还没有工作流运行。"
-      resources: "资源"
-      res_repo: "GitHub"
-      res_unbound: "未绑定"
-      res_soon: "项目级技能与连接器将随“项目作为容器”一并推出。"
       statuses:
         pending: "待处理"
         running: "运行中"

@@ -18,8 +18,8 @@
         <% else %>
           <span class="proj-repo proj-repo--unbound"><%= t('.no_repo') %></span>
         <% end %>
-        <span class="proj-stat"><%= t('.chats_count', count: @project_conversations.size) %></span>
-        <span class="proj-stat"><%= t('.runs_count', count: @runs.size) %></span>
+        <span class="proj-stat"><%= t('.chats_count', count: @conversations_total) %></span>
+        <span class="proj-stat"><%= t('.runs_count', count: @runs_total) %></span>
         <span class="proj-stat"><%= t('.events_count', count: @activity_total) %></span>
       </div>
 
@@ -28,61 +28,49 @@
       <% end %>
 
       <div class="proj-grid">
-        <section class="panel">
-          <h2 class="panel-title"><%= t('.conversations') %></h2>
-          <% if @project_conversations.any? %>
-            <ul class="panel-list">
-              <% @project_conversations.each do |conversation| %>
-                <li class="panel-row">
-                  <%= link_to conversation.title.presence || t('.untitled'),
-                        conversation_path(conversation), class: "panel-link",
-                        data: { turbo_frame: "main" } %>
-                  <time class="panel-time"><%= time_ago_in_words(conversation.updated_at) %></time>
-                </li>
-              <% end %>
-            </ul>
-          <% else %>
-            <p class="field-hint"><%= t('.no_conversations') %></p>
-          <% end %>
-        </section>
+        <div class="proj-col">
+          <section class="panel">
+            <h2 class="panel-title"><%= t('.conversations') %></h2>
+            <% if @project_conversations.any? %>
+              <ul class="panel-list">
+                <% @project_conversations.each do |conversation| %>
+                  <li class="panel-row">
+                    <%= link_to conversation.title.presence || t('.untitled'),
+                          conversation_path(conversation), class: "panel-link",
+                          data: { turbo_frame: "main" } %>
+                    <time class="panel-time"><%= time_ago_in_words(conversation.updated_at) %></time>
+                  </li>
+                <% end %>
+              </ul>
+            <% else %>
+              <p class="field-hint"><%= t('.no_conversations') %></p>
+            <% end %>
+          </section>
 
-        <section class="panel">
-          <%= render "activity", activity: @activity, total: @activity_total %>
-        </section>
+          <section class="panel">
+            <h2 class="panel-title"><%= t('.runs') %></h2>
+            <% if @runs.any? %>
+              <ul class="panel-list">
+                <% @runs.each do |run| %>
+                  <li class="panel-row">
+                    <%= link_to run.conversation.title.presence || t('.untitled'),
+                          conversation_path(run.conversation), class: "panel-link",
+                          data: { turbo_frame: "main" } %>
+                    <span class="run-chip run-chip--<%= run.status %>"><%= t(".statuses.#{run.status}") %></span>
+                  </li>
+                <% end %>
+              </ul>
+            <% else %>
+              <p class="field-hint"><%= t('.no_runs') %></p>
+            <% end %>
+          </section>
+        </div>
 
-        <section class="panel">
-          <h2 class="panel-title"><%= t('.runs') %></h2>
-          <% if @runs.any? %>
-            <ul class="panel-list">
-              <% @runs.each do |run| %>
-                <li class="panel-row">
-                  <%= link_to run.conversation.title.presence || t('.untitled'),
-                        conversation_path(run.conversation), class: "panel-link",
-                        data: { turbo_frame: "main" } %>
-                  <span class="run-chip run-chip--<%= run.status %>"><%= t(".statuses.#{run.status}") %></span>
-                </li>
-              <% end %>
-            </ul>
-          <% else %>
-            <p class="field-hint"><%= t('.no_runs') %></p>
-          <% end %>
-        </section>
-
-        <section class="panel">
-          <h2 class="panel-title"><%= t('.resources') %></h2>
-          <dl class="res-list">
-            <dt><%= t('.res_repo') %></dt>
-            <dd>
-              <% if @project.github_repo.present? %>
-                <%= link_to @project.github_repo, "https://github.com/#{@project.github_repo}",
-                      target: "_blank", rel: "noopener" %>
-              <% else %>
-                <span class="field-hint"><%= t('.res_unbound') %></span>
-              <% end %>
-            </dd>
-          </dl>
-          <p class="field-hint res-soon"><%= t('.res_soon') %></p>
-        </section>
+        <div class="proj-col">
+          <section class="panel panel--feed">
+            <%= render "activity", activity: @activity, total: @activity_total %>
+          </section>
+        </div>
       </div>
     </div>
   </div>

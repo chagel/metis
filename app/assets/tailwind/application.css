@@ -1473,7 +1473,7 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
 
 /* ───────────── project dashboard (promoted workspace surface) ───────────── */
 .conn-repo { font-family:var(--fm); font-size:11px; color:var(--ink-3); margin-top:2px; }
-.proj-dash { max-width:760px; margin:0 auto; }
+.proj-dash { max-width:1040px; margin:0 auto; }
 .proj-meta { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin-bottom:6px; }
 .proj-repo { font-family:var(--fm); font-size:12px; color:var(--ink-2); text-decoration:none; }
 .proj-repo:hover { color:var(--accent); }
@@ -1482,8 +1482,13 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
 .proj-stat + .proj-stat::before,
 .proj-repo + .proj-stat::before { content:"·"; margin-right:14px; color:var(--faint); }
 .proj-about { font-size:13px; color:var(--ink-2); margin:8px 0 22px; line-height:1.5; }
-.proj-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-@media (max-width:720px){ .proj-grid { grid-template-columns:1fr; } }
+/* Work on the left (conversations + runs, sized to content), the activity
+   feed prominent on the right. align-items:start so a sparse left column
+   doesn't stretch into empty boxes. */
+.proj-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
+             gap:16px; align-items:start; }
+@media (max-width:760px){ .proj-grid { grid-template-columns:1fr; } }
+.proj-col { display:flex; flex-direction:column; gap:16px; min-width:0; }
 .panel { background:var(--card); border:1px solid var(--line); border-radius:13px;
          padding:15px 17px; box-shadow:var(--sh-sm); }
 .panel-title { font-size:12px; font-weight:600; color:var(--ink-2); margin:0 0 12px; }
@@ -1499,11 +1504,6 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
 .run-chip--running,.run-chip--awaiting_approval,.run-chip--awaiting_local,.run-chip--queued {
   background:var(--accent-soft); color:var(--accent-fg); border-color:transparent; }
 .run-chip--failed { color:#b3261e; }
-.res-list { display:grid; grid-template-columns:auto 1fr; gap:6px 12px; font-size:12.5px; margin:0; }
-.res-list dt { color:var(--ink-3); }
-.res-list dd { margin:0; color:var(--ink-2); }
-.res-soon { margin-top:12px; }
-
 .activity-list { display:flex; flex-direction:column; gap:11px; }
 .activity-item { display:flex; align-items:baseline; gap:9px; font-size:13px; color:var(--ink-2); }
 .activity-avatar { border-radius:50%; flex:none; align-self:center; }

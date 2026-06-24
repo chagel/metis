@@ -125,10 +125,6 @@ en:
       no_conversations: "No conversations in this project yet."
       runs: "Runs"
       no_runs: "No workflow runs in this project yet."
-      resources: "Resources"
-      res_repo: "GitHub"
-      res_unbound: "Not bound"
-      res_soon: "Project-scoped skills & connectors arrive with the \"Projects as container\" work."
       statuses:
         pending: "Pending"
         running: "Running"

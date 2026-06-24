@@ -22,14 +22,19 @@ class ProjectsController < ApplicationController
   end
 
   def show
-    mine = @project.conversations.merge(Conversation.accessible_to(current_user))
-    @project_conversations = mine.recent.limit(PANEL_LIMIT)
-    @runs = WorkflowRun.joins(:conversation)
-                       .where(conversations: { project_id: @project.id })
-                       .merge(Conversation.accessible_to(current_user))
-                       .order(created_at: :desc).limit(PANEL_LIMIT)
-    @activity = WebhookEvent.for_project(@project).recent.limit(ACTIVITY_LIMIT)
-    @activity_total = WebhookEvent.for_project(@project).count
+    conversations = @project.conversations.merge(Conversation.accessible_to(current_user))
+    @project_conversations = conversations.recent.limit(PANEL_LIMIT)
+    @conversations_total = conversations.count
+
+    runs = WorkflowRun.joins(:conversation)
+                      .where(conversations: { project_id: @project.id })
+                      .merge(Conversation.accessible_to(current_user))
+    @runs = runs.order(created_at: :desc).limit(PANEL_LIMIT)
+    @runs_total = runs.count
+
+    activity = WebhookEvent.for_project(@project)
+    @activity = activity.recent.limit(ACTIVITY_LIMIT)
+    @activity_total = activity.count
   end
 
   def new
