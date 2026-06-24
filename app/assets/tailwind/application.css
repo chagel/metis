@@ -1480,8 +1480,19 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
 .proj-dash { width:100%; max-width:1040px; flex:1; min-height:0;
              display:flex; flex-direction:column; }
 .proj-body .panel--feed { flex:1; min-height:0; display:flex; flex-direction:column; }
-.proj-body .panel--feed .activity-list { flex:1; min-height:0; overflow-y:auto;
-                                         margin:0 -4px; padding:0 4px; }
+.proj-body .panel--feed .activity-list {
+  flex:1; min-height:0; overflow-y:auto;
+  /* Ride the card's right edge, not an inset gutter: pull the scroll area
+     out past the panel's right padding, then pad the content back off it. */
+  margin-right:-17px; padding-right:17px;
+  /* Hidden until hover — the track stays (no layout shift), the thumb fades. */
+  scrollbar-width:thin; scrollbar-color:transparent transparent;
+}
+.proj-body .panel--feed .activity-list:hover { scrollbar-color:var(--line-2) transparent; }
+.proj-body .panel--feed .activity-list::-webkit-scrollbar { width:8px; }
+.proj-body .panel--feed .activity-list::-webkit-scrollbar-thumb {
+  background:transparent; border-radius:4px; }
+.proj-body .panel--feed .activity-list:hover::-webkit-scrollbar-thumb { background:var(--line-2); }
 .activity-sentinel { padding:10px 0 2px; text-align:center; }
 .activity-loading { font-size:11px; color:var(--ink-3); }
 .proj-meta { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin-bottom:6px; }
