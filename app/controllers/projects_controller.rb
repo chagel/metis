@@ -14,14 +14,16 @@ class ProjectsController < ApplicationController
   PANEL_LIMIT = 8
 
   # The sidebar is the project list (master); the pane shows a project
-  # (detail), so land on the most recent rather than duplicate the list.
-  # No projects → the empty state prompts the first one.
+  # (detail), so land on the last one opened (or the most recent), never a
+  # duplicate of the list. No projects → the empty state prompts the first.
   def index
     @projects = team.projects.recent
-    redirect_to project_path(@projects.first) and return if @projects.any?
+    target = last_visited_project || @projects.first
+    redirect_to project_path(target) and return if target
   end
 
   def show
+    remember_visit(@project)
     conversations = @project.conversations.merge(Conversation.accessible_to(current_user))
     @project_conversations = conversations.recent.limit(PANEL_LIMIT)
     @conversations_total = conversations.count
@@ -84,6 +86,18 @@ class ProjectsController < ApplicationController
 
   def set_project
     @project = team.projects.find(params[:id])
+  end
+
+  # Last project opened, kept per team in the session (like current_team_id)
+  # so clicking Projects returns where you were. nil when none recorded, the
+  # record is gone, or it belongs to another team — index then falls back.
+  def last_visited_project
+    id = (session[:last_project] || {})[current_team.id.to_s]
+    team.projects.find_by(id: id) if id
+  end
+
+  def remember_visit(project)
+    session[:last_project] = (session[:last_project] || {}).merge(current_team.id.to_s => project.id)
   end
 
   def project_params

@@ -24,6 +24,25 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to project_path(newest)
   end
 
+  test "index returns to the last visited project, not the most recent" do
+    older = team.projects.create!(name: "Older")
+    team.projects.create!(name: "Newest")
+
+    get project_path(older)   # records the visit
+    get projects_path
+    assert_redirected_to project_path(older)
+  end
+
+  test "index falls back to the most recent when the remembered project is gone" do
+    older = team.projects.create!(name: "Older")
+    newest = team.projects.create!(name: "Newest")
+
+    get project_path(older)
+    older.destroy
+    get projects_path
+    assert_redirected_to project_path(newest)
+  end
+
   test "create persists name + about and stamps created_by / updated_by" do
     assert_difference -> { team.projects.count }, 1 do
       post projects_path, params: { project: { name: "Metis", about: "Rails 8.1 chat over pi." } }
