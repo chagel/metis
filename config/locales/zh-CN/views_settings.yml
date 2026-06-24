@@ -117,11 +117,10 @@
         other: "%{count} 个运行"
       events_count:
         other: "%{count} 个事件"
+      needs_you: "待你处理"
       conversations: "对话"
       untitled: "未命名"
       no_conversations: "此项目还没有对话。"
-      runs: "运行"
-      no_runs: "此项目还没有工作流运行。"
       statuses:
         pending: "待处理"
         running: "运行中"

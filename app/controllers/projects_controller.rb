@@ -31,8 +31,11 @@ class ProjectsController < ApplicationController
 
     runs = WorkflowRun.joins(:conversation)
                       .where(conversations: { project_id: @project.id }).merge(visible)
-    @runs = runs.order(created_at: :desc).limit(PANEL_LIMIT)
     @runs_total = runs.count
+    # Only runs needing a human (a gate, a local claim, a queued start) are
+    # worth surfacing here — every run also shows under Conversations, so a
+    # full list would just duplicate it.
+    @awaiting_runs = runs.merge(WorkflowRun.awaiting).order(updated_at: :desc).limit(PANEL_LIMIT)
 
     activity = WebhookEvent.for_project(@project)
     @activity = activity.recent.limit(ACTIVITY_LIMIT)

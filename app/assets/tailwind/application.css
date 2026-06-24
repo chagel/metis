@@ -1482,13 +1482,14 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
 .proj-stat + .proj-stat::before,
 .proj-repo + .proj-stat::before { content:"·"; margin-right:14px; color:var(--faint); }
 .proj-about { font-size:13px; color:var(--ink-2); margin:8px 0 22px; line-height:1.5; }
-/* Work on the left (conversations + runs, sized to content), the activity
-   feed prominent on the right. align-items:start so a sparse left column
-   doesn't stretch into empty boxes. */
+/* Conversations (resume work) on the left, the activity feed on the right.
+   align-items:start so a short list doesn't stretch into an empty box. */
 .proj-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
-             gap:16px; align-items:start; }
+             gap:16px; align-items:start; margin-top:16px; }
 @media (max-width:760px){ .proj-grid { grid-template-columns:1fr; } }
-.proj-col { display:flex; flex-direction:column; gap:16px; min-width:0; }
+/* The one place that earns emphasis — runs awaiting a human, pulled above
+   the fold. A left accent bar; the gate chips carry the rest of the signal. */
+.panel--attn { border-left:3px solid var(--accent); }
 .panel { background:var(--card); border:1px solid var(--line); border-radius:13px;
          padding:15px 17px; box-shadow:var(--sh-sm); }
 .panel-title { font-size:12px; font-weight:600; color:var(--ink-2); margin:0 0 12px; }

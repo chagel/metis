@@ -113,6 +113,32 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_select "p", text: /No GitHub activity yet/
   end
 
+  test "the dashboard surfaces only runs awaiting a human under Needs you" do
+    project = team.projects.create!(name: "Metis")
+    gated = @user.conversations.create!(project: project, title: "Gated run")
+    team.workflow_runs.create!(conversation: gated, status: :awaiting_approval)
+    done = @user.conversations.create!(project: project, title: "Done run")
+    team.workflow_runs.create!(conversation: done, status: :completed)
+
+    get project_path(project)
+    assert_response :success
+    assert_select ".panel--attn .panel-title", text: "Needs you"
+    assert_select ".panel--attn .panel-link", text: "Gated run"
+    assert_select ".panel--attn .run-chip", text: "Needs approval"
+    # The completed run isn't actionable — it stays out of the attention panel.
+    assert_select ".panel--attn .panel-link", text: "Done run", count: 0
+  end
+
+  test "the dashboard hides Needs you when no run awaits a human" do
+    project = team.projects.create!(name: "Metis")
+    conv = @user.conversations.create!(project: project)
+    team.workflow_runs.create!(conversation: conv, status: :completed)
+
+    get project_path(project)
+    assert_response :success
+    assert_select ".panel--attn", count: 0
+  end
+
   test "the dashboard renders the project's webhook events as activity lines" do
     project = team.projects.create!(name: "Metis", github_repo: "chagel/metis")
     WebhookEvent.create!(team: team, project: project, provider: :github,
