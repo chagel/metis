@@ -70,4 +70,23 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     get edit_project_path(foreign)
     assert_response :not_found
   end
+
+  test "edit shows the empty activity state for a project with no events" do
+    project = team.projects.create!(name: "Metis")
+    get edit_project_path(project)
+    assert_response :success
+    assert_select ".proj-activity", text: /No GitHub activity yet/
+  end
+
+  test "edit renders the project's webhook events as activity lines" do
+    project = team.projects.create!(name: "Metis", github_repo: "chagel/metis")
+    WebhookEvent.create!(team: team, project: project, provider: :github,
+                         event_type: "pull_request.opened", external_id: "d-1",
+                         payload: { "number" => 9, "pull_request" => { "title" => "Ship it", "html_url" => "https://gh/pr/9" },
+                                    "sender" => { "login" => "octo" } })
+    get edit_project_path(project)
+    assert_response :success
+    assert_select ".activity-actor", text: "octo"
+    assert_select "a.activity-summary", text: "opened PR #9: Ship it"
+  end
 end

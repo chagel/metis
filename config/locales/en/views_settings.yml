@@ -107,6 +107,27 @@ en:
     edit:
       back: "Back to projects"
       delete_confirm: "Delete %{name}? Attached conversations will be detached, not deleted."
+    activity:
+      title: "Activity"
+      empty: "No GitHub activity yet. Bind a repository above and events land here as they arrive."
+      showing: "Showing the latest %{count} of %{total}."
+      ago: "%{time} ago"
+      lines:
+        push:
+          one: "pushed 1 commit to %{branch}"
+          other: "pushed %{count} commits to %{branch}"
+        pull_request: "%{verb} PR #%{number}: %{title}"
+        issues: "%{verb} issue #%{number}: %{title}"
+        issue_comment: "commented on #%{number}"
+        other: "%{event}"
+      verbs:
+        opened: "opened"
+        closed: "closed"
+        merged: "merged"
+        reopened: "reopened"
+        edited: "edited"
+        synchronize: "updated"
+        ready_for_review: "marked ready"
     form:
       name_hint: "A short name you recognize — \"Metis\", \"Q4 planning\", \"Mom's birthday\"."
       github_repo_label: "GitHub repository"

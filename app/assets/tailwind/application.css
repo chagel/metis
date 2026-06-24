@@ -1436,6 +1436,18 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
 .field-check { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-2); cursor:pointer; }
 .form-actions { display:flex; gap:10px; margin-top:3px; }
 
+/* ───────────── project activity (inbound webhook timeline) ───────────── */
+.proj-activity { margin-top:28px; border-top:1px solid var(--line-2); padding-top:20px; }
+.proj-activity-title { font-size:12.5px; font-weight:600; color:var(--ink-2); margin-bottom:12px; }
+.activity-list { display:flex; flex-direction:column; gap:11px; }
+.activity-item { display:flex; align-items:baseline; gap:9px; font-size:13px; color:var(--ink-2); }
+.activity-avatar { border-radius:50%; flex:none; align-self:center; }
+.activity-text { flex:1; min-width:0; }
+.activity-actor { font-weight:600; color:var(--ink); margin-right:4px; }
+.activity-summary { color:var(--ink-2); }
+a.activity-summary:hover { color:var(--accent); text-decoration:underline; }
+.activity-time { flex:none; font-size:11.5px; color:var(--ink-3); white-space:nowrap; }
+
 /* ───────────── bridge (local devices) ───────────── */
 .dev-dot {
   display:inline-block; width:7px; height:7px; margin-left:7px;

@@ -25,7 +25,12 @@ class ProjectsController < ApplicationController
     end
   end
 
+  ACTIVITY_LIMIT = 50
+
   def edit
+    scope = WebhookEvent.for_project(@project)
+    @activity = scope.recent.limit(ACTIVITY_LIMIT)
+    @activity_total = scope.count
   end
 
   def update

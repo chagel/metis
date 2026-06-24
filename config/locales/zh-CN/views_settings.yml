@@ -107,6 +107,26 @@
     edit:
       back: "返回项目"
       delete_confirm: "删除 %{name}？已附加的对话将被分离，而非删除。"
+    activity:
+      title: "动态"
+      empty: "暂无 GitHub 动态。在上方绑定一个仓库，事件到达后会显示在这里。"
+      showing: "显示最近 %{count} 条，共 %{total} 条。"
+      ago: "%{time}前"
+      lines:
+        push:
+          other: "向 %{branch} 推送了 %{count} 个提交"
+        pull_request: "%{verb} PR #%{number}：%{title}"
+        issues: "%{verb} 议题 #%{number}：%{title}"
+        issue_comment: "评论了 #%{number}"
+        other: "%{event}"
+      verbs:
+        opened: "打开了"
+        closed: "关闭了"
+        merged: "合并了"
+        reopened: "重新打开了"
+        edited: "编辑了"
+        synchronize: "更新了"
+        ready_for_review: "标记为就绪"
     form:
       name_hint: "一个你能认出的简短名称 — “Metis”、“Q4 计划”、“妈妈的生日”。"
       github_repo_label: "GitHub 仓库"
