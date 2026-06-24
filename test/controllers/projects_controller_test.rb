@@ -122,6 +122,19 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".sidebar-rail a.rail-dest", minimum: 4
   end
 
+  test "a sidebar project card shows name, repo, and only its non-zero stats" do
+    project = team.projects.create!(name: "web", github_repo: "pipihosting/pipi-web")
+    @user.conversations.create!(project: project)
+    WebhookEvent.create!(team: team, project: project, provider: :github,
+                         event_type: "push", external_id: "e1", payload: {})
+    get project_path(project)
+    assert_response :success
+    assert_select ".prjnav-item.on .prjnav-name", text: "web"
+    assert_select ".prjnav-item.on .prjnav-repo", text: "pipihosting/pipi-web"
+    # 1 chat + 1 event present; 0 runs omitted.
+    assert_select ".prjnav-item.on .prjnav-stats", text: "1 chat · 1 event"
+  end
+
   test "the edit form is admin-only" do
     project = shared_team_as_member.projects.create!(name: "Metis")
     get edit_project_path(project)

@@ -1,15 +1,24 @@
-<%# The sidebar's project list — the contextual body on projects/board.
-    Full Turbo Drive visits (no #main frame) so the active highlight is
-    server-rendered correctly when switching projects. %>
+<%# The sidebar's project list — card per project (name · repo · counts),
+    the contextual body on projects/board. Full Turbo Drive visits (no #main
+    frame) so the active highlight is server-rendered correctly. %>
 <nav class="prjnav" aria-label="<%= t('conversations.sidebar.projects') %>">
-  <% projects = current_team.projects.recent %>
+  <% projects = current_team.projects.recent.to_a %>
+  <% stats = sidebar_project_stats(projects) %>
   <% if projects.any? %>
     <% projects.each do |project| %>
+      <% s = stats[project.id] %>
+      <% segs = [] %>
+      <% segs << t('projects.show.chats_count', count: s[:chats]) if s[:chats].positive? %>
+      <% segs << t('projects.show.runs_count', count: s[:runs]) if s[:runs].positive? %>
+      <% segs << t('projects.show.events_count', count: s[:events]) if s[:events].positive? %>
       <%= link_to project_path(project),
             class: "prjnav-item#{' on' if @project&.id == project.id}" do %>
         <span class="prjnav-name"><%= project.name %></span>
-        <% if project.github_repo.present? %>
-          <span class="prjnav-repo"><%= project.github_repo %></span>
+        <span class="prjnav-repo">
+          <%= project.github_repo.presence || t('conversations.sidebar.no_repo') %>
+        </span>
+        <% if segs.any? %>
+          <span class="prjnav-stats"><%= segs.join(" · ") %></span>
         <% end %>
       <% end %>
     <% end %>
