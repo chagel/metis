@@ -107,6 +107,37 @@ en:
     edit:
       back: "Back to projects"
       delete_confirm: "Delete %{name}? Attached conversations will be detached, not deleted."
+    show:
+      back: "Back to projects"
+      edit: "Edit"
+      no_repo: "No repository bound"
+      chats_count:
+        one: "%{count} chat"
+        other: "%{count} chats"
+      runs_count:
+        one: "%{count} run"
+        other: "%{count} runs"
+      events_count:
+        one: "%{count} event"
+        other: "%{count} events"
+      conversations: "Conversations"
+      untitled: "Untitled"
+      no_conversations: "No conversations in this project yet."
+      runs: "Runs"
+      no_runs: "No workflow runs in this project yet."
+      resources: "Resources"
+      res_repo: "GitHub"
+      res_unbound: "Not bound"
+      res_soon: "Project-scoped skills & connectors arrive with the \"Projects as container\" work."
+      statuses:
+        pending: "Pending"
+        running: "Running"
+        awaiting_approval: "Needs approval"
+        awaiting_local: "Awaiting local"
+        completed: "Done"
+        failed: "Failed"
+        cancelled: "Cancelled"
+        queued: "Queued"
     activity:
       title: "Activity"
       empty: "No GitHub activity yet. Bind a repository above and events land here as they arrive."

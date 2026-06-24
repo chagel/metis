@@ -1,0 +1,94 @@
+<% content_for :title, @project.name %>
+
+<main class="pane">
+  <header class="pane-head">
+    <%= link_to projects_path, class: "ico-btn", title: t('.back') do %>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M10 3L5 8l5 5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    <% end %>
+    <h1 class="pane-title"><%= @project.name %></h1>
+    <div style="flex:1"></div>
+    <% if team_manager? %>
+      <%= link_to t('.edit'), edit_project_path(@project), class: "btn btn-ghost" %>
+    <% end %>
+  </header>
+
+  <div class="pane-body">
+    <div class="proj-dash">
+      <div class="proj-meta">
+        <% if @project.github_repo.present? %>
+          <%= link_to "#{@project.github_repo} ↗", "https://github.com/#{@project.github_repo}",
+                class: "proj-repo", target: "_blank", rel: "noopener" %>
+        <% else %>
+          <span class="proj-repo proj-repo--unbound"><%= t('.no_repo') %></span>
+        <% end %>
+        <span class="proj-stat"><%= t('.chats_count', count: @project_conversations.size) %></span>
+        <span class="proj-stat"><%= t('.runs_count', count: @runs.size) %></span>
+        <span class="proj-stat"><%= t('.events_count', count: @activity_total) %></span>
+      </div>
+
+      <% if @project.about.present? %>
+        <p class="proj-about"><%= @project.about %></p>
+      <% end %>
+
+      <div class="proj-grid">
+        <section class="panel">
+          <h2 class="panel-title"><%= t('.conversations') %></h2>
+          <% if @project_conversations.any? %>
+            <ul class="panel-list">
+              <% @project_conversations.each do |conversation| %>
+                <li class="panel-row">
+                  <%= link_to conversation.title.presence || t('.untitled'),
+                        conversation_path(conversation), class: "panel-link",
+                        data: { turbo_frame: "main" } %>
+                  <time class="panel-time"><%= time_ago_in_words(conversation.updated_at) %></time>
+                </li>
+              <% end %>
+            </ul>
+          <% else %>
+            <p class="field-hint"><%= t('.no_conversations') %></p>
+          <% end %>
+        </section>
+
+        <section class="panel">
+          <%= render "activity", activity: @activity, total: @activity_total %>
+        </section>
+
+        <section class="panel">
+          <h2 class="panel-title"><%= t('.runs') %></h2>
+          <% if @runs.any? %>
+            <ul class="panel-list">
+              <% @runs.each do |run| %>
+                <li class="panel-row">
+                  <%= link_to run.conversation.title.presence || t('.untitled'),
+                        conversation_path(run.conversation), class: "panel-link",
+                        data: { turbo_frame: "main" } %>
+                  <span class="run-chip run-chip--<%= run.status %>"><%= t(".statuses.#{run.status}") %></span>
+                </li>
+              <% end %>
+            </ul>
+          <% else %>
+            <p class="field-hint"><%= t('.no_runs') %></p>
+          <% end %>
+        </section>
+
+        <section class="panel">
+          <h2 class="panel-title"><%= t('.resources') %></h2>
+          <dl class="res-list">
+            <dt><%= t('.res_repo') %></dt>
+            <dd>
+              <% if @project.github_repo.present? %>
+                <%= link_to @project.github_repo, "https://github.com/#{@project.github_repo}",
+                      target: "_blank", rel: "noopener" %>
+              <% else %>
+                <span class="field-hint"><%= t('.res_unbound') %></span>
+              <% end %>
+            </dd>
+          </dl>
+          <p class="field-hint res-soon"><%= t('.res_soon') %></p>
+        </section>
+      </div>
+    </div>
+  </div>
+</main>

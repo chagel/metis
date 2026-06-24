@@ -53,14 +53,6 @@
       </svg>
       <span><%= t('.connectors') %></span>
     <% end %>
-    <%= link_to projects_path,
-          class: "nav-item#{' on' if controller_name == 'projects'}" do %>
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-        <path d="M2.5 4.5h4l1 1.2h6V13h-11z"
-              stroke-linejoin="round"/>
-      </svg>
-      <span><%= t('.projects') %></span>
-    <% end %>
     <%= link_to skills_path,
           class: "nav-item#{' on' if controller_name == 'skills'}" do %>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">

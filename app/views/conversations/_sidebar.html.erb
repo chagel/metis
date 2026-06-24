@@ -26,7 +26,10 @@
       then, so Board would otherwise stay lit). %>
   <nav class="prnav" aria-label="<%= t('.primary_nav') %>" data-controller="nav-tabs">
     <%= link_to t('.chats'), conversations_path,
-          class: "prnav-item#{' on' unless controller_name == 'board'}",
+          class: "prnav-item#{' on' unless controller_name.in?(%w[board projects])}",
+          data: { nav_tabs_target: "link" } %>
+    <%= link_to t('.projects'), projects_path,
+          class: "prnav-item#{' on' if controller_name == 'projects'}",
           data: { nav_tabs_target: "link" } %>
     <%= link_to board_path,
           class: "prnav-item#{' on' if controller_name == 'board'}",

@@ -71,22 +71,51 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "edit shows the empty activity state for a project with no events" do
-    project = team.projects.create!(name: "Metis")
-    get edit_project_path(project)
-    assert_response :success
-    assert_select ".proj-activity", text: /No GitHub activity yet/
+  # A team where @user is a plain member, switched in as the current team.
+  def shared_team_as_member
+    owner = User.create!(email: "po-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    team = Team.create!(name: "Shared")
+    team.memberships.create!(user: owner, role: :owner)
+    team.memberships.create!(user: @user, role: :member)
+    post switch_team_path(team)
+    team
   end
 
-  test "edit renders the project's webhook events as activity lines" do
+  test "the dashboard is team-visible (a non-admin member can open it)" do
+    project = shared_team_as_member.projects.create!(name: "Metis")
+    get project_path(project)
+    assert_response :success
+    assert_select ".pane-title", text: "Metis"
+  end
+
+  test "the dashboard shows the empty activity state for a project with no events" do
+    project = team.projects.create!(name: "Metis")
+    get project_path(project)
+    assert_response :success
+    assert_select "p", text: /No GitHub activity yet/
+  end
+
+  test "the dashboard renders the project's webhook events as activity lines" do
     project = team.projects.create!(name: "Metis", github_repo: "chagel/metis")
     WebhookEvent.create!(team: team, project: project, provider: :github,
                          event_type: "pull_request.opened", external_id: "d-1",
                          payload: { "number" => 9, "pull_request" => { "title" => "Ship it", "html_url" => "https://gh/pr/9" },
                                     "sender" => { "login" => "octo" } })
-    get edit_project_path(project)
+    get project_path(project)
     assert_response :success
     assert_select ".activity-actor", text: "octo"
     assert_select "a.activity-summary", text: "opened PR #9: Ship it"
+  end
+
+  test "the sidebar primary nav carries a Projects tab" do
+    get projects_path
+    assert_response :success
+    assert_select ".prnav a.prnav-item.on", text: "Projects"
+  end
+
+  test "the edit form is admin-only" do
+    project = shared_team_as_member.projects.create!(name: "Metis")
+    get edit_project_path(project)
+    assert_redirected_to team_path
   end
 end

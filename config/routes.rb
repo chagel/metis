@@ -28,6 +28,11 @@ Rails.application.routes.draw do
   get "board", to: "board#index"
   get "board/actors", to: "board#actors", as: :board_actors
 
+  # Top-level workspace surface (promoted out of /settings): index + a
+  # read-only project dashboard are team-visible; create/edit/destroy
+  # stay admin-gated in the controller.
+  resources :projects
+
   resources :workflow_runs, only: %i[create] do
     member do
       post :start
@@ -76,7 +81,6 @@ Rails.application.routes.draw do
     get  "connectors/oauth/callback",     to: "connectors/oauth#callback", as: :connector_oauth_callback
     post "connectors/oauth/:catalog_key", to: "connectors/oauth#start",    as: :connector_oauth_start
 
-    resources :projects, except: :show
     resources :workflows, except: :show
 
     get   "models",                   to: "models#index",           as: :models

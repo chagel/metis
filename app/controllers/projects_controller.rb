@@ -1,12 +1,31 @@
 class ProjectsController < ApplicationController
-  layout "settings"
+  # A top-level workspace surface, so it lives in the chat shell (sidebar
+  # + primary nav) like the board — not the settings layout.
+  layout "chat"
 
-  before_action :set_project, only: %i[edit update destroy]
-  # Members use the team's projects (view); only admins curate them.
-  before_action :require_team_admin!, except: :index
+  before_action :set_project, only: %i[show edit update destroy]
+  # Every rendering action sits in the chat shell, which needs the sidebar
+  # data; destroy only redirects.
+  before_action :set_sidebar, except: :destroy
+  # Index + the read-only dashboard are team-visible; curating is admin.
+  before_action :require_team_admin!, except: %i[index show]
+
+  ACTIVITY_LIMIT = 50
+  PANEL_LIMIT = 8
 
   def index
     @projects = team.projects.recent
+  end
+
+  def show
+    mine = @project.conversations.merge(Conversation.accessible_to(current_user))
+    @project_conversations = mine.recent.limit(PANEL_LIMIT)
+    @runs = WorkflowRun.joins(:conversation)
+                       .where(conversations: { project_id: @project.id })
+                       .merge(Conversation.accessible_to(current_user))
+                       .order(created_at: :desc).limit(PANEL_LIMIT)
+    @activity = WebhookEvent.for_project(@project).recent.limit(ACTIVITY_LIMIT)
+    @activity_total = WebhookEvent.for_project(@project).count
   end
 
   def new
@@ -25,12 +44,7 @@ class ProjectsController < ApplicationController
     end
   end
 
-  ACTIVITY_LIMIT = 50
-
   def edit
-    scope = WebhookEvent.for_project(@project)
-    @activity = scope.recent.limit(ACTIVITY_LIMIT)
-    @activity_total = scope.count
   end
 
   def update

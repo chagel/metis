@@ -107,6 +107,34 @@
     edit:
       back: "返回项目"
       delete_confirm: "删除 %{name}？已附加的对话将被分离，而非删除。"
+    show:
+      back: "返回项目"
+      edit: "编辑"
+      no_repo: "未绑定仓库"
+      chats_count:
+        other: "%{count} 个对话"
+      runs_count:
+        other: "%{count} 个运行"
+      events_count:
+        other: "%{count} 个事件"
+      conversations: "对话"
+      untitled: "未命名"
+      no_conversations: "此项目还没有对话。"
+      runs: "运行"
+      no_runs: "此项目还没有工作流运行。"
+      resources: "资源"
+      res_repo: "GitHub"
+      res_unbound: "未绑定"
+      res_soon: "项目级技能与连接器将随“项目作为容器”一并推出。"
+      statuses:
+        pending: "待处理"
+        running: "运行中"
+        awaiting_approval: "待审批"
+        awaiting_local: "待本地认领"
+        completed: "完成"
+        failed: "失败"
+        cancelled: "已取消"
+        queued: "排队中"
     activity:
       title: "动态"
       empty: "暂无 GitHub 动态。在上方绑定一个仓库，事件到达后会显示在这里。"
