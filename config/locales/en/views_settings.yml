@@ -121,9 +121,7 @@ en:
         one: "%{count} event"
         other: "%{count} events"
       needs_you: "Needs you"
-      conversations: "Conversations"
       untitled: "Untitled"
-      no_conversations: "No conversations in this project yet."
       statuses:
         pending: "Pending"
         running: "Running"

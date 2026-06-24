@@ -43,29 +43,9 @@
         </section>
       <% end %>
 
-      <div class="proj-grid">
-        <section class="panel">
-          <h2 class="panel-title"><%= t('.conversations') %></h2>
-          <% if @project_conversations.any? %>
-            <ul class="panel-list">
-              <% @project_conversations.each do |conversation| %>
-                <li class="panel-row">
-                  <%= link_to conversation.title.presence || t('.untitled'),
-                        conversation_path(conversation), class: "panel-link",
-                        data: { turbo_frame: "main" } %>
-                  <time class="panel-time"><%= time_ago_in_words(conversation.updated_at) %></time>
-                </li>
-              <% end %>
-            </ul>
-          <% else %>
-            <p class="field-hint"><%= t('.no_conversations') %></p>
-          <% end %>
-        </section>
-
-        <section class="panel panel--feed">
-          <%= render "activity", activity: @activity, total: @activity_total %>
-        </section>
-      </div>
+      <section class="panel panel--feed">
+        <%= render "activity", activity: @activity, total: @activity_total %>
+      </section>
     </div>
   </div>
 </main>

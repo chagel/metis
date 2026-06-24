@@ -1482,11 +1482,9 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
 .proj-stat + .proj-stat::before,
 .proj-repo + .proj-stat::before { content:"·"; margin-right:14px; color:var(--faint); }
 .proj-about { font-size:13px; color:var(--ink-2); margin:8px 0 22px; line-height:1.5; }
-/* Conversations (resume work) on the left, the activity feed on the right.
-   align-items:start so a short list doesn't stretch into an empty box. */
-.proj-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
-             gap:16px; align-items:start; margin-top:16px; }
-@media (max-width:760px){ .proj-grid { grid-template-columns:1fr; } }
+/* Full-width stacked sections: Needs you (when present), then the activity
+   feed as the page's main content. */
+.panel--attn, .panel--feed { margin-top:16px; }
 /* The one place that earns emphasis — runs awaiting a human, pulled above
    the fold. The app's gate language is gold (wf gate card, board), so wear
    it here too: reads as an action list, not another recency list. */
