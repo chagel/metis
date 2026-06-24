@@ -127,6 +127,9 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".panel--attn .run-chip", text: "Needs approval"
     # The completed run isn't actionable — it stays out of the attention panel.
     assert_select ".panel--attn .panel-link", text: "Done run", count: 0
+    # The gated run is surfaced above; it must not also repeat in Conversations.
+    assert_select ".proj-grid .panel-link", text: "Gated run", count: 0
+    assert_select ".proj-grid .panel-link", text: "Done run"
   end
 
   test "the dashboard hides Needs you when no run awaits a human" do

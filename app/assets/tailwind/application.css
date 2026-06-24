@@ -1488,8 +1488,10 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
              gap:16px; align-items:start; margin-top:16px; }
 @media (max-width:760px){ .proj-grid { grid-template-columns:1fr; } }
 /* The one place that earns emphasis — runs awaiting a human, pulled above
-   the fold. A left accent bar; the gate chips carry the rest of the signal. */
-.panel--attn { border-left:3px solid var(--accent); }
+   the fold. The app's gate language is gold (wf gate card, board), so wear
+   it here too: reads as an action list, not another recency list. */
+.panel--attn { border-left:3px solid var(--gold); }
+.panel--attn .panel-title { color:var(--gold); }
 .panel { background:var(--card); border:1px solid var(--line); border-radius:13px;
          padding:15px 17px; box-shadow:var(--sh-sm); }
 .panel-title { font-size:12px; font-weight:600; color:var(--ink-2); margin:0 0 12px; }
@@ -1502,9 +1504,9 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
 .run-chip { flex:none; font-family:var(--fm); font-size:9.5px; letter-spacing:.03em;
             padding:1.5px 6px; border-radius:6px; background:var(--bg);
             color:var(--ink-2); border:1px solid var(--line-2); }
-.run-chip--running,.run-chip--awaiting_approval,.run-chip--awaiting_local,.run-chip--queued {
-  background:var(--accent-soft); color:var(--accent-fg); border-color:transparent; }
-.run-chip--failed { color:#b3261e; }
+/* Awaiting-a-human states wear the gate gold, matching the workflow UI. */
+.run-chip--awaiting_approval,.run-chip--awaiting_local,.run-chip--queued {
+  background:var(--gold-soft); color:var(--gold); border-color:var(--gold-line); }
 .activity-list { display:flex; flex-direction:column; gap:11px; }
 .activity-item { display:flex; align-items:baseline; gap:9px; font-size:13px; color:var(--ink-2); }
 .activity-avatar { border-radius:50%; flex:none; align-self:center; }

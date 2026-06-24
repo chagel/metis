@@ -25,17 +25,21 @@ class ProjectsController < ApplicationController
     remember_visit(@project)
     visible = Conversation.accessible_to(current_user)
 
-    conversations = @project.conversations.merge(visible)
-    @project_conversations = conversations.recent.limit(PANEL_LIMIT)
-    @conversations_total = conversations.count
-
     runs = WorkflowRun.joins(:conversation)
                       .where(conversations: { project_id: @project.id }).merge(visible)
     @runs_total = runs.count
     # Only runs needing a human (a gate, a local claim, a queued start) are
-    # worth surfacing here — every run also shows under Conversations, so a
-    # full list would just duplicate it.
-    @awaiting_runs = runs.merge(WorkflowRun.awaiting).order(updated_at: :desc).limit(PANEL_LIMIT)
+    # worth surfacing — a run is a conversation, so a full list just repeats
+    # the Conversations panel.
+    awaiting = runs.merge(WorkflowRun.awaiting)
+    @awaiting_runs = awaiting.order(updated_at: :desc).limit(PANEL_LIMIT)
+
+    conversations = @project.conversations.merge(visible)
+    @conversations_total = conversations.count
+    # Drop the awaiting runs — they're surfaced above in Needs you — so the
+    # two lists never show the same item.
+    @project_conversations = conversations.where.not(id: awaiting.select(:conversation_id))
+                                          .recent.limit(PANEL_LIMIT)
 
     activity = WebhookEvent.for_project(@project)
     @activity = activity.recent.limit(ACTIVITY_LIMIT)
