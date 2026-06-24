@@ -1,0 +1,12 @@
+<%# locals: (pagy:) %>
+<%# Endless-scroll trigger at the foot of the activity list. The
+    .activity-list scroll container carries the infinite-scroll controller;
+    this is its sentinel target. Absent on the last page. %>
+<% if pagy&.next %>
+  <div id="activity-sentinel"
+       class="activity-sentinel"
+       data-infinite-scroll-target="sentinel"
+       data-url="<%= project_path(@project, page: pagy.next) %>">
+    <span class="activity-loading" aria-hidden="true"><%= t('projects.activity.loading') %></span>
+  </div>
+<% end %>

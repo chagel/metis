@@ -139,6 +139,46 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".panel--attn", count: 0
   end
 
+  def make_events(project, count)
+    count.times do |i|
+      WebhookEvent.create!(team: team, project: project, provider: :github,
+                           event_type: "push", external_id: "ev-#{i}",
+                           payload: { "ref" => "refs/heads/main", "commits" => [ {} ],
+                                      "sender" => { "login" => "octo" } })
+    end
+  end
+
+  test "the activity feed paginates: first page shows a sentinel when more remain" do
+    project = team.projects.create!(name: "Metis")
+    make_events(project, ProjectsController::ACTIVITY_PAGE_SIZE + 5)
+
+    get project_path(project)
+    assert_response :success
+    assert_select ".activity-list[data-controller='infinite-scroll']"
+    assert_select "#activity-sentinel[data-url*='page=2']"
+    assert_select ".activity-item", count: ProjectsController::ACTIVITY_PAGE_SIZE
+  end
+
+  test "no sentinel when a single page covers every event" do
+    project = team.projects.create!(name: "Metis")
+    make_events(project, 3)
+
+    get project_path(project)
+    assert_select "#activity-sentinel", count: 0
+  end
+
+  test "requesting a page returns a turbo_stream that appends the next rows" do
+    project = team.projects.create!(name: "Metis")
+    make_events(project, ProjectsController::ACTIVITY_PAGE_SIZE + 5)
+
+    get project_path(project, page: 2), headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    assert_response :success
+    assert_equal "text/vnd.turbo-stream.html", response.media_type
+    assert_match %r{turbo-stream action="before" target="activity-sentinel"}, response.body
+    # Last page → the sentinel is removed, not replaced.
+    assert_match %r{turbo-stream action="remove" target="activity-sentinel"}, response.body
+  end
+
   test "the dashboard renders the project's webhook events as activity lines" do
     project = team.projects.create!(name: "Metis", github_repo: "chagel/metis")
     WebhookEvent.create!(team: team, project: project, provider: :github,

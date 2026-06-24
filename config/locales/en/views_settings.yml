@@ -134,7 +134,7 @@ en:
     activity:
       title: "Activity"
       empty: "No GitHub activity yet. Bind a repository above and events land here as they arrive."
-      showing: "Showing the latest %{count} of %{total}."
+      loading: "Loading…"
       ago: "%{time} ago"
       lines:
         push:

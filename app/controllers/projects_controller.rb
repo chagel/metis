@@ -10,7 +10,7 @@ class ProjectsController < ApplicationController
   # Index + the read-only dashboard are team-visible; curating is admin.
   before_action :require_team_admin!, except: %i[index show]
 
-  ACTIVITY_LIMIT = 50
+  ACTIVITY_PAGE_SIZE = 30
   PANEL_LIMIT = 8
 
   # The sidebar is the list; land on a project (last opened, else most
@@ -23,8 +23,12 @@ class ProjectsController < ApplicationController
 
   def show
     remember_visit(@project)
-    visible = Conversation.accessible_to(current_user)
+    @activity_pagy, @activity = pagy(:countless, WebhookEvent.for_project(@project).recent,
+                                     limit: ACTIVITY_PAGE_SIZE)
+    # Infinite-scroll fetches (show.turbo_stream) need only the next page.
+    return if params[:page].present?
 
+    visible = Conversation.accessible_to(current_user)
     runs = WorkflowRun.joins(:conversation)
                       .where(conversations: { project_id: @project.id }).merge(visible)
     @runs_total = runs.count
@@ -33,10 +37,7 @@ class ProjectsController < ApplicationController
     @awaiting_runs = runs.merge(WorkflowRun.awaiting)
                          .includes(:conversation).order(updated_at: :desc).limit(PANEL_LIMIT)
     @conversations_total = @project.conversations.merge(visible).count
-
-    activity = WebhookEvent.for_project(@project)
-    @activity = activity.recent.limit(ACTIVITY_LIMIT)
-    @activity_total = activity.count
+    @activity_total = WebhookEvent.for_project(@project).count
   end
 
   def new

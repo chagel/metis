@@ -131,7 +131,7 @@
     activity:
       title: "动态"
       empty: "暂无 GitHub 动态。在上方绑定一个仓库，事件到达后会显示在这里。"
-      showing: "显示最近 %{count} 条，共 %{total} 条。"
+      loading: "加载中…"
       ago: "%{time}前"
       lines:
         push:

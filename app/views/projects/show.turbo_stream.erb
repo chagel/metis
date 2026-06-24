@@ -1,0 +1,12 @@
+<%# Endless-scroll page for the activity feed: insert the next page's rows
+    before the sentinel, then swap the sentinel for a fresh one (more pages)
+    or remove it (last page). Mirrors conversations/index.turbo_stream. %>
+<%= turbo_stream.before "activity-sentinel",
+      partial: "projects/activity_items", locals: { events: @activity } %>
+
+<% if @activity_pagy.next %>
+  <%= turbo_stream.replace "activity-sentinel",
+        partial: "projects/activity_sentinel", locals: { pagy: @activity_pagy } %>
+<% else %>
+  <%= turbo_stream.remove "activity-sentinel" %>
+<% end %>

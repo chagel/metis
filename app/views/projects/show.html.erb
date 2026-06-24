@@ -9,7 +9,7 @@
     <% end %>
   </header>
 
-  <div class="pane-body">
+  <div class="pane-body proj-body">
     <div class="proj-dash">
       <div class="proj-meta">
         <% if @project.github_repo.present? %>
@@ -44,7 +44,7 @@
       <% end %>
 
       <section class="panel panel--feed">
-        <%= render "activity", activity: @activity, total: @activity_total %>
+        <%= render "activity", activity: @activity, pagy: @activity_pagy %>
       </section>
     </div>
   </div>

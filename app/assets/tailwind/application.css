@@ -1473,7 +1473,17 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
 
 /* ───────────── project dashboard (promoted workspace surface) ───────────── */
 .conn-repo { font-family:var(--fm); font-size:11px; color:var(--ink-3); margin-top:2px; }
-.proj-dash { max-width:1040px; margin:0 auto; }
+/* The dashboard fills the pane: header + meta + Needs you stay put, the
+   activity feed flexes to the foot and scrolls inside itself. So the body
+   itself doesn't scroll. */
+.proj-body { overflow:hidden; display:flex; flex-direction:column; align-items:center; }
+.proj-dash { width:100%; max-width:1040px; flex:1; min-height:0;
+             display:flex; flex-direction:column; }
+.proj-body .panel--feed { flex:1; min-height:0; display:flex; flex-direction:column; }
+.proj-body .panel--feed .activity-list { flex:1; min-height:0; overflow-y:auto;
+                                         margin:0 -4px; padding:0 4px; }
+.activity-sentinel { padding:10px 0 2px; text-align:center; }
+.activity-loading { font-size:11px; color:var(--ink-3); }
 .proj-meta { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin-bottom:6px; }
 .proj-repo { font-family:var(--fm); font-size:12px; color:var(--ink-2); text-decoration:none; }
 .proj-repo:hover { color:var(--accent); }

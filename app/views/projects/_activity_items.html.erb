@@ -1,0 +1,23 @@
+<%# locals: (events:) %>
+<%# One row per WebhookEvent; appended to the feed on infinite scroll. %>
+<% events.each do |event| %>
+  <% entry = event.present %>
+  <div class="activity-item">
+    <% if entry.avatar_url %>
+      <%= image_tag entry.avatar_url, width: 24, height: 24, class: "activity-avatar",
+            alt: "", loading: "lazy", referrerpolicy: "no-referrer" %>
+    <% end %>
+    <span class="activity-text">
+      <span class="activity-actor"><%= entry.actor %></span>
+      <% if entry.url %>
+        <%= link_to entry.summary, entry.url, class: "activity-summary",
+              target: "_blank", rel: "noopener" %>
+      <% else %>
+        <span class="activity-summary"><%= entry.summary %></span>
+      <% end %>
+    </span>
+    <time class="activity-time" datetime="<%= entry.created_at.iso8601 %>">
+      <%= t('projects.activity.ago', time: time_ago_in_words(entry.created_at)) %>
+    </time>
+  </div>
+<% end %>
