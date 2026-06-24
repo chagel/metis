@@ -112,5 +112,11 @@ Rails.application.routes.draw do
     end
   end
 
+  # Single inbound endpoint per provider for the deployment's GitHub App /
+  # Linear connector. HMAC-authed, session-less (docs/workflows.md Phase 4).
+  namespace :webhooks do
+    post "github", to: "github#create"
+  end
+
   root "conversations#index"
 end

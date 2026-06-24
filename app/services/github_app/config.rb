@@ -85,6 +85,14 @@ module GithubApp
       def installation_id
         ENV["GITHUB_APP_INSTALLATION_ID"].presence
       end
+
+      # Shared secret GitHub signs every webhook delivery with (App
+      # Settings → Webhook → Secret). One per deployment — the App has a
+      # single webhook URL; `Webhooks::GithubController` rejects any
+      # delivery whose HMAC doesn't match. Blank → webhooks are refused.
+      def webhook_secret
+        ENV["GITHUB_APP_WEBHOOK_SECRET"].presence
+      end
     end
   end
 end

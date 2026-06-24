@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_13_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_23_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -306,6 +306,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_13_210000) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  create_table "webhook_events", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "event_type", null: false
+    t.string "external_id"
+    t.jsonb "payload", default: {}, null: false
+    t.bigint "project_id"
+    t.integer "provider", null: false
+    t.string "source_installation_id"
+    t.bigint "team_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["project_id"], name: "index_webhook_events_on_project_id"
+    t.index ["provider", "external_id"], name: "index_webhook_events_on_provider_and_external_id", unique: true, where: "(external_id IS NOT NULL)"
+    t.index ["team_id"], name: "index_webhook_events_on_team_id"
+  end
+
   create_table "workflow_runs", force: :cascade do |t|
     t.bigint "conversation_id", null: false
     t.datetime "created_at", null: false
@@ -363,6 +378,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_13_210000) do
   add_foreign_key "tasks", "users", column: "approved_by_id", on_delete: :nullify
   add_foreign_key "tasks", "users", column: "claimed_by_user_id", on_delete: :nullify
   add_foreign_key "tasks", "workflow_runs", on_delete: :cascade
+  add_foreign_key "webhook_events", "projects"
+  add_foreign_key "webhook_events", "teams"
   add_foreign_key "workflow_runs", "conversations", on_delete: :cascade
   add_foreign_key "workflow_runs", "teams"
   add_foreign_key "workflow_runs", "workflows", on_delete: :nullify

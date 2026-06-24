@@ -84,15 +84,21 @@ Themes, in impact order:
 
 ## Next
 
-- [ ] **Invite-around-a-skill, end to end.** Finish a skill
-  mid-conversation → one click to invite a teammate into a team built
-  around it. Worth more than the next three connectors.
-- [ ] **Skill usage analytics + reject/edit capture.** Even a crude
-  "used N / edited M" surfaces load-bearing skills and seeds the
-  learning loop. Cheapest moat-deepener we have.
-- [ ] **A day-zero model ritual.** When a notable model drops, a
-  same-day "Metis runs it now" note — architecture as recurring
-  attention.
+- [~] **Inbound webhooks — collect first (Phase 1).** GitHub side
+  **shipped**: session-less `Webhooks::GithubController`
+  (`ActionController::API`, HMAC `X-Hub-Signature-256` against
+  `GithubApp::Config.webhook_secret`) → `Webhooks::GithubEventProcessor`
+  maps each delivery to a `WebhookEvent` row (`provider`/`event_type`/
+  `external_id`/`payload`), deduped per delivery id. Team resolved from
+  the payload `installation.id` against `Connector#bot_installation_id`;
+  events for an unclaimed installation are dropped. No Metis behavior is
+  triggered yet — pure collection substrate. **Still to do:** the Linear
+  side (`Webhooks::LinearController` + per-connector HMAC), and a
+  repo → `Project` binding so `WebhookEvent#project` can resolve (today
+  it's always null — `Project` has no external_refs yet, despite
+  CLAUDE.md). **How a `WebhookEvent` triggers behavior (a `WorkflowRun`,
+  a notification) is a separate later phase** — keep the engine out of
+  the collection path. See [`docs/workflows.md`](docs/workflows.md) Phase 4.
 - [ ] **Workflow fan-out + declared-label gates.** The depth axis's
   next compounding step: parallel delegated steps (reuse the bridge's
   `max_workers` + `SKIP LOCKED` claim), then a skill-emitted
