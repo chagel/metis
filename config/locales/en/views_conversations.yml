@@ -39,7 +39,6 @@ en:
       new_project: "New project"
       settings: "Settings"
       projects_empty: "No projects yet."
-      no_repo: "— no repo bound"
       primary_nav: "Primary navigation"
       chats: "Chats"
       projects: "Projects"

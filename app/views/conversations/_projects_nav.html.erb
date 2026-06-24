@@ -14,9 +14,9 @@
       <%= link_to project_path(project),
             class: "prjnav-item#{' on' if @project&.id == project.id}" do %>
         <span class="prjnav-name"><%= project.name %></span>
-        <span class="prjnav-repo">
-          <%= project.github_repo.presence || t('conversations.sidebar.no_repo') %>
-        </span>
+        <% if project.github_repo.present? %>
+          <span class="prjnav-repo"><%= project.github_repo %></span>
+        <% end %>
         <% if segs.any? %>
           <span class="prjnav-stats"><%= segs.join(" · ") %></span>
         <% end %>
