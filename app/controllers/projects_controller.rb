@@ -32,7 +32,7 @@ class ProjectsController < ApplicationController
     # worth surfacing — a run is a conversation, so a full list just repeats
     # the Conversations panel.
     awaiting = runs.merge(WorkflowRun.awaiting)
-    @awaiting_runs = awaiting.order(updated_at: :desc).limit(PANEL_LIMIT)
+    @awaiting_runs = awaiting.includes(:conversation).order(updated_at: :desc).limit(PANEL_LIMIT)
 
     conversations = @project.conversations.merge(visible)
     @conversations_total = conversations.count
