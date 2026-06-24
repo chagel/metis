@@ -1,7 +1,5 @@
-# Turns a raw WebhookEvent into a one-line activity entry for the project
-# timeline. Locale-resolved here (not the view) so the per-type wording
-# lives in one place — the same descriptor Phase 4 will reuse for run
-# provenance ("fired by <this>"). Unknown event types fall back to a bare
+# One-line activity entry for a WebhookEvent. Wording is locale-resolved
+# here so it lives in one place; unknown event types degrade to a bare
 # humanized name rather than raising.
 class WebhookEvent
   class Presenter

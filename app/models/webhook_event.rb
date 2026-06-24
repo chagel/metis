@@ -1,7 +1,5 @@
-# A raw inbound event from an external provider (GitHub, Linear),
-# persisted as the collection substrate for later triggering. Phase 1
-# only records — nothing reads these to drive Metis behavior yet. See
-# PLAN.md "Inbound webhooks — collect first" and docs/workflows.md Phase 4.
+# A raw inbound provider event (GitHub, Linear), collected for later
+# triggering — nothing reads these to drive behavior yet (PLAN.md Phase 1).
 class WebhookEvent < ApplicationRecord
   belongs_to :team
   # Null for account-level events (no repo) or a repo no project binds.

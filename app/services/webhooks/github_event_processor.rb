@@ -1,8 +1,6 @@
-# Maps one GitHub App webhook delivery to a WebhookEvent on the owning
-# team. The team is resolved from the payload's installation id against
-# the team's enabled github_bot connector (Connector#bot_installation_id)
-# — an event for an installation no team has claimed is dropped. Pure
-# collection: nothing here triggers Metis behavior (PLAN.md Phase 1).
+# Maps one GitHub App webhook delivery to a WebhookEvent. The team is
+# resolved from the payload's installation id against a github connector's
+# bot_installation_id; an event no team has claimed is dropped.
 module Webhooks
   class GithubEventProcessor
     def initialize(event:, delivery:, payload:)

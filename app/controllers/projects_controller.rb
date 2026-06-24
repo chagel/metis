@@ -13,9 +13,8 @@ class ProjectsController < ApplicationController
   ACTIVITY_LIMIT = 50
   PANEL_LIMIT = 8
 
-  # The sidebar is the project list (master); the pane shows a project
-  # (detail), so land on the last one opened (or the most recent), never a
-  # duplicate of the list. No projects → the empty state prompts the first.
+  # The sidebar is the list; land on a project (last opened, else most
+  # recent), not a duplicate of it. No projects → the empty-state prompt.
   def index
     @projects = team.projects.recent
     target = last_visited_project || @projects.first
@@ -24,13 +23,14 @@ class ProjectsController < ApplicationController
 
   def show
     remember_visit(@project)
-    conversations = @project.conversations.merge(Conversation.accessible_to(current_user))
+    visible = Conversation.accessible_to(current_user)
+
+    conversations = @project.conversations.merge(visible)
     @project_conversations = conversations.recent.limit(PANEL_LIMIT)
     @conversations_total = conversations.count
 
     runs = WorkflowRun.joins(:conversation)
-                      .where(conversations: { project_id: @project.id })
-                      .merge(Conversation.accessible_to(current_user))
+                      .where(conversations: { project_id: @project.id }).merge(visible)
     @runs = runs.order(created_at: :desc).limit(PANEL_LIMIT)
     @runs_total = runs.count
 
@@ -88,16 +88,15 @@ class ProjectsController < ApplicationController
     @project = team.projects.find(params[:id])
   end
 
-  # Last project opened, kept per team in the session (like current_team_id)
-  # so clicking Projects returns where you were. nil when none recorded, the
-  # record is gone, or it belongs to another team — index then falls back.
+  # Last project opened, so clicking Projects returns where you were.
+  # Scoped to the team's own projects, so a stale id from another team (or
+  # a deleted project) just resolves to nil and index falls back.
   def last_visited_project
-    id = (session[:last_project] || {})[current_team.id.to_s]
-    team.projects.find_by(id: id) if id
+    team.projects.find_by(id: session[:last_project_id])
   end
 
   def remember_visit(project)
-    session[:last_project] = (session[:last_project] || {}).merge(current_team.id.to_s => project.id)
+    session[:last_project_id] = project.id
   end
 
   def project_params
