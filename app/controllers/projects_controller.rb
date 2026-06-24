@@ -13,8 +13,12 @@ class ProjectsController < ApplicationController
   ACTIVITY_LIMIT = 50
   PANEL_LIMIT = 8
 
+  # The sidebar is the project list (master); the pane shows a project
+  # (detail), so land on the most recent rather than duplicate the list.
+  # No projects → the empty state prompts the first one.
   def index
     @projects = team.projects.recent
+    redirect_to project_path(@projects.first) and return if @projects.any?
   end
 
   def show

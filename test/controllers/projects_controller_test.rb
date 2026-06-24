@@ -16,13 +16,12 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".pane-empty", text: /No projects yet/
   end
 
-  test "index lists the team's projects with their about preview" do
-    team.projects.create!(name: "Metis", about: "Rails 8.1 chat over pi.")
+  test "index lands on the most recent project rather than duplicating the sidebar list" do
+    team.projects.create!(name: "Older")
+    newest = team.projects.create!(name: "Newest")
 
     get projects_path
-    assert_response :success
-    assert_select ".conn-name", text: "Metis"
-    assert_select ".conn-sub", text: /Rails 8.1 chat over pi/
+    assert_redirected_to project_path(newest)
   end
 
   test "create persists name + about and stamps created_by / updated_by" do
@@ -114,11 +113,11 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "projects shows the project list in the sidebar, not conversations, and stays expanded" do
-    team.projects.create!(name: "Metis")
-    get projects_path
+    project = team.projects.create!(name: "Metis")
+    get project_path(project)
     assert_response :success
     assert_select ".app.sidebar-collapsed", count: 0
-    assert_select ".prjnav .prjnav-item", text: /Metis/
+    assert_select ".prjnav .prjnav-item.on", text: /Metis/
     assert_select ".sidebar .search", count: 0
     assert_select ".sidebar-rail a.rail-dest", minimum: 4
   end

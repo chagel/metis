@@ -1,28 +1,20 @@
 <% content_for :title, t('.title') %>
 
+<%# Reached only when the team has no projects — otherwise the controller
+    lands on the most recent project. The list itself lives in the sidebar. %>
 <main class="pane">
   <header class="pane-head">
     <h1 class="pane-title"><%= t('.heading') %></h1>
-    <div style="flex:1"></div>
-    <% if team_manager? %>
-      <%= link_to t('.new'), new_project_path, class: "btn btn-ghost" %>
-    <% end %>
   </header>
 
   <div class="pane-body">
     <div class="pane-inner">
-      <% if @projects.any? %>
-        <div class="conn-list">
-          <%= render @projects %>
-        </div>
-      <% else %>
-        <div class="pane-empty">
-          <p><%= t('.empty') %></p>
-          <% if team_manager? %>
-            <%= link_to t('.create_first'), new_project_path, class: "btn btn-primary" %>
-          <% end %>
-        </div>
-      <% end %>
+      <div class="pane-empty">
+        <p><%= t('.empty') %></p>
+        <% if team_manager? %>
+          <%= link_to t('.create_first'), new_project_path, class: "btn btn-primary" %>
+        <% end %>
+      </div>
     </div>
   </div>
 </main>
