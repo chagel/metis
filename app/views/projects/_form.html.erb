@@ -1,4 +1,8 @@
-<%= form_with model: project, url: project.persisted? ? project_path(project) : projects_path, class: "conn-form" do |f| %>
+<%# Breaks out of the #main frame so a save reloads the full page — the
+    sidebar project list must pick up the new/renamed project (mirrors the
+    new-chat form). %>
+<%= form_with model: project, url: project.persisted? ? project_path(project) : projects_path,
+      class: "conn-form", data: { turbo_frame: "_top" } do |f| %>
   <% if project.errors.any? %>
     <div class="flash error"><%= project.errors.full_messages.to_sentence %></div>
   <% end %>

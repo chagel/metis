@@ -32,7 +32,7 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Rails 8.1 chat over pi.", project.about
     assert_equal @user.id, project.created_by_id
     assert_equal @user.id, project.updated_by_id
-    assert_redirected_to edit_project_path(project)
+    assert_redirected_to project_path(project)
   end
 
   test "create with a blank name re-renders the new form" do

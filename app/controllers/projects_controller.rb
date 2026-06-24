@@ -42,7 +42,7 @@ class ProjectsController < ApplicationController
     @project.updated_by = current_user
 
     if @project.save
-      redirect_to edit_project_path(@project), notice: t("flash.projects.create.notice")
+      redirect_to project_path(@project), notice: t("flash.projects.create.notice")
     else
       render :new, status: :unprocessable_entity
     end
