@@ -109,6 +109,8 @@
       delete_confirm: "删除 %{name}？已附加的对话将被分离，而非删除。"
     form:
       name_hint: "一个你能认出的简短名称 — “Metis”、“Q4 计划”、“妈妈的生日”。"
+      github_repo_label: "GitHub 仓库"
+      github_repo_hint: "owner/repo — 将该仓库的入站 GitHub 事件（PR、推送、议题）绑定到此项目。"
       about_label: "关于此项目"
       about_placeholder: "这个项目是关于什么的？智能体会在此项目的每一轮对话中读取这段内容。\n\n请写明它映射到的资源 — 例如“GitHub 仓库 chagel/metis、Linear 项目 Metis”。"
       about_hint: "自由记录 — 约定、约束、涉及哪些人、映射到哪个仓库或看板。会出现在智能体的上下文中。"

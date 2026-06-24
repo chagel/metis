@@ -91,14 +91,15 @@ Themes, in impact order:
   maps each delivery to a `WebhookEvent` row (`provider`/`event_type`/
   `external_id`/`payload`), deduped per delivery id. Team resolved from
   the payload `installation.id` against `Connector#bot_installation_id`;
-  events for an unclaimed installation are dropped. No Metis behavior is
+  events for an unclaimed installation are dropped. `WebhookEvent#project`
+  resolves too: `Project#external_refs.github_repo` (an `owner/repo`
+  binding set on the project form) is matched against the delivery's
+  `repository.full_name` within the resolved team. No Metis behavior is
   triggered yet — pure collection substrate. **Still to do:** the Linear
-  side (`Webhooks::LinearController` + per-connector HMAC), and a
-  repo → `Project` binding so `WebhookEvent#project` can resolve (today
-  it's always null — `Project` has no external_refs yet, despite
-  CLAUDE.md). **How a `WebhookEvent` triggers behavior (a `WorkflowRun`,
-  a notification) is a separate later phase** — keep the engine out of
-  the collection path. See [`docs/workflows.md`](docs/workflows.md) Phase 4.
+  side (`Webhooks::LinearController` + per-connector HMAC). **How a
+  `WebhookEvent` triggers behavior (a `WorkflowRun`, a notification) is a
+  separate later phase** — keep the engine out of the collection path.
+  See [`docs/workflows.md`](docs/workflows.md) Phase 4.
 - [ ] **Workflow fan-out + declared-label gates.** The depth axis's
   next compounding step: parallel delegated steps (reuse the bridge's
   `max_workers` + `SKIP LOCKED` claim), then a skill-emitted

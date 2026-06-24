@@ -17,6 +17,7 @@ module Webhooks
 
       WebhookEvent.create_or_find_by!(provider: :github, external_id: @delivery) do |row|
         row.team = team
+        row.project = resolve_project(team)
         row.event_type = event_type
         row.source_installation_id = installation_id
         row.payload = @payload
@@ -31,6 +32,15 @@ module Webhooks
       Connector.where(catalog_key: "github")
                .where("settings ->> 'bot_installation_id' = ?", installation_id.to_s)
                .first&.team
+    end
+
+    # The team's project bound to this event's repo, or nil. Account-level
+    # events (no repository block) and unbound repos resolve to nil.
+    def resolve_project(team)
+      full_name = @payload.dig("repository", "full_name")
+      return if full_name.blank?
+
+      team.projects.for_github_repo(full_name).first
     end
 
     def installation_id

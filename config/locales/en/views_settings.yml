@@ -109,6 +109,8 @@ en:
       delete_confirm: "Delete %{name}? Attached conversations will be detached, not deleted."
     form:
       name_hint: "A short name you recognize — \"Metis\", \"Q4 planning\", \"Mom's birthday\"."
+      github_repo_label: "GitHub repository"
+      github_repo_hint: "owner/repo — binds inbound GitHub events (PRs, pushes, issues) for this repo to this project."
       about_label: "About this project"
       about_placeholder: "What's this project about? The agent reads this on every turn in this project.\n\nName the resources it maps to — e.g. \"GitHub repo chagel/metis, Linear project Metis\"."
       about_hint: "Freeform notes — conventions, constraints, who's involved, which repo or board it maps to. Shows up in the agent's context."

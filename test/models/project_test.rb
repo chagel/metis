@@ -63,4 +63,25 @@ class ProjectTest < ActiveSupport::TestCase
       other.destroy
     end
   end
+
+  test "github_repo is normalized to a bare lowercased owner/name" do
+    project = @team.projects.create!(name: "Metis", github_repo: "https://github.com/Chagel/Metis.git")
+    assert_equal "chagel/metis", project.github_repo
+  end
+
+  test "github_repo blanks to nil so the key isn't a stray empty string" do
+    project = @team.projects.create!(name: "Metis", github_repo: "  ")
+    assert_nil project.github_repo
+  end
+
+  test "github_repo must look like owner/name" do
+    refute @team.projects.new(name: "Metis", github_repo: "not-a-repo").valid?
+    assert @team.projects.new(name: "Metis", github_repo: "owner/repo").valid?
+  end
+
+  test "for_github_repo matches case-insensitively" do
+    project = @team.projects.create!(name: "Metis", github_repo: "chagel/metis")
+    assert_equal project, @team.projects.for_github_repo("Chagel/Metis").first
+    assert_nil @team.projects.for_github_repo("other/repo").first
+  end
 end
