@@ -113,6 +113,16 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".prnav a.prnav-item.on", text: "Projects"
   end
 
+  test "projects shows the project list in the sidebar, not conversations, and stays expanded" do
+    team.projects.create!(name: "Metis")
+    get projects_path
+    assert_response :success
+    assert_select ".app.sidebar-collapsed", count: 0
+    assert_select ".prjnav .prjnav-item", text: /Metis/
+    assert_select ".sidebar .search", count: 0
+    assert_select ".sidebar-rail a.rail-dest", minimum: 4
+  end
+
   test "the edit form is admin-only" do
     project = shared_team_as_member.projects.create!(name: "Metis")
     get edit_project_path(project)

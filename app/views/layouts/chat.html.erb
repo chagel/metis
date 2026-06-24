@@ -10,7 +10,8 @@
     <%# Team-level broadcasts (e.g. the "new shared conversation" dot) reach
         every member currently active in this team. %>
     <%= turbo_stream_from current_team unless current_team.personal? %>
-    <div class="app" data-controller="sidebar">
+    <div class="app<%= " sidebar-collapsed" if nav_default_collapsed? %>"
+         data-controller="sidebar" data-sidebar-section-value="<%= controller_name %>">
       <button type="button" class="sidebar-toggle"
               data-action="click->sidebar#toggle"
               aria-label="<%= t('.open_menu') %>" title="<%= t('.open_menu') %>">

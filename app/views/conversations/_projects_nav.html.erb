@@ -1,0 +1,19 @@
+<%# The sidebar's project list — the contextual body on projects/board.
+    Full Turbo Drive visits (no #main frame) so the active highlight is
+    server-rendered correctly when switching projects. %>
+<nav class="prjnav" aria-label="<%= t('conversations.sidebar.projects') %>">
+  <% projects = current_team.projects.recent %>
+  <% if projects.any? %>
+    <% projects.each do |project| %>
+      <%= link_to project_path(project),
+            class: "prjnav-item#{' on' if @project&.id == project.id}" do %>
+        <span class="prjnav-name"><%= project.name %></span>
+        <% if project.github_repo.present? %>
+          <span class="prjnav-repo"><%= project.github_repo %></span>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% else %>
+    <div class="convos-empty"><%= t('conversations.sidebar.projects_empty') %></div>
+  <% end %>
+</nav>

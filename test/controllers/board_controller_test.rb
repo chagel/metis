@@ -29,6 +29,14 @@ class BoardControllerTest < ActionDispatch::IntegrationTest
     assert_select ".sidebar .prnav .prnav-item[data-nav-tabs-target='link']", count: 3
   end
 
+  test "the board opens collapsed by default, with rail destinations" do
+    sign_in @user
+    get board_path
+    assert_response :success
+    assert_select ".app.sidebar-collapsed"
+    assert_select ".sidebar-rail a.rail-dest", minimum: 4
+  end
+
   test "places a run in its status column and project lane" do
     run = new_run(status: :awaiting_approval)
     run.tasks.create!(position: 0, name: "review", gate: :approval, status: :awaiting_approval)

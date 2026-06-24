@@ -36,6 +36,9 @@
       copied: "已复制"
     sidebar:
       new_chat: "新对话"
+      new_project: "新建项目"
+      settings: "设置"
+      projects_empty: "还没有项目。"
       primary_nav: "主导航"
       chats: "对话"
       projects: "项目"

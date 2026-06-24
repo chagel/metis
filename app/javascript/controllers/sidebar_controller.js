@@ -8,8 +8,11 @@ import { Controller } from "@hotwired/stimulus"
 //    On wide viewports these are visual no-ops (CSS).
 //
 // 2. Desktop collapse (wide viewports): the sidebar shrinks to an icon
-//    rail. State persists in localStorage and is restored on connect
-//    without animating (sidebar-no-anim).
+//    rail. The default is per-section (the server renders the board
+//    collapsed; see nav_default_collapsed?). A manual toggle is remembered
+//    per section under `sidebarCollapsed:<section>`, so flipping the board
+//    open doesn't also collapse chats. Absent an override the server
+//    default stands. Restored on connect without animating (sidebar-no-anim).
 //
 // Keyboard shortcuts (⌘ on mac, Ctrl elsewhere): B toggles collapse,
 // F focuses search (expanding first if collapsed), N starts a new chat.
@@ -17,6 +20,11 @@ const STORE_KEY = "sidebarCollapsed"
 
 export default class extends Controller {
   static targets = ["newChat"]
+  static values = { section: String }
+
+  storeKey() {
+    return `${STORE_KEY}:${this.sectionValue || ""}`
+  }
 
   connect() {
     this._onFrameLoad = (event) => {
@@ -29,9 +37,13 @@ export default class extends Controller {
     this.collapsible = !!this.element.querySelector(".sidebar-rail")
     if (!this.collapsible) return
 
-    if (localStorage.getItem(STORE_KEY) === "1") {
-      this.element.classList.add("sidebar-no-anim", "sidebar-collapsed")
-      this.element.offsetWidth // reflow so the restore doesn't animate
+    // Reconcile the server-rendered default with a sticky per-section
+    // override, correcting without animating.
+    const override = localStorage.getItem(this.storeKey())
+    if (override !== null) {
+      this.element.classList.add("sidebar-no-anim")
+      this.element.classList.toggle("sidebar-collapsed", override === "1")
+      this.element.offsetWidth // reflow so the correction doesn't animate
       this.element.classList.remove("sidebar-no-anim")
     }
 
@@ -68,11 +80,11 @@ export default class extends Controller {
   // ── desktop collapse ──
   toggleCollapse() {
     const collapsed = this.element.classList.toggle("sidebar-collapsed")
-    localStorage.setItem(STORE_KEY, collapsed ? "1" : "0")
+    localStorage.setItem(this.storeKey(), collapsed ? "1" : "0")
   }
   expand() {
     this.element.classList.remove("sidebar-collapsed")
-    localStorage.setItem(STORE_KEY, "0")
+    localStorage.setItem(this.storeKey(), "0")
   }
   expandAndSearch() {
     this.expand()

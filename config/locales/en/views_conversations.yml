@@ -36,6 +36,9 @@ en:
       copied: "Copied"
     sidebar:
       new_chat: "New chat"
+      new_project: "New project"
+      settings: "Settings"
+      projects_empty: "No projects yet."
       primary_nav: "Primary navigation"
       chats: "Chats"
       projects: "Projects"

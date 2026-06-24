@@ -136,6 +136,16 @@ module ApplicationHelper
   # hasn't picked a timezone yet — keeping the conditional in Ruby
   # avoids embedding ERB inside the `<body>` opening tag, which leaves
   # stray whitespace before the closing `>`.
+  # Sections whose sidebar opens collapsed (icon rail) by default — the
+  # board is a full-width cross-project grid that the 300px panel only
+  # crowds. Rendered server-side so there's no expanded→collapsed flash;
+  # the Stimulus controller still honors a sticky per-section override.
+  NAV_DEFAULT_COLLAPSED = %w[board].freeze
+
+  def nav_default_collapsed?
+    NAV_DEFAULT_COLLAPSED.include?(controller_name)
+  end
+
   def chat_body_attrs
     attrs = { class: "app-shell" }
     if user_signed_in? && current_user.timezone.blank?
