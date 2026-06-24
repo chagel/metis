@@ -20,6 +20,10 @@ class Project < ApplicationRecord
   has_many :conversations, dependent: :nullify
 
   before_validation :normalize_github_repo
+  # Binding a repo retroactively claims its already-collected events — a
+  # delivery can land before anyone binds the repo, and those rows would
+  # otherwise stay orphaned (project_id nil) forever.
+  after_save :adopt_orphan_events, if: -> { saved_change_to_external_refs? && github_repo.present? }
   # Deleting mid-run would strip the project off the run's conversation,
   # leaving delegated steps unclaimable (daemons claim per project).
   # Prepended so it beats the association's nullify callback.
@@ -44,6 +48,12 @@ class Project < ApplicationRecord
       .sub(%r{\Ahttps?://github\.com/}i, "")
       .sub(/\.git\z/i, "")
       .downcase.presence
+  end
+
+  def adopt_orphan_events
+    WebhookEvent.where(team_id: team_id, project_id: nil)
+                .where("LOWER(payload -> 'repository' ->> 'full_name') = ?", github_repo)
+                .update_all(project_id: id)
   end
 
   def forbid_active_runs
