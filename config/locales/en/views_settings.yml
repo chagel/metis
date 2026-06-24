@@ -105,7 +105,7 @@ en:
       title: "New project"
       heading: "New project"
     edit:
-      back: "Back to projects"
+      back: "Back to project"
       delete_confirm: "Delete %{name}? Attached conversations will be detached, not deleted."
     show:
       back: "Back to projects"
