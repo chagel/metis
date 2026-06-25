@@ -1,6 +1,8 @@
 require "test_helper"
 
 class Webhooks::LinearEventProcessorTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
   ORG = "org-123".freeze
 
   setup do
@@ -71,5 +73,26 @@ class Webhooks::LinearEventProcessorTest < ActiveSupport::TestCase
     process(event: "Issue", delivery: "p-3",
             payload: payload(data: { "id" => "issue-1", "projectId" => "11111111-2222-3333-4444-555555555555" }))
     assert_nil WebhookEvent.last.project
+  end
+
+  test "enqueues a project backfill for a projectless delivery that references an issue" do
+    assert_enqueued_with(job: Linear::ProjectBackfillJob) do
+      process(event: "Comment", delivery: "b-1",
+              payload: payload(type: "Comment", data: { "id" => "c-1", "issueId" => "issue-9" }))
+    end
+  end
+
+  test "does not enqueue a backfill when the delivery already resolved a project" do
+    project = @team.projects.create!(name: "Metis", linear_project: "11111111-2222-3333-4444-555555555555")
+    assert_no_enqueued_jobs only: Linear::ProjectBackfillJob do
+      process(event: "Issue", delivery: "b-2",
+              payload: payload(data: { "id" => "issue-1", "projectId" => project.linear_project, "issueId" => "issue-9" }))
+    end
+  end
+
+  test "does not enqueue a backfill when there is no issue reference" do
+    assert_no_enqueued_jobs only: Linear::ProjectBackfillJob do
+      process(event: "Issue", delivery: "b-3", payload: payload(data: { "id" => "issue-1" }))
+    end
   end
 end

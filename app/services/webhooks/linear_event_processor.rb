@@ -15,16 +15,34 @@ module Webhooks
       team = resolve_team
       return unless team
 
-      WebhookEvent.create_or_find_by!(provider: :linear, external_id: @delivery) do |row|
+      event = WebhookEvent.create_or_find_by!(provider: :linear, external_id: @delivery) do |row|
         row.team = team
         row.project = resolve_project(team)
         row.event_type = event_type
         row.source_installation_id = organization_id
         row.payload = @payload
       end
+
+      enqueue_project_backfill(event)
+      event
     end
 
     private
+
+    # When a fresh delivery couldn't be bound to a project but references an
+    # issue (e.g. a Comment, which Linear serializes without a project),
+    # resolve it out-of-band via the Linear API.
+    def enqueue_project_backfill(event)
+      return unless event.previously_new_record? && event.project_id.nil?
+      return if issue_id.blank?
+
+      Linear::ProjectBackfillJob.perform_later(event.id)
+    end
+
+    def issue_id
+      data = @payload["data"] || {}
+      data["issueId"] || data.dig("issue", "id")
+    end
 
     def resolve_team
       return if organization_id.blank?

@@ -37,4 +37,27 @@ class Linear::ApiTest < ActiveSupport::TestCase
       assert_raises(Linear::Api::Error) { api.projects }
     end
   end
+
+  test "issue_project_id sends the issue id as a variable and returns the project id" do
+    api = Linear::Api.new("tok")
+    body = { data: { issue: { project: { id: "proj-uuid" } } } }.to_json
+    captured = nil
+    transport = Object.new
+    transport.define_singleton_method(:request) { |req| captured = req.body; Response.new("200", body) }
+
+    result = nil
+    with_stub(api, :https_client, ->(_uri) { transport }) { result = api.issue_project_id("issue-1") }
+
+    assert_equal "proj-uuid", result
+    assert_equal({ "id" => "issue-1" }, JSON.parse(captured)["variables"])
+  end
+
+  test "issue_project_id returns nil when the issue has no project" do
+    api = Linear::Api.new("tok")
+    body = { data: { issue: { project: nil } } }.to_json
+    result = nil
+    with_response(api, Response.new("200", body)) { result = api.issue_project_id("issue-1") }
+
+    assert_nil result
+  end
 end

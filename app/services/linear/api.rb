@@ -14,6 +14,7 @@ module Linear
     ENDPOINT = "https://api.linear.app/graphql".freeze
     PROJECTS_QUERY = "{ projects(first: 250) { nodes { id name } } }".freeze
     ORGANIZATION_QUERY = "{ organization { id } }".freeze
+    ISSUE_PROJECT_QUERY = "query($id: String!) { issue(id: $id) { project { id } } }".freeze
 
     def initialize(token)
       @token = token
@@ -34,14 +35,21 @@ module Linear
       query(ORGANIZATION_QUERY).dig("organization", "id")
     end
 
+    # The project id an issue belongs to, or nil — used to backfill the
+    # project on a webhook delivery (e.g. a Comment) that carries an issue
+    # reference but no project of its own.
+    def issue_project_id(issue_id)
+      query(ISSUE_PROJECT_QUERY, variables: { id: issue_id }).dig("issue", "project", "id")
+    end
+
     private
 
-    def query(graphql)
+    def query(graphql, variables: nil)
       uri = URI(ENDPOINT)
       request = Net::HTTP::Post.new(uri)
       request["Authorization"] = "Bearer #{@token}"
       request["Content-Type"] = "application/json"
-      request.body = { query: graphql }.to_json
+      request.body = { query: graphql, variables: variables }.compact.to_json
 
       response = https_client(uri).request(request)
       raise Error, "linear graphql status #{response.code}" unless response.code == "200"
