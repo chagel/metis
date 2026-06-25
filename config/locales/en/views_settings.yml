@@ -143,6 +143,7 @@ en:
         pull_request: "%{verb} PR #%{number}: %{title}"
         issues: "%{verb} issue #%{number}: %{title}"
         issue_comment: "commented on #%{number}"
+        release: "%{verb} release %{name}"
         other: "%{event}"
       verbs:
         opened: "opened"

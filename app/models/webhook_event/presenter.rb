@@ -26,6 +26,7 @@ class WebhookEvent
       when :push                 then @payload["compare"]
       when :pull_request         then @payload.dig("pull_request", "html_url")
       when :pull_request_review  then @payload.dig("review", "html_url")
+      when :release              then @payload.dig("release", "html_url")
       when :issues               then @payload.dig("issue", "html_url")
       when :issue_comment, :pull_request_review_comment then @payload.dig("comment", "html_url")
       end.presence
@@ -45,6 +46,8 @@ class WebhookEvent
         scoped(:issues, verb: verb, number: number, title: title("issue"))
       when :issue_comment, :pull_request_review_comment
         scoped(:issue_comment, number: number)
+      when :release
+        scoped(:release, verb: verb, name: release_name)
       else
         scoped(:other, event: humanized_event)
       end
@@ -87,11 +90,16 @@ class WebhookEvent
       I18n.t(key, scope: "projects.activity.verbs", default: key.humanize.downcase)
     end
 
-    # Last resort for an event with no bespoke wording: spell it out as words
-    # ("pull_request_review_thread.resolved" -> "pull request review thread
-    # resolved") instead of leaking the raw identifier.
+    def release_name
+      @payload.dig("release", "name").presence || @payload.dig("release", "tag_name")
+    end
+
+    # Last resort for an event with no bespoke wording: verb-first, spelled
+    # out ("milestone.created" -> "created milestone",
+    # "pull_request_review_thread.resolved" -> "resolved pull request review
+    # thread") instead of leaking the raw identifier.
     def humanized_event
-      @event.event_type.tr("_.", "  ").squeeze(" ").strip
+      [ action, kind.to_s ].compact.join(" ").tr("_", " ").squeeze(" ").strip
     end
 
     def scoped(key, **args)

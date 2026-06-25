@@ -139,6 +139,7 @@
         pull_request: "%{verb} PR #%{number}：%{title}"
         issues: "%{verb} 议题 #%{number}：%{title}"
         issue_comment: "评论了 #%{number}"
+        release: "%{verb} 版本 %{name}"
         other: "%{event}"
       verbs:
         opened: "打开了"

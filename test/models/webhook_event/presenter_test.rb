@@ -89,10 +89,24 @@ class WebhookEvent::PresenterTest < ActiveSupport::TestCase
     assert_equal "https://gh/pr/7#c9", p.url
   end
 
-  test "an unhandled event type degrades to a readable spelled-out name" do
-    p = present("pull_request_review_thread.resolved", {})
-    assert_equal "pull request review thread resolved", p.summary
-    assert_nil p.url
+  test "a published release names and links it" do
+    p = present("release.published", {
+      "release" => { "name" => "v1.2.0", "html_url" => "https://gh/rel/1" }
+    })
+    assert_equal "published release v1.2.0", p.summary
+    assert_equal "https://gh/rel/1", p.url
+  end
+
+  test "a release with no name falls back to its tag" do
+    p = present("release.published", { "release" => { "tag_name" => "v1.2.0" } })
+    assert_equal "published release v1.2.0", p.summary
+  end
+
+  test "an unhandled event type degrades to a verb-first spelled-out name" do
+    assert_equal "resolved pull request review thread",
+                 present("pull_request_review_thread.resolved", {}).summary
+    assert_equal "created milestone", present("milestone.created", {}).summary
+    assert_nil present("milestone.created", {}).url
   end
 
   test "actor falls back when the payload has no sender" do
