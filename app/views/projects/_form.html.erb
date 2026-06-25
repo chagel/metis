@@ -19,10 +19,26 @@
     <p class="field-hint"><%= t('.github_repo_hint') %></p>
   </div>
 
-  <div class="field">
+  <div class="field" data-controller="linear-projects"
+       data-linear-projects-url-value="<%= linear_projects_projects_path %>"
+       data-loading-text="<%= t('.linear_project_loading') %>">
     <%= f.label :linear_project, t('.linear_project_label') %>
-    <%= f.text_field :linear_project, placeholder: "a1b2c3d4-…", autocomplete: "off" %>
-    <p class="field-hint"><%= t('.linear_project_hint') %></p>
+    <div class="picker-row">
+      <%= f.select :linear_project,
+            options_for_select(project.linear_project.present? ? [ project.linear_project ] : [], project.linear_project),
+            { include_blank: "—" },
+            data: { "linear-projects-target": "select" } %>
+      <button type="button" class="ico-btn" data-action="linear-projects#refresh"
+              title="<%= t('.linear_project_refresh') %>">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          <path d="M13 8a5 5 0 1 1-1.5-3.6M13 3v2h-2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+    <p class="field-hint">
+      <%= t('.linear_project_hint') %>
+      <span class="field-status" data-linear-projects-target="status"></span>
+    </p>
   </div>
 
   <div class="field">

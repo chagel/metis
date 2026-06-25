@@ -31,7 +31,11 @@ Rails.application.routes.draw do
   # Top-level workspace surface (promoted out of /settings): index + a
   # read-only project dashboard are team-visible; create/edit/destroy
   # stay admin-gated in the controller.
-  resources :projects
+  resources :projects do
+    # On-demand list of the team's Linear projects (via the operator's
+    # connector token) to populate the project-form picker.
+    get :linear_projects, on: :collection
+  end
 
   resources :workflow_runs, only: %i[create] do
     member do

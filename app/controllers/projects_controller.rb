@@ -5,8 +5,8 @@ class ProjectsController < ApplicationController
 
   before_action :set_project, only: %i[show edit update destroy]
   # Every rendering action sits in the chat shell, which needs the sidebar
-  # data; destroy only redirects.
-  before_action :set_sidebar, except: :destroy
+  # data; destroy redirects and linear_projects answers JSON.
+  before_action :set_sidebar, except: %i[destroy linear_projects]
   # Index + the read-only dashboard are team-visible; curating is admin.
   before_action :require_team_admin!, except: %i[index show]
 
@@ -74,6 +74,15 @@ class ProjectsController < ApplicationController
     end
   end
 
+  # The team's Linear projects, fetched live with the member's connector
+  # bearer for the form picker. A missing connection or a Linear blip
+  # answers with an error the form degrades on, never a 500.
+  def linear_projects
+    render json: { projects: fetch_linear_projects }
+  rescue Linear::Api::Error => error
+    render json: { error: error.message }, status: :bad_gateway
+  end
+
   def destroy
     name = @project.name
     if @project.destroy
@@ -102,6 +111,17 @@ class ProjectsController < ApplicationController
 
   def remember_visit(project)
     session[:last_project_id] = project.id
+  end
+
+  # The operator binds a project by name; the picker resolves it to the
+  # Linear project UUID stored in external_refs. Read-only, the member's
+  # own connector grant — no extra scope beyond what Linear already gave us.
+  def fetch_linear_projects
+    connector = team.connectors.find_by(catalog_key: "linear")
+    bearer = connector&.credential_for(current_user)&.mcp_oauth_bearer
+    raise Linear::Api::Error, "Connect your Linear account to load projects." if bearer.blank?
+
+    Linear::Api.new(bearer).projects
   end
 
   def project_params

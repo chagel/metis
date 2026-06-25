@@ -253,4 +253,26 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     get edit_project_path(project)
     assert_redirected_to team_path
   end
+
+  test "linear_projects returns the member's linear projects as json" do
+    connector = team.connectors.create!(name: "linear", transport: :http, catalog_key: "linear",
+                                        definition: { "url" => "https://mcp.linear.app/mcp" })
+    credential = connector.connector_credentials.create!(user: @user)
+    credential.store_mcp_oauth!({ "access_token" => "tok", "expires_in" => 3600 },
+                                token_endpoint: "https://e/token", client_id: "cid")
+
+    fake = Struct.new(:list) { def projects = list }.new([ { "id" => "u1", "name" => "Metis" } ])
+    with_stub(Linear::Api, :new, ->(_token) { fake }) do
+      get linear_projects_projects_path, headers: { "Accept" => "application/json" }
+    end
+
+    assert_response :success
+    assert_equal([ { "id" => "u1", "name" => "Metis" } ], response.parsed_body["projects"])
+  end
+
+  test "linear_projects answers an error when linear is not connected" do
+    get linear_projects_projects_path, headers: { "Accept" => "application/json" }
+    assert_response :bad_gateway
+    assert response.parsed_body["error"].present?
+  end
 end
