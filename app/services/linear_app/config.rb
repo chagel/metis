@@ -1,15 +1,10 @@
 module LinearApp
-  # Linear OAuth app credentials, per deployment via environment variables.
-  # This is the *direct* Linear OAuth (linear.app/oauth) — separate from the
-  # connector's MCP-OAuth: the MCP token only authenticates the MCP gateway,
-  # whereas this token works against api.linear.app/graphql, which is what
-  # the project picker needs. Read-only scope; webhooks stay manual.
-  #
-  #   LINEAR_CLIENT_ID      the OAuth app's client id
-  #   LINEAR_CLIENT_SECRET  the OAuth app's client secret
-  #
-  # Register the app (and this callback URL) at
-  # linear.app/settings/api/applications. See docs/connectors.md.
+  # Linear OAuth app credentials, per deployment via env vars. This is the
+  # *direct* Linear OAuth (linear.app/oauth), separate from the connector's
+  # MCP-OAuth: the MCP token only authenticates the MCP gateway, whereas this
+  # token works against api.linear.app/graphql — what the project picker
+  # needs, and the same app whose webhook feeds the activity feed. Register it
+  # at linear.app/settings/api/applications; see docs/connectors.md.
   class Config
     AUTHORIZE_URL = "https://linear.app/oauth/authorize".freeze
     TOKEN_URL = "https://api.linear.app/oauth/token".freeze
@@ -28,11 +23,8 @@ module LinearApp
         client_id.present? && client_secret.present?
       end
 
-      # The OAuth app's webhook signing secret (the lin_wh_… shown on the
-      # app's settings page). One per deployment — the app has a single
-      # webhook URL and fires for every workspace that authorizes it, the
-      # GitHub-App shape. Blank → Webhooks::LinearController refuses every
-      # delivery.
+      # The app's webhook signing secret (the lin_wh_… on its settings page);
+      # blank → Webhooks::LinearController refuses every delivery.
       def webhook_secret
         ENV["LINEAR_WEBHOOK_SECRET"].presence
       end

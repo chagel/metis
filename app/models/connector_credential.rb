@@ -31,10 +31,9 @@ class ConnectorCredential < ApplicationRecord
     write_envelope("headers", values || {})
   end
 
-  # The direct Linear OAuth token (linear.app/oauth), used by the project
-  # picker against api.linear.app/graphql — distinct from mcp_oauth, whose
-  # token only authenticates the MCP gateway. Linear tokens are long-lived,
-  # so there's nothing to refresh; we just keep the access token.
+  # The direct Linear OAuth token (LinearApp::Config), used by the project
+  # picker against api.linear.app/graphql. Long-lived, so we keep only the
+  # access token — nothing to refresh.
   def store_linear_api!(tokens)
     write_envelope("linear_api", { "access_token" => tokens["access_token"] }.compact)
     save!
