@@ -26,6 +26,7 @@ module Connectors
 
       tokens = LinearApp::Oauth.exchange(code: params[:code], redirect_uri: connector_linear_callback_url)
       target.connector_credentials.find_or_initialize_by(user: current_user).store_linear_api!(tokens)
+      capture_organization(target, tokens["access_token"])
 
       redirect_to edit_connector_path(target), notice: t("flash.connectors.linear_oauth.notice")
     rescue LinearApp::Oauth::Error => error
@@ -36,6 +37,17 @@ module Connectors
 
     def connector
       @connector ||= current_team.connectors.find_by(catalog_key: "linear")
+    end
+
+    # Stash the authorizing workspace's org id so inbound app-webhook
+    # deliveries resolve to this team. Best-effort — a Linear blip here
+    # mustn't fail an otherwise-successful authorization (the picker still
+    # works; only webhook routing waits for the next authorize).
+    def capture_organization(target, token)
+      org_id = Linear::Api.new(token).organization_id
+      target.update!(linear_organization_id: org_id) if org_id.present?
+    rescue Linear::Api::Error => error
+      Rails.logger.warn("linear org capture failed — #{error.message}")
     end
 
     def valid_state?(flow)

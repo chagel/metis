@@ -13,6 +13,7 @@ module Linear
 
     ENDPOINT = "https://api.linear.app/graphql".freeze
     PROJECTS_QUERY = "{ projects(first: 250) { nodes { id name } } }".freeze
+    ORGANIZATION_QUERY = "{ organization { id } }".freeze
 
     def initialize(token)
       @token = token
@@ -24,6 +25,13 @@ module Linear
       nodes = query(PROJECTS_QUERY).dig("projects", "nodes").to_a
       nodes.map { |node| { "id" => node["id"], "name" => node["name"] } }
            .sort_by { |project| project["name"].to_s.downcase }
+    end
+
+    # The authorizing workspace's organization id — stored on the connector
+    # so inbound app-webhook deliveries resolve to this team by their
+    # payload organizationId.
+    def organization_id
+      query(ORGANIZATION_QUERY).dig("organization", "id")
     end
 
     private

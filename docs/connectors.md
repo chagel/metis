@@ -266,34 +266,39 @@ on file anywhere.
 
 ### Linear — MCP connector, inbound webhooks, and the project picker
 
-Linear involves **three independent token paths**, deliberately kept apart:
+Linear involves **two independent token paths**, deliberately kept apart,
+plus the OAuth app's own webhook:
 
 1. **MCP-OAuth** (the connector itself) — the per-member token the agent
    uses to reach Linear's MCP server (`mcp.linear.app/mcp`), obtained via
    Dynamic Client Registration and stored on the member's
    `ConnectorCredential` (`mcp_oauth`). It authenticates **only** the MCP
    gateway — it is **not** accepted by `api.linear.app/graphql`.
-2. **Inbound webhooks** — team-wide, manual. Each team's admin creates a
-   webhook in their Linear workspace pointing at
-   `/webhooks/linear/<token>` (a per-connector routing token, minted on the
-   connector's manage page) and pastes back the `lin_wh_…` **signing
-   secret**, stored encrypted on the team's shared (`nil`-user)
-   `ConnectorCredential`. `Webhooks::LinearController` verifies the
-   `Linear-Signature` HMAC against it, rejects a stale `webhookTimestamp`
-   (>60s), and records a `WebhookEvent` deduped on the `Linear-Delivery`
-   id. Creation can't be automated — Linear requires the OAuth `admin`
-   scope to manage webhooks, which the MCP token lacks.
-3. **Direct Linear OAuth** (`linear.app/oauth`) — a deployment-registered
+2. **Direct Linear OAuth** (`linear.app/oauth`) — a deployment-registered
    OAuth app whose `read`-scoped token *does* work against the GraphQL
-   API. It backs the project-binding **picker**: `Linear::Api` lists the
-   member's projects so a `Project` binds a Linear project **by name**
-   (storing its UUID in `external_refs.linear_project`) instead of pasting
-   a raw UUID. Token stored on the member's `ConnectorCredential`
-   (`linear_api`); flow in `Connectors::LinearOauthController`.
+   API. One "Authorize Linear access" on the connector page
+   (`Connectors::LinearOauthController`) does three things: stores the API
+   token on the member's `ConnectorCredential` (`linear_api`), captures the
+   authorizing workspace's **organizationId** onto the team's connector
+   (for webhook routing), and — because authorizing the app subscribes the
+   workspace — turns on its webhook deliveries. The token backs the
+   project-binding **picker**: `Linear::Api` lists the member's projects so
+   a `Project` binds **by name** (storing the UUID in
+   `external_refs.linear_project`) instead of a pasted UUID.
    - Env: `LINEAR_CLIENT_ID`, `LINEAR_CLIENT_SECRET`. Register the app at
      `linear.app/settings/api/applications` with callback URL
      `/connectors/linear/callback`. Absent these, the connector page hides
-     the "Authorize project access" button and the picker stays manual.
+     the "Authorize Linear access" button and the picker stays manual.
+
+**Inbound webhooks** ride the same OAuth app (the GitHub-App shape, *not*
+per-workspace manual setup). The app defines **one** webhook URL
+(`/webhooks/linear`) and signing secret (`LINEAR_WEBHOOK_SECRET`, the
+`lin_wh_…` from the app's settings page) and fires for every workspace that
+authorized it. `Webhooks::LinearController` verifies the `Linear-Signature`
+HMAC against that env secret, rejects a stale `webhookTimestamp` (>60s),
+and records a `WebhookEvent` deduped on the `Linear-Delivery` id, resolving
+the team by the payload's `organizationId` against the connector's stored
+org id. Unmatched organizations are dropped (200, like GitHub).
 
 ### Google connectors — `gws` CLI, no MCP server
 

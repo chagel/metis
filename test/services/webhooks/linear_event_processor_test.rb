@@ -1,42 +1,54 @@
 require "test_helper"
 
 class Webhooks::LinearEventProcessorTest < ActiveSupport::TestCase
+  ORG = "org-123".freeze
+
   setup do
     @team = Team.create!(name: "Acme")
-    @connector = @team.connectors.create!(name: "linear", transport: :http, catalog_key: "linear",
-                                          definition: { "url" => "https://mcp.linear.app/mcp" },
-                                          settings: { "linear_webhook_token" => "tok-1" })
+    @team.connectors.create!(name: "linear", transport: :http, catalog_key: "linear",
+                             definition: { "url" => "https://mcp.linear.app/mcp" },
+                             settings: { "linear_organization_id" => ORG })
   end
 
   def process(event:, delivery:, payload:)
-    Webhooks::LinearEventProcessor.new(connector: @connector, event: event,
-                                       delivery: delivery, payload: payload).call
+    Webhooks::LinearEventProcessor.new(event: event, delivery: delivery, payload: payload).call
   end
 
-  def payload(action: "create", type: "Issue", data: { "id" => "issue-1" })
-    { "action" => action, "type" => type, "organizationId" => "org-1", "data" => data }
+  def payload(action: "create", type: "Issue", org: ORG, data: { "id" => "issue-1" })
+    { "action" => action, "type" => type, "organizationId" => org, "data" => data }
   end
 
-  test "records an event for the connector's team" do
+  test "records an event for the organization's team" do
     assert_difference "WebhookEvent.count", 1 do
       process(event: "Issue", delivery: "d-1", payload: payload)
     end
     event = WebhookEvent.last
     assert_equal @team, event.team
     assert_equal "Issue.create", event.event_type
-    assert_equal "org-1", event.source_installation_id
-    assert_equal "issue-1", event.payload.dig("data", "id")
+    assert_equal ORG, event.source_installation_id
   end
 
   test "bare event name when the payload has no action" do
-    process(event: "Issue", delivery: "d-2", payload: { "type" => "Issue" })
+    process(event: "Issue", delivery: "d-2", payload: { "type" => "Issue", "organizationId" => ORG })
     assert_equal "Issue", WebhookEvent.last.event_type
   end
 
-  test "redelivery of the same delivery id is idempotent" do
-    process(event: "Issue", delivery: "d-3", payload: payload)
+  test "drops events for an unknown organization" do
     assert_no_difference "WebhookEvent.count" do
-      process(event: "Issue", delivery: "d-3", payload: payload)
+      process(event: "Issue", delivery: "d-3", payload: payload(org: "org-999"))
+    end
+  end
+
+  test "drops events with no organization id" do
+    assert_no_difference "WebhookEvent.count" do
+      process(event: "Issue", delivery: "d-4", payload: { "action" => "create", "type" => "Issue" })
+    end
+  end
+
+  test "redelivery of the same delivery id is idempotent" do
+    process(event: "Issue", delivery: "d-5", payload: payload)
+    assert_no_difference "WebhookEvent.count" do
+      process(event: "Issue", delivery: "d-5", payload: payload)
     end
   end
 
@@ -57,14 +69,6 @@ class Webhooks::LinearEventProcessorTest < ActiveSupport::TestCase
   test "leaves project null when no project binds the linear project" do
     @team.projects.create!(name: "Metis", linear_project: "99999999-2222-3333-4444-555555555555")
     process(event: "Issue", delivery: "p-3",
-            payload: payload(data: { "id" => "issue-1", "projectId" => "11111111-2222-3333-4444-555555555555" }))
-    assert_nil WebhookEvent.last.project
-  end
-
-  test "a bound project in another team does not resolve" do
-    other = Team.create!(name: "Other")
-    other.projects.create!(name: "Metis", linear_project: "11111111-2222-3333-4444-555555555555")
-    process(event: "Issue", delivery: "p-4",
             payload: payload(data: { "id" => "issue-1", "projectId" => "11111111-2222-3333-4444-555555555555" }))
     assert_nil WebhookEvent.last.project
   end

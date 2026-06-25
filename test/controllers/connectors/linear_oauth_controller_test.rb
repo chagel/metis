@@ -32,16 +32,20 @@ class Connectors::LinearOauthControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to connectors_path
   end
 
-  test "callback exchanges the code and stores the api token on the member's credential" do
+  test "callback stores the api token and captures the workspace org id" do
     start_flow { post connector_linear_authorize_path }
     state = Rack::Utils.parse_query(URI(response.location).query)["state"]
 
-    with_stub(LinearApp::Oauth, :exchange, ->(**) { { "access_token" => "lin-tok" } }) do
-      get connector_linear_callback_path(code: "abc", state: state)
+    fake_api = Struct.new(:org) { def organization_id = org }.new("org-xyz")
+    with_stub(Linear::Api, :new, ->(_token) { fake_api }) do
+      with_stub(LinearApp::Oauth, :exchange, ->(**) { { "access_token" => "lin-tok" } }) do
+        get connector_linear_callback_path(code: "abc", state: state)
+      end
     end
 
     assert_redirected_to edit_connector_path(@connector)
     assert_equal "lin-tok", @connector.connector_credentials.find_by(user: @user).linear_api_bearer
+    assert_equal "org-xyz", @connector.reload.linear_organization_id
   end
 
   test "callback with a mismatched state is rejected" do

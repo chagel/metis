@@ -31,18 +31,6 @@ class ConnectorCredential < ApplicationRecord
     write_envelope("headers", values || {})
   end
 
-  # The Linear webhook signing secret, held on the team's shared (no-user)
-  # credential because it's a team-wide secret — Webhooks::LinearController
-  # verifies the `Linear-Signature` HMAC against it. Separate from any
-  # member's mcp_oauth token (the outbound axis).
-  def linear_webhook_secret
-    envelope.dig("linear_webhook", "secret")
-  end
-
-  def linear_webhook_secret=(value)
-    write_envelope("linear_webhook", { "secret" => value })
-  end
-
   # The direct Linear OAuth token (linear.app/oauth), used by the project
   # picker against api.linear.app/graphql — distinct from mcp_oauth, whose
   # token only authenticates the MCP gateway. Linear tokens are long-lived,

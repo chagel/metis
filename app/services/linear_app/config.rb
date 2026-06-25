@@ -27,6 +27,15 @@ module LinearApp
       def configured?
         client_id.present? && client_secret.present?
       end
+
+      # The OAuth app's webhook signing secret (the lin_wh_… shown on the
+      # app's settings page). One per deployment — the app has a single
+      # webhook URL and fires for every workspace that authorizes it, the
+      # GitHub-App shape. Blank → Webhooks::LinearController refuses every
+      # delivery.
+      def webhook_secret
+        ENV["LINEAR_WEBHOOK_SECRET"].presence
+      end
     end
   end
 end
