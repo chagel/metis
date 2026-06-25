@@ -64,9 +64,34 @@ class WebhookEvent::PresenterTest < ActiveSupport::TestCase
     assert_equal "marked ready PR #7: X", p.summary
   end
 
-  test "an unknown event type degrades to its bare name with no link" do
-    p = present("star.created", {})
-    assert_equal "star.created", p.summary
+  test "a submitted review reads by its state, not the action" do
+    p = present("pull_request_review.submitted", {
+      "review" => { "state" => "approved", "html_url" => "https://gh/pr/7#r1" },
+      "pull_request" => { "number" => 7, "title" => "Ship it" }
+    })
+    assert_equal "approved PR #7: Ship it", p.summary
+    assert_equal "https://gh/pr/7#r1", p.url
+  end
+
+  test "a changes-requested review" do
+    p = present("pull_request_review.submitted", {
+      "review" => { "state" => "changes_requested" },
+      "pull_request" => { "number" => 7, "title" => "Ship it" }
+    })
+    assert_equal "requested changes on PR #7: Ship it", p.summary
+  end
+
+  test "a review comment reads like a comment, linking the comment" do
+    p = present("pull_request_review_comment.created", {
+      "pull_request" => { "number" => 7 }, "comment" => { "html_url" => "https://gh/pr/7#c9" }
+    })
+    assert_equal "commented on #7", p.summary
+    assert_equal "https://gh/pr/7#c9", p.url
+  end
+
+  test "an unhandled event type degrades to a readable spelled-out name" do
+    p = present("pull_request_review_thread.resolved", {})
+    assert_equal "pull request review thread resolved", p.summary
     assert_nil p.url
   end
 

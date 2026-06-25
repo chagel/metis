@@ -152,6 +152,9 @@ en:
         edited: "edited"
         synchronize: "updated"
         ready_for_review: "marked ready"
+        approved: "approved"
+        requested_changes: "requested changes on"
+        reviewed: "reviewed"
     form:
       name_hint: "A short name you recognize — \"Metis\", \"Q4 planning\", \"Mom's birthday\"."
       github_repo_label: "GitHub repository"
