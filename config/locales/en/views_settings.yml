@@ -37,6 +37,12 @@ en:
       choose_installation: "Choose an installation…"
       installation_hint: "The App is installed in more than one place — the bot acts through the one you pick here."
       credential_placeholder: "Set — leave blank to keep the current one"
+      linear_webhook_title: "Inbound webhook"
+      linear_webhook_sub: "Collect Linear events (issues, projects, comments) into this team's activity. Create a webhook in Linear's settings with the URL below, then paste back its signing secret."
+      linear_webhook_url_label: "Webhook URL"
+      linear_webhook_url_hint: "Paste this as the URL when creating the webhook in Linear (Settings → API → Webhooks)."
+      linear_webhook_secret_label: "Signing secret"
+      linear_webhook_secret_hint: "The lin_wh_… secret Linear shows on the webhook — pasted here so we can verify deliveries."
   invitations:
     show:
       title: "Team invitation"
@@ -156,10 +162,22 @@ en:
         approved: "approved"
         requested_changes: "requested changes on"
         reviewed: "reviewed"
+      linear:
+        lines:
+          issue: "%{verb} issue %{title}"
+          project: "%{verb} project %{name}"
+          comment: "commented on %{title}"
+          other: "%{event}"
+        verbs:
+          create: "created"
+          update: "updated"
+          remove: "removed"
     form:
       name_hint: "A short name you recognize — \"Metis\", \"Q4 planning\", \"Mom's birthday\"."
       github_repo_label: "GitHub repository"
       github_repo_hint: "owner/repo — binds inbound GitHub events (PRs, pushes, issues) for this repo to this project."
+      linear_project_label: "Linear project ID"
+      linear_project_hint: "The Linear project's UUID — binds inbound Linear events (issues, comments) for that project to this one."
       about_label: "About this project"
       about_placeholder: "What's this project about? The agent reads this on every turn in this project.\n\nName the resources it maps to — e.g. \"GitHub repo chagel/metis, Linear project Metis\"."
       about_hint: "Freeform notes — conventions, constraints, who's involved, which repo or board it maps to. Shows up in the agent's context."

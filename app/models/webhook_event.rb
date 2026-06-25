@@ -13,6 +13,6 @@ class WebhookEvent < ApplicationRecord
   scope :for_project, ->(project) { where(project: project) }
 
   def present
-    Presenter.new(self)
+    (linear? ? Presenter::Linear : Presenter).new(self)
   end
 end

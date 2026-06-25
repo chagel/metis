@@ -120,6 +120,9 @@ Rails.application.routes.draw do
   # Linear connector. HMAC-authed, session-less (docs/workflows.md Phase 4).
   namespace :webhooks do
     post "github", to: "github#create"
+    # Per-connector URL — the token routes a delivery to its team's Linear
+    # connector; the signing secret on that connector authes it.
+    post "linear/:token", to: "linear#create", as: :linear
   end
 
   root "conversations#index"

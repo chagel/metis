@@ -108,4 +108,24 @@ class ProjectTest < ActiveSupport::TestCase
     assert_equal project, @team.projects.for_github_repo("Chagel/Metis").first
     assert_nil @team.projects.for_github_repo("other/repo").first
   end
+
+  test "for_linear_project matches the bound uuid" do
+    uuid = "11111111-2222-3333-4444-555555555555"
+    project = @team.projects.create!(name: "Metis", linear_project: uuid)
+    assert_equal project, @team.projects.for_linear_project(uuid).first
+    assert_nil @team.projects.for_linear_project("99999999-2222-3333-4444-555555555555").first
+  end
+
+  test "binding a linear project adopts its orphaned events" do
+    uuid = "11111111-2222-3333-4444-555555555555"
+    issue = WebhookEvent.create!(team: @team, provider: :linear, event_type: "Issue.create",
+                                 external_id: "l1", payload: { "data" => { "id" => "i1", "projectId" => uuid } })
+    proj_event = WebhookEvent.create!(team: @team, provider: :linear, event_type: "Project.update",
+                                      external_id: "l2", payload: { "data" => { "id" => uuid } })
+
+    project = @team.projects.create!(name: "Metis", linear_project: uuid)
+
+    assert_equal project.id, issue.reload.project_id
+    assert_equal project.id, proj_event.reload.project_id
+  end
 end

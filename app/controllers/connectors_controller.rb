@@ -37,16 +37,19 @@ class ConnectorsController < ApplicationController
     @app = @connector.catalog_app
     @credential = @connector.credential_for(current_user)
     @installations = bot_installations
+    prepare_linear_webhook
   end
 
   def update
     apply_bot_setting
+    apply_linear_webhook_secret
     if @connector.save
       save_credential
       redirect_to edit_connector_path(@connector), notice: t("flash.connectors.update.notice")
     else
       @app = @connector.catalog_app
       @installations = bot_installations
+      prepare_linear_webhook
       render :edit, status: :unprocessable_entity
     end
   end
@@ -101,6 +104,24 @@ class ConnectorsController < ApplicationController
 
     @connector.bot_enabled = ActiveModel::Type::Boolean.new.cast(params[:connector][:bot_enabled])
     @connector.bot_installation_id = params[:connector][:bot_installation_id].presence
+  end
+
+  # The linear connector's manage page shows its inbound-webhook URL +
+  # secret field; mint the routing token on first visit so the URL is real.
+  def prepare_linear_webhook
+    return unless @connector.catalog_key == "linear"
+
+    @webhook_url = webhooks_linear_url(token: @connector.ensure_linear_webhook_token!)
+    @webhook_secret_set = @connector.linear_webhook_secret.present?
+  end
+
+  # Save a pasted Linear webhook signing secret to the team's shared
+  # credential. Blank leaves the current one (the placeholder marks it set).
+  def apply_linear_webhook_secret
+    secret = params.dig(:connector, :linear_webhook_secret)
+    return if secret.blank?
+
+    @connector.store_linear_webhook_secret!(secret)
   end
 
   # Installations for the manage page's bot picker. A GitHub blip hides
