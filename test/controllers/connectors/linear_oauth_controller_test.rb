@@ -56,4 +56,17 @@ class Connectors::LinearOauthControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to connectors_path
   end
+
+  test "a non-admin member can't start the authorize flow" do
+    team = Team.create!(name: "Shared")
+    team.memberships.create!(user: User.create!(email: "owner-#{SecureRandom.hex(4)}@example.com",
+                                                password: "password123"), role: :owner)
+    team.memberships.create!(user: @user, role: :member)
+    post switch_team_path(team)
+
+    start_flow { post connector_linear_authorize_path }
+
+    assert_redirected_to team_path
+    assert_equal I18n.t("flash.authorization.not_team_admin"), flash[:alert]
+  end
 end

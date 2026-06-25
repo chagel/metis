@@ -5,6 +5,11 @@ module Connectors
   # callback exchanges the code and stores the token on the member's Linear
   # ConnectorCredential. See docs/connectors.md.
   class LinearOauthController < ApplicationController
+    # Authorizing has team-level side effects (it captures the connector's
+    # linear_organization_id and subscribes the workspace to the app
+    # webhook), so it's admin-only like the connector page it launches from.
+    before_action :require_team_admin!
+
     def start
       return redirect_to(connectors_path, alert: t("flash.connectors.linear_oauth.unconfigured")) unless LinearApp::Config.configured?
       return redirect_to(connectors_path, alert: t("flash.connectors.linear_oauth.no_connector")) unless connector
