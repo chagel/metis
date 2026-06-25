@@ -134,4 +134,18 @@ class ApplicationHelperTest < ActionView::TestCase
       assert oauth_provider_configured?(:google_oauth2)
     end
   end
+
+  test "activity_initials takes two initials from a name and two letters from a handle" do
+    assert_equal "MC", activity_initials("Mike Chen")
+    assert_equal "CH", activity_initials("chagel")
+    assert_equal "MO", activity_initials("metis-on-pi[bot]")
+    assert_equal "?", activity_initials("")
+  end
+
+  test "activity_provider_badge returns the brand mark for known providers, nil otherwise" do
+    assert_includes activity_provider_badge("github"), "<svg"
+    assert_includes activity_provider_badge(:linear), "<svg"
+    assert activity_provider_badge("github").html_safe?
+    assert_nil activity_provider_badge("gitlab")
+  end
 end

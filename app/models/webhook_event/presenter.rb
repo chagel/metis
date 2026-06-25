@@ -16,6 +16,10 @@ class WebhookEvent
       @payload.dig("sender", "avatar_url").presence
     end
 
+    def provider
+      @event.provider
+    end
+
     def created_at
       @event.created_at
     end

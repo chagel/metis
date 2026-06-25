@@ -1532,7 +1532,17 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
   background:var(--gold-soft); color:var(--gold); border-color:var(--gold-line); }
 .activity-list { display:flex; flex-direction:column; gap:11px; }
 .activity-item { display:flex; align-items:baseline; gap:9px; font-size:13px; color:var(--ink-2); }
-.activity-avatar { border-radius:50%; flex:none; align-self:center; }
+.activity-avatar-wrap { position:relative; flex:none; align-self:center; width:24px; height:24px; }
+.activity-avatar { width:24px; height:24px; border-radius:50%; display:block; }
+.activity-monogram { display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:600; letter-spacing:.02em; text-transform:uppercase;
+  color:var(--accent-fg); background:var(--accent-soft); }
+.activity-badge { position:absolute; right:-3px; bottom:-3px; width:13px; height:13px;
+  border-radius:50%; background:var(--card); box-shadow:0 0 0 1.5px var(--card);
+  display:flex; align-items:center; justify-content:center; }
+.activity-badge svg { width:13px; height:13px; display:block; }
+.activity-badge--github { color:var(--ink); }
+.activity-badge--linear { color:#5e6ad2; }
 .activity-text { flex:1; min-width:0; }
 .activity-actor { font-weight:600; color:var(--ink); margin-right:4px; }
 .activity-summary { color:var(--ink-2); }

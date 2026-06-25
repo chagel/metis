@@ -233,6 +233,27 @@ module ApplicationHelper
     class_names("convo-tab", "on" => @sidebar_filter == filter)
   end
 
+  # Monogram for an activity row with no actor photo: one initial for a
+  # single token ("chagel" → "CH"), two for a name ("Mike Chen" → "MC").
+  def activity_initials(name)
+    words = name.to_s.gsub(/[^[:alnum:]\s]/, " ").split
+    return "?" if words.empty?
+
+    (words.one? ? words.first[0, 2] : words.first(2).map { |w| w[0] }.join).upcase
+  end
+
+  # Brand mark stamped on the corner of an activity avatar so the source
+  # provider reads at a glance. Paths inherit `currentColor`; the badge's
+  # class tints it. Unknown provider → no badge.
+  ACTIVITY_PROVIDER_BADGES = {
+    "github" => '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>',
+    "linear" => '<svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true"><path d="M1.22541 61.5228c-.2225-.9485.90748-1.5459 1.59638-.857L39.5193 97.1797c.6889.6889.0915 1.8189-.857 1.5964C20.0515 94.4522 5.54779 79.9485 1.22541 61.5228Z"/><path d="M.00189135 46.8891c-.01764375.2833.08887215.5599.28957165.7606L52.3503 99.7085c.2007.2007.4773.3075.7606.2896 2.3692-.1476 4.6938-.46 6.9624-.9259.7645-.157 1.0301-1.0963.4782-1.6481L2.57595 39.4485c-.55186-.5519-1.491178-.2863-1.648139.4782-.465915 2.2686-.77832 4.5932-.92591695 6.9624Z"/><path d="M4.21093 29.7054c-.16649.3738-.08169.8106.20765 1.1l64.77602 64.776c.2894.2894.7262.3742 1.1.2077 1.7861-.7956 3.5171-1.6927 5.1855-2.6849.5096-.3031.5904-1.0078.1731-1.4251L8.31837 24.3469c-.41727-.4173-1.22185-.3365-1.52498.1731-.99221 1.6684-1.88927 3.3994-2.68246 5.1854Z"/><path d="M12.6587 18.074c-.3701-.3701-.393-.9637-.0443-1.3541C21.7795 6.45931 35.1114 0 49.9519 0 77.5927 0 100 22.4073 100 50.0481c0 14.8405-6.4593 28.1724-16.7199 37.3375-.3904.3487-.984.3258-1.3541-.0443L12.6587 18.074Z"/></svg>'
+  }.freeze
+
+  def activity_provider_badge(provider)
+    ACTIVITY_PROVIDER_BADGES[provider.to_s]&.html_safe
+  end
+
   # Human label for an identity provider key — `google_oauth2` reads as
   # "Google", `github` as "GitHub". Falls back to a titleized key.
   IDENTITY_PROVIDER_LABELS = {

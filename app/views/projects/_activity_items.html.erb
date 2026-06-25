@@ -3,10 +3,17 @@
 <% events.each do |event| %>
   <% entry = event.present %>
   <div class="activity-item">
-    <% if entry.avatar_url %>
-      <%= image_tag entry.avatar_url, width: 24, height: 24, class: "activity-avatar",
-            alt: "", loading: "lazy", referrerpolicy: "no-referrer" %>
-    <% end %>
+    <span class="activity-avatar-wrap">
+      <% if entry.avatar_url %>
+        <%= image_tag entry.avatar_url, width: 24, height: 24, class: "activity-avatar",
+              alt: "", loading: "lazy", referrerpolicy: "no-referrer" %>
+      <% else %>
+        <span class="activity-avatar activity-monogram"><%= activity_initials(entry.actor) %></span>
+      <% end %>
+      <% if (badge = activity_provider_badge(entry.provider)) %>
+        <span class="activity-badge activity-badge--<%= entry.provider %>"><%= badge %></span>
+      <% end %>
+    </span>
     <span class="activity-text">
       <span class="activity-actor"><%= entry.actor %></span>
       <% if entry.url %>
