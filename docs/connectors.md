@@ -287,7 +287,7 @@ plus the OAuth app's own webhook:
    `external_refs.linear_project`) instead of a pasted UUID.
    - Env: `LINEAR_CLIENT_ID`, `LINEAR_CLIENT_SECRET`. Register the app at
      `linear.app/settings/api/applications` with callback URL
-     `/connectors/linear/callback`. Absent these, the connector page hides
+     `/settings/connectors/linear/callback`. Absent these, the connector page hides
      the "Authorize Linear access" button and the picker stays manual.
 
 **Inbound webhooks** ride the same OAuth app (the GitHub-App shape, *not*
