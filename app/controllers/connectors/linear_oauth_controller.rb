@@ -24,10 +24,10 @@ module Connectors
     def callback
       flow = session.delete("linear_oauth") || {}
       return redirect_to(connectors_path, alert: t("flash.connectors.linear_oauth.expired")) unless valid_state?(flow)
-      return redirect_to(edit_path(flow), alert: t("flash.connectors.linear_oauth.cancelled")) if params[:code].blank?
 
       target = current_team.connectors.find_by(id: flow["connector_id"])
       return redirect_to(connectors_path, alert: t("flash.connectors.linear_oauth.no_connector")) unless target
+      return redirect_to(edit_connector_path(target), alert: t("flash.connectors.linear_oauth.cancelled")) if params[:code].blank?
 
       tokens = LinearApp::Oauth.exchange(code: params[:code], redirect_uri: connector_linear_callback_url)
       target.connector_credentials.find_or_initialize_by(user: current_user).store_linear_api!(tokens)
@@ -58,11 +58,6 @@ module Connectors
     def valid_state?(flow)
       flow["state"].present? &&
         ActiveSupport::SecurityUtils.secure_compare(flow["state"], params[:state].to_s)
-    end
-
-    def edit_path(flow)
-      target = current_team.connectors.find_by(id: flow["connector_id"])
-      target ? edit_connector_path(target) : connectors_path
     end
   end
 end

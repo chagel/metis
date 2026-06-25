@@ -34,14 +34,9 @@ module Webhooks
     # resolve it out-of-band via the Linear API.
     def enqueue_project_backfill(event)
       return unless event.previously_new_record? && event.project_id.nil?
-      return if issue_id.blank?
+      return if Linear::Payload.issue_id(@payload).blank?
 
       Linear::ProjectBackfillJob.perform_later(event.id)
-    end
-
-    def issue_id
-      data = @payload["data"] || {}
-      data["issueId"] || data.dig("issue", "id")
     end
 
     def resolve_team

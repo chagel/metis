@@ -12,7 +12,7 @@ module Linear
       event = WebhookEvent.find_by(id: webhook_event_id)
       return unless event&.linear? && event.project_id.nil?
 
-      issue_id = issue_id_for(event)
+      issue_id = Payload.issue_id(event.payload)
       return if issue_id.blank?
 
       token = bearer_for(event.team)
@@ -28,11 +28,6 @@ module Linear
     end
 
     private
-
-    def issue_id_for(event)
-      data = event.payload["data"] || {}
-      data["issueId"] || data.dig("issue", "id")
-    end
 
     def bearer_for(team)
       connector = team.connectors.find_by(catalog_key: "linear")
