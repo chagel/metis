@@ -28,4 +28,21 @@ class LinearApp::OauthTest < ActiveSupport::TestCase
       assert_raises(LinearApp::Oauth::Error) { LinearApp::Oauth.exchange(code: "c", redirect_uri: "x") }
     end
   end
+
+  test "refresh trades the refresh token for a fresh payload" do
+    response = Response.new("200", { access_token: "new", refresh_token: "r2", expires_in: 86_400 }.to_json)
+    sent = nil
+    with_stub(Net::HTTP, :post_form, ->(_uri, params) { sent = params; response }) do
+      tokens = LinearApp::Oauth.refresh(refresh_token: "r1")
+      assert_equal "new", tokens["access_token"]
+    end
+    assert_equal "refresh_token", sent["grant_type"]
+    assert_equal "r1", sent["refresh_token"]
+  end
+
+  test "refresh raises Error on a non-200" do
+    with_stub(Net::HTTP, :post_form, ->(_uri, _params) { Response.new("401", "nope") }) do
+      assert_raises(LinearApp::Oauth::Error) { LinearApp::Oauth.refresh(refresh_token: "r1") }
+    end
+  end
 end

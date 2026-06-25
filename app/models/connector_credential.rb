@@ -32,15 +32,29 @@ class ConnectorCredential < ApplicationRecord
   end
 
   # The direct Linear OAuth token (LinearApp::Config), used by the project
-  # picker against api.linear.app/graphql. Long-lived, so we keep only the
-  # access token — nothing to refresh.
-  def store_linear_api!(tokens)
-    write_envelope("linear_api", { "access_token" => tokens["access_token"] }.compact)
+  # picker against api.linear.app/graphql. Linear access tokens expire in
+  # 24h, so we keep the refresh_token + expiry and refresh on read; a fresh
+  # refresh response carries a new refresh_token (preserved if it omits one).
+  def store_linear_api!(tokens, at: Time.current)
+    prior = linear_api_data
+    expires_in = tokens["expires_in"]
+    write_envelope("linear_api", {
+      "access_token" => tokens["access_token"],
+      "refresh_token" => tokens["refresh_token"].presence || prior["refresh_token"],
+      "expires_at" => (expires_in.present? ? (at + expires_in.to_i.seconds).iso8601 : nil)
+    }.compact)
     save!
   end
 
+  # A usable Linear API bearer: the stored token if still fresh, otherwise a
+  # refresh. nil means the member must re-authorize (no token, or refresh
+  # failed) — the caller treats Linear as disconnected.
   def linear_api_bearer
-    envelope.dig("linear_api", "access_token")
+    data = linear_api_data
+    return nil if data["access_token"].blank?
+    return data["access_token"] unless linear_api_expired?(data)
+
+    refresh_linear_api!(data)
   end
 
   # The per-user OauthGrant this connector's bearer comes from, or nil
@@ -109,6 +123,25 @@ class ConnectorCredential < ApplicationRecord
   end
 
   private
+
+  def linear_api_data
+    envelope["linear_api"] || {}
+  end
+
+  def linear_api_expired?(data)
+    data["expires_at"].present? && Time.iso8601(data["expires_at"]) <= 1.minute.from_now
+  end
+
+  def refresh_linear_api!(data)
+    return nil if data["refresh_token"].blank?
+
+    tokens = LinearApp::Oauth.refresh(refresh_token: data["refresh_token"])
+    store_linear_api!(tokens)
+    tokens["access_token"]
+  rescue LinearApp::Oauth::Error => error
+    Rails.logger.warn("ConnectorCredential #{id}: Linear API refresh failed — #{error.message}")
+    nil
+  end
 
   def mcp_oauth_data
     envelope["mcp_oauth"] || {}
