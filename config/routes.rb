@@ -84,6 +84,10 @@ Rails.application.routes.draw do
     resources :connectors, except: :show
     get  "connectors/oauth/callback",     to: "connectors/oauth#callback", as: :connector_oauth_callback
     post "connectors/oauth/:catalog_key", to: "connectors/oauth#start",    as: :connector_oauth_start
+    # Direct Linear OAuth — an api.linear.app token for the project picker,
+    # distinct from the connector's MCP-OAuth.
+    post "connectors/linear/authorize",   to: "connectors/linear_oauth#start",    as: :connector_linear_authorize
+    get  "connectors/linear/callback",    to: "connectors/linear_oauth#callback", as: :connector_linear_callback
 
     resources :workflows, except: :show
 

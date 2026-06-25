@@ -43,6 +43,11 @@ en:
       linear_webhook_url_hint: "Paste this as the URL when creating the webhook in Linear (Settings → API → Webhooks)."
       linear_webhook_secret_label: "Signing secret"
       linear_webhook_secret_hint: "The lin_wh_… secret Linear shows on the webhook — pasted here so we can verify deliveries."
+      linear_api_title: "Project access"
+      linear_api_sub: "Authorize read access to your Linear projects so you can pick one by name when binding a project (instead of pasting a UUID)."
+      linear_api_connected: "Linear project access authorized"
+      linear_api_authorize: "Authorize project access"
+      linear_api_reauthorize: "Re-authorize"
   invitations:
     show:
       title: "Team invitation"
@@ -177,7 +182,7 @@ en:
       github_repo_label: "GitHub repository"
       github_repo_hint: "owner/repo — binds inbound GitHub events (PRs, pushes, issues) for this repo to this project."
       linear_project_label: "Linear project"
-      linear_project_hint: "Binds inbound Linear events (issues, comments) for this project. Hit refresh to load your Linear projects."
+      linear_project_hint: "Refresh to load your Linear projects, then pick one."
       linear_project_loading: "Loading…"
       linear_project_refresh: "Load projects from Linear"
       about_label: "About this project"

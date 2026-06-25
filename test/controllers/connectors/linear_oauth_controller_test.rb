@@ -1,0 +1,55 @@
+require "test_helper"
+
+class Connectors::LinearOauthControllerTest < ActionDispatch::IntegrationTest
+  include Devise::Test::IntegrationHelpers
+
+  setup do
+    @user = User.create!(email: "lo-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    sign_in @user
+    @connector = @user.personal_team.connectors.create!(name: "linear", transport: :http,
+                                                        catalog_key: "linear",
+                                                        definition: { "url" => "https://mcp.linear.app/mcp" })
+  end
+
+  def start_flow(&block)
+    with_stub(LinearApp::Config, :configured?, -> { true }) do
+      with_stub(LinearApp::Config, :client_id, -> { "cid" }, &block)
+    end
+  end
+
+  test "start redirects to Linear consent" do
+    start_flow { post connector_linear_authorize_path }
+
+    assert_response :redirect
+    assert_match %r{\Ahttps://linear\.app/oauth/authorize}, response.location
+    assert_includes response.location, "client_id=cid"
+  end
+
+  test "start is refused when the deployment isn't configured" do
+    with_stub(LinearApp::Config, :configured?, -> { false }) do
+      post connector_linear_authorize_path
+    end
+    assert_redirected_to connectors_path
+  end
+
+  test "callback exchanges the code and stores the api token on the member's credential" do
+    start_flow { post connector_linear_authorize_path }
+    state = Rack::Utils.parse_query(URI(response.location).query)["state"]
+
+    with_stub(LinearApp::Oauth, :exchange, ->(**) { { "access_token" => "lin-tok" } }) do
+      get connector_linear_callback_path(code: "abc", state: state)
+    end
+
+    assert_redirected_to edit_connector_path(@connector)
+    assert_equal "lin-tok", @connector.connector_credentials.find_by(user: @user).linear_api_bearer
+  end
+
+  test "callback with a mismatched state is rejected" do
+    start_flow { post connector_linear_authorize_path }
+
+    assert_no_changes -> { @connector.connector_credentials.count } do
+      get connector_linear_callback_path(code: "abc", state: "wrong")
+    end
+    assert_redirected_to connectors_path
+  end
+end

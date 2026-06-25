@@ -1,0 +1,51 @@
+module Connectors
+  # Direct Linear OAuth (linear.app/oauth), separate from the connector's
+  # MCP-OAuth: this grants an api.linear.app token the project picker can
+  # use to list the member's Linear projects. start → consent at Linear →
+  # callback exchanges the code and stores the token on the member's Linear
+  # ConnectorCredential. See docs/connectors.md.
+  class LinearOauthController < ApplicationController
+    def start
+      return redirect_to(connectors_path, alert: t("flash.connectors.linear_oauth.unconfigured")) unless LinearApp::Config.configured?
+      return redirect_to(connectors_path, alert: t("flash.connectors.linear_oauth.no_connector")) unless connector
+
+      state = SecureRandom.urlsafe_base64(24)
+      session[:linear_oauth] = { "state" => state, "connector_id" => connector.id }
+
+      redirect_to LinearApp::Oauth.authorize_url(redirect_uri: connector_linear_callback_url, state: state),
+                  allow_other_host: true
+    end
+
+    def callback
+      flow = session.delete("linear_oauth") || {}
+      return redirect_to(connectors_path, alert: t("flash.connectors.linear_oauth.expired")) unless valid_state?(flow)
+      return redirect_to(edit_path(flow), alert: t("flash.connectors.linear_oauth.cancelled")) if params[:code].blank?
+
+      target = current_team.connectors.find_by(id: flow["connector_id"])
+      return redirect_to(connectors_path, alert: t("flash.connectors.linear_oauth.no_connector")) unless target
+
+      tokens = LinearApp::Oauth.exchange(code: params[:code], redirect_uri: connector_linear_callback_url)
+      target.connector_credentials.find_or_initialize_by(user: current_user).store_linear_api!(tokens)
+
+      redirect_to edit_connector_path(target), notice: t("flash.connectors.linear_oauth.notice")
+    rescue LinearApp::Oauth::Error => error
+      redirect_to connectors_path, alert: t("flash.connectors.linear_oauth.failed", message: error.message)
+    end
+
+    private
+
+    def connector
+      @connector ||= current_team.connectors.find_by(catalog_key: "linear")
+    end
+
+    def valid_state?(flow)
+      flow["state"].present? &&
+        ActiveSupport::SecurityUtils.secure_compare(flow["state"], params[:state].to_s)
+    end
+
+    def edit_path(flow)
+      target = current_team.connectors.find_by(id: flow["connector_id"])
+      target ? edit_connector_path(target) : connectors_path
+    end
+  end
+end

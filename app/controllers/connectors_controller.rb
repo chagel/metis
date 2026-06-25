@@ -113,6 +113,8 @@ class ConnectorsController < ApplicationController
 
     @webhook_url = webhooks_linear_url(token: @connector.ensure_linear_webhook_token!)
     @webhook_secret_set = @connector.linear_webhook_secret.present?
+    @linear_api_configured = LinearApp::Config.configured?
+    @linear_api_connected = @connector.credential_for(current_user)&.linear_api_bearer.present?
   end
 
   # Save a pasted Linear webhook signing secret to the team's shared

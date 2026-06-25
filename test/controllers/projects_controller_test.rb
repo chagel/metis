@@ -258,8 +258,7 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     connector = team.connectors.create!(name: "linear", transport: :http, catalog_key: "linear",
                                         definition: { "url" => "https://mcp.linear.app/mcp" })
     credential = connector.connector_credentials.create!(user: @user)
-    credential.store_mcp_oauth!({ "access_token" => "tok", "expires_in" => 3600 },
-                                token_endpoint: "https://e/token", client_id: "cid")
+    credential.store_linear_api!({ "access_token" => "linear-tok" })
 
     fake = Struct.new(:list) { def projects = list }.new([ { "id" => "u1", "name" => "Metis" } ])
     with_stub(Linear::Api, :new, ->(_token) { fake }) do
@@ -270,7 +269,9 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_equal([ { "id" => "u1", "name" => "Metis" } ], response.parsed_body["projects"])
   end
 
-  test "linear_projects answers an error when linear is not connected" do
+  test "linear_projects answers an error when linear api access is not authorized" do
+    team.connectors.create!(name: "linear", transport: :http, catalog_key: "linear",
+                            definition: { "url" => "https://mcp.linear.app/mcp" })
     get linear_projects_projects_path, headers: { "Accept" => "application/json" }
     assert_response :bad_gateway
     assert response.parsed_body["error"].present?

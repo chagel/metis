@@ -13,11 +13,13 @@ export default class extends Controller {
     this.selectTarget.disabled = true
     try {
       const response = await fetch(this.urlValue, { headers: { Accept: "application/json" } })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || "Couldn't load projects.")
+      let data = {}
+      try { data = await response.json() } catch { /* non-JSON error page */ }
+      if (!response.ok) throw new Error(data.error || `Couldn't load projects (HTTP ${response.status}).`)
       this.populate(data.projects || [])
       this.setStatus("")
     } catch (error) {
+      console.error("linear-projects refresh failed:", error)
       this.setStatus(error.message)
     } finally {
       this.selectTarget.disabled = false

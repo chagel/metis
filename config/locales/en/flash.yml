@@ -45,6 +45,13 @@ en:
           cancelled: "Connection was cancelled."
           notice: "%{name} connected."
           failed: "Couldn't finish that connection: %{message}"
+      linear_oauth:
+        unconfigured: "Linear API access isn't configured on this deployment."
+        no_connector: "Connect Linear first, then authorize project access."
+        expired: "That authorization expired — try again."
+        cancelled: "Authorization was cancelled."
+        notice: "Linear project access authorized."
+        failed: "Couldn't authorize Linear access: %{message}"
     composer:
       blank_new: "Type a message to start a conversation."
       pick_project: "Pick a project to launch this workflow."

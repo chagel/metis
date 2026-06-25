@@ -101,6 +101,31 @@
           </section>
         <% end %>
 
+        <% if @connector.catalog_key == "linear" && @linear_api_configured %>
+          <section class="conn-bot">
+            <div class="conn-bot-main">
+              <span class="conn-bot-title"><%= t('.linear_api_title') %></span>
+              <span class="conn-bot-sub"><%= t('.linear_api_sub') %></span>
+            </div>
+            <% if @linear_api_connected %>
+              <div class="conn-status ok">
+                <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                     stroke-width="2" aria-hidden="true">
+                  <path d="M3 8.5l3.5 3.5L13 4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div class="conn-status-main">
+                  <div class="conn-status-title"><%= t('.linear_api_connected') %></div>
+                </div>
+                <%= button_to t('.linear_api_reauthorize'), connector_linear_authorize_path,
+                      data: { turbo: false }, class: "btn btn-ghost" %>
+              </div>
+            <% else %>
+              <%= button_to t('.linear_api_authorize'), connector_linear_authorize_path,
+                    data: { turbo: false }, class: "btn btn-primary" %>
+            <% end %>
+          </section>
+        <% end %>
+
         <% if @connector.catalog_key == "linear" %>
           <section class="conn-bot">
             <div class="conn-bot-main">

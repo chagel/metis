@@ -43,6 +43,19 @@ class ConnectorCredential < ApplicationRecord
     write_envelope("linear_webhook", { "secret" => value })
   end
 
+  # The direct Linear OAuth token (linear.app/oauth), used by the project
+  # picker against api.linear.app/graphql — distinct from mcp_oauth, whose
+  # token only authenticates the MCP gateway. Linear tokens are long-lived,
+  # so there's nothing to refresh; we just keep the access token.
+  def store_linear_api!(tokens)
+    write_envelope("linear_api", { "access_token" => tokens["access_token"] }.compact)
+    save!
+  end
+
+  def linear_api_bearer
+    envelope.dig("linear_api", "access_token")
+  end
+
   # The per-user OauthGrant this connector's bearer comes from, or nil
   # if no grant exists or this isn't an OAuth-shaped connector. Looked
   # up by (user, catalog_app.oauth_provider); a single grant covers

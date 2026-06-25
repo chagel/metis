@@ -79,7 +79,8 @@ class ProjectsController < ApplicationController
   # answers with an error the form degrades on, never a 500.
   def linear_projects
     render json: { projects: fetch_linear_projects }
-  rescue Linear::Api::Error => error
+  rescue StandardError => error
+    Rails.logger.warn("linear_projects failed — #{error.class}: #{error.message}")
     render json: { error: error.message }, status: :bad_gateway
   end
 
@@ -118,8 +119,8 @@ class ProjectsController < ApplicationController
   # own connector grant — no extra scope beyond what Linear already gave us.
   def fetch_linear_projects
     connector = team.connectors.find_by(catalog_key: "linear")
-    bearer = connector&.credential_for(current_user)&.mcp_oauth_bearer
-    raise Linear::Api::Error, "Connect your Linear account to load projects." if bearer.blank?
+    bearer = connector&.credential_for(current_user)&.linear_api_bearer
+    raise Linear::Api::Error, "Authorize Linear API access on the connector page first." if bearer.blank?
 
     Linear::Api.new(bearer).projects
   end
