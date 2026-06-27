@@ -4,16 +4,23 @@ class Workflow < ApplicationRecord
   belongs_to :default_project, class_name: "Project", optional: true
   has_many :workflow_runs, dependent: :nullify
 
+  NAME_MAX = 80
+
   enum :trigger_source, { manual: 0, webhook: 1, schedule: 2, api: 3 }, default: :manual
 
-  validates :name, presence: true
+  normalizes :name, with: ->(name) { name.to_s.strip }
+
+  validates :name, presence: true,
+                   uniqueness: { scope: :team_id, case_sensitive: false },
+                   length: { maximum: NAME_MAX },
+                   format: { without: /[\r\n]/ }
   validate :default_project_in_team
   validate :steps_have_prompts
 
   scope :enabled, -> { where(enabled: true) }
   # Case-insensitive name match — the agent passes a workflow name the way
   # the operator said it, not an id (Agent::WorkflowHandoff).
-  scope :named, ->(name) { where("LOWER(name) = LOWER(?)", name.to_s.strip) }
+  scope :named, ->(name) { where("LOWER(name) = LOWER(?)", name.to_s.strip).order(:id) }
 
   # Normalizes editor/agent step rows into the stored shape, shared by the
   # form (WorkflowsController) and the agent (Agent::WorkflowAuthoring). A

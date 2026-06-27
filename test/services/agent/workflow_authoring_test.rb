@@ -74,6 +74,17 @@ class Agent::WorkflowAuthoringTest < ActiveSupport::TestCase
     assert result[:error].present?
   end
 
+  test "rejects a duplicate workflow name case-insensitively" do
+    @team.workflows.create!(name: "Ship", steps: [ { "name" => "Build", "prompt" => "go" } ])
+
+    result = nil
+    assert_no_difference -> { Workflow.count } do
+      result = create("name" => "ship", "steps" => [ { "name" => "Build", "prompt" => "go" } ])
+    end
+    refute result[:ok]
+    assert_match(/name has already been taken/i, result[:error])
+  end
+
   test "updates an existing workflow's steps, found by name case-insensitively" do
     workflow = @team.workflows.create!(name: "Ship", steps: [ { "name" => "old", "prompt" => "old", "gate" => "auto" } ])
 

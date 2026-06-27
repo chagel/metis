@@ -256,13 +256,17 @@ module Agent
       parts << "#{gates} approval gate#{'s' unless gates == 1}" if gates.positive?
       parts << "project: #{workflow.default_project.name}" if workflow.default_project
 
-      line = "- **#{workflow.name}** — #{parts.join(', ')}"
+      line = "- **#{sanitize_inline(workflow.name)}** — #{parts.join(', ')}"
       if workflow.description.present?
-        about = workflow.description.strip.tr("\n", " ").squeeze(" ").truncate(WORKFLOW_DESC_TRUNCATE)
+        about = sanitize_inline(workflow.description).truncate(WORKFLOW_DESC_TRUNCATE)
         line += " — #{about}" if about.present?
       end
       line += " _(disabled)_" unless workflow.enabled?
       line
+    end
+
+    def sanitize_inline(text)
+      text.to_s.strip.tr("\r\n", " ").squeeze(" ")
     end
 
     # Profile context and instructions as their own section, so the agent

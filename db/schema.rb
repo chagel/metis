@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_23_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_27_013000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -347,6 +347,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_23_010000) do
     t.jsonb "trigger_config", default: {}, null: false
     t.integer "trigger_source", default: 0, null: false
     t.datetime "updated_at", null: false
+    t.index "team_id, lower((name)::text)", name: "index_workflows_on_team_id_and_lower_name", unique: true
     t.index ["default_project_id"], name: "index_workflows_on_default_project_id"
     t.index ["team_id"], name: "index_workflows_on_team_id"
   end

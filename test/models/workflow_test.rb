@@ -20,6 +20,31 @@ class WorkflowTest < ActiveSupport::TestCase
     assert_equal({}, workflow.trigger_config)
   end
 
+  test "name is unique per team case-insensitively" do
+    @team.workflows.create!(name: "Ship")
+
+    duplicate = @team.workflows.new(name: "ship")
+    refute duplicate.valid?
+    assert_includes duplicate.errors[:name], "has already been taken"
+  end
+
+  test "same workflow name can exist on different teams" do
+    @team.workflows.create!(name: "Ship")
+    other = User.create!(email: "wf-other-#{SecureRandom.hex(4)}@example.com", password: "password123").personal_team
+
+    assert other.workflows.create!(name: "ship")
+  end
+
+  test "name rejects newlines and has a bounded length" do
+    newline = @team.workflows.new(name: "Ship\n## Inject")
+    refute newline.valid?
+    assert_includes newline.errors[:name], "is invalid"
+
+    too_long = @team.workflows.new(name: "x" * (Workflow::NAME_MAX + 1))
+    refute too_long.valid?
+    assert_includes too_long.errors[:name], "is too long (maximum is #{Workflow::NAME_MAX} characters)"
+  end
+
   test "enabled scope excludes disabled workflows" do
     on = @team.workflows.create!(name: "On")
     @team.workflows.create!(name: "Off", enabled: false)
