@@ -9,15 +9,18 @@ module Agent
   #
   # Reads and writes both go through here. The sandbox never holds Metis
   # credentials — it only sends a request; HostBridge does the work and
-  # authorizes it server-side (admin for create/update, membership for start),
-  # always within the conversation's team, so a sandbox can't widen its own
-  # scope. Writes delegate to Agent::WorkflowHandoff / WorkflowAuthoring, which
-  # return `{ ok:, ... }` the agent relays in its reply.
+  # authorizes it server-side (admin for create/update/skill writes, membership
+  # for start), always within the conversation's team, so a sandbox can't widen
+  # its own scope. Writes delegate to Agent::WorkflowHandoff / WorkflowAuthoring
+  # / SkillManager, which return `{ ok:, ... }` the agent relays in its reply.
   class HostBridge
     PREFIX = "metis:".freeze
 
     # Allowlist — only these ops are dispatchable, and each maps to a method.
-    OPS = %w[get_workflow get_project start_workflow create_workflow update_workflow].freeze
+    OPS = %w[
+      get_workflow get_project start_workflow create_workflow update_workflow
+      list_skills set_skill_enabled delete_skill
+    ].freeze
 
     # Build an `extension_ui:` handler bound to this conversation. It services
     # "metis:"-prefixed dialog requests as host calls and cancels everything
@@ -92,6 +95,18 @@ module Agent
 
     def update_workflow
       JSON.generate(Agent::WorkflowAuthoring.update(@conversation, @params))
+    end
+
+    def list_skills
+      JSON.generate(Agent::SkillManager.list(@conversation))
+    end
+
+    def set_skill_enabled
+      JSON.generate(Agent::SkillManager.set_enabled(@conversation, @params))
+    end
+
+    def delete_skill
+      JSON.generate(Agent::SkillManager.delete(@conversation, @params))
     end
   end
 end

@@ -104,8 +104,12 @@ module Agent
         - **Don't modify built-in repo skills.** Their slugs are
           reserved; edits won't persist (the tree is wiped & re-copied
           fresh from the repo every turn) and the team won't see them.
-        - To delete a skill, ask the operator to do it from the UI —
-          removing files won't auto-delete the row.
+        - Writing the file is how you **create or edit** — the native
+          path. Operations files can't express go through tools:
+          `metis_list_skills` (see every team skill, including disabled
+          ones that aren't staged here), `metis_set_skill_enabled`
+          (enable/disable), and `metis_delete_skill` (remove the row —
+          deleting files won't). The last two need team-admin rights.
 
         ### Installing a public skill
 

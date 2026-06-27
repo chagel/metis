@@ -147,8 +147,10 @@ class Agent::IdentityTest < ActiveSupport::TestCase
     assert_match(/Metis syncs it back/, out)
     # Repo skills are reserved — instructing the agent against tampering.
     assert_match(/built-in repo skills/i, out)
-    # Deleting a file should NOT delete the row — keep destructive ops with the operator.
-    assert_match(/delete a skill.*from the UI/im, out)
+    # DB-only ops (deleting the row, toggling enabled) go through tools.
+    assert_match(/metis_delete_skill/, out)
+    assert_match(/metis_set_skill_enabled/, out)
+    assert_match(/metis_list_skills/, out)
   end
 
   test "renders operator preferences from the user's profile when present" do

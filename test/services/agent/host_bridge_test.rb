@@ -131,4 +131,31 @@ class Agent::HostBridgeTest < ActiveSupport::TestCase
                                 JSON.generate(name: "Greet", steps: [ { name: "Hi", prompt: "say hi" } ])))
     assert_equal true, JSON.parse(json)["ok"]
   end
+
+  # --- skill ops -----------------------------------------------------
+
+  test "list_skills returns the team's skills as a JSON array" do
+    @team.skills.create!(slug: "code-review", description: "review", enabled: false, content_cache: "x")
+    skills = JSON.parse(Agent::HostBridge.call(@conversation, "list_skills", {}))
+
+    review = skills.find { |s| s["slug"] == "code-review" }
+    assert review
+    assert_equal false, review["enabled"]
+  end
+
+  test "set_skill_enabled toggles via the bridge" do
+    skill = @team.skills.create!(slug: "code-review", enabled: false, content_cache: "x")
+    json = Agent::HostBridge.call(@conversation, "set_skill_enabled", "slug" => "code-review", "enabled" => true)
+    assert_equal true, JSON.parse(json)["ok"]
+    assert skill.reload.enabled?
+  end
+
+  test "delete_skill removes the row via the bridge" do
+    @team.skills.create!(slug: "code-review", content_cache: "x")
+    json = nil
+    assert_difference -> { Skill.count }, -1 do
+      json = Agent::HostBridge.call(@conversation, "delete_skill", "slug" => "code-review")
+    end
+    assert_equal true, JSON.parse(json)["ok"]
+  end
 end

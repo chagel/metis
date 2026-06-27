@@ -9,6 +9,13 @@
  *   metis_update_workflow — edit an existing team workflow template (admin only)
  *   metis_get_workflow    — read a workflow's full step detail (live)
  *   metis_get_project     — read a project's detail + bound resources (live)
+ *   metis_list_skills     — list team skills incl. disabled ones (live)
+ *   metis_set_skill_enabled — enable/disable a team skill (admin only)
+ *   metis_delete_skill    — delete a team skill row (admin only)
+ *
+ * Creating/editing skills is NOT here — that stays on the native file path
+ * (write .pi/skills/<slug>/SKILL.md; Metis ingests it at turn end). These tools
+ * only cover the DB-only operations files can't express.
  *
  * All of these are BIDIRECTIONAL: the tool calls `ctx.ui.input("metis:<op>",
  * <json>)` over pi's Extension UI sub-protocol — the sandbox→host callback
@@ -99,6 +106,16 @@ function formatProject(p: {
   if (p.linear_project) lines.push(`Linear project: ${p.linear_project}`);
   if (!p.github_repo && !p.linear_project) lines.push("(no external resources bound)");
   return lines.join("\n");
+}
+
+// Render the team skill list fetched from the host (Agent::SkillManager#list).
+function formatSkills(
+  skills: Array<{ slug: string; description?: string | null; enabled?: boolean }>,
+): string {
+  if (skills.length === 0) return "No team skills.";
+  return skills
+    .map((s) => `- ${s.slug}${s.enabled === false ? " (disabled)" : ""}${s.description ? ` — ${s.description}` : ""}`)
+    .join("\n");
 }
 
 const StepSchema = Type.Object({
@@ -333,6 +350,84 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
         return errorResult(`No project named "${name}" on this team (or Metis didn't answer).`);
       }
       return { content: [{ type: "text", text: formatProject(project) }], details: project };
+    },
+  });
+
+  pi.registerTool({
+    name: "metis_list_skills",
+    label: "List Metis Skills",
+    description:
+      "List this team's skills, including disabled ones (which are NOT staged " +
+      "into the workspace, so you can't see them as files). Returns each skill's " +
+      "slug, description, and enabled state. Use to see what skills exist before " +
+      "enabling, disabling, or deleting one.",
+    promptSnippet: "List the team's skills (including disabled)",
+    promptGuidelines: [
+      "Use metis_list_skills to discover team skills — especially disabled ones, which don't appear as files in .pi/skills/.",
+      "To create or edit a skill, write .pi/skills/<slug>/SKILL.md instead — that's the native path; these tools are only for listing and DB-only changes.",
+    ],
+    parameters: Type.Object({}),
+
+    async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
+      const skills = await hostCall(ctx, "list_skills", {});
+      if (skills === undefined) return errorResult("Can't reach Metis from this run mode.");
+      if (skills === null) return errorResult("Metis didn't answer.");
+      return { content: [{ type: "text", text: formatSkills(skills) }], details: skills };
+    },
+  });
+
+  pi.registerTool({
+    name: "metis_set_skill_enabled",
+    label: "Enable/Disable Metis Skill",
+    description:
+      "Enable or disable a team skill by slug. A disabled skill is not staged " +
+      "into the workspace and pi won't auto-discover it. Only team admins can " +
+      "do this. Use metis_list_skills first to find the slug and current state.",
+    promptSnippet: "Enable or disable a team skill",
+    promptGuidelines: [
+      "Use metis_set_skill_enabled only when the operator explicitly asks to enable, disable, turn on, or turn off a named skill.",
+      "Identify the skill by its exact slug (kebab-case). Pass enabled: true to enable, false to disable.",
+      "This returns the result directly. On failure (e.g. not a team admin, or no such skill), relay the error.",
+    ],
+    parameters: Type.Object({
+      slug: Type.String({ description: "Skill slug, e.g. \"code-review\"." }),
+      enabled: Type.Boolean({ description: "true to enable, false to disable." }),
+    }),
+
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return hostWrite(
+        ctx,
+        "set_skill_enabled",
+        params,
+        (r) => `Skill "${r.slug}" is now ${r.enabled ? "enabled" : "disabled"}.`,
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "metis_delete_skill",
+    label: "Delete Metis Skill",
+    description:
+      "Permanently delete a team skill (the DB row and its files) by slug. " +
+      "Removing files from the workspace does NOT delete a skill — only this " +
+      "does. Only team admins can delete. This cannot be undone.",
+    promptSnippet: "Delete a team skill",
+    promptGuidelines: [
+      "Use metis_delete_skill only when the operator explicitly asks to delete or remove a named skill. Confirm the slug first — deletion is permanent.",
+      "Identify the skill by its exact slug (kebab-case).",
+      "This returns the result directly. On failure (e.g. not a team admin, or no such skill), relay the error.",
+    ],
+    parameters: Type.Object({
+      slug: Type.String({ description: "Skill slug to delete, e.g. \"code-review\"." }),
+    }),
+
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return hostWrite(
+        ctx,
+        "delete_skill",
+        params,
+        (r) => `Deleted the "${r.slug}" skill.`,
+      );
     },
   });
 }
