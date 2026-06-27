@@ -29,17 +29,21 @@ module Agent
       project = resolve_project(workflow)
       return failure("Name a project to run #{quoted(workflow.name)} on, or set the workflow's default project.") unless project
 
+      settings, error = resolve_settings
+      return failure(error) if error
+
       # A queued run never runs a turn, so auto-titling can't name it — title
       # it now from the agent's note, else the workflow name.
       run = WorkflowRun.start(
         team: @conversation.team, user: @conversation.user,
         workflow: workflow, project: project, input: build_input,
-        settings: @conversation.settings || {}, visibility: @conversation.visibility,
+        settings: settings, visibility: @conversation.visibility,
         trigger_summary: "Spun off from a chat", autostart: false,
         title: handoff_title(workflow)
       )
       {
         ok: true, queued: true, workflow: workflow.name, project: project.name,
+        model: settings["model"].presence, provider: settings["provider"].presence,
         url: Rails.application.routes.url_helpers.conversation_path(run.conversation)
       }
     rescue StandardError => e
@@ -51,6 +55,60 @@ module Agent
 
     def failure(error) = { ok: false, error: error }
     def quoted(value) = "\"#{value.presence || "?"}\""
+
+    # The run inherits the launching chat's settings; an explicit provider/model
+    # from the tool overrides them for the whole run. Validated against the
+    # deployment LLM catalog so a typo fails here, not mid-run. Returns
+    # [settings, error]. When no catalog is synced, the values pass through (pi
+    # validates them itself).
+    def resolve_settings
+      settings = (@conversation.settings || {}).dup
+      model = arg(:model)
+      provider = arg(:provider)
+      return [ settings, nil ] if model.blank? && provider.blank?
+
+      if LlmModel.enabled.none?
+        settings["model"] = model if model.present?
+        settings["provider"] = provider if provider.present?
+        return [ settings, nil ]
+      end
+
+      if model.present?
+        found = find_model(model, provider)
+        return [ nil, "No enabled model #{quoted(model)} in the catalog. Available: #{available_models}." ] unless found
+
+        settings["model"] = found.key
+        settings["provider"] = found.llm_provider.key
+      else
+        found = find_provider(provider)
+        return [ nil, "No enabled provider #{quoted(provider)} in the catalog." ] unless found
+
+        settings["provider"] = found.key
+      end
+      [ settings, nil ]
+    end
+
+    # Match by pi model key first, then by the operator-facing label, optionally
+    # scoped to a named provider (keys aren't unique across providers).
+    def find_model(value, provider_value)
+      scope = LlmModel.enabled
+      if provider_value.present?
+        provider = find_provider(provider_value)
+        return nil unless provider
+
+        scope = scope.where(llm_provider: provider)
+      end
+      scope.find_by(key: value) || scope.where("LOWER(label) = LOWER(?)", value).first
+    end
+
+    def find_provider(value)
+      provider = LlmProvider.find_by(key: value) || LlmProvider.where("LOWER(label) = LOWER(?)", value).first
+      provider if provider&.enabled?
+    end
+
+    def available_models
+      LlmModel.enabled.ordered.limit(20).pluck(:key).join(", ")
+    end
 
     def resolve_workflow
       name = arg(:workflow)

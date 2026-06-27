@@ -116,4 +116,51 @@ class Agent::WorkflowHandoffTest < ActiveSupport::TestCase
     refute result[:ok]
     assert_match(/name a project/i, result[:error])
   end
+
+  test "inherits the chat's settings when no model is specified" do
+    @conversation.update!(settings: { "provider" => "anthropic", "model" => "claude-opus-4-8" })
+    handoff("workflow" => "ship")
+    assert_equal "claude-opus-4-8", WorkflowRun.last.conversation.settings["model"]
+  end
+
+  test "overrides model+provider from a catalog entry, resolving the provider" do
+    provider = LlmProvider.create!(key: "openai", label: "OpenAI")
+    LlmModel.create!(key: "gpt-5.5", label: "GPT-5.5", llm_provider: provider, enabled: true)
+
+    result = handoff("workflow" => "ship", "model" => "gpt-5.5")
+
+    assert result[:ok]
+    settings = WorkflowRun.last.conversation.settings
+    assert_equal "gpt-5.5", settings["model"]
+    assert_equal "openai", settings["provider"], "provider resolved from the catalog"
+    assert_equal "gpt-5.5", result[:model]
+  end
+
+  test "matches a model by its label too" do
+    provider = LlmProvider.create!(key: "openai", label: "OpenAI")
+    LlmModel.create!(key: "gpt-5.5", label: "GPT-5.5", llm_provider: provider, enabled: true)
+
+    handoff("workflow" => "ship", "model" => "gpt-5.5")
+    assert_equal "gpt-5.5", WorkflowRun.last.conversation.settings["model"]
+  end
+
+  test "rejects an unknown model and starts nothing when the catalog is populated" do
+    provider = LlmProvider.create!(key: "openai", label: "OpenAI")
+    LlmModel.create!(key: "gpt-5.5", label: "GPT-5.5", llm_provider: provider, enabled: true)
+
+    result = nil
+    assert_no_difference -> { WorkflowRun.count } do
+      result = handoff("workflow" => "ship", "model" => "bogus-model")
+    end
+    refute result[:ok]
+    assert_match(/no enabled model/i, result[:error])
+  end
+
+  test "passes the model through unvalidated when no catalog is synced" do
+    assert_empty LlmModel.all
+    handoff("workflow" => "ship", "model" => "some/model", "provider" => "someprov")
+    settings = WorkflowRun.last.conversation.settings
+    assert_equal "some/model", settings["model"]
+    assert_equal "someprov", settings["provider"]
+  end
 end

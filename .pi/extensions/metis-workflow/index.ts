@@ -142,6 +142,7 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
       "Use metis_start_workflow only when the operator explicitly asks to start, kick off, or run a named workflow.",
       "Pass `workflow` as the operator named it (e.g. \"ship\"). Pass `project` if they named one; omit it to use this chat's project.",
       "Put a short, self-contained summary of what the run should accomplish — the spec you concluded together — in `note`.",
+      "Pass `model` (and optionally `provider`) only if the operator names one to run the workflow on; omit to inherit this chat's model. An unknown model is rejected with the available options.",
       "This returns the result directly. On success, tell the operator the run is queued for their review and give them the returned link to start it. On failure, relay the error.",
     ],
     parameters: Type.Object({
@@ -160,6 +161,18 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
             "Short summary of the task/spec for the run to carry into its first step.",
         }),
       ),
+      model: Type.Optional(
+        Type.String({
+          description:
+            "Model to run the workflow on (pi model key or its label, e.g. \"anthropic/claude-opus-4-8\"). Omit to inherit this chat's model.",
+        }),
+      ),
+      provider: Type.Optional(
+        Type.String({
+          description:
+            "Provider for the model, only needed to disambiguate when the same model key exists under multiple providers.",
+        }),
+      ),
     }),
 
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
@@ -168,7 +181,8 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
         "start_workflow",
         params,
         (r) =>
-          `Queued the "${r.workflow}" workflow on ${r.project}. It won't run until ` +
+          `Queued the "${r.workflow}" workflow on ${r.project}` +
+          `${r.model ? ` (model: ${r.model})` : ""}. It won't run until ` +
           `the operator reviews the seeded context and starts it: ${r.url}`,
       );
     },
