@@ -134,28 +134,28 @@ class Agent::HostBridgeTest < ActiveSupport::TestCase
 
   # --- skill ops -----------------------------------------------------
 
-  test "list_skills returns the team's skills as a JSON array" do
-    @team.skills.create!(slug: "code-review", description: "review", enabled: false, content_cache: "x")
+  test "list_skills returns built-in and team skills with status as JSON" do
+    @team.skills.create!(slug: "team-thing", description: "ours", enabled: false, content_cache: "x")
     skills = JSON.parse(Agent::HostBridge.call(@conversation, "list_skills", {}))
 
-    review = skills.find { |s| s["slug"] == "code-review" }
-    assert review
-    assert_equal false, review["enabled"]
+    assert skills.any? { |s| s["source"] == "builtin" && s["status"] == "built-in" }
+    team = skills.find { |s| s["slug"] == "team-thing" }
+    assert_equal "disabled", team["status"]
   end
 
-  test "set_skill_enabled toggles via the bridge" do
-    skill = @team.skills.create!(slug: "code-review", enabled: false, content_cache: "x")
-    json = Agent::HostBridge.call(@conversation, "set_skill_enabled", "slug" => "code-review", "enabled" => true)
-    assert_equal true, JSON.parse(json)["ok"]
-    assert skill.reload.enabled?
-  end
-
-  test "delete_skill removes the row via the bridge" do
-    @team.skills.create!(slug: "code-review", content_cache: "x")
+  test "create_skill creates a team skill via the bridge" do
+    content = "---\nname: code-review\ndescription: review\n---\n\nBody."
     json = nil
-    assert_difference -> { Skill.count }, -1 do
-      json = Agent::HostBridge.call(@conversation, "delete_skill", "slug" => "code-review")
+    assert_difference -> { Skill.count }, 1 do
+      json = Agent::HostBridge.call(@conversation, "create_skill", "slug" => "code-review", "content" => content)
     end
     assert_equal true, JSON.parse(json)["ok"]
+  end
+
+  test "update_skill toggles enabled via the bridge" do
+    skill = @team.skills.create!(slug: "code-review", enabled: true, content_cache: "x")
+    json = Agent::HostBridge.call(@conversation, "update_skill", "slug" => "code-review", "enabled" => false)
+    assert_equal true, JSON.parse(json)["ok"]
+    refute skill.reload.enabled?
   end
 end

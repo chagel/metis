@@ -147,10 +147,11 @@ class Agent::IdentityTest < ActiveSupport::TestCase
     assert_match(/Metis syncs it back/, out)
     # Repo skills are reserved — instructing the agent against tampering.
     assert_match(/built-in repo skills/i, out)
-    # DB-only ops (deleting the row, toggling enabled) go through tools.
-    assert_match(/metis_delete_skill/, out)
-    assert_match(/metis_set_skill_enabled/, out)
+    # Team-skill management goes through tools (no delete tool).
     assert_match(/metis_list_skills/, out)
+    assert_match(/metis_create_skill/, out)
+    assert_match(/metis_update_skill/, out)
+    refute_match(/metis_delete_skill/, out)
   end
 
   test "renders operator preferences from the user's profile when present" do
