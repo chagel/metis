@@ -49,33 +49,7 @@ class WorkflowsController < ApplicationController
   def workflow_params
     permitted = params.require(:workflow).permit(:name, :description, :default_project_id, :trigger_source)
     permitted[:default_project_id] = nil if permitted[:default_project_id].blank?
-    permitted[:steps] = normalized_steps
+    permitted[:steps] = Workflow.normalize_steps(params.dig(:workflow, :steps))
     permitted
-  end
-
-  # Breaks are editor-only rows: a kind=break row folds into the previous
-  # step as gate=approval; blank rows and leading breaks are dropped.
-  def normalized_steps
-    rows = params.dig(:workflow, :steps)
-    return [] if rows.blank?
-
-    rows = rows.values if rows.respond_to?(:values)
-    rows.each_with_object([]) do |row, steps|
-      if row[:kind] == "break"
-        steps.last&.store("gate", "approval")
-        next
-      end
-
-      name = row[:name].to_s.strip
-      prompt = row[:prompt].to_s.strip
-      next if name.blank? && prompt.blank?
-
-      steps << {
-        "name" => name,
-        "prompt" => prompt,
-        "gate" => "auto",
-        "run" => (row[:run] == "local" ? "local" : "cloud")
-      }
-    end
   end
 end

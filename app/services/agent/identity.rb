@@ -71,6 +71,7 @@ module Agent
         #{conversation_history_block}
         #{project_context_block}
         #{team_projects_block}
+        #{workflows_block}
         #{operator_preferences_block}
 
         ## Connectors
@@ -219,6 +220,48 @@ module Agent
         about = sanitize_about(project.about).strip.tr("\n", " ").squeeze(" ").truncate(TEAM_PROJECT_ABOUT_TRUNCATE)
         line += " — #{about}" if about.present?
       end
+      line
+    end
+
+    # Lookup-by-name catalog of the team's saved workflow templates — the
+    # counterpart to #team_projects_block. It's how the agent knows what
+    # `metis_start_workflow` / `metis_update_workflow` can name, and answers
+    # "what workflows do we have?" without a round-trip.
+    WORKFLOWS_RENDERED_MAX = 25
+    WORKFLOW_DESC_TRUNCATE = 140
+
+    def workflows_block
+      workflows = @conversation.team.workflows.includes(:default_project).order(:name).limit(WORKFLOWS_RENDERED_MAX).to_a
+      return "" if workflows.empty?
+
+      lines = [
+        "## Workflows",
+        "",
+        "Saved workflow templates for this team. When the operator asks to " \
+        "start one, call `metis_start_workflow` (it queues a run for their " \
+        "review). Team admins can ask you to create or edit one via " \
+        "`metis_create_workflow` / `metis_update_workflow`. Reference a " \
+        "workflow by the exact name below.",
+        ""
+      ]
+      workflows.each { |workflow| lines << workflow_line(workflow) }
+
+      "\n" + lines.join("\n") + "\n"
+    end
+
+    def workflow_line(workflow)
+      steps = Array(workflow.steps).size
+      parts = [ "#{steps} step#{'s' unless steps == 1}" ]
+      gates = workflow.gate_count
+      parts << "#{gates} approval gate#{'s' unless gates == 1}" if gates.positive?
+      parts << "project: #{workflow.default_project.name}" if workflow.default_project
+
+      line = "- **#{workflow.name}** — #{parts.join(', ')}"
+      if workflow.description.present?
+        about = workflow.description.strip.tr("\n", " ").squeeze(" ").truncate(WORKFLOW_DESC_TRUNCATE)
+        line += " — #{about}" if about.present?
+      end
+      line += " _(disabled)_" unless workflow.enabled?
       line
     end
 

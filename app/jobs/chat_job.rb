@@ -6,10 +6,12 @@ class ChatJob < ApplicationJob
   # How often (in streamed events) to poll for a cancellation request.
   CANCEL_POLL_INTERVAL = 15
 
-  # The extension tool the agent calls to spin off a workflow run from a chat
-  # (.pi/extensions/metis-workflow). Metis acts on it server-side; see
-  # Agent::WorkflowHandoff.
+  # The extension tools the agent calls to drive Metis workflows from a chat
+  # (.pi/extensions/metis-workflow). Each only acks; Metis acts on it
+  # server-side — see Agent::WorkflowHandoff / Agent::WorkflowAuthoring.
   HANDOFF_TOOL = "metis_start_workflow".freeze
+  CREATE_WORKFLOW_TOOL = "metis_create_workflow".freeze
+  UPDATE_WORKFLOW_TOOL = "metis_update_workflow".freeze
 
   def perform(conversation_id, user_message_id, assistant_message_id)
     conversation = Conversation.find(conversation_id)
@@ -55,7 +57,7 @@ class ChatJob < ApplicationJob
       when :message_finished then segments << event[:content].to_s
       when :tool_call_started, :tool_call_progress, :tool_call_finished
         record_tool_call(tools, event)
-        handoff_workflow(conversation, event)
+        dispatch_metis_tool(conversation, event)
       when :error            then errored = true
       end
       broadcaster.handle(event)
@@ -126,16 +128,22 @@ class ChatJob < ApplicationJob
     call["status"]     = event.type == :tool_call_finished ? "done" : "running"
   end
 
-  # The agent called the spin-off tool — hand it to WorkflowHandoff, which
-  # starts the run and posts a note back into the chat. Fires once, on the
-  # start event (only it carries the args). Guarded so a handoff hiccup never
-  # crashes a turn the operator is already watching stream.
-  def handoff_workflow(conversation, event)
-    return unless event.type == :tool_call_started && event[:name] == HANDOFF_TOOL
+  # The agent called a metis workflow tool — act on it server-side. Fires once,
+  # on the start event (only it carries the args). Guarded so a dispatch hiccup
+  # never crashes a turn the operator is already watching stream.
+  def dispatch_metis_tool(conversation, event)
+    return unless event.type == :tool_call_started
 
-    Agent::WorkflowHandoff.from_tool_call(conversation, event[:args])
+    case event[:name]
+    when HANDOFF_TOOL
+      Agent::WorkflowHandoff.from_tool_call(conversation, event[:args])
+    when CREATE_WORKFLOW_TOOL
+      Agent::WorkflowAuthoring.create(conversation, event[:args])
+    when UPDATE_WORKFLOW_TOOL
+      Agent::WorkflowAuthoring.update(conversation, event[:args])
+    end
   rescue StandardError => e
-    Rails.logger.error("Workflow handoff dispatch failed: #{e.class}: #{e.message}")
+    Rails.logger.error("Metis tool dispatch failed: #{e.class}: #{e.message}")
   end
 
   # Record pi's session id so the next message resumes the same session.

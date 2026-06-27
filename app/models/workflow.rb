@@ -15,6 +15,38 @@ class Workflow < ApplicationRecord
   # the operator said it, not an id (Agent::WorkflowHandoff).
   scope :named, ->(name) { where("LOWER(name) = LOWER(?)", name.to_s.strip) }
 
+  # Normalizes editor/agent step rows into the stored shape, shared by the
+  # form (WorkflowsController) and the agent (Agent::WorkflowAuthoring). A
+  # `kind: "break"` row is an editor-only marker that folds into the previous
+  # step as `gate: approval`; blank rows and leading breaks are dropped.
+  def self.normalize_steps(rows)
+    rows = rows.values if rows.respond_to?(:values)
+    Array(rows).each_with_object([]) do |row, steps|
+      if field(row, :kind) == "break"
+        steps.last&.store("gate", "approval")
+        next
+      end
+
+      name = field(row, :name).strip
+      prompt = field(row, :prompt).strip
+      next if name.blank? && prompt.blank?
+
+      steps << {
+        "name" => name,
+        "prompt" => prompt,
+        "gate" => (field(row, :gate) == "approval" ? "approval" : "auto"),
+        "run" => (field(row, :run) == "local" ? "local" : "cloud")
+      }
+    end
+  end
+
+  # Reads a key from a plain hash or ActionController::Parameters, symbol or
+  # string, as a string.
+  def self.field(row, key)
+    (row[key.to_sym] || row[key.to_s]).to_s
+  end
+  private_class_method :field
+
   def gate_count
     steps.count { |step| step["gate"] == "approval" }
   end
