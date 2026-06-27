@@ -44,6 +44,27 @@ class Agent::HostBridgeTest < ActiveSupport::TestCase
     assert_nil Agent::HostBridge.call(@conversation, "get_workflow", "name" => "Secret")
   end
 
+  test "get_project returns detail and bound external resources as JSON" do
+    @project.update!(about: "the app", github_repo: "chagel/metis", linear_project: "abc12345-0000-0000-0000-000000000000")
+    json = Agent::HostBridge.call(@conversation, "get_project", "name" => "Metis")
+    p = JSON.parse(json)
+
+    assert_equal "Metis", p["name"]
+    assert_equal "the app", p["about"]
+    assert_equal "chagel/metis", p["github_repo"]
+    assert_equal "abc12345-0000-0000-0000-000000000000", p["linear_project"]
+  end
+
+  test "get_project returns nil for an unknown project" do
+    assert_nil Agent::HostBridge.call(@conversation, "get_project", "name" => "ghost")
+  end
+
+  test "get_project is team-scoped" do
+    other = User.create!(email: "hb-p-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    other.personal_team.projects.create!(name: "Hidden")
+    assert_nil Agent::HostBridge.call(@conversation, "get_project", "name" => "Hidden")
+  end
+
   test "rejects an op that isn't on the allowlist" do
     assert_nil Agent::HostBridge.call(@conversation, "delete_workflow", "name" => "Ship")
     assert_nil Agent::HostBridge.call(@conversation, "evil", {})

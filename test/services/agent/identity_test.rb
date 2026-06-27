@@ -200,6 +200,25 @@ class Agent::IdentityTest < ActiveSupport::TestCase
     refute_match(/## Project context/, out)
   end
 
+  test "inlines the attached project's bound external resources for SSOT alignment" do
+    project = conversation.team.projects.create!(
+      name: "Metis", github_repo: "chagel/metis",
+      linear_project: "abc12345-0000-0000-0000-000000000000"
+    )
+    conversation.update!(project: project)
+
+    out = render
+
+    assert_match(/Bound resources/, out)
+    assert_match(%r{GitHub repo: `chagel/metis`}, out)
+    assert_match(/Linear project: `abc12345-0000-0000-0000-000000000000`/, out)
+  end
+
+  test "omits bound-resources line when the attached project has no external refs" do
+    conversation.update!(project: conversation.team.projects.create!(name: "Bare"))
+    refute_match(/Bound resources/, render)
+  end
+
   test "lists the team's projects as a lookup catalog so the agent can match the operator's wording without attachment" do
     # An unattached conversation: the agent has no specific project,
     # but it still sees the team's saved projects so a message like

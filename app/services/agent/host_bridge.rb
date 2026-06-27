@@ -17,7 +17,7 @@ module Agent
     PREFIX = "metis:".freeze
 
     # Allowlist — only these ops are dispatchable, and each maps to a method.
-    OPS = %w[get_workflow start_workflow create_workflow update_workflow].freeze
+    OPS = %w[get_workflow get_project start_workflow create_workflow update_workflow].freeze
 
     # Build an `extension_ui:` handler bound to this conversation. It services
     # "metis:"-prefixed dialog requests as host calls and cancels everything
@@ -67,6 +67,18 @@ module Agent
         enabled: workflow.enabled,
         default_project: workflow.default_project&.name,
         steps: workflow.steps
+      )
+    end
+
+    def get_project
+      project = @conversation.team.projects.named(@params["name"].to_s).first
+      return nil unless project
+
+      JSON.generate(
+        name: project.name,
+        about: project.about,
+        github_repo: project.github_repo,
+        linear_project: project.linear_project
       )
     end
 

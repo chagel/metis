@@ -8,6 +8,7 @@
  *   metis_create_workflow — author a new team workflow template (admin only)
  *   metis_update_workflow — edit an existing team workflow template (admin only)
  *   metis_get_workflow    — read a workflow's full step detail (live)
+ *   metis_get_project     — read a project's detail + bound resources (live)
  *
  * All of these are BIDIRECTIONAL: the tool calls `ctx.ui.input("metis:<op>",
  * <json>)` over pi's Extension UI sub-protocol — the sandbox→host callback
@@ -82,6 +83,21 @@ function formatWorkflow(wf: {
     lines.push(`${i + 1}. ${s.name ?? "(unnamed)"} (${tags})`);
     if (s.prompt) lines.push(`   ${s.prompt}`);
   });
+  return lines.join("\n");
+}
+
+// Render a project fetched from the host (Agent::HostBridge#get_project).
+function formatProject(p: {
+  name: string;
+  about?: string | null;
+  github_repo?: string | null;
+  linear_project?: string | null;
+}): string {
+  const lines = [`# ${p.name}`];
+  if (p.about) lines.push(p.about);
+  if (p.github_repo) lines.push(`GitHub repo: ${p.github_repo}`);
+  if (p.linear_project) lines.push(`Linear project: ${p.linear_project}`);
+  if (!p.github_repo && !p.linear_project) lines.push("(no external resources bound)");
   return lines.join("\n");
 }
 
@@ -285,6 +301,38 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
         return errorResult(`No workflow named "${name}" on this team (or Metis didn't answer).`);
       }
       return { content: [{ type: "text", text: formatWorkflow(wf) }], details: wf };
+    },
+  });
+
+  pi.registerTool({
+    name: "metis_get_project",
+    label: "Get Metis Project",
+    description:
+      "Read a team project's full detail by name — its description and the " +
+      "external resources it's bound to (GitHub repo as owner/name, Linear " +
+      "project id). Returns live data from Metis. Use before acting on a " +
+      "project's repo or Linear so you target the exact bound identifiers " +
+      "instead of guessing from the conversation.",
+    promptSnippet: "Read a Metis project's detail and bound resources",
+    promptGuidelines: [
+      "Use metis_get_project when the operator references a saved project and you need its bound GitHub repo or Linear project to act.",
+      "Identify the project by name (case-insensitive).",
+      "Prefer the returned github_repo / linear_project over inferring identifiers from the chat.",
+    ],
+    parameters: Type.Object({
+      name: Type.String({
+        description: 'Project name, e.g. "Metis" (case-insensitive).',
+      }),
+    }),
+
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const { name } = params;
+      const project = await hostCall(ctx, "get_project", { name });
+      if (project === undefined) return errorResult("Can't reach Metis from this run mode.");
+      if (project === null) {
+        return errorResult(`No project named "${name}" on this team (or Metis didn't answer).`);
+      }
+      return { content: [{ type: "text", text: formatProject(project) }], details: project };
     },
   });
 }

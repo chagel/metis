@@ -177,7 +177,23 @@ module Agent
         lines.concat([ "", sanitize_about(project.about) ])
       end
 
+      refs = project_refs(project)
+      lines.concat([ "", refs ]) if refs
+
       "\n" + lines.join("\n") + "\n"
+    end
+
+    # The attached project's bound external resources, inline — the agent acts
+    # on these exact identifiers (GitHub/Linear MCP take repo/project per call),
+    # so naming them here is the SSOT alignment. Other projects' refs are
+    # fetched on demand via the metis_get_project tool (Agent::HostBridge).
+    def project_refs(project)
+      parts = []
+      parts << "- GitHub repo: `#{project.github_repo}`" if project.github_repo.present?
+      parts << "- Linear project: `#{project.linear_project}`" if project.linear_project.present?
+      return if parts.empty?
+
+      "Bound resources — use these exact identifiers when acting on the project:\n#{parts.join("\n")}"
     end
 
     # `about` is freeform: a leading `#` would forge a Metis section
