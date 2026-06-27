@@ -44,7 +44,11 @@ module Agent
         return failure("A skill named #{quoted(slug)} already exists — use metis_update_skill.") if existing
         return failure("A new skill needs SKILL.md content.") if content.blank?
 
-        persist(@conversation.team.skills.new(slug: slug, created_by: @conversation.user), "created")
+        skill = @conversation.team.skills.new(slug: slug, created_by: @conversation.user)
+        skill.enabled = truthy(@params["enabled"]) if @params.key?("enabled")
+        return failure(skill.errors.full_messages.join("; ")) unless skill.valid?
+
+        persist(skill, "created")
       end
     end
 

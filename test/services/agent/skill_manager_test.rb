@@ -72,6 +72,18 @@ class Agent::SkillManagerTest < ActiveSupport::TestCase
     assert_match(/SKILL\.md content/i, result[:error])
   end
 
+  test "create validates the skill before attaching SKILL.md" do
+    result = nil
+    assert_no_difference -> { ActiveStorage::Blob.count } do
+      assert_no_difference -> { Skill.count } do
+        result = Agent::SkillManager.create(@conversation, "slug" => "Bad Slug", "content" => SKILL_MD)
+      end
+    end
+
+    refute result[:ok]
+    assert_match(/Slug/i, result[:error])
+  end
+
   test "create rejects a slug reserved by a built-in skill" do
     reserved = Agent::RepoSkills.all.first&.slug
     skip "no repo skills present" unless reserved
