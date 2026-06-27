@@ -158,17 +158,3 @@
       the_reviewer: "审阅者"
       rejected: "已拒绝"
       approved: "已批准"
-  handoff:
-    queued: "🕓 已将 **%{workflow}** 工作流加入队列（项目 **%{project}**）→ [查看并启动运行](%{url})"
-    no_workflow: "⚠️ 无法启动工作流 — 团队中没有名为 **%{name}** 的已启用工作流。"
-    no_project: "⚠️ 无法启动 **%{workflow}** 工作流 — 请指定运行的项目，或设置该工作流的默认项目。"
-    failed: "⚠️ 启动工作流时出错 — 未启动任何运行。"
-  workflow_authoring:
-    created: "✅ 已创建 **%{name}** 工作流 → [查看并编辑](%{url})"
-    updated: "✅ 已更新 **%{name}** 工作流 → [查看并编辑](%{url})"
-    no_workflow: "⚠️ 无法编辑工作流 — 团队中没有名为 **%{name}** 的工作流。"
-    no_project: "⚠️ 团队中没有名为 **%{name}** 的项目。"
-    needs_steps: "⚠️ 工作流至少需要一个带提示词的步骤。"
-    invalid: "⚠️ 无法保存工作流 — %{errors}。"
-    forbidden: "⚠️ 只有团队管理员才能创建或编辑工作流。"
-    failed: "⚠️ 保存工作流时出错 — 未做任何更改。"

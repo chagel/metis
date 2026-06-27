@@ -158,17 +158,3 @@ en:
       the_reviewer: "The reviewer"
       rejected: "rejected"
       approved: "approved"
-  handoff:
-    queued: "🕓 Queued the **%{workflow}** workflow on **%{project}** → [review & start the run](%{url})"
-    no_workflow: "⚠️ Couldn't start a workflow — no enabled workflow named **%{name}** on this team."
-    no_project: "⚠️ Couldn't start the **%{workflow}** workflow — name a project to run it on, or set the workflow's default project."
-    failed: "⚠️ Something went wrong starting the workflow — nothing was launched."
-  workflow_authoring:
-    created: "✅ Created the **%{name}** workflow → [review & edit it](%{url})"
-    updated: "✅ Updated the **%{name}** workflow → [review & edit it](%{url})"
-    no_workflow: "⚠️ Couldn't edit a workflow — no workflow named **%{name}** on this team."
-    no_project: "⚠️ Couldn't find a project named **%{name}** on this team."
-    needs_steps: "⚠️ A workflow needs at least one step with a prompt."
-    invalid: "⚠️ Couldn't save the workflow — %{errors}."
-    forbidden: "⚠️ Only team admins can create or edit workflows."
-    failed: "⚠️ Something went wrong saving the workflow — nothing was changed."

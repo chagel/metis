@@ -25,9 +25,10 @@ class Agent::WorkflowHandoffTest < ActiveSupport::TestCase
     Agent::WorkflowHandoff.from_tool_call(@conversation, args)
   end
 
-  test "queues a run for a named workflow, seeded with the chat, and posts a confirmation" do
-    assert_difference -> { WorkflowRun.count } => 1, -> { @conversation.messages.handoff.count } => 1 do
-      handoff("workflow" => "ship", "project" => "metis", "note" => "build the widget")
+  test "queues a run for a named workflow, seeded with the chat, and returns the link" do
+    result = nil
+    assert_difference -> { WorkflowRun.count }, 1 do
+      result = handoff("workflow" => "ship", "project" => "metis", "note" => "build the widget")
     end
 
     run = WorkflowRun.last
@@ -38,10 +39,10 @@ class Agent::WorkflowHandoffTest < ActiveSupport::TestCase
     assert_includes run.input, "build the widget"
     assert_includes run.input, "here is the spec we agreed"
 
-    note = @conversation.messages.handoff.last
-    assert_match(/Queued/, note.content)
-    assert_match(/Ship/, note.content)
-    assert_match(/#{Regexp.escape(conversation_path(run.conversation))}/, note.content)
+    assert result[:ok]
+    assert_equal "Ship", result[:workflow]
+    assert_equal "Metis", result[:project]
+    assert_equal conversation_path(run.conversation), result[:url]
   end
 
   test "falls back to the workflow name for the title when no note is given" do
@@ -78,33 +79,41 @@ class Agent::WorkflowHandoffTest < ActiveSupport::TestCase
     assert_equal @project, WorkflowRun.last.conversation.project
   end
 
-  test "posts an error and starts nothing when the workflow name is unknown" do
+  test "returns an error and starts nothing when the workflow name is unknown" do
+    result = nil
     assert_no_difference -> { WorkflowRun.count } do
-      handoff("workflow" => "nope")
+      result = handoff("workflow" => "nope")
     end
-    assert_match(/Couldn't start a workflow/, @conversation.messages.handoff.last.content)
+    refute result[:ok]
+    assert_match(/no enabled workflow/i, result[:error])
   end
 
   test "ignores a disabled workflow" do
     @workflow.update!(enabled: false)
+    result = nil
     assert_no_difference -> { WorkflowRun.count } do
-      handoff("workflow" => "ship")
+      result = handoff("workflow" => "ship")
     end
+    refute result[:ok]
   end
 
   test "refuses to spawn from a conversation that is itself a workflow run" do
     run = WorkflowRun.start(team: @team, user: @user, workflow: @workflow, project: @project)
+    result = nil
     assert_no_difference -> { WorkflowRun.count } do
-      Agent::WorkflowHandoff.from_tool_call(run.conversation, "workflow" => "ship")
+      result = Agent::WorkflowHandoff.from_tool_call(run.conversation, "workflow" => "ship")
     end
-    assert_empty run.conversation.messages.handoff
+    refute result[:ok]
+    assert_match(/inside a workflow run/i, result[:error])
   end
 
   test "errors when no project can be resolved" do
     @conversation.update!(project: nil)
+    result = nil
     assert_no_difference -> { WorkflowRun.count } do
-      handoff("workflow" => "ship")
+      result = handoff("workflow" => "ship")
     end
-    assert_match(/name a project/i, @conversation.messages.handoff.last.content)
+    refute result[:ok]
+    assert_match(/name a project/i, result[:error])
   end
 end

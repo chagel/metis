@@ -1,12 +1,12 @@
 module Agent
   # The agent asked Metis to spin off a workflow run from this chat, via the
-  # `metis_start_workflow` extension tool. Metis sees the tool call in the
-  # event stream (ChatJob) and acts here, server-side: it resolves the named
-  # workflow + project for the team, seeds a fresh run with this chat's
-  # transcript, and posts a confirmation (or a precise error) back into the
-  # chat. The tool's own ack can't carry the outcome — Metis acts out of band
-  # — so this note is the operator's source of truth. Never raises into the
-  # turn: a handoff failure must not sink the chat the operator is watching.
+  # `metis_start_workflow` extension tool. The tool reaches Metis synchronously
+  # over pi's Extension UI channel (Agent::HostBridge), so this returns a
+  # structured result the agent relays in its own reply — it does not post into
+  # the chat itself. Metis resolves the named workflow + project for the team
+  # and seeds a fresh QUEUED run with this chat's transcript; the operator
+  # reviews the seeded context and starts it. Never raises into the turn: a
+  # failure becomes an `{ ok: false, error: }` the agent can report or retry.
   class WorkflowHandoff
     def self.from_tool_call(conversation, args)
       new(conversation, args || {}).call
@@ -20,14 +20,14 @@ module Agent
     def call
       # A run's turns are engine-driven and their seeded input restates the
       # chat that launched them — honoring the tool here would let a run spawn
-      # another run from its own context, cascading without bound. Ignore it.
-      return if @conversation.workflow_run.present?
+      # another run from its own context, cascading without bound.
+      return failure("Can't start a workflow from inside a workflow run.") if @conversation.workflow_run.present?
 
       workflow = resolve_workflow
-      return notify(t("no_workflow", name: arg(:workflow).presence || "?")) unless workflow
+      return failure("No enabled workflow named #{quoted(arg(:workflow))} on this team.") unless workflow
 
       project = resolve_project(workflow)
-      return notify(t("no_project", workflow: workflow.name)) unless project
+      return failure("Name a project to run #{quoted(workflow.name)} on, or set the workflow's default project.") unless project
 
       # A queued run never runs a turn, so auto-titling can't name it — title
       # it now from the agent's note, else the workflow name.
@@ -38,14 +38,19 @@ module Agent
         trigger_summary: "Spun off from a chat", autostart: false,
         title: handoff_title(workflow)
       )
-      notify(t("queued", workflow: workflow.name, project: project.name,
-                         url: Rails.application.routes.url_helpers.conversation_path(run.conversation)))
+      {
+        ok: true, queued: true, workflow: workflow.name, project: project.name,
+        url: Rails.application.routes.url_helpers.conversation_path(run.conversation)
+      }
     rescue StandardError => e
       Rails.logger.error("WorkflowHandoff failed for conversation #{@conversation.id}: #{e.class}: #{e.message}")
-      notify(t("failed"))
+      failure("Something went wrong starting the workflow — nothing was launched.")
     end
 
     private
+
+    def failure(error) = { ok: false, error: error }
+    def quoted(value) = "\"#{value.presence || "?"}\""
 
     def resolve_workflow
       name = arg(:workflow)
@@ -111,23 +116,8 @@ module Agent
       arg(:note).presence&.truncate(Conversation::TITLE_MAX) || workflow.run_title
     end
 
-    def notify(content)
-      message = @conversation.messages.create!(
-        role: :assistant, content: content, streaming_status: :done, kind: :handoff
-      )
-      Turbo::StreamsChannel.broadcast_append_to(
-        @conversation, target: "messages",
-        partial: "messages/message", locals: { message: message }
-      )
-      nil
-    end
-
     def arg(key)
       (@args[key.to_s] || @args[key.to_sym]).to_s.strip
-    end
-
-    def t(key, **)
-      I18n.t("handoff.#{key}", **)
     end
   end
 end

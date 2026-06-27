@@ -64,4 +64,50 @@ class Agent::HostBridgeTest < ActiveSupport::TestCase
     handler = Agent::HostBridge.handler(@conversation)
     assert_nil handler.call(Req.new("metis:get_workflow", "not json")), "no name → no match → nil"
   end
+
+  # --- write ops -----------------------------------------------------
+
+  test "create_workflow persists and returns an ok result as JSON" do
+    json = nil
+    assert_difference -> { Workflow.count }, 1 do
+      json = Agent::HostBridge.call(@conversation, "create_workflow",
+                                    "name" => "Greet", "steps" => [ { "name" => "Hi", "prompt" => "say hi" } ])
+    end
+    res = JSON.parse(json)
+    assert_equal true, res["ok"]
+    assert_equal "created", res["action"]
+    assert res["url"].present?
+  end
+
+  test "update_workflow edits an existing workflow" do
+    workflow = @team.workflows.create!(name: "Greet", steps: [ { "name" => "old", "prompt" => "old", "gate" => "auto" } ])
+    json = Agent::HostBridge.call(@conversation, "update_workflow",
+                                  "name" => "Greet", "steps" => [ { "name" => "new", "prompt" => "new" } ])
+    assert_equal true, JSON.parse(json)["ok"]
+    assert_equal "new", workflow.reload.steps.first["prompt"]
+  end
+
+  test "start_workflow queues a run and returns the link" do
+    json = nil
+    assert_difference -> { WorkflowRun.count }, 1 do
+      json = Agent::HostBridge.call(@conversation, "start_workflow", "workflow" => "Ship")
+    end
+    res = JSON.parse(json)
+    assert_equal true, res["ok"]
+    assert res["url"].present?
+  end
+
+  test "write ops surface failures as ok:false rather than raising" do
+    json = Agent::HostBridge.call(@conversation, "update_workflow", "name" => "ghost")
+    res = JSON.parse(json)
+    assert_equal false, res["ok"]
+    assert res["error"].present?
+  end
+
+  test "the handler routes write ops too" do
+    handler = Agent::HostBridge.handler(@conversation)
+    json = handler.call(Req.new("metis:create_workflow",
+                                JSON.generate(name: "Greet", steps: [ { name: "Hi", prompt: "say hi" } ])))
+    assert_equal true, JSON.parse(json)["ok"]
+  end
 end

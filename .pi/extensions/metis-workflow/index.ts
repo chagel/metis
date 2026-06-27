@@ -9,27 +9,58 @@
  *   metis_update_workflow — edit an existing team workflow template (admin only)
  *   metis_get_workflow    — read a workflow's full step detail (live)
  *
- * Two patterns here:
- *
- * 1. Writes (start/create/update) are ACK-ONLY + out-of-band. The tool returns
- *    a placeholder; Metis watches the turn's event stream (ChatJob) and acts
- *    server-side — resolving/validating and persisting, then posting a note
- *    back into the chat (Agent::WorkflowHandoff / WorkflowAuthoring). The agent
- *    can't see the outcome from here; Metis's note is the source of truth.
- *    Rails fully owns authorization; the sandbox never holds write creds.
- *
- * 2. Reads (get) are BIDIRECTIONAL via pi's Extension UI sub-protocol — the
- *    sandbox→host callback channel. `ctx.ui.input("metis:<op>", <json>)` blocks
- *    until the Metis host (Agent::HostBridge) answers with JSON, which the tool
- *    returns to the model. No HTTP, no token, no egress — it rides pi's RPC
- *    transport and works identically across every runtime.
+ * All of these are BIDIRECTIONAL: the tool calls `ctx.ui.input("metis:<op>",
+ * <json>)` over pi's Extension UI sub-protocol — the sandbox→host callback
+ * channel — which blocks until the Metis host (Agent::HostBridge) does the work
+ * and answers with JSON. Reads return data; writes return an { ok, ... } result
+ * the agent relays in its reply (including the link). Rails authorizes every op
+ * server-side (admin for create/update, membership for start); the sandbox
+ * never holds Metis credentials. No HTTP, no token, no egress — it rides pi's
+ * RPC transport and works identically across every runtime.
  *
  * Placement:
  *   Project-local: .pi/extensions/metis-workflow/index.ts   ← this file
  */
 
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+
+type ToolResult = {
+  content: { type: "text"; text: string }[];
+  isError?: boolean;
+  details?: unknown;
+};
+
+function errorResult(text: string, details?: unknown): ToolResult {
+  return { content: [{ type: "text", text }], isError: true, details };
+}
+
+// Call the Metis host over pi's Extension UI channel (Agent::HostBridge) and
+// return the parsed JSON. Sentinels: undefined = host unreachable (no UI in
+// this run mode), null = host cancelled / didn't answer.
+async function hostCall(
+  ctx: ExtensionContext | undefined,
+  op: string,
+  params: unknown,
+): Promise<any | null | undefined> {
+  if (!ctx?.hasUI) return undefined;
+  const raw = await ctx.ui.input(`metis:${op}`, JSON.stringify(params));
+  return raw == null ? null : JSON.parse(raw);
+}
+
+// A write op: round-trip to the host, then format the host's { ok, ... } result.
+async function hostWrite(
+  ctx: ExtensionContext | undefined,
+  op: string,
+  params: unknown,
+  ok: (res: any) => string,
+): Promise<ToolResult> {
+  const res = await hostCall(ctx, op, params);
+  if (res === undefined) return errorResult("Can't reach Metis from this run mode.");
+  if (res === null) return errorResult("Metis didn't answer; nothing changed.");
+  if (!res.ok) return errorResult(res.error ?? "Metis rejected the request.", res);
+  return { content: [{ type: "text", text: ok(res) }], details: res };
+}
 
 // Render a workflow fetched from the host (Agent::HostBridge#get_workflow)
 // into readable text for the model.
@@ -87,14 +118,15 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
       "Spin off a new Metis workflow run from this chat. Metis creates a " +
       "separate conversation seeded with this chat's context and QUEUES the " +
       "named workflow — the operator reviews the seeded context and starts it " +
-      "themselves. Use when the operator asks to start, kick off, queue, or run " +
-      "a named workflow (e.g. \"start the ship workflow on project metis to do this\").",
+      "themselves. Returns the queued run's link. Use when the operator asks to " +
+      "start, kick off, queue, or run a named workflow (e.g. \"start the ship " +
+      "workflow on project metis to do this\").",
     promptSnippet: "Start a named Metis workflow run from this chat",
     promptGuidelines: [
       "Use metis_start_workflow only when the operator explicitly asks to start, kick off, or run a named workflow.",
       "Pass `workflow` as the operator named it (e.g. \"ship\"). Pass `project` if they named one; omit it to use this chat's project.",
       "Put a short, self-contained summary of what the run should accomplish — the spec you concluded together — in `note`.",
-      "This queues a separate run you cannot observe from here. After calling it, tell the operator the run is queued for their review and to follow the link Metis posts into the chat to start it.",
+      "This returns the result directly. On success, tell the operator the run is queued for their review and give them the returned link to start it. On failure, relay the error.",
     ],
     parameters: Type.Object({
       workflow: Type.String({
@@ -114,22 +146,15 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
       ),
     }),
 
-    async execute(_toolCallId, params) {
-      const { workflow, project } = params;
-      const where = project ? ` on project ${project}` : "";
-      return {
-        content: [
-          {
-            type: "text",
-            text:
-              `Requested a "${workflow}" workflow run${where}. Metis is creating ` +
-              `the run from this chat's context and will queue it, then post a link ` +
-              `here. It won't start until the operator reviews and starts it — let ` +
-              `them know it's queued for their review.`,
-          },
-        ],
-        details: { workflow, project: project ?? null },
-      };
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return hostWrite(
+        ctx,
+        "start_workflow",
+        params,
+        (r) =>
+          `Queued the "${r.workflow}" workflow on ${r.project}. It won't run until ` +
+          `the operator reviews the seeded context and starts it: ${r.url}`,
+      );
     },
   });
 
@@ -149,7 +174,7 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
       "Set `gate: approval` on a step that should pause for a human before the next step runs.",
       "Set `run: local` only when the operator wants that step delegated to their own machine; otherwise omit it (cloud).",
       "Pass `project` only if the operator named a default project for the workflow.",
-      "This authors the template server-side; you cannot see the result. After calling it, tell the operator Metis will post a link to review and edit it, and that it requires team-admin rights.",
+      "This returns the result directly. On success, confirm it and give the operator the returned link. On failure (e.g. not a team admin), relay the error.",
     ],
     parameters: Type.Object({
       name: Type.String({
@@ -171,20 +196,13 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
       }),
     }),
 
-    async execute(_toolCallId, params) {
-      const { name } = params;
-      return {
-        content: [
-          {
-            type: "text",
-            text:
-              `Requested a new "${name}" workflow. Metis is validating and ` +
-              `saving it, then will post a link here to review and edit it. ` +
-              `It won't appear if you lack team-admin rights — let the operator know.`,
-          },
-        ],
-        details: { name },
-      };
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return hostWrite(
+        ctx,
+        "create_workflow",
+        params,
+        (r) => `Created the "${r.name}" workflow. Review or edit it: ${r.url}`,
+      );
     },
   });
 
@@ -201,9 +219,9 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
     promptGuidelines: [
       "Use metis_update_workflow only when the operator explicitly asks to change an existing workflow.",
       "Identify the workflow by its `name` (case-insensitive). This tool does not rename a workflow.",
-      "Pass `steps` only to replace the entire step list — include every step you want kept, in order.",
+      "Pass `steps` only to replace the entire step list — include every step you want kept, in order. Prefer metis_get_workflow first so you resupply the current steps faithfully.",
       "Omit fields you aren't changing; omitted fields are left as they are.",
-      "This edits the template server-side; you cannot see the result. After calling it, tell the operator Metis will post a link to review it, and that it requires team-admin rights.",
+      "This returns the result directly. On success, confirm it and give the operator the returned link. On failure (e.g. not a team admin, or no such workflow), relay the error.",
     ],
     parameters: Type.Object({
       name: Type.String({
@@ -226,21 +244,13 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
       ),
     }),
 
-    async execute(_toolCallId, params) {
-      const { name } = params;
-      return {
-        content: [
-          {
-            type: "text",
-            text:
-              `Requested an edit to the "${name}" workflow. Metis is validating ` +
-              `and saving it, then will post a link here to review it. It won't ` +
-              `change if you lack team-admin rights or no such workflow exists — ` +
-              `let the operator know.`,
-          },
-        ],
-        details: { name },
-      };
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return hostWrite(
+        ctx,
+        "update_workflow",
+        params,
+        (r) => `Updated the "${r.name}" workflow. Review it: ${r.url}`,
+      );
     },
   });
 
@@ -264,32 +274,16 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
       }),
     }),
 
-    // Bidirectional: ctx.ui.input round-trips to the Metis host (HostBridge),
+    // Bidirectional: hostCall round-trips to the Metis host (HostBridge),
     // which returns the workflow as JSON. ctx.hasUI is true in pi's rpc mode
-    // (Metis's only mode); guard it so the tool degrades elsewhere.
+    // (Metis's only mode); the helper degrades elsewhere.
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const { name } = params;
-      if (!ctx?.hasUI) {
-        return {
-          content: [{ type: "text", text: "Can't reach Metis from this run mode." }],
-          isError: true,
-        };
+      const wf = await hostCall(ctx, "get_workflow", { name });
+      if (wf === undefined) return errorResult("Can't reach Metis from this run mode.");
+      if (wf === null) {
+        return errorResult(`No workflow named "${name}" on this team (or Metis didn't answer).`);
       }
-
-      const raw = await ctx.ui.input("metis:get_workflow", JSON.stringify({ name }));
-      if (raw == null) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `No workflow named "${name}" on this team (or Metis didn't answer).`,
-            },
-          ],
-          isError: true,
-        };
-      }
-
-      const wf = JSON.parse(raw);
       return { content: [{ type: "text", text: formatWorkflow(wf) }], details: wf };
     },
   });

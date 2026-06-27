@@ -1,21 +1,23 @@
 module Agent
-  # Synchronous, read-only host calls from a sandboxed pi extension back into
-  # Metis, over pi's Extension UI sub-protocol — the only sandbox→host channel
-  # pi exposes (see docs/connectors.md and the pi-agent-rb ExtensionUI). The
-  # extension calls `ctx.ui.input("metis:<op>", <json params>)`; pi forwards an
+  # Synchronous host calls from a sandboxed pi extension back into Metis, over
+  # pi's Extension UI sub-protocol — the only sandbox→host channel pi exposes
+  # (see docs/connectors.md and the pi-agent-rb ExtensionUI). The extension
+  # calls `ctx.ui.input("metis:<op>", <json params>)`; pi forwards an
   # `extension_ui_request`; Agent::Adapters::Pi routes the "metis:"-prefixed
   # ones here and returns the JSON string as the dialog value, which the
   # extension parses into the tool result the model sees.
   #
-  # READS ONLY. Writes stay out-of-band (Agent::WorkflowHandoff /
-  # WorkflowAuthoring) so Rails fully owns validation and authorization — a
-  # sandbox never holds Metis write credentials. Every op resolves within the
-  # conversation's team, so a sandbox can't widen its own scope.
+  # Reads and writes both go through here. The sandbox never holds Metis
+  # credentials — it only sends a request; HostBridge does the work and
+  # authorizes it server-side (admin for create/update, membership for start),
+  # always within the conversation's team, so a sandbox can't widen its own
+  # scope. Writes delegate to Agent::WorkflowHandoff / WorkflowAuthoring, which
+  # return `{ ok:, ... }` the agent relays in its reply.
   class HostBridge
     PREFIX = "metis:".freeze
 
     # Allowlist — only these ops are dispatchable, and each maps to a method.
-    OPS = %w[get_workflow].freeze
+    OPS = %w[get_workflow start_workflow create_workflow update_workflow].freeze
 
     # Build an `extension_ui:` handler bound to this conversation. It services
     # "metis:"-prefixed dialog requests as host calls and cancels everything
@@ -66,6 +68,18 @@ module Agent
         default_project: workflow.default_project&.name,
         steps: workflow.steps
       )
+    end
+
+    def start_workflow
+      JSON.generate(Agent::WorkflowHandoff.from_tool_call(@conversation, @params))
+    end
+
+    def create_workflow
+      JSON.generate(Agent::WorkflowAuthoring.create(@conversation, @params))
+    end
+
+    def update_workflow
+      JSON.generate(Agent::WorkflowAuthoring.update(@conversation, @params))
     end
   end
 end

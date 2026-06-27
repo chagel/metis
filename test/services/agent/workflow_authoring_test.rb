@@ -18,15 +18,12 @@ class Agent::WorkflowAuthoringTest < ActiveSupport::TestCase
     Agent::WorkflowAuthoring.update(@conversation, args)
   end
 
-  def note
-    @conversation.messages.handoff.last
-  end
-
-  test "creates a workflow from structured steps and posts a confirmation link" do
-    assert_difference -> { Workflow.count } => 1, -> { @conversation.messages.handoff.count } => 1 do
-      create("name" => "Ship", "description" => "ship it",
-             "steps" => [ { "name" => "Build", "prompt" => "do the work" },
-                          { "name" => "Verify", "prompt" => "check it", "gate" => "approval", "run" => "local" } ])
+  test "creates a workflow from structured steps and returns the edit link" do
+    result = nil
+    assert_difference -> { Workflow.count }, 1 do
+      result = create("name" => "Ship", "description" => "ship it",
+                      "steps" => [ { "name" => "Build", "prompt" => "do the work" },
+                                   { "name" => "Verify", "prompt" => "check it", "gate" => "approval", "run" => "local" } ])
     end
 
     workflow = Workflow.last
@@ -37,8 +34,10 @@ class Agent::WorkflowAuthoringTest < ActiveSupport::TestCase
     assert_equal "approval", workflow.steps.second["gate"]
     assert_equal "local", workflow.steps.second["run"]
 
-    assert_match(/Created/, note.content)
-    assert_match(/#{Regexp.escape(edit_workflow_path(workflow))}/, note.content)
+    assert result[:ok]
+    assert_equal "created", result[:action]
+    assert_equal "Ship", result[:name]
+    assert_equal edit_workflow_path(workflow), result[:url]
   end
 
   test "resolves a named default project" do
@@ -48,35 +47,42 @@ class Agent::WorkflowAuthoringTest < ActiveSupport::TestCase
   end
 
   test "errors on an unknown project and creates nothing" do
+    result = nil
     assert_no_difference -> { Workflow.count } do
-      create("name" => "Ship", "project" => "ghost",
-             "steps" => [ { "name" => "Build", "prompt" => "go" } ])
+      result = create("name" => "Ship", "project" => "ghost",
+                      "steps" => [ { "name" => "Build", "prompt" => "go" } ])
     end
-    assert_match(/project named \*\*ghost\*\*/, note.content)
+    refute result[:ok]
+    assert_match(/project named "ghost"/, result[:error])
   end
 
   test "rejects a create with no steps" do
+    result = nil
     assert_no_difference -> { Workflow.count } do
-      create("name" => "Ship", "steps" => [])
+      result = create("name" => "Ship", "steps" => [])
     end
-    assert_match(/at least one step/, note.content)
+    refute result[:ok]
+    assert_match(/at least one step/, result[:error])
   end
 
   test "rejects a step with a blank prompt via model validation" do
+    result = nil
     assert_no_difference -> { Workflow.count } do
-      create("name" => "Ship", "steps" => [ { "name" => "Build", "prompt" => "  " } ])
+      result = create("name" => "Ship", "steps" => [ { "name" => "Build", "prompt" => "  " } ])
     end
-    assert_match(/Couldn't save/, note.content)
+    refute result[:ok]
+    assert result[:error].present?
   end
 
   test "updates an existing workflow's steps, found by name case-insensitively" do
     workflow = @team.workflows.create!(name: "Ship", steps: [ { "name" => "old", "prompt" => "old", "gate" => "auto" } ])
 
-    update("name" => "SHIP", "steps" => [ { "name" => "new", "prompt" => "new work" } ])
+    result = update("name" => "SHIP", "steps" => [ { "name" => "new", "prompt" => "new work" } ])
 
     assert_equal 1, workflow.reload.steps.size
     assert_equal "new work", workflow.steps.first["prompt"]
-    assert_match(/Updated/, note.content)
+    assert result[:ok]
+    assert_equal "updated", result[:action]
   end
 
   test "leaves omitted fields untouched on update" do
@@ -93,11 +99,13 @@ class Agent::WorkflowAuthoringTest < ActiveSupport::TestCase
     assert_equal @project, workflow.default_project
   end
 
-  test "posts an error and changes nothing for an unknown workflow on update" do
+  test "returns an error and changes nothing for an unknown workflow on update" do
+    result = nil
     assert_no_difference -> { Workflow.count } do
-      update("name" => "ghost", "description" => "x")
+      result = update("name" => "ghost", "description" => "x")
     end
-    assert_match(/no workflow named \*\*ghost\*\*/i, note.content)
+    refute result[:ok]
+    assert_match(/no workflow named "ghost"/i, result[:error])
   end
 
   test "refuses authoring for a non-admin member" do
@@ -105,10 +113,12 @@ class Agent::WorkflowAuthoringTest < ActiveSupport::TestCase
     @team.memberships.create!(user: member, role: :member)
     convo = member.conversations.create!(team: @team, project: @project)
 
+    result = nil
     assert_no_difference -> { Workflow.count } do
-      Agent::WorkflowAuthoring.create(convo, "name" => "Ship", "steps" => [ { "name" => "b", "prompt" => "go" } ])
+      result = Agent::WorkflowAuthoring.create(convo, "name" => "Ship", "steps" => [ { "name" => "b", "prompt" => "go" } ])
     end
-    assert_match(/Only team admins/, convo.messages.handoff.last.content)
+    refute result[:ok]
+    assert_match(/team admins/i, result[:error])
   end
 
   test "refuses to author from inside a workflow run" do
@@ -116,9 +126,11 @@ class Agent::WorkflowAuthoringTest < ActiveSupport::TestCase
       team: @team, user: @user, project: @project,
       steps: [ { "name" => "s", "prompt" => "p", "gate" => "auto" } ]
     )
+    result = nil
     assert_no_difference -> { Workflow.count } do
-      Agent::WorkflowAuthoring.create(run.conversation, "name" => "X", "steps" => [ { "name" => "b", "prompt" => "go" } ])
+      result = Agent::WorkflowAuthoring.create(run.conversation, "name" => "X", "steps" => [ { "name" => "b", "prompt" => "go" } ])
     end
-    assert_empty run.conversation.messages.handoff
+    refute result[:ok]
+    assert_match(/inside a workflow run/i, result[:error])
   end
 end
