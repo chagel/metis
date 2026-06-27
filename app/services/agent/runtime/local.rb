@@ -29,7 +29,7 @@ module Agent
         Agent::Runtime.extension_sources
       end
 
-      def run(pi_args:)
+      def run(pi_args:, extension_ui: nil)
         workspace.ensure!
         workspace.stage_uploads(conversation.uploaded_files)
         workspace.stage_mcp_config(mcp_config)
@@ -38,7 +38,7 @@ module Agent
         # ext4 (CI) stores mtime at second granularity — a sub-second
         # start time can end up after a file written same-second.
         turn_started_at = Time.current.floor
-        session = PiAgent.session(args: pi_args, cwd: workspace.workspace_dir.to_s)
+        session = PiAgent.session(args: pi_args, cwd: workspace.workspace_dir.to_s, extension_ui: extension_ui)
         begin
           yield session
         ensure

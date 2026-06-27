@@ -93,7 +93,10 @@ module Agent
       # The runtime also projects the conversation's uploaded files
       # (Conversation#uploaded_files) into pi's workspace/uploads/ — a
       # filesystem operation each runtime does its own way.
-      def run(pi_args:)
+      #
+      # `extension_ui` is the optional pi Extension UI handler (Agent::HostBridge)
+      # — the sandbox→host callback channel — forwarded to PiAgent.session.
+      def run(pi_args:, extension_ui: nil)
         raise NotImplementedError, "#{self.class} must implement #run"
       end
 

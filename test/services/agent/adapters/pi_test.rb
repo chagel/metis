@@ -68,7 +68,10 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
       @touched_skill_slugs << slug if slug
     end
 
-    def run(pi_args:)
+    attr_reader :extension_ui
+
+    def run(pi_args:, extension_ui: nil)
+      @extension_ui = extension_ui
       yield @session
     ensure
       @session.close
@@ -269,6 +272,24 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
 
     assert_equal({ "id" => "gpt-5.5", "name" => "GPT-5.5", "provider" => "openai-codex" },
                  adapter.model_info)
+  end
+
+  test "stream wires a HostBridge extension_ui handler scoped to the conversation" do
+    conversation = create_conversation
+    workflow = conversation.team.workflows.create!(
+      name: "Ship", steps: [ { "name" => "Build", "prompt" => "go", "gate" => "auto" } ]
+    )
+
+    client = PiAgent::Client.new(bin: "ruby", args: [ "-e", PROMPT_STUB ])
+    runtime = FakeRuntime.new(PiAgent::Session.new(client.start))
+    adapter = Agent::Adapters::Pi.new(conversation: conversation, runtime: runtime)
+    adapter.stream("hi") { |_event| nil }
+
+    handler = runtime.extension_ui
+    assert handler.respond_to?(:call), "a callable handler is threaded into the runtime"
+
+    req = Struct.new(:title, :placeholder).new("metis:get_workflow", JSON.generate(name: "Ship"))
+    assert_equal workflow.name, JSON.parse(handler.call(req))["name"]
   end
 
   test "token_totals, context_usage, cost_total, and model_info are nil before a run" do

@@ -139,12 +139,12 @@ module Agent
         Agent::Runtime.extension_sources.map { |source| Pathname.new(sandbox_extension_path(source)) }
       end
 
-      def run(pi_args:, &block)
+      def run(pi_args:, extension_ui: nil, &block)
         init_timings
         sandbox = timed(:acquire) { acquire_sandbox }
         @sandbox_id = sandbox.id
         turn_started_at = Time.current.floor  # see Local#run
-        execute(sandbox, pi_args: pi_args, &block)
+        execute(sandbox, pi_args: pi_args, extension_ui: extension_ui, &block)
       ensure
         if sandbox
           timed(:collect_artifacts) { collect_sandbox_artifacts(sandbox, since: turn_started_at) } if turn_started_at
@@ -196,13 +196,13 @@ module Agent
 
       private
 
-      def execute(sandbox, pi_args:)
+      def execute(sandbox, pi_args:, extension_ui: nil)
         emit_status(:preparing, "Preparing workspace")
         timed(:provision) { provision(sandbox) }
         # Individual stage_* timings below overlap (they run concurrently);
         # :staging is the wall-clock that actually counts.
         timed(:staging) { stage_projected_inputs(sandbox) }
-        session = PiAgent.session(transport_factory: transport_factory(sandbox, pi_args, sandbox_env))
+        session = PiAgent.session(transport_factory: transport_factory(sandbox, pi_args, sandbox_env), extension_ui: extension_ui)
         begin
           timed(:pi_session) { yield session }
         ensure

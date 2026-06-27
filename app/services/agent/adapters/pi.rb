@@ -46,7 +46,7 @@ module Agent
         @runtime.status_sink = lambda do |phase, message|
           block.call(Agent::UiEvent.new(:runtime_status, data: { phase: phase, message: message }.compact))
         end
-        @runtime.run(pi_args: pi_args) do |session|
+        @runtime.run(pi_args: pi_args, extension_ui: Agent::HostBridge.handler(conversation)) do |session|
           @session = session
           session.prompt(prompt_with_files(input, files), images: pi_images(images)) do |pi_event|
             ui_event = translate(pi_event)

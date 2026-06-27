@@ -106,7 +106,7 @@ module Agent
         end
       end
 
-      def run(pi_args:)
+      def run(pi_args:, extension_ui: nil)
         workspace.ensure!
         workspace.stage_uploads(conversation.uploaded_files)
         workspace.stage_mcp_config(mcp_config)
@@ -115,7 +115,7 @@ module Agent
         turn_started_at = Time.current.floor  # see Local#run
         env = sandbox_env
         emit_status(:starting, "Starting container")
-        session = PiAgent.session(bin: "docker", args: docker_args(pi_args, env: env), env: env)
+        session = PiAgent.session(bin: "docker", args: docker_args(pi_args, env: env), env: env, extension_ui: extension_ui)
         begin
           yield session
         ensure
