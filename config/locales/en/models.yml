@@ -26,6 +26,14 @@ en:
               not_in_team: "is not in this team"
             steps:
               needs_prompt: "%{label} needs a prompt"
+        routine:
+          attributes:
+            cron:
+              invalid: "isn't a valid cron expression"
+            timezone:
+              invalid: "isn't a known time zone"
+            project_id:
+              not_in_team: "is not in this team"
         connector:
           attributes:
             definition:

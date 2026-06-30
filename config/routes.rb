@@ -91,6 +91,13 @@ Rails.application.routes.draw do
 
     resources :workflows, except: :show
 
+    resources :routines, except: :show do
+      member do
+        patch :toggle
+        post  :run
+      end
+    end
+
     get   "models",                   to: "models#index",           as: :models
     post  "models/refresh",           to: "models#refresh",         as: :refresh_models
     patch "models/providers/:id",     to: "models#update_provider", as: :model_provider

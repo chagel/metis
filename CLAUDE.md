@@ -236,6 +236,21 @@ actor rail is polled (~20s) so presence ages without a reload.
 A conversation can also be **forked** from any assistant turn
 (`Agent::ConversationForker`; `Conversation#forked_from_message`).
 
+### Routines
+
+A `Routine` (team-owned) is a saved prompt that fires on its own — on a
+cron `schedule` or a `webhook` event — each fire running as a normal turn
+via `ConversationTurn.start` (tagged `Conversation#routine_id`). It has no
+own engine and is **not** bound to a workflow: the prompt is generic and
+may itself call `metis_start_workflow`. Three firing paths —
+`RoutineSchedulerJob` (every minute, `Routine.due`), `Routine::EventDispatcher`
+(off `WebhookEvent#after_create_commit`, the trigger half of the
+collect-then-trigger webhook split), and manual `run`. Managed from the
+`/settings/routines` UI and from chat (`Agent::RoutineManager` over
+`Agent::HostBridge`; agent-created routines start disabled). Cron is parsed
+with **fugit** (IANA zone embedded as the trailing field). See
+[`docs/routines.md`](docs/routines.md).
+
 ## Conventions
 
 - **Tenancy is `Team`-only.** Every ownable resource (`Conversation`,

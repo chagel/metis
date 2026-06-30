@@ -72,6 +72,15 @@ en:
         notice: "Workflow saved."
       destroy:
         notice: "%{name} deleted."
+    routines:
+      create:
+        notice: "Routine created."
+      update:
+        notice: "Routine saved."
+      destroy:
+        notice: "%{name} deleted."
+      run:
+        notice: "Running %{name} now."
     workflow_runs:
       claim:
         claimed: "%{step} claimed — your daemon picks it up on its next poll."

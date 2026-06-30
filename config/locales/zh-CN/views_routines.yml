@@ -1,0 +1,50 @@
+"zh-CN":
+  routines:
+    index:
+      title: "例程"
+      new: "新建"
+      empty: "还没有例程。例程是一个会自动运行的已保存提示词 — 按计划或在收到 webhook 事件时触发 — 作为一次普通的智能体回合执行。"
+      create_first: "创建你的第一个例程"
+    routine:
+      disabled: "已暂停"
+      schedule: "%{cron} · %{tz}"
+      event: "当 %{type} 时"
+      project_suffix: "· %{name}"
+      run: "立即运行"
+      pause: "暂停"
+      resume: "恢复"
+    new:
+      title: "新建例程"
+    edit:
+      back_to_routines: "返回例程"
+      delete_confirm: "删除 %{name}？"
+    form:
+      name_placeholder: "晨会摘要"
+      prompt_placeholder: "总结自昨天以来团队各项目的变化，并发布要点。"
+      prompt_hint_html: "给智能体的纯指令 — 它作为一次普通回合运行，因此可以使用连接器、技能或启动工作流。可用 <code>{{date}}</code>、<code>{{team}}</code>、<code>{{user}}</code>，事件触发时还可用 <code>{{event_type}}</code> / <code>{{event_payload}}</code>。"
+      trigger_label: "触发器"
+      trigger_kinds:
+        schedule: "按计划"
+        webhook: "按 webhook 事件"
+      schedule_label: "计划"
+      frequencies:
+        daily: "每天"
+        weekdays: "工作日"
+        weekly: "每周（周一）"
+        hourly: "每小时"
+        custom: "自定义"
+      cron_hint_html: "一个 5 字段 cron 表达式，按下方时区计算。可选择上方预设或自行编写。"
+      timezone_label: "时区"
+      event_label: "事件类型"
+      event_hint_html: "触发此例程的 webhook 事件，例如 <code>pull_request.opened</code>。以 <code>.*</code> 结尾可匹配整个家族（<code>pull_request.*</code>）。事件由团队的 GitHub 和 Linear 连接器收集。"
+      cooldown_label: "冷却时间（秒）"
+      cooldown_hint: "对于频繁的事件，两次触发之间的最小间隔。0 = 无冷却。"
+      visibility_label: "可见性"
+      visibilities:
+        personal: "个人 — 仅你可见运行记录"
+        team: "团队 — 任何成员都可打开运行记录"
+      visibility_hint: "每次触发都会开启一个对话；此项设置谁能看到它。"
+      project_label: "项目"
+      project_blank: "无"
+      project_hint: "可选 — 为运行提供某个项目的仓库与规范作为上下文。"
+      create_routine: "创建例程"

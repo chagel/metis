@@ -7,6 +7,8 @@ class Conversation < ApplicationRecord
   belongs_to :team
   belongs_to :project, optional: true
   belongs_to :forked_from_message, class_name: "Message", optional: true
+  # Present when a Routine fired this conversation (docs/routines.md).
+  belongs_to :routine, optional: true
   has_many :messages, dependent: :destroy
   # Every distinct teammate who has sent a user message here. An
   # association, not a hand-rolled query, so list pages can preload it.

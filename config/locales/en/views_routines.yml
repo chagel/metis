@@ -1,0 +1,50 @@
+en:
+  routines:
+    index:
+      title: "Routines"
+      new: "New"
+      empty: "No routines yet. A routine is a saved prompt that runs on its own — on a schedule or when a webhook event arrives — as a normal agent turn."
+      create_first: "Create your first routine"
+    routine:
+      disabled: "Paused"
+      schedule: "%{cron} · %{tz}"
+      event: "On %{type}"
+      project_suffix: "· %{name}"
+      run: "Run now"
+      pause: "Pause"
+      resume: "Resume"
+    new:
+      title: "New routine"
+    edit:
+      back_to_routines: "Back to routines"
+      delete_confirm: "Delete %{name}?"
+    form:
+      name_placeholder: "Morning standup digest"
+      prompt_placeholder: "Summarize what changed across the team's projects since yesterday and post the highlights."
+      prompt_hint_html: "Plain instructions for the agent — it runs as a normal turn, so it can use connectors, skills, or start a workflow. Use <code>{{date}}</code>, <code>{{team}}</code>, <code>{{user}}</code>, and on event triggers <code>{{event_type}}</code> / <code>{{event_payload}}</code>."
+      trigger_label: "Trigger"
+      trigger_kinds:
+        schedule: "On a schedule"
+        webhook: "On a webhook event"
+      schedule_label: "Schedule"
+      frequencies:
+        daily: "Every day"
+        weekdays: "Weekdays"
+        weekly: "Weekly (Mon)"
+        hourly: "Hourly"
+        custom: "Custom"
+      cron_hint_html: "A 5-field cron expression, evaluated in the time zone below. Pick a preset above or write your own."
+      timezone_label: "Time zone"
+      event_label: "Event type"
+      event_hint_html: "The webhook event that fires this routine, e.g. <code>pull_request.opened</code>. End with <code>.*</code> to match a whole family (<code>pull_request.*</code>). Events are collected from your team's GitHub and Linear connectors."
+      cooldown_label: "Cooldown (seconds)"
+      cooldown_hint: "Minimum gap between fires for bursty events. 0 = no cooldown."
+      visibility_label: "Visibility"
+      visibilities:
+        personal: "Personal — only you see the runs"
+        team: "Team — any member can open the runs"
+      visibility_hint: "Each fire starts a conversation; this sets who can see it."
+      project_label: "Project"
+      project_blank: "None"
+      project_hint: "Optional — gives the run a project's repo and standards as context."
+      create_routine: "Create routine"

@@ -1,0 +1,26 @@
+<% content_for :title, t(".title") %>
+
+<main class="pane">
+  <header class="pane-head">
+    <h1 class="pane-title"><%= t(".title") %></h1>
+    <div style="flex:1"></div>
+    <% if team_manager? %>
+      <%= link_to t(".new"), new_routine_path, class: "btn btn-ghost" %>
+    <% end %>
+  </header>
+
+  <div class="pane-body">
+    <div class="pane-inner">
+      <% if @routines.any? %>
+        <div class="conn-list"><%= render @routines %></div>
+      <% else %>
+        <div class="pane-empty">
+          <p><%= t(".empty") %></p>
+          <% if team_manager? %>
+            <%= link_to t(".create_first"), new_routine_path, class: "btn btn-primary" %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</main>

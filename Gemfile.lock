@@ -595,6 +595,7 @@ DEPENDENCIES
   debug
   devise
   e2b
+  fugit
   image_processing (~> 2.0)
   importmap-rails
   kamal

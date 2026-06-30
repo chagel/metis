@@ -69,6 +69,15 @@
       </svg>
       <span><%= t('.workflows') %></span>
     <% end %>
+    <%= link_to routines_path,
+          class: "nav-item#{' on' if controller_name == 'routines'}" do %>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="8" cy="8" r="6"/>
+        <path d="M8 4.5V8l2.5 1.5"/>
+      </svg>
+      <span><%= t('.routines') %></span>
+    <% end %>
     <%= link_to models_path,
           class: "nav-item#{' on' if controller_name == 'models'}" do %>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">

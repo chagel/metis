@@ -19,6 +19,9 @@ production:
   reap_stalled_turns:
     class: ReapStalledTurnsJob
     schedule: every 5 minutes
+  run_due_routines:
+    class: RoutineSchedulerJob
+    schedule: every minute
   reclaim_silent_bridge_tasks:
     class: ReclaimSilentBridgeTasksJob
     schedule: every 5 minutes

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_27_013000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_30_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -82,6 +82,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_27_013000) do
     t.boolean "fork_pending", default: false, null: false
     t.bigint "forked_from_message_id"
     t.bigint "project_id"
+    t.bigint "routine_id"
     t.jsonb "runtime_state", default: {}, null: false
     t.jsonb "settings", default: {}, null: false
     t.string "share_token"
@@ -96,6 +97,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_27_013000) do
     t.index ["e2b_sandbox_id"], name: "index_conversations_on_e2b_sandbox_id"
     t.index ["forked_from_message_id"], name: "index_conversations_on_forked_from_message_id"
     t.index ["project_id"], name: "index_conversations_on_project_id"
+    t.index ["routine_id"], name: "index_conversations_on_routine_id"
     t.index ["share_token"], name: "index_conversations_on_share_token", unique: true
     t.index ["starred_at"], name: "index_conversations_on_starred_at"
     t.index ["team_id"], name: "index_conversations_on_team_id"
@@ -229,6 +231,31 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_27_013000) do
     t.index ["updated_by_id"], name: "index_projects_on_updated_by_id"
   end
 
+  create_table "routines", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "cron"
+    t.boolean "enabled", default: true, null: false
+    t.string "event_type"
+    t.datetime "last_run_at"
+    t.string "name", null: false
+    t.datetime "next_run_at"
+    t.bigint "project_id"
+    t.text "prompt", null: false
+    t.bigint "team_id", null: false
+    t.string "timezone", default: "UTC", null: false
+    t.jsonb "trigger_config", default: {}, null: false
+    t.integer "trigger_source", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.integer "visibility", default: 0, null: false
+    t.index "team_id, lower((name)::text)", name: "index_routines_on_team_id_and_lower_name", unique: true
+    t.index ["enabled", "trigger_source", "event_type"], name: "index_routines_on_event_dispatch"
+    t.index ["enabled", "trigger_source", "next_run_at"], name: "index_routines_on_due"
+    t.index ["project_id"], name: "index_routines_on_project_id"
+    t.index ["team_id"], name: "index_routines_on_team_id"
+    t.index ["user_id"], name: "index_routines_on_user_id"
+  end
+
   create_table "skills", force: :cascade do |t|
     t.text "content_cache"
     t.datetime "created_at", null: false
@@ -359,6 +386,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_27_013000) do
   add_foreign_key "connectors", "teams"
   add_foreign_key "conversations", "messages", column: "forked_from_message_id", on_delete: :nullify
   add_foreign_key "conversations", "projects"
+  add_foreign_key "conversations", "routines"
   add_foreign_key "conversations", "teams"
   add_foreign_key "conversations", "users"
   add_foreign_key "identities", "users"
@@ -373,6 +401,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_27_013000) do
   add_foreign_key "projects", "teams"
   add_foreign_key "projects", "users", column: "created_by_id"
   add_foreign_key "projects", "users", column: "updated_by_id"
+  add_foreign_key "routines", "projects"
+  add_foreign_key "routines", "teams"
+  add_foreign_key "routines", "users"
   add_foreign_key "skills", "teams"
   add_foreign_key "skills", "users", column: "created_by_id"
   add_foreign_key "skills", "users", column: "updated_by_id"

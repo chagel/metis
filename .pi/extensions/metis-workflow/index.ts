@@ -12,6 +12,10 @@
  *   metis_list_skills     — list built-in + team skills, with status (live)
  *   metis_create_skill    — create a team skill from SKILL.md (admin only)
  *   metis_update_skill    — edit a team skill / toggle enabled (admin only)
+ *   metis_list_routines   — list the team's routines, with trigger + status (live)
+ *   metis_create_routine  — create a scheduled/event routine (admin only)
+ *   metis_update_routine  — edit a routine / enable-disable it (admin only)
+ *   metis_delete_routine  — delete a routine (admin only)
  *
  * These manage team skills as single SKILL.md rows. Multi-file skills (with
  * supporting assets) still go through the native file path: write
@@ -116,6 +120,27 @@ function formatSkills(
   if (skills.length === 0) return "No skills.";
   return skills
     .map((s) => `- ${s.slug} [${s.status ?? s.source}]${s.description ? ` — ${s.description}` : ""}`)
+    .join("\n");
+}
+
+// Render the routine list fetched from the host (Agent::RoutineManager#list).
+function formatRoutines(
+  routines: Array<{
+    name: string;
+    trigger?: string;
+    schedule?: string | null;
+    event_type?: string | null;
+    visibility?: string;
+    enabled?: boolean;
+  }>,
+): string {
+  if (routines.length === 0) return "No routines.";
+  return routines
+    .map((r) => {
+      const when = r.trigger === "webhook" ? `on ${r.event_type}` : r.schedule;
+      const status = r.enabled === false ? "disabled" : "enabled";
+      return `- ${r.name} [${status}] — ${when} (${r.visibility})`;
+    })
     .join("\n");
 }
 
@@ -456,6 +481,158 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
         params,
         (r) => `Updated the "${r.slug}" skill${r.enabled === false ? " (disabled)" : ""}.`,
       );
+    },
+  });
+
+  pi.registerTool({
+    name: "metis_list_routines",
+    label: "List Metis Routines",
+    description:
+      "List the team's routines — saved prompts that fire on a schedule or a " +
+      "webhook event. Each row shows its trigger (cron or event type), " +
+      "visibility, and whether it's enabled. Use before creating or editing a " +
+      "routine, or when the operator asks what runs automatically.",
+    promptSnippet: "List the team's routines with trigger and status",
+    promptGuidelines: [
+      "Use metis_list_routines to see what routines exist and their triggers before creating or editing one.",
+      "This returns the data directly — act on its result.",
+    ],
+    parameters: Type.Object({}),
+
+    async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
+      const routines = await hostCall(ctx, "list_routines", {});
+      if (routines === undefined) return errorResult("Can't reach Metis from this run mode.");
+      if (routines === null) return errorResult("Metis didn't answer.");
+      return { content: [{ type: "text", text: formatRoutines(routines) }], details: routines };
+    },
+  });
+
+  pi.registerTool({
+    name: "metis_create_routine",
+    label: "Create Metis Routine",
+    description:
+      "Create a routine: a saved prompt that fires on its own, either on a cron " +
+      "schedule or when a webhook event arrives. Each fire runs the prompt as a " +
+      "normal agent turn (it can use connectors, skills, or start a workflow). " +
+      "Only team admins can create. A new routine starts DISABLED — tell the " +
+      "operator to enable it (in the routines UI or with metis_update_routine).",
+    promptSnippet: "Create a scheduled or event-driven routine",
+    promptGuidelines: [
+      "Use metis_create_routine only when the operator explicitly asks to set up something that runs automatically or on a schedule/event.",
+      "For a schedule, pass `trigger: \"schedule\"`, a 5-field `cron`, and a `timezone` (IANA, e.g. \"America/New_York\").",
+      "For an event, pass `trigger: \"webhook\"` and an `event_type` (e.g. \"pull_request.opened\", or \"pull_request.*\" for a family).",
+      "Write a clear, self-contained `prompt`. It may use {{date}}, {{team}}, {{user}}, and on events {{event_type}} / {{event_payload}}.",
+      "It starts disabled; on success, tell the operator that and give them the returned link to review and enable it. Relay any error (e.g. not a team admin, invalid cron).",
+    ],
+    parameters: Type.Object({
+      name: Type.String({ description: 'Name for the routine, e.g. "Morning digest".' }),
+      prompt: Type.String({ description: "The instruction the agent runs each time it fires." }),
+      trigger: Type.Union([Type.Literal("schedule"), Type.Literal("webhook")], {
+        description: '"schedule" for cron, "webhook" for an event trigger.',
+      }),
+      cron: Type.Optional(
+        Type.String({ description: 'A 5-field cron expression, e.g. "0 9 * * *". Required for schedule.' }),
+      ),
+      timezone: Type.Optional(
+        Type.String({ description: 'IANA time zone for the cron, e.g. "America/New_York". Defaults to UTC.' }),
+      ),
+      event_type: Type.Optional(
+        Type.String({ description: 'Webhook event type, e.g. "pull_request.opened" or "pull_request.*". Required for webhook.' }),
+      ),
+      visibility: Type.Optional(
+        Type.Union([Type.Literal("personal"), Type.Literal("team")], {
+          description: '"personal" (only the owner sees runs) or "team". Defaults to personal.',
+        }),
+      ),
+      project: Type.Optional(
+        Type.String({ description: "Project name to give the runs repo/standards context. Omit if none." }),
+      ),
+      cooldown_seconds: Type.Optional(
+        Type.Number({ description: "Minimum gap between fires for bursty events. Defaults to 0." }),
+      ),
+      enabled: Type.Optional(
+        Type.Boolean({ description: "Whether it's active. Defaults to false — the operator enables it." }),
+      ),
+    }),
+
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return hostWrite(
+        ctx,
+        "create_routine",
+        params,
+        (r) =>
+          `Created the "${r.name}" routine${r.enabled ? "" : " (disabled — enable it to start)"}. ` +
+          `Review it: ${r.url}`,
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "metis_update_routine",
+    label: "Update Metis Routine",
+    description:
+      "Edit an existing routine, found by name. Pass only the fields to change; " +
+      "`enabled` doubles as the enable/disable control. Only team admins can " +
+      "edit. Use metis_list_routines first to see what exists.",
+    promptSnippet: "Edit a routine or enable/disable it",
+    promptGuidelines: [
+      "Use metis_update_routine only when the operator explicitly asks to change, enable, or disable an existing routine.",
+      "Identify the routine by its `name` (case-insensitive). This tool does not rename it.",
+      "Pass only the fields you're changing; omit the rest. Pass `enabled: true` to turn a routine on.",
+      "This returns the result directly. Relay any error (e.g. not a team admin, or no such routine).",
+    ],
+    parameters: Type.Object({
+      name: Type.String({ description: "Name of the routine to edit (case-insensitive)." }),
+      prompt: Type.Optional(Type.String({ description: "New instruction. Omit to leave unchanged." })),
+      trigger: Type.Optional(
+        Type.Union([Type.Literal("schedule"), Type.Literal("webhook")], {
+          description: "Change the trigger kind. Supply the matching cron/event_type too.",
+        }),
+      ),
+      cron: Type.Optional(Type.String({ description: "New cron expression." })),
+      timezone: Type.Optional(Type.String({ description: "New IANA time zone." })),
+      event_type: Type.Optional(Type.String({ description: "New webhook event type." })),
+      visibility: Type.Optional(
+        Type.Union([Type.Literal("personal"), Type.Literal("team")], {
+          description: "Change who can see the runs.",
+        }),
+      ),
+      project: Type.Optional(
+        Type.String({ description: 'Project name, or "" to unbind it.' }),
+      ),
+      cooldown_seconds: Type.Optional(Type.Number({ description: "New cooldown in seconds." })),
+      enabled: Type.Optional(
+        Type.Boolean({ description: "true to enable, false to disable. Omit to leave unchanged." }),
+      ),
+    }),
+
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return hostWrite(
+        ctx,
+        "update_routine",
+        params,
+        (r) => `Updated the "${r.name}" routine${r.enabled === false ? " (disabled)" : ""}. Review it: ${r.url}`,
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "metis_delete_routine",
+    label: "Delete Metis Routine",
+    description:
+      "Delete a routine by name. Only team admins can delete. This is " +
+      "irreversible — confirm with the operator first.",
+    promptSnippet: "Delete a routine by name",
+    promptGuidelines: [
+      "Use metis_delete_routine only when the operator explicitly asks to delete a routine, and confirm before doing so.",
+      "Identify the routine by its exact name. This returns the result directly; relay any error.",
+    ],
+    parameters: Type.Object({
+      name: Type.String({ description: "Name of the routine to delete (case-insensitive)." }),
+    }),
+
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return hostWrite(ctx, "delete_routine", params, (r) => `Deleted the "${r.name}" routine.`);
     },
   });
 }

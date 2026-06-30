@@ -26,6 +26,14 @@
               not_in_team: "不在此团队中"
             steps:
               needs_prompt: "%{label} 需要一个提示词"
+        routine:
+          attributes:
+            cron:
+              invalid: "不是有效的 cron 表达式"
+            timezone:
+              invalid: "不是已知的时区"
+            project_id:
+              not_in_team: "不在此团队中"
         connector:
           attributes:
             definition:

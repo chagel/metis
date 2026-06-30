@@ -20,6 +20,7 @@ module Agent
     OPS = %w[
       get_workflow get_project start_workflow create_workflow update_workflow
       list_skills create_skill update_skill
+      list_routines create_routine update_routine delete_routine
     ].freeze
 
     # Build an `extension_ui:` handler bound to this conversation. It services
@@ -107,6 +108,22 @@ module Agent
 
     def update_skill
       JSON.generate(Agent::SkillManager.update(@conversation, @params))
+    end
+
+    def list_routines
+      JSON.generate(Agent::RoutineManager.list(@conversation))
+    end
+
+    def create_routine
+      JSON.generate(Agent::RoutineManager.create(@conversation, @params))
+    end
+
+    def update_routine
+      JSON.generate(Agent::RoutineManager.update(@conversation, @params))
+    end
+
+    def delete_routine
+      JSON.generate(Agent::RoutineManager.delete(@conversation, @params))
     end
   end
 end

@@ -65,6 +65,15 @@
         notice: "工作流已保存。"
       destroy:
         notice: "%{name} 已删除。"
+    routines:
+      create:
+        notice: "例程已创建。"
+      update:
+        notice: "例程已保存。"
+      destroy:
+        notice: "%{name} 已删除。"
+      run:
+        notice: "正在立即运行 %{name}。"
     workflow_runs:
       claim:
         claimed: "%{step} 已认领 — 你的守护进程会在下次轮询时接手。"

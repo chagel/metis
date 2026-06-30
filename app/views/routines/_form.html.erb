@@ -1,0 +1,76 @@
+<%= form_with model: routine, url: routine.persisted? ? routine_path(routine) : routines_path,
+      class: "conn-form", data: { controller: "routine-form" } do |f| %>
+  <% if routine.errors.any? %>
+    <div class="flash error"><%= routine.errors.full_messages.to_sentence %></div>
+  <% end %>
+
+  <div class="field">
+    <%= f.label :name %>
+    <%= f.text_field :name, placeholder: t(".name_placeholder"), autocomplete: "off" %>
+  </div>
+
+  <div class="field">
+    <%= f.label :prompt %>
+    <%= f.text_area :prompt, rows: 5, placeholder: t(".prompt_placeholder") %>
+    <p class="field-hint"><%= t(".prompt_hint_html") %></p>
+  </div>
+
+  <div class="field">
+    <%= f.label :trigger_source, t(".trigger_label") %>
+    <%= f.select :trigger_source,
+          Routine.trigger_sources.keys.map { |k| [ t(".trigger_kinds.#{k}"), k ] }, {},
+          class: "team-input", data: { action: "routine-form#toggle" } %>
+  </div>
+
+  <div class="field" data-routine-form-target="scheduleSection">
+    <%= f.label :cron, t(".schedule_label") %>
+    <div class="routine-cron">
+      <%= select_tag :_frequency,
+            options_for_select(%w[daily weekdays weekly hourly custom].map { |k| [ t(".frequencies.#{k}"), k ] }, "custom"),
+            class: "team-input", data: { routine_form_target: "frequency", action: "routine-form#build" } %>
+      <%= time_field_tag :_time, "09:00", class: "team-input",
+            data: { routine_form_target: "time", action: "routine-form#build" } %>
+    </div>
+    <%= f.text_field :cron, placeholder: "0 9 * * *", autocomplete: "off",
+          class: "team-input routine-cron-expr", data: { routine_form_target: "cron" } %>
+    <p class="field-hint"><%= t(".cron_hint_html") %></p>
+    <%= f.label :timezone, t(".timezone_label"), class: "field-sublabel" %>
+    <%= f.select :timezone,
+          ActiveSupport::TimeZone.all.map { |tz| [ tz.to_s, tz.tzinfo.name ] }, {},
+          class: "team-input" %>
+  </div>
+
+  <div class="field" data-routine-form-target="eventSection" hidden>
+    <%= f.label :event_type, t(".event_label") %>
+    <%= f.text_field :event_type, list: "routine-event-types", placeholder: "pull_request.opened",
+          autocomplete: "off", class: "team-input" %>
+    <datalist id="routine-event-types">
+      <% %w[pull_request.opened pull_request.* issues.opened push pull_request_review.submitted].each do |opt| %>
+        <option value="<%= opt %>"></option>
+      <% end %>
+    </datalist>
+    <p class="field-hint"><%= t(".event_hint_html") %></p>
+    <%= label_tag "routine_cooldown_seconds", t(".cooldown_label"), class: "field-sublabel" %>
+    <%= number_field_tag "routine[cooldown_seconds]", routine.cooldown_seconds, min: 0,
+          class: "team-input", id: "routine_cooldown_seconds" %>
+    <p class="field-hint"><%= t(".cooldown_hint") %></p>
+  </div>
+
+  <div class="field">
+    <%= f.label :visibility, t(".visibility_label") %>
+    <%= f.select :visibility,
+          Routine.visibilities.keys.map { |k| [ t(".visibilities.#{k}"), k ] }, {}, class: "team-input" %>
+    <p class="field-hint"><%= t(".visibility_hint") %></p>
+  </div>
+
+  <div class="field">
+    <%= f.label :project_id, t(".project_label") %>
+    <%= f.collection_select :project_id, current_team.projects.recent, :id, :name,
+          { include_blank: t(".project_blank") }, class: "team-input" %>
+    <p class="field-hint"><%= t(".project_hint") %></p>
+  </div>
+
+  <div class="form-actions">
+    <%= f.submit(routine.persisted? ? t("common.save") : t(".create_routine"), class: "btn btn-primary") %>
+  </div>
+<% end %>

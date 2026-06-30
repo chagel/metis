@@ -60,6 +60,9 @@ gem "solid_cache"
 gem "solid_queue"
 gem "solid_cable"
 
+# Cron parsing for scheduled routines (also a solid_queue transitive dep).
+gem "fugit"
+
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 

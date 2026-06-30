@@ -72,6 +72,7 @@ module Agent
         #{project_context_block}
         #{team_projects_block}
         #{workflows_block}
+        #{routines_block}
         #{operator_preferences_block}
 
         ## Connectors
@@ -268,6 +269,34 @@ module Agent
       workflows.each { |workflow| lines << workflow_line(workflow) }
 
       "\n" + lines.join("\n") + "\n"
+    end
+
+    # Routines — saved prompts that fire on a schedule or webhook event. A
+    # short pointer plus the catalog so the agent can answer "what runs
+    # automatically?" and manage them by exact name without a round-trip.
+    ROUTINES_RENDERED_MAX = 25
+
+    def routines_block
+      routines = @conversation.team.routines.order(:name).limit(ROUTINES_RENDERED_MAX).to_a
+      header =
+        "## Routines\n\n" \
+        "Saved prompts that fire on their own — on a schedule or a webhook " \
+        "event — each as a normal agent turn. Team admins can ask you to set " \
+        "one up, change it, enable/disable it, or remove it via " \
+        "`metis_create_routine` / `metis_update_routine` / " \
+        "`metis_delete_routine`; `metis_list_routines` reads them. A routine " \
+        "you create starts disabled until the operator enables it."
+
+      return "\n" + header + "\n" if routines.empty?
+
+      lines = [ header, "" ] + routines.map { |routine| routine_line(routine) }
+      "\n" + lines.join("\n") + "\n"
+    end
+
+    def routine_line(routine)
+      when_part = routine.schedule? ? "#{routine.cron} (#{routine.timezone})" : "on #{routine.event_type}"
+      status = routine.enabled? ? "enabled" : "disabled"
+      "- **#{sanitize_inline(routine.name)}** — #{when_part}, #{status}"
     end
 
     def workflow_line(workflow)

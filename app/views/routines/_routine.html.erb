@@ -1,0 +1,24 @@
+<div class="conn-row">
+  <div class="conn-main">
+    <div class="conn-name">
+      <%= routine.name %>
+      <% unless routine.enabled? %><span class="pill pill-muted"><%= t(".disabled") %></span><% end %>
+    </div>
+    <div class="conn-sub">
+      <% if routine.schedule? %>
+        <%= t(".schedule", cron: routine.cron, tz: routine.timezone) %>
+      <% else %>
+        <%= t(".event", type: routine.event_type) %>
+      <% end %>
+      <%= t(".project_suffix", name: routine.project.name) if routine.project %>
+    </div>
+  </div>
+  <% if team_manager? %>
+    <div class="conn-actions">
+      <%= button_to t(".run"), run_routine_path(routine), class: "btn btn-ghost btn-sm" %>
+      <%= button_to routine.enabled? ? t(".pause") : t(".resume"), toggle_routine_path(routine),
+            method: :patch, class: "btn btn-ghost btn-sm" %>
+      <%= link_to t("common.edit"), edit_routine_path(routine), class: "btn btn-ghost btn-sm" %>
+    </div>
+  <% end %>
+</div>
