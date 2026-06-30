@@ -4,8 +4,7 @@
 in a sandbox, on your stack, with your provider.**
 
 This is the soul of the project: what Metis is, what it isn't, and the
-rules that keep it that way. Status and roadmap live in
-[`PLAN.md`](PLAN.md); architecture in [`docs/`](docs/).
+rules that keep it that way. Architecture lives in [`docs/`](docs/).
 
 ## What this is
 

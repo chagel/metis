@@ -217,8 +217,8 @@ the next turn's `stage_skills` — no manual cleanup needed.
 ## Open
 
 1. **Sharing across teams.** Export/import, registry, git-backed —
-   same question PLAN.md open-question #2 raises for connectors and
-   extensions. Same answer should apply to all three.
+   the same open question that connectors and extensions raise. The
+   same answer should apply to all three.
 2. **System skills' source of truth.** Today the repo's `.pi/skills/`
    is read-only from Metis. If a team forks a repo skill — copy into
    the team scope, or first-class "override" with a back-reference?

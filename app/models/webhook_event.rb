@@ -1,5 +1,5 @@
 # A raw inbound provider event (GitHub, Linear), collected for later
-# triggering — nothing reads these to drive behavior yet (PLAN.md Phase 1).
+# triggering — nothing reads these to drive behavior yet.
 class WebhookEvent < ApplicationRecord
   belongs_to :team
   # Null for account-level events (no repo) or a repo no project binds.

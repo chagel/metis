@@ -61,7 +61,6 @@ a fast, open agent harness. The lessons come along; the lock-in does not.
 > sandbox, on your stack, with your provider.
 
 - **[`VISION.md`](VISION.md)** — what Metis is, the rules we hold to, what we won't build.
-- **[`PLAN.md`](PLAN.md)** — current status, roadmap, and open questions.
 - **[`docs/architecture.md`](docs/architecture.md)** — how a turn flows; the Agent service layer.
 - **[`docs/configuration.md`](docs/configuration.md)** — runtimes, providers, and environment.
 

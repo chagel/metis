@@ -58,3 +58,6 @@
 # Ignore key files for decrypting credentials and more.
 /config/credentials/*.key
 
+
+# Private planning doc (untracked, kept local)
+PLAN.md

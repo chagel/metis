@@ -118,4 +118,4 @@ team-shared projects arrive later with no migration.
   already-authorized connector or triggers connector OAuth at that moment
   is an open UX decision.
 - **Teams beyond team-of-one.** How shared teams are created, joined, and
-  (if hosted) billed — see PLAN.md open questions.
+  (if hosted) billed remains an open question.
