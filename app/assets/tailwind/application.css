@@ -796,6 +796,10 @@ img.avatar { background:none; object-fit:cover; }
   color:var(--ink-3); font-variant-numeric:tabular-nums;
 }
 .msg-meta:empty { display:none; }
+/* Public-share caption under the assistant card — the "model · when" mirror
+   of the user bubble's stamp. Indented past the 32px mark + 13px gap so it
+   lines up under the card's left edge, not the mark. */
+.msg-ai-stamp { margin:6px 0 0 45px; font-family:var(--fm); font-size:10px; color:var(--faint); }
 
 /* Assistant footer: meta on the left, action cluster on the trailing edge. */
 .msg-foot { display:flex; align-items:center; gap:10px; margin-top:10px; }

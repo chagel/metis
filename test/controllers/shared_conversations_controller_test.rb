@@ -40,18 +40,22 @@ class SharedConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".wf-rail", count: 0
   end
 
-  test "the assistant footer shows the model, not the private cost/token meta" do
+  test "the assistant caption shows model and duration below the card, not private cost/token meta" do
     provider = LlmProvider.create!(key: "anthropic", label: "Anthropic")
     provider.llm_models.create!(key: "claude-opus-4-8", label: "Claude Opus 4.8")
     @conversation.messages.where(role: :assistant).first.update!(
-      model_key: "claude-opus-4-8", input_tokens: 13_200, output_tokens: 2_800, cost: 0.009
+      model_key: "claude-opus-4-8", input_tokens: 13_200, output_tokens: 2_800, cost: 0.009,
+      started_at: Time.current - 70, finished_at: Time.current
     )
 
     get shared_conversation_path(token: @token)
     assert_response :success
-    assert_select ".msg-row .msg-meta", text: "Claude Opus 4.8"
-    assert_select ".msg-row .msg-meta", text: /\$/, count: 0
-    assert_select ".msg-row .msg-meta", text: /in/, count: 0
+    # Caption sits below the card (outside .ai-card), reads "model · duration".
+    assert_select ".msg-row .ai-card .msg-meta", count: 0
+    assert_select ".msg-row .msg-ai-stamp", text: /Claude Opus 4\.8 · 1m 10s/
+    # No operational meta (tokens/cost) leaks on the public page.
+    assert_select ".msg-row", text: /\$/, count: 0
+    assert_select ".msg-row", text: /cached/, count: 0
   end
 
   test "emits Open Graph and Twitter card meta for unfurls" do
