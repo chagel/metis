@@ -50,9 +50,8 @@ class SharedConversationsControllerTest < ActionDispatch::IntegrationTest
 
     get shared_conversation_path(token: @token)
     assert_response :success
-    # Caption sits below the card (outside .ai-card), reads "model · duration".
-    assert_select ".msg-row .ai-card .msg-meta", count: 0
-    assert_select ".msg-row .msg-ai-stamp", text: /Claude Opus 4\.8 · 1m 10s/
+    # Same in-card footer as the interactive chat, reading "model · duration".
+    assert_select ".msg-row .ai-card .msg-foot .msg-meta", text: "Claude Opus 4.8 · 1m 10s"
     # No operational meta (tokens/cost) leaks on the public page.
     assert_select ".msg-row", text: /\$/, count: 0
     assert_select ".msg-row", text: /cached/, count: 0

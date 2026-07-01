@@ -64,10 +64,10 @@ module ApplicationHelper
     (@model_label_map ||= LlmModel.pluck(:key, :label).to_h)[key] || key
   end
 
-  # The caption under an assistant card on a public share: "model · duration".
-  # Duration (not a wall-clock stamp) is the informative axis — a shared
-  # conversation is one instant flow, so "3m ago" on every turn says nothing,
-  # while "1m 10s" tells the reader how long that turn took.
+  # The assistant footer on a public share: "model · duration". Duration (not
+  # a wall-clock stamp) is the informative axis — a shared conversation is one
+  # instant flow, so "3m ago" on every turn says nothing, while "1m 10s" tells
+  # the reader how long that turn took.
   def assistant_shared_stamp(message)
     [ model_key_label(message.model_key),
       (format_duration(message.duration) if message.duration) ].reject(&:blank?).join(" · ")
