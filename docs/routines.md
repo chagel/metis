@@ -50,8 +50,15 @@ and advanced past now after each scheduled fire.
 
 `PromptRenderer` (`app/services/routine/prompt_renderer.rb`) interpolates
 `{{date}}`, `{{time}}`, `{{team}}`, `{{user}}`, and — on the webhook path —
-`{{event_type}}` / `{{event_payload}}`, merged over the routine's own
-`trigger_config["variables"]`. Unknown placeholders are left untouched.
+`{{event_type}}` / `{{event_payload}}`. Built-ins and event vars take
+precedence over the routine's own `trigger_config["variables"]`, so a custom
+variable can't shadow `{{date}}`. Unknown placeholders are left untouched.
+
+A routine can pin the **LLM** its fires run on — model/provider live in
+`trigger_config["settings"]` and are fed into the fired conversation's
+`settings` by `Routine#run_settings`. Both the form and the chat tools resolve
+the choice against the deployment catalog via `Agent::ModelSelection` (shared
+with `WorkflowHandoff`); unset inherits the deployment default.
 
 ## The three firing paths
 
@@ -73,16 +80,26 @@ and advanced past now after each scheduled fire.
 
 - **Web** — `RoutinesController` under `/settings/routines`: CRUD plus
   `toggle` (pause/resume) and `run` (fire now). A `routine-form` Stimulus
-  controller toggles the schedule/event field sections and composes a cron
-  expression from a frequency + time picker.
+  controller drives a schedule builder — frequency + hour/minute, a weekday
+  picker for weekly, day-of-month for monthly, a live human-readable preview,
+  and IANA time zones — composing the hidden cron field and reverse-parsing a
+  stored cron on edit, with a raw-cron **Custom** mode as the escape hatch. For
+  a webhook routine the event type is a `<select>` **grouped by connector**,
+  populated from the event types the team has actually received
+  (`RoutinesHelper#routine_event_type_options`) — no free-typing an event that
+  would never match. A model picker selects the LLM each fire runs on.
 - **Chat** — the agent manages routines over pi's Extension UI channel
   (`Agent::HostBridge` → `Agent::RoutineManager`), the same pattern as
   in-chat workflow and skill management. Tools, defined in
   `.pi/extensions/metis-workflow/index.ts`: `metis_list_routines`,
-  `metis_create_routine`, `metis_update_routine`. No delete tool — removing a
-  routine stays an operator action in the UI.
-  Writes are team-admin-gated and refused inside a workflow run; a routine
-  the agent creates **starts disabled** until the operator enables it.
+  `metis_create_routine`, `metis_update_routine` (both writes cover every
+  property, model/provider included). No delete tool — removing a routine
+  stays an operator action in the UI. Writes are team-admin-gated and refused
+  inside a workflow run; a routine the agent creates **starts disabled** until
+  the operator enables it.
+- **Provenance** — a fired conversation is tagged with `Conversation#routine`,
+  surfaced as a clock badge on its sidebar row and a "Routine · <name>" chip on
+  its show header, so it's distinguishable from a hand-started chat.
 
 ## Boundaries
 
