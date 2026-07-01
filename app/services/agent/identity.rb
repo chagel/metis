@@ -282,10 +282,10 @@ module Agent
         "## Routines\n\n" \
         "Saved prompts that fire on their own — on a schedule or a webhook " \
         "event — each as a normal agent turn. Team admins can ask you to set " \
-        "one up, change it, enable/disable it, or remove it via " \
-        "`metis_create_routine` / `metis_update_routine` / " \
-        "`metis_delete_routine`; `metis_list_routines` reads them. A routine " \
-        "you create starts disabled until the operator enables it."
+        "one up, change it, or enable/disable it via `metis_create_routine` / " \
+        "`metis_update_routine`; `metis_list_routines` reads them. A routine " \
+        "you create starts disabled until the operator enables it. There's no " \
+        "delete tool — ask the operator to remove a routine from the UI."
 
       return "\n" + header + "\n" if routines.empty?
 

@@ -79,7 +79,8 @@ and advanced past now after each scheduled fire.
   (`Agent::HostBridge` → `Agent::RoutineManager`), the same pattern as
   in-chat workflow and skill management. Tools, defined in
   `.pi/extensions/metis-workflow/index.ts`: `metis_list_routines`,
-  `metis_create_routine`, `metis_update_routine`, `metis_delete_routine`.
+  `metis_create_routine`, `metis_update_routine`. No delete tool — removing a
+  routine stays an operator action in the UI.
   Writes are team-admin-gated and refused inside a workflow run; a routine
   the agent creates **starts disabled** until the operator enables it.
 

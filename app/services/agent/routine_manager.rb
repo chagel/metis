@@ -1,10 +1,11 @@
 module Agent
   # Agent-driven management of team Routine rows from a chat, over pi's
-  # Extension UI channel (Agent::HostBridge). `list` reads; `create`/`update`/
-  # `delete` mutate. Writes are team-admin-gated (matching RoutinesController)
-  # and refused from inside a workflow run. A routine the agent creates starts
+  # Extension UI channel (Agent::HostBridge). `list` reads; `create`/`update`
+  # mutate. Writes are team-admin-gated (matching RoutinesController) and
+  # refused from inside a workflow run. A routine the agent creates starts
   # disabled — a self-firing rule shouldn't go live without the operator
-  # enabling it. Never raises into the turn — a failure is { ok: false, error }.
+  # enabling it. There's no delete tool — removing a routine stays an operator
+  # action in the UI. Never raises into the turn — a failure is { ok: false }.
   class RoutineManager
     TRIGGERS = %w[schedule webhook].freeze
     VISIBILITIES = %w[personal team].freeze
@@ -12,7 +13,6 @@ module Agent
     def self.list(conversation) = new(conversation).list
     def self.create(conversation, params) = new(conversation, params).create
     def self.update(conversation, params) = new(conversation, params).update
-    def self.delete(conversation, params) = new(conversation, params).delete
 
     def initialize(conversation, params = {})
       @conversation = conversation
@@ -57,16 +57,6 @@ module Agent
         routine.enabled = ActiveModel::Type::Boolean.new.cast(@params["enabled"]) if @params.key?("enabled")
 
         persist(routine, "updated")
-      end
-    end
-
-    def delete
-      guarded do
-        routine = existing
-        return failure("No routine named #{quoted(name)} on this team.") unless routine
-
-        routine.destroy
-        { ok: true, action: "deleted", name: routine.name }
       end
     end
 

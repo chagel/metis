@@ -44,13 +44,6 @@ module Agent
       assert_equal "new", routine.prompt
     end
 
-    test "delete removes the routine" do
-      create("name" => "Digest", "prompt" => "p", "trigger" => "schedule", "cron" => "0 9 * * *")
-      assert_difference -> { @team.routines.count }, -1 do
-        Agent::RoutineManager.delete(@conversation, "name" => "Digest")
-      end
-    end
-
     test "create stores an explicit model in run settings" do
       # No catalog synced in test → Agent::ModelSelection passes the value
       # through (pi validates it), storing it in trigger_config settings.

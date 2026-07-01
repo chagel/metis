@@ -15,7 +15,6 @@
  *   metis_list_routines   — list the team's routines, with trigger + status (live)
  *   metis_create_routine  — create a scheduled/event routine (admin only)
  *   metis_update_routine  — edit a routine / enable-disable it (admin only)
- *   metis_delete_routine  — delete a routine (admin only)
  *
  * These manage team skills as single SKILL.md rows. Multi-file skills (with
  * supporting assets) still go through the native file path: write
@@ -629,26 +628,6 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
         params,
         (r) => `Updated the "${r.name}" routine${r.enabled === false ? " (disabled)" : ""}. Review it: ${r.url}`,
       );
-    },
-  });
-
-  pi.registerTool({
-    name: "metis_delete_routine",
-    label: "Delete Metis Routine",
-    description:
-      "Delete a routine by name. Only team admins can delete. This is " +
-      "irreversible — confirm with the operator first.",
-    promptSnippet: "Delete a routine by name",
-    promptGuidelines: [
-      "Use metis_delete_routine only when the operator explicitly asks to delete a routine, and confirm before doing so.",
-      "Identify the routine by its exact name. This returns the result directly; relay any error.",
-    ],
-    parameters: Type.Object({
-      name: Type.String({ description: "Name of the routine to delete (case-insensitive)." }),
-    }),
-
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      return hostWrite(ctx, "delete_routine", params, (r) => `Deleted the "${r.name}" routine.`);
     },
   });
 }
