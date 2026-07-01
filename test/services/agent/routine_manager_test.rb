@@ -51,6 +51,15 @@ module Agent
       end
     end
 
+    test "create stores an explicit model in run settings" do
+      # No catalog synced in test → Agent::ModelSelection passes the value
+      # through (pi validates it), storing it in trigger_config settings.
+      create("name" => "Digest", "prompt" => "p", "trigger" => "schedule",
+             "cron" => "0 9 * * *", "model" => "anthropic/claude-opus-4-8")
+      routine = @team.routines.named("Digest").first
+      assert_equal "anthropic/claude-opus-4-8", routine.run_settings["model"]
+    end
+
     test "list returns the team's routines" do
       create("name" => "Digest", "prompt" => "p", "trigger" => "schedule", "cron" => "0 9 * * *")
       row = Agent::RoutineManager.list(@conversation).find { |r| r[:name] == "Digest" }

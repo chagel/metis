@@ -20,6 +20,7 @@ class RoutinesController < ApplicationController
     @routine = current_team.routines.new(routine_params)
     @routine.user = current_user
     apply_cooldown
+    apply_model
     if @routine.save
       redirect_to edit_routine_path(@routine), notice: t("flash.routines.create.notice")
     else
@@ -33,6 +34,7 @@ class RoutinesController < ApplicationController
   def update
     @routine.assign_attributes(routine_params)
     apply_cooldown
+    apply_model
     if @routine.save
       redirect_to edit_routine_path(@routine), notice: t("flash.routines.update.notice")
     else
@@ -70,6 +72,16 @@ class RoutinesController < ApplicationController
     @routine.trigger_config = @routine.trigger_config.merge(
       "cooldown_seconds" => params[:routine][:cooldown_seconds].to_i
     )
+  end
+
+  # The fired conversation runs on this model (provider derived from the
+  # catalog, as the composer does); blank inherits the deployment default.
+  def apply_model
+    return unless params.dig(:routine).key?(:model)
+
+    model = params[:routine][:model].presence
+    settings = model ? { "model" => model, "provider" => Agent::Catalog.provider_for(model) }.compact : {}
+    @routine.trigger_config = @routine.trigger_config.merge("settings" => settings)
   end
 
   def routine_params

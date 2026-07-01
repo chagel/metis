@@ -79,6 +79,21 @@ class RoutinesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 120, routine.cooldown_seconds
   end
 
+  test "create stores the chosen model in run settings" do
+    post routines_path, params: { routine: {
+      name: "Daily", prompt: "go", trigger_source: "schedule",
+      cron: "0 9 * * *", timezone: "UTC", model: "anthropic/claude-opus-4-8"
+    } }
+    routine = team.routines.named("Daily").first
+    assert_equal "anthropic/claude-opus-4-8", routine.run_settings["model"]
+  end
+
+  test "blank model leaves run settings empty" do
+    routine = make_routine
+    patch routine_path(routine), params: { routine: { name: routine.name, prompt: "x", model: "" } }
+    assert_empty routine.reload.run_settings
+  end
+
   test "toggle flips enabled" do
     routine = make_routine(enabled: true)
     patch toggle_routine_path(routine)

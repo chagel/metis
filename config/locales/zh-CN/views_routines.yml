@@ -69,4 +69,7 @@
       project_label: "项目"
       project_blank: "无"
       project_hint: "可选 — 为运行提供某个项目的仓库与规范作为上下文。"
+      model_label: "模型"
+      model_default: "部署默认"
+      model_hint: "每次触发所使用的模型。默认为部署配置的模型。"
       create_routine: "创建例程"

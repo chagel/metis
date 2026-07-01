@@ -522,6 +522,7 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
       "For a schedule, pass `trigger: \"schedule\"`, a 5-field `cron`, and a `timezone` (IANA, e.g. \"America/New_York\").",
       "For an event, pass `trigger: \"webhook\"` and an `event_type` (e.g. \"pull_request.opened\", or \"pull_request.*\" for a family).",
       "Write a clear, self-contained `prompt`. It may use {{date}}, {{team}}, {{user}}, and on events {{event_type}} / {{event_payload}}.",
+      "Pass `model` (and optionally `provider`) only if the operator names one to run the routine on; omit to inherit the deployment default. An unknown model is rejected with the available options.",
       "It starts disabled; on success, tell the operator that and give them the returned link to review and enable it. Relay any error (e.g. not a team admin, invalid cron).",
     ],
     parameters: Type.Object({
@@ -549,6 +550,18 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
       ),
       cooldown_seconds: Type.Optional(
         Type.Number({ description: "Minimum gap between fires for bursty events. Defaults to 0." }),
+      ),
+      model: Type.Optional(
+        Type.String({
+          description:
+            "Model each fire runs on (pi model key or its label, e.g. \"anthropic/claude-opus-4-8\"). Omit to inherit the deployment default.",
+        }),
+      ),
+      provider: Type.Optional(
+        Type.String({
+          description:
+            "Provider for the model, only needed to disambiguate when the same model key exists under multiple providers.",
+        }),
       ),
       enabled: Type.Optional(
         Type.Boolean({ description: "Whether it's active. Defaults to false — the operator enables it." }),
@@ -601,6 +614,12 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
         Type.String({ description: 'Project name, or "" to unbind it.' }),
       ),
       cooldown_seconds: Type.Optional(Type.Number({ description: "New cooldown in seconds." })),
+      model: Type.Optional(
+        Type.String({ description: "New model (pi model key or label). Omit to leave unchanged." }),
+      ),
+      provider: Type.Optional(
+        Type.String({ description: "Provider for the model, to disambiguate a key across providers." }),
+      ),
       enabled: Type.Optional(
         Type.Boolean({ description: "true to enable, false to disable. Omit to leave unchanged." }),
       ),

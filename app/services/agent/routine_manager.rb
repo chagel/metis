@@ -95,6 +95,13 @@ module Agent
         routine.trigger_config = routine.trigger_config.merge("cooldown_seconds" => arg(:cooldown_seconds).to_i)
       end
 
+      if has?(:model) || has?(:provider)
+        settings, error = Agent::ModelSelection.resolve(routine.run_settings, model: arg(:model), provider: arg(:provider))
+        return error if error
+
+        routine.trigger_config = routine.trigger_config.merge("settings" => settings)
+      end
+
       apply_project(routine)
     end
 

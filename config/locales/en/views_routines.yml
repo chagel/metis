@@ -69,4 +69,7 @@ en:
       project_label: "Project"
       project_blank: "None"
       project_hint: "Optional — gives the run a project's repo and standards as context."
+      model_label: "Model"
+      model_default: "Deployment default"
+      model_hint: "The model each fire runs on. Defaults to the deployment's configured model."
       create_routine: "Create routine"
