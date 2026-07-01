@@ -1,0 +1,11 @@
+<%# Marks a conversation that a Routine fired, so it's distinguishable from a
+    hand-started chat. Rendered in the show header's chat-sub. %>
+<% if conversation.routine %>
+  <span class="chat-routine-tag" title="<%= t("conversations.show.from_routine", name: conversation.routine.name) %>">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/>
+    </svg>
+    <%= t("conversations.show.from_routine", name: conversation.routine.name) %>
+  </span>
+<% end %>

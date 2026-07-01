@@ -13,6 +13,7 @@
         </h1>
         <div class="chat-sub">
           <span><%= t('.shared_by', name: @conversation.user.display_label) %></span>
+          <%= render "routine_tag", conversation: @conversation %>
           <%= render "context_meter", conversation: @conversation %>
         </div>
       <% else %>
@@ -30,6 +31,7 @@
         </h1>
         <div class="chat-sub">
           <span><%= t('.started_ago', time: time_ago_in_words(@conversation.created_at)) %></span>
+          <%= render "routine_tag", conversation: @conversation %>
           <%= render "context_meter", conversation: @conversation %>
         </div>
       <% end %>

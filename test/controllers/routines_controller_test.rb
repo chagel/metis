@@ -93,6 +93,14 @@ class RoutinesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to conversation_path(routine.conversations.last)
   end
 
+  test "a routine-fired conversation is tagged on its show page" do
+    routine = make_routine
+    post run_routine_path(routine)
+    get conversation_path(routine.conversations.last)
+    assert_response :success
+    assert_select ".chat-routine-tag", text: /#{routine.name}/
+  end
+
   test "destroy removes the routine" do
     routine = make_routine
     assert_difference -> { team.routines.count }, -1 do

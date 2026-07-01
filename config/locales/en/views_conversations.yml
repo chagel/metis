@@ -24,6 +24,7 @@ en:
       start: "Start"
     convo:
       running: "Running"
+      routine_source: "From routine: %{name}"
     convo_sentinel:
       loading: "Loading…"
     share:
@@ -72,6 +73,7 @@ en:
     show:
       shared_by: "Shared by %{name}"
       started_ago: "Started %{time} ago"
+      from_routine: "Routine · %{name}"
       workflow: "Workflow"
       share_conversation: "Share conversation"
       archive_conversation: "Archive conversation"

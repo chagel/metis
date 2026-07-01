@@ -15,7 +15,10 @@
   </div>
   <% if team_manager? %>
     <div class="conn-actions">
-      <%= button_to t(".run"), run_routine_path(routine), class: "btn btn-ghost btn-sm" %>
+      <%# Break out of the settings #main frame so the redirect loads the
+          full chat layout (sidebar included), not just the pane. %>
+      <%= button_to t(".run"), run_routine_path(routine), class: "btn btn-ghost btn-sm",
+            form: { data: { turbo_frame: "_top" } } %>
       <%= button_to routine.enabled? ? t(".pause") : t(".resume"), toggle_routine_path(routine),
             method: :patch, class: "btn btn-ghost btn-sm" %>
       <%= link_to t("common.edit"), edit_routine_path(routine), class: "btn btn-ghost btn-sm" %>

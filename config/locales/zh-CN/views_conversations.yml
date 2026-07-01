@@ -24,6 +24,7 @@
       start: "开始"
     convo:
       running: "运行中"
+      routine_source: "来自例程：%{name}"
     convo_sentinel:
       loading: "加载中…"
     share:
@@ -72,6 +73,7 @@
     show:
       shared_by: "由 %{name} 分享"
       started_ago: "%{time}前开始"
+      from_routine: "例程 · %{name}"
       workflow: "工作流"
       share_conversation: "分享对话"
       archive_conversation: "归档对话"
