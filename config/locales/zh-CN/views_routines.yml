@@ -59,6 +59,7 @@
       timezone_hint: "计划将按此时区运行。"
       event_label: "事件类型"
       event_blank: "选择一个事件…"
+      event_current: "当前"
       event_hint_html: "触发此例程的 webhook 事件。只能选择你团队实际收到过的事件类型（例如 <code>pull_request.opened</code>、<code>Issue.create</code>），以及每个家族的 <code>.*</code> 通配项（<code>pull_request.*</code>）。在团队的 GitHub/Linear webhook 配置好并有事件到达之前，列表为空。"
       cooldown_label: "冷却时间（秒）"
       cooldown_hint: "对于频繁的事件，两次触发之间的最小间隔。0 = 无冷却。"

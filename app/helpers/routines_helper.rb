@@ -30,13 +30,32 @@ module RoutinesHelper
     ActiveSupport::TimeZone.all.map { |tz| [ tz.to_s, tz.tzinfo.name ] }
   end
 
-  # Event-type suggestions drawn from what the team has actually received — the
-  # exact stored types plus a "family.*" wildcard per family. Correctly cased
-  # per provider (GitHub "pull_request.opened", Linear "Issue.create"), unlike
-  # a hardcoded guess; empty until the team's webhooks are wired and firing.
-  def routine_event_type_suggestions
-    types = current_team.webhook_events.distinct.pluck(:event_type)
+  PROVIDER_LABELS = { "github" => "GitHub", "linear" => "Linear" }.freeze
+
+  # Event types the team has actually received, grouped by connector for a
+  # grouped <select>: [["GitHub", ["pull_request.opened", "pull_request.*"]], …].
+  # Each group adds a "family.*" wildcard per family. `current` (the routine's
+  # saved type) is folded in even if no longer collected, so editing can't blank
+  # it. Empty until the team's webhooks are wired and firing.
+  def routine_event_type_options(current = nil)
+    groups = current_team.webhook_events.distinct.pluck(:provider, :event_type)
+                         .group_by(&:first)
+                         .map { |provider, rows| [ routine_provider_label(provider), routine_event_family(rows.map(&:last)) ] }
+                         .sort_by(&:first)
+
+    if current.present? && groups.none? { |_label, types| types.include?(current) }
+      groups.unshift([ t("routines.form.event_current"), [ current ] ])
+    end
+    groups
+  end
+
+  def routine_event_family(types)
     families = types.filter_map { |type| "#{type.split(".").first}.*" if type.include?(".") }
     (types + families).uniq.sort
+  end
+
+  def routine_provider_label(provider)
+    key = provider.is_a?(Integer) ? WebhookEvent.providers.key(provider) : provider.to_s
+    PROVIDER_LABELS[key] || key.to_s.titleize
   end
 end

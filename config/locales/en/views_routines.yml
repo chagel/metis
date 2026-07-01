@@ -59,6 +59,7 @@ en:
       timezone_hint: "The schedule runs in this time zone."
       event_label: "Event type"
       event_blank: "Select an event…"
+      event_current: "Current"
       event_hint_html: "The webhook event that fires this routine. You can only pick an event type your team has actually received (e.g. <code>pull_request.opened</code>, <code>Issue.create</code>), plus a <code>.*</code> wildcard per family (<code>pull_request.*</code>). The list is empty until your team's GitHub/Linear webhooks are configured and events arrive."
       cooldown_label: "Cooldown (seconds)"
       cooldown_hint: "Minimum gap between fires for bursty events. 0 = no cooldown."
