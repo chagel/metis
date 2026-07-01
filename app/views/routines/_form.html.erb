@@ -99,13 +99,8 @@
 
   <div class="field" data-routine-form-target="eventSection" hidden>
     <%= f.label :event_type, t(".event_label") %>
-    <%= f.text_field :event_type, list: "routine-event-types", placeholder: "pull_request.opened",
-          autocomplete: "off", class: "team-input" %>
-    <datalist id="routine-event-types">
-      <% routine_event_type_suggestions.each do |opt| %>
-        <option value="<%= opt %>"></option>
-      <% end %>
-    </datalist>
+    <% event_options = (routine_event_type_suggestions | [ routine.event_type ]).compact_blank.sort %>
+    <%= f.select :event_type, event_options, { include_blank: t(".event_blank") }, class: "team-input" %>
     <p class="field-hint"><%= t(".event_hint_html") %></p>
     <%= label_tag "routine_cooldown_seconds", t(".cooldown_label"), class: "field-sublabel" %>
     <%= number_field_tag "routine[cooldown_seconds]", routine.cooldown_seconds, min: 0,

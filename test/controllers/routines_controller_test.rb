@@ -55,12 +55,12 @@ class RoutinesControllerTest < ActionDispatch::IntegrationTest
     assert routine.next_run_at.present?
   end
 
-  test "event-type suggestions come from the team's collected webhook events" do
+  test "event-type choices come from the team's collected webhook events" do
     WebhookEvent.create!(team: team, provider: :github, event_type: "pull_request.opened", payload: {})
     get new_routine_path
     assert_response :success
-    assert_select "#routine-event-types option[value=?]", "pull_request.opened"
-    assert_select "#routine-event-types option[value=?]", "pull_request.*"
+    assert_select "select#routine_event_type option[value=?]", "pull_request.opened"
+    assert_select "select#routine_event_type option[value=?]", "pull_request.*"
   end
 
   test "create a schedule routine" do
