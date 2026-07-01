@@ -1,5 +1,14 @@
 <%= form_with model: routine, url: routine.persisted? ? routine_path(routine) : routines_path,
-      class: "conn-form", data: { controller: "routine-form" } do |f| %>
+      class: "conn-form",
+      data: {
+        controller: "routine-form",
+        routine_form_daily_value: t(".preview.daily"),
+        routine_form_weekly_value: t(".preview.weekly"),
+        routine_form_hourly_value: t(".preview.hourly"),
+        routine_form_monthly_value: t(".preview.monthly"),
+        routine_form_custom_preview_value: t(".preview.custom"),
+        routine_form_every_day_value: t(".preview.every_day")
+      } do |f| %>
   <% if routine.errors.any? %>
     <div class="flash error"><%= routine.errors.full_messages.to_sentence %></div>
   <% end %>
@@ -30,13 +39,7 @@
           class: "team-input", data: { action: "routine-form#toggle" } %>
   </div>
 
-  <div class="field routine-sched" data-routine-form-target="scheduleSection"
-       data-routine-form-daily-value="<%= t(".preview.daily") %>"
-       data-routine-form-weekly-value="<%= t(".preview.weekly") %>"
-       data-routine-form-hourly-value="<%= t(".preview.hourly") %>"
-       data-routine-form-monthly-value="<%= t(".preview.monthly") %>"
-       data-routine-form-custom-preview-value="<%= t(".preview.custom") %>"
-       data-routine-form-every-day-value="<%= t(".preview.every_day") %>">
+  <div class="field routine-sched" data-routine-form-target="scheduleSection">
     <label><%= t(".schedule_label") %></label>
 
     <div class="routine-sched-grid">

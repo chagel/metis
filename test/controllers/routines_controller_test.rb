@@ -33,7 +33,9 @@ class RoutinesControllerTest < ActionDispatch::IntegrationTest
   test "new and edit render the schedule builder" do
     get new_routine_path
     assert_response :success
-    assert_select "form.conn-form"
+    assert_select "form.conn-form[data-routine-form-daily-value]"
+    assert_select "form.conn-form[data-routine-form-weekly-value]"
+    assert_select "form.conn-form[data-routine-form-custom-preview-value]"
     assert_select ".routine-sched-grid"
     assert_select ".routine-day-chips .routine-day-chip", count: 7
     assert_select "[data-routine-form-target='preview']"
