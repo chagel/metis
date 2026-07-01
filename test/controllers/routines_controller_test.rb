@@ -30,14 +30,27 @@ class RoutinesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".pane-empty"
   end
 
-  test "new and edit render the form" do
+  test "new and edit render the schedule builder" do
     get new_routine_path
     assert_response :success
     assert_select "form.conn-form"
+    assert_select ".routine-sched-grid"
+    assert_select ".routine-day-chips .routine-day-chip", count: 7
+    assert_select "[data-routine-form-target='preview']"
 
     get edit_routine_path(make_routine)
     assert_response :success
     assert_select "input#routine_cron"
+  end
+
+  test "create a weekly multi-day routine from a composed cron" do
+    post routines_path, params: { routine: {
+      name: "Standup", prompt: "go", trigger_source: "schedule",
+      cron: "30 9 * * 1,3,5", timezone: "UTC"
+    } }
+    routine = team.routines.named("Standup").first
+    assert_equal "30 9 * * 1,3,5", routine.cron
+    assert routine.next_run_at.present?
   end
 
   test "create a schedule routine" do

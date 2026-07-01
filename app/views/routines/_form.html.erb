@@ -22,22 +22,68 @@
           class: "team-input", data: { action: "routine-form#toggle" } %>
   </div>
 
-  <div class="field" data-routine-form-target="scheduleSection">
-    <%= f.label :cron, t(".schedule_label") %>
-    <div class="routine-cron">
-      <%= select_tag :_frequency,
-            options_for_select(%w[daily weekdays weekly hourly custom].map { |k| [ t(".frequencies.#{k}"), k ] }, "custom"),
-            class: "team-input", data: { routine_form_target: "frequency", action: "routine-form#build" } %>
-      <%= time_field_tag :_time, "09:00", class: "team-input",
-            data: { routine_form_target: "time", action: "routine-form#build" } %>
+  <div class="field routine-sched" data-routine-form-target="scheduleSection"
+       data-routine-form-daily-value="<%= t(".preview.daily") %>"
+       data-routine-form-weekly-value="<%= t(".preview.weekly") %>"
+       data-routine-form-hourly-value="<%= t(".preview.hourly") %>"
+       data-routine-form-monthly-value="<%= t(".preview.monthly") %>"
+       data-routine-form-custom-preview-value="<%= t(".preview.custom") %>"
+       data-routine-form-every-day-value="<%= t(".preview.every_day") %>">
+    <label><%= t(".schedule_label") %></label>
+
+    <div class="routine-sched-grid">
+      <div class="routine-sched-cell">
+        <span class="field-sublabel"><%= t(".frequency_label") %></span>
+        <%= select_tag :_frequency, options_for_select(routine_frequency_options, "daily"),
+              class: "team-input", data: { routine_form_target: "frequency", action: "routine-form#onFrequency" } %>
+      </div>
+      <div class="routine-sched-cell" data-routine-form-target="hourCell">
+        <span class="field-sublabel"><%= t(".hour_label") %></span>
+        <%= select_tag :_hour, options_for_select(routine_hour_options, 9),
+              class: "team-input", data: { routine_form_target: "hour", action: "routine-form#build" } %>
+      </div>
+      <div class="routine-sched-cell">
+        <span class="field-sublabel"><%= t(".minute_label") %></span>
+        <%= select_tag :_minute, options_for_select(routine_minute_options, 0),
+              class: "team-input", data: { routine_form_target: "minute", action: "routine-form#build" } %>
+      </div>
     </div>
-    <%= f.text_field :cron, placeholder: "0 9 * * *", autocomplete: "off",
-          class: "team-input routine-cron-expr", data: { routine_form_target: "cron" } %>
-    <p class="field-hint"><%= t(".cron_hint_html") %></p>
-    <%= f.label :timezone, t(".timezone_label"), class: "field-sublabel" %>
-    <%= f.select :timezone,
-          ActiveSupport::TimeZone.all.map { |tz| [ tz.to_s, tz.tzinfo.name ] }, {},
-          class: "team-input" %>
+
+    <div class="routine-sched-days" data-routine-form-target="daysRow" hidden>
+      <span class="field-sublabel"><%= t(".days_label") %></span>
+      <div class="routine-day-chips">
+        <% routine_day_options.each do |num, label| %>
+          <label class="routine-day-chip">
+            <%= check_box_tag "_days[]", num, false,
+                  data: { routine_form_target: "day", action: "routine-form#build" } %>
+            <span><%= label %></span>
+          </label>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="routine-sched-cell" data-routine-form-target="domRow" hidden>
+      <span class="field-sublabel"><%= t(".day_of_month_label") %></span>
+      <%= select_tag :_dom, options_for_select((1..31).map { |d| [ d, d ] }, 1),
+            class: "team-input", data: { routine_form_target: "dom", action: "routine-form#build" } %>
+    </div>
+
+    <p class="routine-sched-preview" data-routine-form-target="preview"></p>
+
+    <div class="routine-sched-cell" data-routine-form-target="customRow" hidden>
+      <span class="field-sublabel"><%= t(".cron_label") %></span>
+      <%= f.text_field :cron, placeholder: "0 9 * * *", autocomplete: "off",
+            class: "team-input routine-cron-expr",
+            data: { routine_form_target: "cron", action: "routine-form#onCronInput" } %>
+      <p class="field-hint"><%= t(".cron_hint_html") %></p>
+    </div>
+
+    <div class="routine-sched-cell">
+      <span class="field-sublabel"><%= t(".timezone_label") %></span>
+      <%= f.select :timezone, routine_timezone_options, {},
+            class: "team-input", data: { routine_form_target: "timezone", action: "routine-form#build" } %>
+      <p class="field-hint"><%= t(".timezone_hint") %></p>
+    </div>
   </div>
 
   <div class="field" data-routine-form-target="eventSection" hidden>
