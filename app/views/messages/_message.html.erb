@@ -70,8 +70,10 @@
         <% end %>
 
         <div id="<%= dom_id(message) %>_foot" class="msg-foot">
+          <%# On a public share the operational meta (duration/tokens/cost)
+              is private detail; show only the model as provenance. %>
           <div id="<%= dom_id(message) %>_meta"
-               class="msg-meta"><%= message_meta(message) %></div>
+               class="msg-meta"><%= local_assigns[:shared] ? model_key_label(message.model_key) : message_meta(message) %></div>
           <% if local_assigns[:forkable] && message.done? %>
             <%= render "messages/actions", message: message %>
           <% end %>

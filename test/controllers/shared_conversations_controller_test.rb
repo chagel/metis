@@ -40,6 +40,20 @@ class SharedConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".wf-rail", count: 0
   end
 
+  test "the assistant footer shows the model, not the private cost/token meta" do
+    provider = LlmProvider.create!(key: "anthropic", label: "Anthropic")
+    provider.llm_models.create!(key: "claude-opus-4-8", label: "Claude Opus 4.8")
+    @conversation.messages.where(role: :assistant).first.update!(
+      model_key: "claude-opus-4-8", input_tokens: 13_200, output_tokens: 2_800, cost: 0.009
+    )
+
+    get shared_conversation_path(token: @token)
+    assert_response :success
+    assert_select ".msg-row .msg-meta", text: "Claude Opus 4.8"
+    assert_select ".msg-row .msg-meta", text: /\$/, count: 0
+    assert_select ".msg-row .msg-meta", text: /in/, count: 0
+  end
+
   test "emits Open Graph and Twitter card meta for unfurls" do
     get shared_conversation_path(token: @token)
     assert_response :success
