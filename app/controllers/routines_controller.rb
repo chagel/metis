@@ -22,7 +22,7 @@ class RoutinesController < ApplicationController
     apply_cooldown
     apply_model
     if @routine.save
-      redirect_to edit_routine_path(@routine), notice: t("flash.routines.create.notice")
+      redirect_to routines_path, notice: t("flash.routines.create.notice")
     else
       render :new, status: :unprocessable_entity
     end

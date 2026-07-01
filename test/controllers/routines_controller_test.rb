@@ -60,7 +60,7 @@ class RoutinesControllerTest < ActionDispatch::IntegrationTest
         cron: "0 9 * * *", timezone: "UTC", visibility: "personal"
       } }
     end
-    assert_redirected_to edit_routine_path(team.routines.named("Daily").first)
+    assert_redirected_to routines_path
   end
 
   test "create with an invalid cron re-renders" do
