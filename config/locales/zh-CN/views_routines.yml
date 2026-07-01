@@ -58,7 +58,7 @@
       timezone_label: "时区"
       timezone_hint: "计划将按此时区运行。"
       event_label: "事件类型"
-      event_hint_html: "触发此例程的 webhook 事件，例如 <code>pull_request.opened</code>。以 <code>.*</code> 结尾可匹配整个家族（<code>pull_request.*</code>）。事件由团队的 GitHub 和 Linear 连接器收集。"
+      event_hint_html: "触发此例程的 webhook 事件。候选项来自你团队实际收到过的事件类型（例如 <code>pull_request.opened</code>、<code>Issue.create</code>）；以 <code>.*</code> 结尾可匹配整个家族（<code>pull_request.*</code>）。在团队的 GitHub/Linear webhook 配置好并有事件到达之前，不会有候选项。"
       cooldown_label: "冷却时间（秒）"
       cooldown_hint: "对于频繁的事件，两次触发之间的最小间隔。0 = 无冷却。"
       visibility_label: "可见性"

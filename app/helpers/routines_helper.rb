@@ -29,4 +29,14 @@ module RoutinesHelper
   def routine_timezone_options
     ActiveSupport::TimeZone.all.map { |tz| [ tz.to_s, tz.tzinfo.name ] }
   end
+
+  # Event-type suggestions drawn from what the team has actually received — the
+  # exact stored types plus a "family.*" wildcard per family. Correctly cased
+  # per provider (GitHub "pull_request.opened", Linear "Issue.create"), unlike
+  # a hardcoded guess; empty until the team's webhooks are wired and firing.
+  def routine_event_type_suggestions
+    types = current_team.webhook_events.distinct.pluck(:event_type)
+    families = types.filter_map { |type| "#{type.split(".").first}.*" if type.include?(".") }
+    (types + families).uniq.sort
+  end
 end

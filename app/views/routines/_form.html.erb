@@ -102,7 +102,7 @@
     <%= f.text_field :event_type, list: "routine-event-types", placeholder: "pull_request.opened",
           autocomplete: "off", class: "team-input" %>
     <datalist id="routine-event-types">
-      <% %w[pull_request.opened pull_request.* issues.opened push pull_request_review.submitted].each do |opt| %>
+      <% routine_event_type_suggestions.each do |opt| %>
         <option value="<%= opt %>"></option>
       <% end %>
     </datalist>
