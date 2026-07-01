@@ -141,6 +141,8 @@ class ApplicationController < ActionController::Base
   # Archived lives on its own page (conversations#archived), not as a sidebar
   # scope — it's deliberately kept out of the high-level list.
   SIDEBAR_FILTERS = %w[active team starred].freeze
+  # The conversation-type axis, orthogonal to the scope filter above.
+  SIDEBAR_KINDS = %w[all chats workflows routines].freeze
 
   # :countless (LIMIT+1 probe, no COUNT). Don't switch to headless: true —
   # that drops the probe and `@sidebar_pagy.next` goes nil.
@@ -148,10 +150,12 @@ class ApplicationController < ActionController::Base
     @sidebar_filter = SIDEBAR_FILTERS.include?(params[:filter]) ? params[:filter] : "active"
     # No "team" scope in a team of one — there's nobody to share with.
     @sidebar_filter = "active" if @sidebar_filter == "team" && current_team.personal?
+    @sidebar_kind = SIDEBAR_KINDS.include?(params[:kind]) ? params[:kind] : "all"
     @needs_you = needs_you_conversations
     @sidebar_pagy, @conversations = pagy(
       :countless,
-      sidebar_scope(@sidebar_filter).where.not(id: @needs_you.map(&:id)).preloaded_for_sidebar,
+      sidebar_kind_scope(sidebar_scope(@sidebar_filter), @sidebar_kind)
+        .where.not(id: @needs_you.map(&:id)).preloaded_for_sidebar,
       limit: SIDEBAR_PAGE_SIZE
     )
   end
@@ -161,7 +165,9 @@ class ApplicationController < ActionController::Base
   # and excluded from it so they don't double. Team-visible runs pin for
   # every member: their gates are the team's to act on.
   def needs_you_conversations
-    return [] unless @sidebar_filter == "active"
+    # These are awaiting workflow runs — only meaningful when the kind axis
+    # includes workflows.
+    return [] unless @sidebar_filter == "active" && @sidebar_kind.in?(%w[all workflows])
 
     current_team.conversations.where(user: current_user).or(
       current_team.conversations.visibility_team
@@ -178,6 +184,17 @@ class ApplicationController < ActionController::Base
     when "team"    then current_team.conversations.visibility_team.active.recent
     when "starred" then mine.starred.active.recent
     else                mine.active.recent
+    end
+  end
+
+  # Narrow the sidebar list to one conversation kind (chat / workflow /
+  # routine); "all" leaves it untouched. Orthogonal to sidebar_scope.
+  def sidebar_kind_scope(scope, kind)
+    case kind
+    when "chats"     then scope.merge(Conversation.chats)
+    when "workflows" then scope.merge(Conversation.workflows)
+    when "routines"  then scope.merge(Conversation.routines)
+    else scope
     end
   end
 end

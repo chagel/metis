@@ -410,7 +410,8 @@ turbo-frame#convos { display:contents; }
 /* ───────────── conversation scope tabs ─────────────
    Mine / Shared / Starred / Archived. Compact text tabs that swap the sidebar
    list's scope in place (turbo-frame). The active tab carries `.on`. */
-.convo-tabs { display:flex; gap:3px; padding:0 2px 6px; }
+.convo-controls { display:flex; align-items:center; gap:4px; padding:0 2px 6px; }
+.convo-tabs { display:flex; gap:3px; flex:1; min-width:0; }
 .convo-tab {
   padding:3px 8px; border-radius:7px;
   color:var(--ink-3); text-decoration:none;
@@ -419,6 +420,37 @@ turbo-frame#convos { display:contents; }
 }
 .convo-tab:hover { color:var(--ink); background:var(--bg); }
 .convo-tab.on { color:var(--ink); background:var(--card); box-shadow:var(--sh-sm); }
+
+/* Conversation-type filter (chat/workflow/routine) — a compact dropdown
+   riding the tab row, reusing the dropdown controller's open/close. */
+.convo-kind { position:relative; display:inline-flex; flex:none; }
+.convo-kind-trigger {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:26px; height:24px; border-radius:7px;
+  border:none; background:none; cursor:pointer; color:var(--ink-3);
+  transition:background-color .13s, color .13s;
+}
+.convo-kind-trigger svg { width:15px; height:15px; }
+.convo-kind-trigger:hover { color:var(--ink); background:var(--bg); }
+/* A filter narrower than "all" is active — tint the trigger so it reads
+   as engaged even when the panel is closed. */
+.convo-kind.is-filtered .convo-kind-trigger { color:var(--accent); }
+.convo-kind-panel {
+  display:none; position:absolute; right:0; top:calc(100% + 4px); z-index:40;
+  min-width:160px; background:var(--card); border:1px solid var(--line-2); border-radius:10px;
+  box-shadow:0 12px 30px rgba(0,0,0,.14); padding:5px;
+}
+.convo-kind.open .convo-kind-panel { display:block; }
+.convo-kind-item {
+  display:flex; align-items:center; gap:8px; width:100%;
+  padding:7px 8px; border-radius:7px; text-decoration:none;
+  font-size:13px; color:var(--ink-2);
+  transition:background-color .13s, color .13s;
+}
+.convo-kind-item:hover { background:var(--bg); color:var(--ink); }
+.convo-kind-item.is-active { color:var(--ink); }
+.convo-kind-item-name { flex:1; min-width:0; }
+.convo-kind-item-check { width:14px; height:14px; flex:none; color:var(--accent); }
 /* "New shared conversation" indicator, broadcast onto the Shared tab. */
 .tab-dot {
   display:inline-block; width:6px; height:6px; margin-left:5px;

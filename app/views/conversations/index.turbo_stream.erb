@@ -14,7 +14,8 @@
         partial: "conversations/convo_sentinel",
         locals: { pagy: @sidebar_pagy,
                   last_bucket: conversation_time_bucket(@conversations.last.updated_at),
-                  filter: @sidebar_filter } %>
+                  filter: @sidebar_filter,
+                  kind: @sidebar_kind } %>
 <% else %>
   <%= turbo_stream.remove "convos-sentinel" %>
 <% end %>

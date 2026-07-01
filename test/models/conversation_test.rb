@@ -347,6 +347,23 @@ class ConversationTest < ActiveSupport::TestCase
     assert_equal [ shared ], Conversation.shared.to_a
   end
 
+  test "the kind scopes partition chats, workflows, and routines" do
+    chat = @user.conversations.create!(title: "chat")
+    workflow = @user.conversations.create!(title: "workflow")
+    @user.personal_team.workflow_runs.create!(conversation: workflow)
+    routine = @user.personal_team.routines.create!(
+      user: @user, name: "Standup", prompt: "hi", cron: "0 9 * * *", timezone: "UTC"
+    )
+    fired = @user.conversations.create!(title: "fired", routine: routine)
+
+    chats = Conversation.chats.where(user: @user).to_a
+    assert_includes chats, chat
+    refute_includes chats, workflow
+    refute_includes chats, fired
+    assert_equal [ workflow ], Conversation.workflows.where(user: @user).to_a
+    assert_equal [ fired ], Conversation.routines.where(user: @user).to_a
+  end
+
   test "broadcast_team_tab_dot! lights the Team tab on the team stream" do
     team = Team.create!(name: "Acme")
     @user.memberships.create!(team: team, role: :owner)

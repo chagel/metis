@@ -637,6 +637,40 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".convo-tab.on", text: "Starred"
   end
 
+  test "the kind filter narrows the sidebar list to one conversation type" do
+    sign_in @user
+    @user.conversations.create!(title: "Plain chat")
+    workflow = @user.conversations.create!(title: "A workflow")
+    @user.personal_team.workflow_runs.create!(conversation: workflow)
+    routine = @user.personal_team.routines.create!(
+      user: @user, name: "Standup", prompt: "hi", cron: "0 9 * * *", timezone: "UTC"
+    )
+    @user.conversations.create!(title: "A routine fire", routine: routine)
+
+    get conversations_path(kind: "chats")
+    assert_response :success
+    assert_select "#convos-list .convo .tt", text: "Plain chat"
+    assert_select "#convos-list .convo .tt", text: "A workflow", count: 0
+    assert_select "#convos-list .convo .tt", text: "A routine fire", count: 0
+    assert_select ".convo-kind-item.is-active", text: /Chats/
+
+    get conversations_path(kind: "routines")
+    assert_response :success
+    assert_select "#convos-list .convo .tt", text: "A routine fire"
+    assert_select "#convos-list .convo .tt", text: "Plain chat", count: 0
+  end
+
+  test "an unknown kind param falls back to all" do
+    sign_in @user
+    @user.conversations.create!(title: "Plain chat")
+
+    get conversations_path(kind: "bogus")
+
+    assert_response :success
+    assert_select "#convos-list .convo .tt", text: "Plain chat"
+    assert_select ".convo-kind-item.is-active", text: /All/
+  end
+
   test "the owner sees a star toggle on their own conversation" do
     sign_in @user
     conversation = @user.conversations.create!(title: "Mine")

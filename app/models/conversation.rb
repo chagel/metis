@@ -35,6 +35,12 @@ class Conversation < ApplicationRecord
   scope :archived, -> { where.not(archived_at: nil) }
   scope :starred, -> { where.not(starred_at: nil) }
   scope :shared, -> { where.not(share_token: nil) }
+  # The three sidebar kinds, in the row's own identity precedence
+  # (_convo.html.erb): a workflow run, else a routine fire, else a plain
+  # chat. Used by the sidebar's kind filter.
+  scope :chats, -> { where(routine_id: nil).where.missing(:workflow_run) }
+  scope :workflows, -> { where.associated(:workflow_run) }
+  scope :routines, -> { where.not(routine_id: nil) }
   scope :for_team, ->(team) { where(team: team) }
   # The visibility rule, in one place: the launcher always, teammates
   # only when team-visible. Every surface (run page, gates, bridge
