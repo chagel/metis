@@ -48,7 +48,7 @@ class Routine < ApplicationRecord
   # Fire the routine: start one chat turn in a fresh conversation owned by the
   # routine's user, and stamp last_run_at. `event` (a WebhookEvent) feeds the
   # prompt's event_* variables on the webhook path. Returns the conversation.
-  def fire!(trigger_summary:, event: nil)
+  def fire!(event: nil)
     conversation = user.conversations.create!(
       team: team, project: project, routine: self,
       settings: run_settings, visibility: visibility, title: name
@@ -64,7 +64,7 @@ class Routine < ApplicationRecord
     with_lock do
       return false unless enabled? && schedule? && next_run_at && next_run_at <= Time.current
 
-      fire!(trigger_summary: "Scheduled run")
+      fire!
       update!(next_run_at: next_cron_time)
       true
     end
@@ -115,8 +115,11 @@ class Routine < ApplicationRecord
     cron_obj.next_time.utc
   end
 
+  # Require exactly 5 fields: next_cron_time appends the timezone as cron's 6th
+  # field, so a cron already carrying a zone would become unparseable there and
+  # silently never fire.
   def cron_is_parseable
-    errors.add(:cron, :invalid) if Fugit::Cron.parse(cron).nil?
+    errors.add(:cron, :invalid) unless cron.to_s.split.size == 5 && Fugit::Cron.parse(cron)
   end
 
   def timezone_is_known

@@ -72,9 +72,7 @@ module Agent
       @conversation.workflow_run.present?
     end
 
-    def admin?
-      @conversation.user.memberships.find_by(team: @conversation.team)&.manages_team? || false
-    end
+    def admin? = @conversation.team.managed_by?(@conversation.user)
 
     # [project, error]. No project named → [nil, nil] (default stays unset).
     # A named project that doesn't resolve is an error the operator must fix.

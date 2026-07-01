@@ -54,7 +54,7 @@ class RoutinesController < ApplicationController
   end
 
   def run
-    conversation = @routine.fire!(trigger_summary: "Run by you")
+    conversation = @routine.fire!
     redirect_to conversation_path(conversation), notice: t("flash.routines.run.notice", name: @routine.name)
   end
 

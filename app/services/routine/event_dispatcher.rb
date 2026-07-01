@@ -17,7 +17,7 @@ class Routine
         next if routine.within_cooldown?
         next unless conditions_met?(routine)
 
-        routine.fire!(trigger_summary: "#{@event.event_type} event")
+        routine.fire!(event: @event)
       rescue StandardError => e
         Rails.logger.error("Routine::EventDispatcher: routine #{routine.id} failed: #{e.class}: #{e.message}")
       end

@@ -35,6 +35,12 @@ class RoutineTest < ActiveSupport::TestCase
     assert_not build_routine(timezone: "Mars/Olympus").valid?
   end
 
+  test "a cron carrying a timezone field is rejected" do
+    # next_cron_time appends the zone as the 6th field, so a 6-field cron would
+    # become unparseable there and silently never fire.
+    assert_not build_routine(cron: "0 9 * * * America/New_York").valid?
+  end
+
   test "saving a schedule routine computes next_run_at in its timezone" do
     routine = build_routine(cron: "0 9 * * *", timezone: "America/New_York")
     routine.save!
@@ -89,7 +95,7 @@ class RoutineTest < ActiveSupport::TestCase
     conversation = nil
     assert_difference -> { @user.conversations.count }, 1 do
       assert_enqueued_with(job: ChatJob) do
-        conversation = routine.fire!(trigger_summary: "test")
+        conversation = routine.fire!
       end
     end
 

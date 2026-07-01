@@ -26,6 +26,13 @@ class Routine
       assert_equal "Channel: #eng", Routine::PromptRenderer.render(r)
     end
 
+    test "built-in vars win over a colliding custom variable" do
+      r = routine("Today is {{date}}", trigger_config: { "variables" => { "date" => "NEVER" } })
+      out = Routine::PromptRenderer.render(r)
+      assert_no_match(/NEVER/, out)
+      assert_match(/\d{4}-\d{2}-\d{2}/, out)
+    end
+
     test "fills event vars on the webhook path" do
       r = routine("Got {{event_type}}", trigger_source: :webhook, cron: nil, event_type: "push")
       event = WebhookEvent.new(team: @team, provider: :github, event_type: "push", payload: { "ref" => "main" })

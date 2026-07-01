@@ -30,6 +30,13 @@ class Routine
       end
     end
 
+    test "the fired conversation's prompt carries the event data" do
+      webhook_routine(prompt: "Handle {{event_type}}")
+      Routine::EventDispatcher.dispatch(event("pull_request.opened"))
+      message = @team.conversations.last.messages.order(:id).first
+      assert_equal "Handle pull_request.opened", message.content
+    end
+
     test "skips a routine inside its cooldown" do
       routine = webhook_routine(trigger_config: { "cooldown_seconds" => 300 })
       routine.update_column(:last_run_at, 1.minute.ago)

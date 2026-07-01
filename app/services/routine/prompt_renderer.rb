@@ -21,8 +21,10 @@ class Routine
 
     private
 
+    # Custom vars are the base; builtins and event vars win, so a user variable
+    # named `date` or `event_payload` can't shadow the real value.
     def vars
-      @vars ||= builtins.merge(event_vars).merge(custom_vars)
+      @vars ||= custom_vars.merge(event_vars).merge(builtins)
     end
 
     def builtins

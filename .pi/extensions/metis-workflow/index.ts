@@ -563,9 +563,6 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
             "Provider for the model, only needed to disambiguate when the same model key exists under multiple providers.",
         }),
       ),
-      enabled: Type.Optional(
-        Type.Boolean({ description: "Whether it's active. Defaults to false — the operator enables it." }),
-      ),
     }),
 
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {

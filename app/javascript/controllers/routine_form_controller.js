@@ -18,9 +18,16 @@ export default class extends Controller {
 
   connect() {
     this.toggle();
-    if (this.hasCronTarget && this.cronTarget.value.trim()) this.parse();
-    this.applyFrequency();
-    this.build();
+    // Reverse-parse an existing cron into the controls WITHOUT rebuilding — a
+    // rebuild would rewrite the stored expression (e.g. "1-5" → "1,2,3,4,5")
+    // on mere page load. A new form (no cron) builds a default instead.
+    if (this.hasCronTarget && this.cronTarget.value.trim()) {
+      this.parse();
+      this.renderPreview();
+    } else {
+      this.applyFrequency();
+      this.build();
+    }
   }
 
   // schedule vs webhook sections
@@ -32,11 +39,6 @@ export default class extends Controller {
   }
 
   onFrequency() {
-    // Weekly needs at least one day — default to Monday when none is set.
-    if (this.frequencyTarget.value === "weekly" && !this.checkedDays().length) {
-      const mon = this.dayTargets.find((d) => d.value === "1");
-      if (mon) mon.checked = true;
-    }
     this.applyFrequency();
     this.build();
   }
@@ -59,15 +61,22 @@ export default class extends Controller {
 
   // Compose cron from the controls (unless custom, where the field is raw).
   build() {
-    if (this.frequencyTarget.value !== "custom") {
+    const freq = this.frequencyTarget.value;
+    if (freq !== "custom") {
+      // Weekly must have ≥1 day — an empty day set would emit "* * *" (DOW=*),
+      // a valid DAILY cron that silently contradicts the "Weekly" the user sees.
+      if (freq === "weekly" && !this.checkedDays().length) {
+        const mon = this.dayTargets.find((d) => d.value === "1");
+        if (mon) mon.checked = true;
+      }
       const m = this.minuteTarget.value;
       const h = this.hourTarget.value;
       const expr = {
         hourly: `${m} * * * *`,
         daily: `${m} ${h} * * *`,
-        weekly: `${m} ${h} * * ${this.checkedDays().join(",") || "*"}`,
+        weekly: `${m} ${h} * * ${this.checkedDays().join(",")}`,
         monthly: `${m} ${h} ${this.domTarget.value} * *`,
-      }[this.frequencyTarget.value];
+      }[freq];
       if (expr) this.cronTarget.value = expr;
     }
     this.renderPreview();
@@ -85,7 +94,10 @@ export default class extends Controller {
     const [m, h, dom, mon, dow] = parts;
 
     const numeric = (v) => /^\d+$/.test(v);
-    if (mon !== "*" || !numeric(m)) return this.setFrequency("custom");
+    // The minute picker only offers multiples of 5; a cron with any other
+    // minute (e.g. "7 9 * * *") can't be represented, so keep it in Custom
+    // rather than silently blanking the minute select on round-trip.
+    if (mon !== "*" || !numeric(m) || +m % 5 !== 0 || +m > 55) return this.setFrequency("custom");
 
     if (h === "*" && dom === "*" && dow === "*") {
       this.setMinute(m);

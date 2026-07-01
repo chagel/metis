@@ -34,7 +34,10 @@ module Agent
       guarded do
         return failure("A routine named #{quoted(name)} already exists — use metis_update_routine.") if existing
 
-        routine = @conversation.team.routines.new(user: @conversation.user, enabled: truthy(@params["enabled"]))
+        # Always starts disabled — a self-firing rule the agent authored
+        # shouldn't go live without the operator enabling it (via the UI or
+        # metis_update_routine).
+        routine = @conversation.team.routines.new(user: @conversation.user, enabled: false)
         if (error = apply(routine))
           return failure(error)
         end
@@ -51,7 +54,7 @@ module Agent
         if (error = apply(routine))
           return failure(error)
         end
-        routine.enabled = truthy(@params["enabled"]) if @params.key?("enabled")
+        routine.enabled = ActiveModel::Type::Boolean.new.cast(@params["enabled"]) if @params.key?("enabled")
 
         persist(routine, "updated")
       end
@@ -140,12 +143,7 @@ module Agent
 
     def existing = @conversation.team.routines.named(name).first
     def name = @params["name"].to_s.strip
-    def truthy(value) = [ true, "true", 1, "1" ].include?(value)
-
-    def admin?
-      @conversation.user.memberships.find_by(team: @conversation.team)&.manages_team? || false
-    end
-
+    def admin? = @conversation.team.managed_by?(@conversation.user)
     def has?(key) = @params.key?(key.to_s)
     def arg(key) = @params[key.to_s].to_s.strip
     def failure(error) = { ok: false, error: error }

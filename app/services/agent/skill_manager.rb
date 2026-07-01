@@ -91,9 +91,7 @@ module Agent
     def content = @params["content"].to_s
     def truthy(value) = [ true, "true", 1, "1" ].include?(value)
 
-    def admin?
-      @conversation.user.memberships.find_by(team: @conversation.team)&.manages_team? || false
-    end
+    def admin? = @conversation.team.managed_by?(@conversation.user)
 
     def failure(error) = { ok: false, error: error }
     def quoted(value) = "\"#{value.presence || "?"}\""

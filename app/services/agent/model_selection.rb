@@ -69,7 +69,10 @@ module Agent
       provider = find_provider(value)
       return [ nil, "No enabled provider #{quoted(value)} in the catalog." ] unless provider
 
-      [ provider.llm_models.enabled.ordered.first, nil ]
+      model = provider.llm_models.enabled.ordered.first
+      return [ nil, "Provider #{quoted(value)} has no enabled models in the catalog." ] unless model
+
+      [ model, nil ]
     end
 
     def find_provider(value)
