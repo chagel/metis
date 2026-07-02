@@ -46,9 +46,9 @@ sections render only when set):
   it (*as you (OAuth)*, *team-shared credential*, *no credential —
   server visible but may reject*).
 - **Slash commands** — how a leading `/<slug>` maps to a skill.
-- **Team skills** — where to write team skills
-  (`.pi/skills/<slug>/SKILL.md`) so Metis syncs them back, and how to
-  install public ones.
+- **Team skills** — that skills are DB-backed and projected to
+  `.pi/skills/<slug>/SKILL.md` each turn, to prefer the `metis_*_skill`
+  tools for single-file skills, and how to install public ones.
 - **Conventions** — projected inputs rewrite each turn; sandbox
   boundary; identity-bearing connectors carry the operator's handle;
   honor a subdirectory project's own `AGENTS.md` / `CLAUDE.md`.

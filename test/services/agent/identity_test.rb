@@ -136,15 +136,16 @@ class Agent::IdentityTest < ActiveSupport::TestCase
     assert_match(/operator's identity/i, out)
   end
 
-  test "tells the agent where to write team skills so they sync back to the team" do
-    # Without this the agent has no idea that .pi/skills/<slug>/SKILL.md
-    # is the convention pi-side; ingest only matches that path, so a skill
-    # written anywhere else is invisible to the team.
+  test "tells the agent to prefer skill tools and where the projected skill tree lives" do
+    # Skills are DB rows projected to .pi/skills/<slug>/SKILL.md each turn.
+    # The agent needs the tools as the direct path, and to know a file it
+    # writes there is ingested only by touched slug at turn end.
     out = render
 
     assert_match(/## Team skills/, out)
     assert_match(%r{\.pi/skills/<slug>/SKILL\.md}, out)
-    assert_match(/Metis syncs it back/, out)
+    assert_match(/Prefer the Metis tools/, out)
+    assert_match(/ingests touched team-skill slugs/, out)
     # Repo skills are reserved — instructing the agent against tampering.
     assert_match(/built-in repo skills/i, out)
     # Team-skill management goes through tools (no delete tool).

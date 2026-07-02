@@ -108,11 +108,12 @@ module Agent
           change or enable/disable an existing one. These tools write the
           DB source of truth immediately and require team-admin rights.
         - **Use `.pi/skills/<slug>/` only when the operator needs a skill
-          with supporting files or a public skill import.** When you write
-          or edit files there, Metis ingests touched team-skill slugs back
-          into the DB at turn end. Supporting files alongside `SKILL.md`
-          are kept. This path is event-driven; prefer direct tools for a
-          plain SKILL.md because they're explicit and less surprising.
+          with supporting files.** When you write or edit files there,
+          Metis ingests touched team-skill slugs back into the DB at turn
+          end. Supporting files alongside `SKILL.md` are kept. This path is
+          event-driven; prefer direct tools for a plain SKILL.md because
+          they're explicit and less surprising. (Public skills install a
+          different way — see below.)
         - **Don't modify built-in repo skills.** Their slugs are
           reserved; edits won't persist (the tree is wiped & re-copied
           fresh from the repo every turn) and the team won't see them.

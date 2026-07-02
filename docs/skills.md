@@ -153,10 +153,11 @@ pi can create and modify team skills through two paths:
 
 The convention is taught to pi in `AGENTS.md` (see
 [`agent-identity.md`](agent-identity.md)): prefer tools for a plain
-`SKILL.md`, write files only for supporting-file skills or public skill
-imports, and keep YAML frontmatter (`name`, `description`) at the top of
-`SKILL.md`. Repo skills are read-only — their slugs are reserved and any
-writes get wiped by the next `stage_skills`.
+`SKILL.md`, write `.pi/skills/<slug>/` files only for supporting-file
+skills, install public skills via the `.pi/skills/.imports` sentinel, and
+keep YAML frontmatter (`name`, `description`) at the top of `SKILL.md`.
+Repo skills are read-only — their slugs are reserved and any writes get
+wiped by the next `stage_skills`.
 
 ### Event-driven ingest
 
