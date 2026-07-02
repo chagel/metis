@@ -91,27 +91,33 @@ module Agent
 
         ## Team skills
 
-        Team-authored skills live at `.pi/skills/<slug>/SKILL.md`
-        alongside the built-in repo skills. When the operator asks
-        you to **create** or **modify** a team skill, write the file
-        there — Metis syncs it back to the team's DB when the turn
-        ends, and the next turn (and every member of the team) sees
-        the change.
+        Team-authored skills are durable `Skill` rows in Metis's DB and
+        are projected into `.pi/skills/<slug>/SKILL.md` alongside the
+        built-in repo skills at the start of each turn. The projected
+        tree is wiped and re-staged, so don't treat editing it as the
+        default persistence path when a Metis skill-management tool can
+        do the job directly.
 
         - Slug: kebab-case (`code-review`), becomes the directory name.
         - SKILL.md: YAML frontmatter with `name` and `description`,
           then the markdown body that's loaded when pi auto-triggers
-          the skill. Supporting files alongside SKILL.md are kept.
+          the skill.
+        - **Prefer the Metis tools for single-file team skills.** Use
+          `metis_list_skills` to check for collisions, `metis_create_skill`
+          to create a new single-file skill, and `metis_update_skill` to
+          change or enable/disable an existing one. These tools write the
+          DB source of truth immediately and require team-admin rights.
+        - **Use `.pi/skills/<slug>/` only when the operator needs a skill
+          with supporting files or a public skill import.** When you write
+          or edit files there, Metis ingests touched team-skill slugs back
+          into the DB at turn end. Supporting files alongside `SKILL.md`
+          are kept. This path is event-driven; prefer direct tools for a
+          plain SKILL.md because they're explicit and less surprising.
         - **Don't modify built-in repo skills.** Their slugs are
           reserved; edits won't persist (the tree is wiped & re-copied
           fresh from the repo every turn) and the team won't see them.
-        - Writing the file is the native path and the only way to add
-          **supporting files**. For a single-file skill you can instead
-          use tools: `metis_list_skills` (every skill — built-in and
-          team, with status), `metis_create_skill`, and
-          `metis_update_skill` (also toggles `enabled`). Create/update
-          act on team skills and need team-admin rights. There's no
-          delete tool — ask the operator to remove a skill from the UI.
+        - There's no delete tool — ask the operator to remove a skill
+          from the UI.
 
         ### Installing a public skill
 

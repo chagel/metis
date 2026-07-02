@@ -139,17 +139,24 @@ Re-importing the same source updates the row in place.
 
 ## Agent authoring
 
-pi can create and modify team skills directly. The operator asks in
-chat ("draft a skill for PR descriptions"); pi writes
-`.pi/skills/<slug>/SKILL.md` (and supporting files) in its own
-workspace; Metis ingests them at turn end.
+pi can create and modify team skills through two paths:
+
+1. **Extension tools for single-file skills.** When the skill is just a
+   `SKILL.md`, the agent should prefer `metis_list_skills`,
+   `metis_create_skill`, and `metis_update_skill`. These tools write the
+   DB source of truth immediately, avoid ambiguity about whether a
+   projected file will be ingested, and make enable/disable explicit.
+2. **Workspace files for supporting trees.** When the operator needs a
+   skill with supporting files, pi writes `.pi/skills/<slug>/SKILL.md`
+   plus sibling files in its own workspace; Metis ingests touched
+   team-skill slugs at turn end.
 
 The convention is taught to pi in `AGENTS.md` (see
-[`agent-identity.md`](agent-identity.md)): write skills at
-`.pi/skills/<slug>/SKILL.md` with YAML frontmatter (`name`,
-`description`) plus a markdown body. Repo skills are read-only —
-their slugs are reserved and any writes get wiped by the next
-`stage_skills`.
+[`agent-identity.md`](agent-identity.md)): prefer tools for a plain
+`SKILL.md`, write files only for supporting-file skills or public skill
+imports, and keep YAML frontmatter (`name`, `description`) at the top of
+`SKILL.md`. Repo skills are read-only — their slugs are reserved and any
+writes get wiped by the next `stage_skills`.
 
 ### Event-driven ingest
 
