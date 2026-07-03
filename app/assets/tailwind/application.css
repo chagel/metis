@@ -2187,6 +2187,9 @@ body.auth-shell { min-height:100vh; display:grid; place-items:center; padding:24
     text-overflow:ellipsis;
   }
   .chat-sub { margin-top:5px; gap:7px; }
+  /* Run identity row — wrap instead of pushing the status pill offscreen. */
+  .wf-meta { flex-wrap:wrap; }
+  .wf-meta-name { white-space:nowrap; }
   .chat-actions { gap:2px; }
   .chat-action { width:30px; height:30px; }
 
@@ -2227,10 +2230,13 @@ body.auth-shell { min-height:100vh; display:grid; place-items:center; padding:24
   .welcome h1 { font-size:21px; }
   .welcome p { font-size:14px; }
 
-  /* Share popover — keep it inside the viewport on narrow screens. */
+  /* Share popover — anchored right:0 it hangs past the left viewport
+     edge on phones; pin it to the viewport under the header instead. */
   .share-panel {
-    width:min(320px, calc(100vw - 28px));
-    right:0;
+    position:fixed;
+    top:calc(max(14px, env(safe-area-inset-top)) + 52px);
+    left:50%; right:auto; transform:translateX(-50%);
+    width:min(340px, calc(100vw - 28px));
   }
 
   /* Pane (settings) bodies — tighten edges. */
@@ -2295,6 +2301,9 @@ body.auth-shell { min-height:100vh; display:grid; place-items:center; padding:24
   .attach { width:38px; height:38px; }
   .attach svg { width:17px; height:17px; }
   .send { width:40px; height:40px; }
+  .toolcall-head { padding:7px 0; }
+  /* 16px keeps iOS from zooming when the picker opens. */
+  .model-pick select { font-size:16px; padding:8px 26px 8px 12px; }
   .convo { padding:11px 12px; }
   .nav-item { padding:11px 12px; }
   .archived-restore { padding:7px 14px; font-size:13px; }
@@ -3064,3 +3073,11 @@ body.drawer-open { overflow:hidden; }
 .board-proj-link { color:inherit; text-decoration:none; }
 .board-proj-link:hover { color:var(--accent-fg); text-decoration:underline; }
 .prnav-badge-slot { display:inline-flex; }
+
+@media (max-width:768px) {
+  /* Head clears the floating hamburger; safe-area top in standalone. */
+  .board-head {
+    padding:14px 14px 12px 56px;
+    padding-top:max(14px, env(safe-area-inset-top));
+  }
+}
