@@ -1,5 +1,6 @@
 {
-  "name": "<%= t('.name') %>",
+  "name": <%= raw t('.name').to_json %>,
+  "id": "/",
   "icons": [
     {
       "src": "/icon.png",
@@ -16,7 +17,7 @@
   "start_url": "/",
   "display": "standalone",
   "scope": "/",
-  "description": "<%= t('.description') %>",
-  "theme_color": "red",
-  "background_color": "red"
+  "description": <%= raw t('.description').to_json %>,
+  "theme_color": "#f4f2ee",
+  "background_color": "#f4f2ee"
 }

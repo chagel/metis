@@ -36,6 +36,8 @@ export default class extends DropdownController {
       localStorage.setItem("metisTheme", theme)
       root.dataset.theme = theme
     }
+    const meta = document.querySelector('meta[name="theme-color"]')
+    if (meta) meta.content = getComputedStyle(root).getPropertyValue("--bg").trim()
   }
 
   #persist(theme) {

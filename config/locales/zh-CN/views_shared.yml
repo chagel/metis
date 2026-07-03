@@ -49,7 +49,7 @@
   pwa:
     manifest:
       name: "Metis"
-      description: "Metis。"
+      description: "与团队的 AI 智能体对话 — 会话、工作流与连接器。"
   shared:
     # 由 elapsed_timer_controller 在客户端设置；%{time} 在 JS 中填充。
     working_for: "已运行 %{time}"

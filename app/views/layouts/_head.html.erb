@@ -1,9 +1,11 @@
 <head>
   <title><%= content_for(:title) || t('.title') %></title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Metis">
   <meta name="application-name" content="Metis">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#f4f2ee">
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
 
@@ -15,8 +17,11 @@
       var server = <%= raw current_user&.theme.to_json %>;
       var saved = server === "system" ? null : (server || localStorage.getItem("metisTheme"));
       if (server && server !== "system") localStorage.setItem("metisTheme", server);
-      document.documentElement.dataset.theme =
-        saved || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      var theme = saved || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.dataset.theme = theme;
+      // Mirror --bg so browser chrome / PWA status bar matches the theme.
+      document.querySelector('meta[name="theme-color"]').content =
+        theme === "dark" ? "#0e1014" : "#f4f2ee";
     })();
   </script>
 
@@ -25,6 +30,7 @@
   <link rel="icon" href="/icon.png" type="image/png">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icon.png">
+  <link rel="manifest" href="<%= pwa_manifest_path(format: :json) %>">
 
   <%= preload_link_tag asset_path("figtree-latin.woff2"), as: "font", type: "font/woff2", crossorigin: "anonymous" %>
 
