@@ -76,7 +76,8 @@ class BoardControllerTest < ActionDispatch::IntegrationTest
     get board_path
     assert_select "#board_actors .board-actors-ct", text: "1/1"
     assert_select "#board_actors_panel .board-arow-nm.board-mono", text: /Apollo/
-    assert_select "#board_actors_panel .board-lite", text: /online/
+    assert_select "#board_actors_panel .board-lite .board-dot--live"
+    assert_select "#board_actors_panel .board-lite", text: /seen 10s/
   end
 
   test "actors action returns a turbo stream replacing the bar" do

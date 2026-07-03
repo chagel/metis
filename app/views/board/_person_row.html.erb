@@ -2,19 +2,13 @@
   <%= avatar_for person.member, size: 30, css: "board-arow-av" %>
   <div class="board-arow-main">
     <div class="board-arow-nm"><%= person.member.display_label %></div>
-    <div class="board-arow-st">
-      <% if person.idle? %>
-        <%= t("board.actors.no_gates") %>
-      <% else %>
-        <%= t("board.actors.reviewing", ref: person.gate_ref) %>
-      <% end %>
-    </div>
-  </div>
-  <div class="board-arow-r">
-    <% if person.idle? %>
-      <span class="board-pill board-pill--idle"><%= t("board.actors.idle") %></span>
-    <% else %>
-      <span class="board-pill board-pill--gold"><%= t("board.actors.gate_count", count: person.gate_count) %></span>
+    <% unless person.idle? %>
+      <div class="board-arow-st"><%= t("board.actors.reviewing", ref: person.gate_ref) %></div>
     <% end %>
   </div>
+  <% unless person.idle? %>
+    <div class="board-arow-r">
+      <span class="board-pill board-pill--gold"><%= t("board.actors.gate_count", count: person.gate_count) %></span>
+    </div>
+  <% end %>
 </div>

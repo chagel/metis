@@ -6,19 +6,14 @@
     <div class="board-arow-nm board-mono">
       <%= machine.owner.display_label %><% if machine.client.present? %> · <%= machine.client %><% end %>
     </div>
-    <div class="board-arow-st">
-      <% if machine.task_ref %>
-        <%= t("board.actors.working", ref: machine.task_ref) %>
-      <% else %>
-        <%= t("board.actors.no_task") %>
-      <% end %>
-    </div>
+    <% if machine.task_ref %>
+      <div class="board-arow-st"><%= t("board.actors.working", ref: machine.task_ref) %></div>
+    <% end %>
   </div>
   <div class="board-arow-r">
     <span class="board-lite">
       <span class="board-dot <%= machine.online? ? "board-dot--live" : "" %>"></span>
-      <%= machine.online? ? t("board.actors.online") : t("board.actors.stale") %>
+      <%= t("board.actors.seen", ago: board_seen_ago(machine.seen_at)) %>
     </span>
-    <span class="board-arow-st"><%= t("board.actors.seen", ago: board_seen_ago(machine.seen_at)) %></span>
   </div>
 </div>

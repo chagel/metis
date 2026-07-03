@@ -2968,10 +2968,6 @@ body.drawer-open { overflow:hidden; }
 }
 .board-actors.open .board-actors-panel { display:block; }
 .board-actors-empty { padding:8px 7px; font-size:12px; color:var(--ink-3); }
-.board-actors-note {
-  margin-top:8px; padding:13px 7px 2px; border-top:1px solid var(--line);
-  font-size:10.5px; line-height:1.55; color:var(--ink-3);
-}
 
 .board-rsec {
   display:flex; align-items:center; gap:8px;
@@ -3075,9 +3071,14 @@ body.drawer-open { overflow:hidden; }
 .prnav-badge-slot { display:inline-flex; }
 
 @media (max-width:768px) {
-  /* Head clears the floating hamburger; safe-area top in standalone. */
   .board-head {
-    padding:14px 14px 12px 56px;
+    padding:14px 14px 12px;
     padding-top:max(14px, env(safe-area-inset-top));
   }
+  /* Only the title clears the floating hamburger — the filter rows
+     below sit flush left. */
+  .board-head h1 { padding-left:42px; }
+  /* Anchored right:0 the panel would hang past the left viewport edge;
+     open rightward from the bar instead. */
+  .board-actors-panel { left:0; right:auto; }
 }
