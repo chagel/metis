@@ -61,12 +61,12 @@ class BoardControllerTest < ActionDispatch::IntegrationTest
     assert_select ".board-empty"
   end
 
-  test "renders the actors bar with a focusable toggle and people in the panel" do
+  test "renders the status bar with focusable toggles and people in the panel" do
     sign_in @user
     get board_path
-    assert_select "#board_actors button.board-actors-bar[aria-expanded]"
-    assert_select "#board_actors_panel .board-arow .board-arow-nm", text: /board-ctrl@example.com/
-    assert_select "#board_actors_panel .board-actors-empty"
+    assert_select "#board_actors button.board-side-bar[aria-expanded]", count: 2
+    assert_select "#board_people_panel .board-arow .board-arow-nm", text: /board-ctrl@example.com/
+    assert_select "#board_machines_panel .board-actors-empty"
   end
 
   test "renders a connected machine with the online over total summary" do
@@ -75,9 +75,9 @@ class BoardControllerTest < ActionDispatch::IntegrationTest
     sign_in @user
     get board_path
     assert_select "#board_actors .board-actors-ct", text: "1/1"
-    assert_select "#board_actors_panel .board-arow-nm.board-mono", text: /Apollo/
-    assert_select "#board_actors_panel .board-lite .board-dot--live"
-    assert_select "#board_actors_panel .board-lite", text: /seen 10s/
+    assert_select "#board_machines_panel .board-arow-nm.board-mono", text: /Apollo/
+    assert_select "#board_machines_panel .board-lite .board-dot--live"
+    assert_select "#board_machines_panel .board-lite", text: /seen 10s/
   end
 
   test "actors action returns a turbo stream replacing the bar" do

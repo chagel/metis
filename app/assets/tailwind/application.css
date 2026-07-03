@@ -2905,26 +2905,35 @@ body.drawer-open { overflow:hidden; }
 .board-tag { margin-left:auto; font-family:var(--fm); font-size:10px; color:var(--faint); }
 
 .board-empty { padding:60px 22px; text-align:center; font-size:13.5px; color:var(--ink-3); }
+/* Status bar: people presence left, bridge machines right. Each side is
+   a minimal trigger whose panel opens above it on hover or tap. */
 .board-foot {
-  padding:9px 22px; border-top:1px solid var(--line);
-  font-size:11px; color:var(--ink-3);
+  padding:5px 14px; border-top:1px solid var(--line);
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
 }
+.board-side { position:relative; }
+.board-side-bar {
+  display:flex; align-items:center; gap:8px;
+  background:none; border:none; border-radius:9px;
+  padding:5px 8px; cursor:pointer; color:var(--ink-2);
+  transition:background-color .13s;
+}
+.board-side:hover .board-side-bar, .board-side.open .board-side-bar { background:var(--bg); }
+.board-side-bar > svg { width:15px; height:15px; color:var(--ink-3); }
 
-/* Actors: a compact presence bar in the board header that expands into a
-   dropdown panel. The grid stays full-width. */
-.board-actors { position:relative; }
-.board-actors-bar {
-  display:flex; align-items:center; gap:10px;
-  background:var(--card); border:1px solid var(--line); border-radius:11px;
-  padding:6px 10px; cursor:pointer; color:var(--ink-2);
-  transition:border-color .15s, box-shadow .15s;
+/* Flush to the bar's top edge — a gap would break the pointer's hover
+   path from trigger to panel. */
+.board-side-panel {
+  display:none; position:absolute; bottom:100%; left:0; z-index:20;
+  width:320px; max-width:calc(100vw - 28px); max-height:min(70vh, 540px); overflow:auto;
+  background:var(--side); border:1px solid var(--line); border-radius:14px;
+  box-shadow:var(--sh-lg); padding:8px 12px;
 }
-.board-actors-bar:hover { border-color:var(--line-2); box-shadow:var(--sh-sm); }
-.board-actors.open .board-actors-bar { border-color:var(--accent-fg); }
-.board-actors-lbl {
-  font-family:var(--fm); font-size:10.5px; letter-spacing:.04em;
-  text-transform:uppercase; color:var(--ink-3);
+.board-side--r .board-side-panel { left:auto; right:0; }
+@media (hover:hover) {
+  .board-side:hover .board-side-panel { display:block; }
 }
+.board-side.open .board-side-panel { display:block; }
 
 .board-actors-stack { display:flex; align-items:center; padding-left:4px; }
 .board-actors-av {
@@ -2950,31 +2959,10 @@ body.drawer-open { overflow:hidden; }
   padding:1px 8px; border-radius:11px;
   background:var(--gold-soft); color:var(--gold);
 }
-.board-actors-mach {
-  display:flex; align-items:center; gap:6px;
-  padding-left:10px; margin-left:2px; border-left:1px solid var(--line);
-}
-.board-actors-mach svg { width:15px; height:15px; color:var(--ink-3); }
 .board-actors-ct { font-size:11px; color:var(--ink-2); }
 .board-actors-dots { display:flex; align-items:center; gap:3px; }
-.board-actors-chev { width:14px; height:14px; color:var(--ink-3); transition:transform .15s; }
-.board-actors.open .board-actors-chev { transform:rotate(180deg); }
 
-.board-actors-panel {
-  display:none; position:absolute; right:0; top:calc(100% + 8px); z-index:20;
-  width:320px; max-width:88vw; max-height:min(70vh, 540px); overflow:auto;
-  background:var(--side); border:1px solid var(--line); border-radius:14px;
-  box-shadow:var(--sh-lg); padding:6px 12px 14px;
-}
-.board-actors.open .board-actors-panel { display:block; }
 .board-actors-empty { padding:8px 7px; font-size:12px; color:var(--ink-3); }
-
-.board-rsec {
-  display:flex; align-items:center; gap:8px;
-  padding:15px 6px 7px; font-size:11px; font-weight:600;
-  letter-spacing:.04em; text-transform:uppercase; color:var(--ink-3);
-}
-.board-rsec-ct { margin-left:auto; font-family:var(--fm); }
 
 .board-arow { display:flex; align-items:center; gap:10px; padding:8px 7px; border-radius:9px; }
 .board-arow:hover { background:var(--card); }
@@ -3078,7 +3066,5 @@ body.drawer-open { overflow:hidden; }
   /* Only the title clears the floating hamburger — the filter rows
      below sit flush left. */
   .board-head h1 { padding-left:42px; }
-  /* Anchored right:0 the panel would hang past the left viewport edge;
-     open rightward from the bar instead. */
-  .board-actors-panel { left:0; right:auto; }
+  .board-foot { padding-bottom:max(5px, env(safe-area-inset-bottom)); }
 }

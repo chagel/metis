@@ -6,10 +6,9 @@
       <h1><%= t(".title") %></h1>
       <%= render "board/filters" %>
     </div>
-    <%= render "board/actors", presence: @presence, poll_query: board_filter_query %>
   </header>
 
   <%= render "board/grid", board: @board %>
 
-  <div class="board-foot"><%= t(".read_only") %></div>
+  <%= render "board/actors", presence: @presence, poll_query: board_filter_query %>
 </main>

@@ -6,7 +6,6 @@ zh-CN:
         project: "项目"
         status: "状态"
       empty: "暂无运行。启动一个工作流后会出现在这里。"
-      read_only: "只读 · 状态类型基于工作流引擎"
       no_project: "无项目"
       columns:
         queued: "队列中"
@@ -39,8 +38,6 @@ zh-CN:
         "1m": "1个月"
         all: "全部"
     actors:
-      live: "实时"
-      expand: "显示活跃对象"
       summary_people:
         other: "%{count} 名成员"
       gates_badge:
