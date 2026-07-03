@@ -2187,9 +2187,11 @@ body.auth-shell { min-height:100vh; display:grid; place-items:center; padding:24
     text-overflow:ellipsis;
   }
   .chat-sub { margin-top:5px; gap:7px; }
-  /* Run identity row — wrap instead of pushing the status pill offscreen. */
+  /* Run identity row — workflow name and status only; the step/duration/
+     cost stats are desktop telemetry. */
   .wf-meta { flex-wrap:wrap; }
   .wf-meta-name { white-space:nowrap; }
+  .wf-meta-stats { display:none; }
   .chat-actions { gap:2px; }
   .chat-action { width:30px; height:30px; }
 
