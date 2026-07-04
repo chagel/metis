@@ -31,6 +31,7 @@ export default class extends Controller {
       if (event.target?.id === "main") this.close()
     }
     document.addEventListener("turbo:frame-load", this._onFrameLoad)
+    this._setupSwipe()
 
     // Collapse is only wired on shells that ship the icon rail (chat),
     // not the settings shell, which shares this controller.
@@ -61,7 +62,37 @@ export default class extends Controller {
   disconnect() {
     document.removeEventListener("turbo:frame-load", this._onFrameLoad)
     if (this._onKeydown) window.removeEventListener("keydown", this._onKeydown)
+    this.element.removeEventListener("touchstart", this._onTouchStart)
+    this.element.removeEventListener("touchend", this._onTouchEnd)
     document.body.classList.remove("drawer-open")
+  }
+
+  // Swipe navigation on narrow viewports (thresholds from themis): a
+  // quick rightward swipe from the left edge opens the drawer, a
+  // leftward swipe closes it. Vertical drift bails so scrolling never
+  // triggers it.
+  _setupSwipe() {
+    this._onTouchStart = (event) => {
+      const touch = event.touches[0]
+      this._swipe = { x: touch.clientX, y: touch.clientY, time: Date.now() }
+    }
+    this._onTouchEnd = (event) => {
+      if (!this._swipe) return
+      const start = this._swipe
+      this._swipe = null
+      if (!window.matchMedia("(max-width: 768px)").matches) return
+
+      const touch = event.changedTouches[0]
+      const dx = touch.clientX - start.x
+      const dy = Math.abs(touch.clientY - start.y)
+      if (dy > 60 || Date.now() - start.time > 600) return
+
+      const open = this.element.classList.contains("sidebar-open")
+      if (!open && start.x < 40 && dx > 80) this.open()
+      else if (open && dx < -80) this.close()
+    }
+    this.element.addEventListener("touchstart", this._onTouchStart, { passive: true })
+    this.element.addEventListener("touchend", this._onTouchEnd, { passive: true })
   }
 
   // ── mobile drawer ──
