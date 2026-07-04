@@ -59,9 +59,8 @@ Rails.application.configure do
   # (and Sentry sees them) rather than swallowing a dropped invitation.
   config.action_mailer.raise_delivery_errors = true
 
-  # :smtp or :cloudflare — transport credentials are read from ENV in
-  # config/initializers/mail.rb.
-  config.action_mailer.delivery_method = ENV.fetch("METIS_MAIL_DELIVERY", "cloudflare").to_sym
+  # smtp, cloudflare, or test — credentials in config/initializers/mail.rb.
+  config.action_mailer.delivery_method = ENV.fetch("METIS_MAIL_DELIVERY").to_sym
 
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = {

@@ -25,7 +25,7 @@ cp .env.example .env
 | `METIS_DAYTONA_AUTO_STOP_MINUTES` / `_AUTO_ARCHIVE_MINUTES` / `_AUTO_DELETE_MINUTES` | Daytona idle-lifecycle intervals, minutes (default 120 / 60 / 1440). Stop is a crash-only safety net — keep it above the longest turn. |
 | `SMTP_ADDRESS`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, … | outbound email over SMTP — see [Email & access](#email--account-access) |
 | `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_EMAIL_API_TOKEN` | outbound email via Cloudflare Email Service — see [Email & access](#email--account-access) |
-| `METIS_MAIL_DELIVERY` | mail transport: `smtp` or `cloudflare` (default `cloudflare` in production; `test` — no real send — in development) |
+| `METIS_MAIL_DELIVERY` | mail transport — **required in production**: `smtp`, `cloudflare`, or `test` to run without email; development defaults to `test` (no real send) |
 | `METIS_MAIL_FROM` | sender for all email (on a domain your transport may send for) |
 | `METIS_APP_HOST` | host for links in emails (invites, password reset) |
 | `METIS_REGISTRATION_MODE` | `invite_only` (default) or `open` |
@@ -175,10 +175,10 @@ out through the transport `METIS_MAIL_DELIVERY` picks: `smtp` or
   send-scoped `CLOUDFLARE_EMAIL_API_TOKEN`; the sender domain must be
   **verified** in that Cloudflare account.
 
-With `METIS_MAIL_DELIVERY` unset, production defaults to `cloudflare`
-(and fails loudly on the first send if its credentials are missing) and
-development to `test` — no real send, mail accumulates in
-`ActionMailer::Base.deliveries`.
+There is no default in production: boot fails with a pointer here when
+`METIS_MAIL_DELIVERY` is unset. Set it to `smtp`, `cloudflare`, or
+`test` to run without outbound email. Development defaults to `test` —
+no real send, mail accumulates in `ActionMailer::Base.deliveries`.
 
 The value goes straight through to ActionMailer, so any delivery method
 registered by a gem works too: add e.g. `aws-actionmailer-ses`

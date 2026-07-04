@@ -74,6 +74,7 @@ env:
     - LANGFUSE_PUBLIC_KEY
     - LANGFUSE_SECRET_KEY
   clear:
+    METIS_MAIL_DELIVERY: cloudflare
     METIS_MAIL_FROM: "Metis <noreply@<%= ENV.fetch('METIS_HOST') %>>"
     METIS_APP_HOST: <%= ENV.fetch("METIS_HOST") %>
     CLOUDFLARE_ACCOUNT_ID: <%= ENV.fetch("CLOUDFLARE_ACCOUNT_ID") %>
