@@ -17,11 +17,12 @@ class DoctorTest < ActiveSupport::TestCase
     assert_match(/problems?|warnings?|All good\./, report)
   end
 
-  test "providers pass with a key and fail without" do
+  test "providers pass with a key, warn on bare local, fail on bare sandbox runtime" do
     with_key = doctor({ "ANTHROPIC_API_KEY" => "sk-x" })
     assert_equal :ok, check(with_key, "Agent", "providers").status
     assert_includes check(with_key, "Agent", "providers").detail, "anthropic"
-    assert_equal :fail, check(doctor, "Agent", "providers").status
+    assert_equal :warn, check(doctor, "Agent", "providers").status
+    assert_equal :fail, check(doctor({ "METIS_AGENT_RUNTIME" => "docker" }), "Agent", "providers").status
   end
 
   test "e2b runtime requires its API key" do
@@ -58,7 +59,7 @@ class DoctorTest < ActiveSupport::TestCase
   end
 
   test "ok? is false when any check fails" do
-    assert_not doctor.ok?
+    assert_not doctor({ "METIS_AGENT_RUNTIME" => "e2b" }).ok?
     assert doctor({
       "ANTHROPIC_API_KEY" => "sk-x", "CLOUDFLARE_ACCOUNT_ID" => "a", "CLOUDFLARE_EMAIL_API_TOKEN" => "t"
     }).ok?

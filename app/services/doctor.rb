@@ -131,8 +131,9 @@ class Doctor
     [ runtime_check, providers_check, default_model_check, web_search_check ]
   end
 
+  def runtime = @env.fetch("METIS_AGENT_RUNTIME", "local")
+
   def runtime_check
-    runtime = @env.fetch("METIS_AGENT_RUNTIME", "local")
     case runtime
     when "local"
       status = Rails.env.production? ? :warn : :ok
@@ -155,6 +156,8 @@ class Doctor
     end
     if configured.any?
       Check.new(:ok, "providers", configured.join(", "))
+    elsif runtime == "local"
+      Check.new(:warn, "providers", "no key in Metis env — local pi may still use its own config (~/.pi)")
     else
       Check.new(:fail, "providers", "no LLM provider key set — ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, …")
     end
