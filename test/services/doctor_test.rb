@@ -1,5 +1,4 @@
 require "test_helper"
-require "minitest/mock"
 
 class DoctorTest < ActiveSupport::TestCase
   def doctor(env = {}, delivery_method: :test)
@@ -68,9 +67,14 @@ class DoctorTest < ActiveSupport::TestCase
 
   test "encryption check fails without crashing when keys are missing" do
     # config.primary_key raises when unset; the doctor must report :fail,
-    # not abort with a stack trace, in the keyless env it diagnoses.
-    ActiveRecord::Encryption.config.stub(:has_primary_key?, false) do
+    # not abort with a stack trace, in the keyless env it diagnoses. Test
+    # env hardcodes the keys, so override the predicate for one assertion.
+    config = ActiveRecord::Encryption.config
+    config.define_singleton_method(:has_primary_key?) { false }
+    begin
       assert_equal :fail, check(doctor, "Core", "encryption").status
+    ensure
+      config.singleton_class.send(:remove_method, :has_primary_key?)
     end
   end
 
