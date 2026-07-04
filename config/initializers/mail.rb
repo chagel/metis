@@ -9,35 +9,20 @@
 Rails.application.config.x.mail.from =
   ENV.fetch("METIS_MAIL_FROM", "Metis <noreply@example.com>")
 
-# SMTP_HOST is accepted as an alias — .env.example long shipped that name.
-if (smtp_address = ENV["SMTP_ADDRESS"].presence || ENV["SMTP_HOST"].presence)
-  settings = {
-    address: smtp_address,
-    port: Integer(ENV.fetch("SMTP_PORT", 587)),
-    domain: ENV["SMTP_DOMAIN"].presence,
-    user_name: ENV["SMTP_USERNAME"].presence,
-    password: ENV["SMTP_PASSWORD"].presence,
-    open_timeout: 5,
-    read_timeout: 10
-  }.compact
-  settings[:authentication] = ENV.fetch("SMTP_AUTHENTICATION", "plain").to_sym if settings[:user_name]
-  # Implicit TLS (SMTPS, port-465 style) and STARTTLS are mutually
-  # exclusive in Net::SMTP.
-  if ENV["SMTP_TLS"] == "true"
-    settings[:tls] = true
-  else
-    settings[:enable_starttls_auto] = ENV.fetch("SMTP_ENABLE_STARTTLS", "true") == "true"
-  end
-  Rails.application.config.action_mailer.smtp_settings = settings
-end
-
 # Retry transient delivery failures instead of dropping the email.
 Rails.application.config.action_mailer.delivery_job = "MailDeliveryJob"
 
-# Registered in to_prepare so the autoloaded Delivery::Cloudflare
-# constant resolves (and survives dev reloads); add_delivery_method is
-# idempotent.
+# Registered in to_prepare so the autoloaded Delivery::* constants
+# resolve (and survive dev reloads). SMTP_HOST is accepted as an alias
+# for SMTP_ADDRESS — .env.example long shipped that name; and
+# Delivery::SmtpSettings.from_env treats present-but-empty vars as unset,
+# so a partial config from the shipped .env.example can't crash boot.
+# add_delivery_method is idempotent.
 Rails.application.config.to_prepare do
+  if (smtp_settings = Delivery::SmtpSettings.from_env(ENV))
+    ActionMailer::Base.smtp_settings = smtp_settings
+  end
+
   ActionMailer::Base.add_delivery_method :cloudflare, Delivery::Cloudflare,
     account_id: ENV["CLOUDFLARE_ACCOUNT_ID"].presence,
     api_token: ENV["CLOUDFLARE_EMAIL_API_TOKEN"].presence

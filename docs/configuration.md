@@ -158,6 +158,10 @@ Credentials are read from ENV in `config/initializers/mail.rb`.
   | `SMTP_ENABLE_STARTTLS` | `true` | upgrade to TLS after connect |
   | `SMTP_TLS` | `false` | implicit TLS (SMTPS, port 465) |
 
+  `SMTP_ENABLE_STARTTLS` is *opportunistic*: if the server doesn't offer
+  STARTTLS the mail still goes out, in plaintext. For a server that must
+  never fall back to plaintext, use `SMTP_TLS=true` (implicit TLS).
+
   Hosted senders — all STARTTLS on the default port 587:
 
   | Provider | `SMTP_ADDRESS` | Credentials |

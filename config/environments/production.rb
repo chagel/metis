@@ -61,7 +61,7 @@ Rails.application.configure do
 
   # smtp (default), cloudflare, or test — credentials in
   # config/initializers/mail.rb.
-  config.action_mailer.delivery_method = ENV.fetch("METIS_MAIL_DELIVERY", "smtp").to_sym
+  config.action_mailer.delivery_method = (ENV["METIS_MAIL_DELIVERY"].presence || "smtp").to_sym
 
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = {

@@ -40,7 +40,7 @@ Rails.application.configure do
   # Default :test accumulates in ActionMailer::Base.deliveries; set
   # METIS_MAIL_DELIVERY=smtp|cloudflare to send for real (e.g. on a
   # shared dev host). Credentials in config/initializers/mail.rb.
-  config.action_mailer.delivery_method = ENV.fetch("METIS_MAIL_DELIVERY", "test").to_sym
+  config.action_mailer.delivery_method = (ENV["METIS_MAIL_DELIVERY"].presence || "test").to_sym
 
   # Set host to be used by links generated in mailer templates. A shared
   # dev host (METIS_DEV_HOST) sits behind TLS with no explicit port.
