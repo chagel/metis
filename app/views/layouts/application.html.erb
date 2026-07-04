@@ -36,7 +36,7 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="auth-shell">
+  <body class="<%= class_names("auth-shell", "hotwire-native": hotwire_native_app?) %>">
     <main class="auth">
       <div class="auth-brand">
         <span class="auth-mark" aria-hidden="true">

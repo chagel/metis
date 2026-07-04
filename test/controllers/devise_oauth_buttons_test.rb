@@ -38,4 +38,15 @@ class DeviseOauthButtonsTest < ActionDispatch::IntegrationTest
       end
     end
   end
+
+  test "native sign-in swaps Google for the marker link and forces remember me" do
+    with_stub(GoogleApp::Config, :configured?, -> { true }) do
+      get new_user_session_path, headers: { "User-Agent" => "Hotwire Native iOS" }
+      assert_response :success
+
+      assert_select "a.auth-oauth[href='/users/auth/google/native_start']", count: 1
+      assert_select "input[type=hidden][name='user[remember_me]'][value='1']", count: 1
+      assert_select ".auth-check", count: 0
+    end
+  end
 end

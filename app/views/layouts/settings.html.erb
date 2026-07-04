@@ -2,7 +2,7 @@
 <html lang="<%= I18n.locale %>">
   <%= render "layouts/head" %>
 
-  <body class="app-shell">
+  <body class="<%= class_names("app-shell", "hotwire-native": hotwire_native_app?) %>">
     <div class="app" data-controller="sidebar">
       <button type="button" class="sidebar-toggle"
               data-action="click->sidebar#toggle"

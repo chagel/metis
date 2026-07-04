@@ -2,11 +2,15 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
   get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
+  get "configurations/ios_v1" => "hotwire/path_configurations#ios", as: :hotwire_ios_path_configuration
 
   devise_for :users, controllers: {
     omniauth_callbacks: "users/omniauth_callbacks",
     registrations: "users/registrations"
   }
+  # Native Google sign-in: Google blocks OAuth inside webviews, so the
+  # iOS app runs Google Sign-In natively and posts the ID token here.
+  post "users/auth/google/native", to: "users/native_auth#google", as: :google_native_auth
 
   resources :conversations, only: %i[index create show update] do
     collection do

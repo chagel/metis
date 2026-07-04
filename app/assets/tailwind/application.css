@@ -2150,7 +2150,9 @@ body.auth-shell { min-height:100vh; display:grid; place-items:center; padding:24
   .sidebar {
     position:fixed; top:0; bottom:0; left:0;
     width:84%; max-width:320px; z-index:50;
-    padding:10px 0;
+    /* The drawer spans the full screen height, so clear the notch and
+       home indicator (standalone PWA / native app; 0 in browser tabs). */
+    padding:max(10px, env(safe-area-inset-top)) 0 max(10px, env(safe-area-inset-bottom));
     background:var(--side);
     box-shadow:var(--sh-lg);
     transform:translateX(-100%);
@@ -3070,3 +3072,14 @@ body.drawer-open { overflow:hidden; }
   .board-head h1 { padding-left:42px; }
   .board-foot { padding-bottom:max(5px, env(safe-area-inset-bottom)); }
 }
+
+/* ============================================================
+   HOTWIRE NATIVE — the iOS/Android shells (body.hotwire-native).
+   Native tabs replace the sidebar's primary nav and native bars
+   own the safe areas; everything else reuses the mobile (768px)
+   layer as-is.
+   ============================================================ */
+/* Chats / Projects / Board links duplicate the native tab bar. */
+.hotwire-native .prnav { display:none; }
+/* Settings is its own native tab — no "back to chat" escape hatch. */
+.hotwire-native .settings-sidebar .ws-back { display:none; }

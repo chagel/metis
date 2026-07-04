@@ -198,7 +198,7 @@ module ApplicationHelper
   end
 
   def chat_body_attrs
-    attrs = { class: "app-shell" }
+    attrs = { class: class_names("app-shell", "hotwire-native": hotwire_native_app?) }
     if user_signed_in? && current_user.timezone.blank?
       attrs[:data] = {
         controller: "timezone-detect",
