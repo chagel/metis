@@ -3127,3 +3127,14 @@ body.drawer-open { overflow:hidden; }
 .hotwire-native .prnav { display:none; }
 /* Settings is its own native tab — no "back to chat" escape hatch. */
 .hotwire-native .settings-sidebar .ws-back { display:none; }
+/* The native tab bar floats over the web view's bottom, and these pages
+   scroll inside inner (100dvh) containers that never see the native
+   scroll-view inset — so the last row (e.g. Save profile) would sit
+   under the bar. WebKit also ignores a scroll container's own
+   padding-bottom for scroll extent, so a real spacer child is what
+   lets it clear. Its height is the exact overlap the iOS shell measures
+   and injects as --native-bottom-inset (WebViewController); 0 until it
+   reports, so non-native contexts add nothing. */
+.hotwire-native .pane-body::after {
+  content:""; display:block; flex:none; height:var(--native-bottom-inset, 0px);
+}
