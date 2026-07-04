@@ -15,6 +15,7 @@ secret **names** under `env.secret`, resolved at deploy through
 `.kamal/secrets` (this repo's pulls them from Rails production
 credentials). Every variable below applies the same way in both worlds —
 `.env` for development, `deploy.yml` + `.kamal/secrets` for production.
+Step-by-step deploy guide: [`deployment.md`](deployment.md).
 
 ## Environment variables
 

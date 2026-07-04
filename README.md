@@ -63,6 +63,7 @@ a fast, open agent harness. The lessons come along; the lock-in does not.
 - **[`VISION.md`](VISION.md)** — what Metis is, the rules we hold to, what we won't build.
 - **[`docs/architecture.md`](docs/architecture.md)** — how a turn flows; the Agent service layer.
 - **[`docs/configuration.md`](docs/configuration.md)** — runtimes, providers, and environment.
+- **[`docs/deployment.md`](docs/deployment.md)** — production deploys with Kamal, step by step.
 
 ## Stack
 
