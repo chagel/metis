@@ -147,6 +147,26 @@ out through one of two transports (all wiring lives in
   | `SMTP_ENABLE_STARTTLS` | `true` | upgrade to TLS after connect |
   | `SMTP_TLS` | `false` | implicit TLS from byte one (SMTPS, port 465) |
 
+  Hosted senders are reached the same way — point the vars at their SMTP
+  endpoint. Amazon SES, for example:
+
+  ```sh
+  SMTP_ADDRESS=email-smtp.us-east-1.amazonaws.com   # your SES region
+  SMTP_USERNAME=<SES SMTP username>   # IAM → SES SMTP credentials —
+  SMTP_PASSWORD=<SES SMTP password>   # NOT your AWS access key
+  METIS_MAIL_FROM="Metis <noreply@your-ses-verified-domain.com>"
+  ```
+
+  | Provider | `SMTP_ADDRESS` | Credentials |
+  |---|---|---|
+  | Amazon SES | `email-smtp.<region>.amazonaws.com` | dedicated SES SMTP credentials |
+  | Mailgun | `smtp.mailgun.org` | domain SMTP login |
+  | Postmark | `smtp.postmarkapp.com` | server API token as both username and password |
+  | SendGrid | `smtp.sendgrid.net` | username `apikey`, API key as password |
+  | Resend | `smtp.resend.com` | username `resend`, API key as password |
+
+  All of these speak STARTTLS on the default port 587.
+
 - **Cloudflare Email Service** — a REST API instead of an SMTP server
   (`Delivery::Cloudflare`). Set `CLOUDFLARE_ACCOUNT_ID` and a send-scoped
   `CLOUDFLARE_EMAIL_API_TOKEN`; the sender domain must be **verified** in
