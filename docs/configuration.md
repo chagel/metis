@@ -8,6 +8,14 @@ it). Copy the template to start, then fill in what you need:
 cp .env.example .env
 ```
 
+`.env` only feeds local runs. A **Kamal deployment** takes its
+environment from `config/deploy.yml` instead: plain values under
+`env.clear` (ERB-interpolated from `.env.deploy` at deploy time),
+secret **names** under `env.secret`, resolved at deploy through
+`.kamal/secrets` (this repo's pulls them from Rails production
+credentials). Every variable below applies the same way in both worlds —
+`.env` for development, `deploy.yml` + `.kamal/secrets` for production.
+
 ## Environment variables
 
 | Variable | Purpose |

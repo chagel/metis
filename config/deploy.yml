@@ -49,7 +49,7 @@ env:
     - CACHE_DATABASE_URL
     - CABLE_DATABASE_URL
     - QUEUE_DATABASE_URL
-    - CLOUDFLARE_EMAIL_API_TOKEN
+    - CLOUDFLARE_EMAIL_API_TOKEN # or SMTP_PASSWORD when METIS_MAIL_DELIVERY is smtp
     - AWS_ACCESS_KEY_ID
     - AWS_SECRET_ACCESS_KEY
     - ANTHROPIC_API_KEY
@@ -74,10 +74,13 @@ env:
     - LANGFUSE_PUBLIC_KEY
     - LANGFUSE_SECRET_KEY
   clear:
+    # Email transport (docs/configuration.md#email--account-access). For
+    # SMTP instead: METIS_MAIL_DELIVERY: smtp, SMTP_ADDRESS / SMTP_PORT /
+    # SMTP_USERNAME here, SMTP_PASSWORD under env/secret above.
     METIS_MAIL_DELIVERY: cloudflare
     METIS_MAIL_FROM: "Metis <noreply@<%= ENV.fetch('METIS_HOST') %>>"
-    METIS_APP_HOST: <%= ENV.fetch("METIS_HOST") %>
     CLOUDFLARE_ACCOUNT_ID: <%= ENV.fetch("CLOUDFLARE_ACCOUNT_ID") %>
+    METIS_APP_HOST: <%= ENV.fetch("METIS_HOST") %>
     METIS_REGISTRATION_MODE: invite_only
     METIS_AGENT_RUNTIME: docker
     # OCI runtime for pi containers — "runsc" = gVisor (requires gVisor
