@@ -127,6 +127,16 @@ The schema is created and migrated automatically on web boot
 (`bin/docker-entrypoint` runs `db:prepare`). Handy aliases from
 `deploy.yml`: `kamal console`, `kamal shell`, `kamal logs`, `kamal dbc`.
 
+Then check the configuration landed as intended:
+
+```sh
+kamal app exec "bin/rails metis:doctor"
+```
+
+It prints every subsystem — email, providers, runtime, storage, access,
+connectors — as configured, missing, or defaulted, with the env var
+names to fix.
+
 ## 6. First login
 
 Registration is invite-only by default, with one exception: the very
