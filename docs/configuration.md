@@ -180,6 +180,12 @@ With `METIS_MAIL_DELIVERY` unset, production defaults to `cloudflare`
 development to `test` — no real send, mail accumulates in
 `ActionMailer::Base.deliveries`.
 
+The value goes straight through to ActionMailer, so any delivery method
+registered by a gem works too: add e.g. `aws-actionmailer-ses`
+(`sesv2`, IAM-role auth instead of SMTP credentials) or
+`postmark-rails` (`postmark`) to the Gemfile, configure its settings
+per its README, and set `METIS_MAIL_DELIVERY` to its name.
+
 Point `METIS_MAIL_FROM` at an address on a domain your transport may send
 for. `METIS_APP_HOST` is the host links in those emails resolve to
 (production; a shared dev host uses `METIS_DEV_HOST`).
