@@ -130,15 +130,15 @@ into the sandbox by `Agent::Runtime::Base#sandbox_env`.
 
 ## Email & account access
 
-Transactional email — team invitations and Devise's password reset — goes
-out through the transport `METIS_MAIL_DELIVERY` picks: `smtp` or
-`cloudflare` (each environment's default is in
-`config/environments/*.rb`; credentials are read in
-`config/initializers/mail.rb`):
+Transactional email — team invitations and Devise's password reset —
+goes out through the transport `METIS_MAIL_DELIVERY` names. Production
+requires it: `smtp`, `cloudflare`, or `test` to run without email.
+Development defaults to `test` — mail accumulates in
+`ActionMailer::Base.deliveries`, nothing is sent. Credentials are read
+from ENV in `config/initializers/mail.rb`.
 
-- **`smtp`** — any provider (Amazon SES, Mailgun, Postmark, a corporate
-  relay), via Rails' built-in transport. Only `SMTP_ADDRESS` is required;
-  the rest have sane defaults:
+- **`smtp`** — Rails' built-in transport; works with any provider. Only
+  `SMTP_ADDRESS` is required:
 
   | Variable | Default | Purpose |
   |---|---|---|
@@ -148,47 +148,31 @@ out through the transport `METIS_MAIL_DELIVERY` picks: `smtp` or
   | `SMTP_AUTHENTICATION` | `plain` | `plain`, `login`, or `cram_md5` |
   | `SMTP_DOMAIN` | — | HELO domain, if your provider requires it |
   | `SMTP_ENABLE_STARTTLS` | `true` | upgrade to TLS after connect |
-  | `SMTP_TLS` | `false` | implicit TLS from byte one (SMTPS, port 465) |
+  | `SMTP_TLS` | `false` | implicit TLS (SMTPS, port 465) |
 
-  Hosted senders are reached the same way — point the vars at their SMTP
-  endpoint. Amazon SES, for example:
-
-  ```sh
-  SMTP_ADDRESS=email-smtp.us-east-1.amazonaws.com   # your SES region
-  SMTP_USERNAME=<SES SMTP username>   # IAM → SES SMTP credentials —
-  SMTP_PASSWORD=<SES SMTP password>   # NOT your AWS access key
-  METIS_MAIL_FROM="Metis <noreply@your-ses-verified-domain.com>"
-  ```
+  Hosted senders — all STARTTLS on the default port 587:
 
   | Provider | `SMTP_ADDRESS` | Credentials |
   |---|---|---|
-  | Amazon SES | `email-smtp.<region>.amazonaws.com` | dedicated SES SMTP credentials |
+  | Amazon SES | `email-smtp.<region>.amazonaws.com` | dedicated SES SMTP credentials — not your AWS access key |
   | Mailgun | `smtp.mailgun.org` | domain SMTP login |
-  | Postmark | `smtp.postmarkapp.com` | server API token as both username and password |
+  | Postmark | `smtp.postmarkapp.com` | server API token as username and password |
   | SendGrid | `smtp.sendgrid.net` | username `apikey`, API key as password |
   | Resend | `smtp.resend.com` | username `resend`, API key as password |
 
-  All of these speak STARTTLS on the default port 587.
+- **`cloudflare`** — Cloudflare Email Service's REST API
+  (`Delivery::Cloudflare`). Set `CLOUDFLARE_ACCOUNT_ID` and a send-scoped
+  `CLOUDFLARE_EMAIL_API_TOKEN`; the sender domain must be verified in
+  that account.
 
-- **`cloudflare`** — Cloudflare Email Service, a REST API instead of an
-  SMTP server (`Delivery::Cloudflare`). Set `CLOUDFLARE_ACCOUNT_ID` and a
-  send-scoped `CLOUDFLARE_EMAIL_API_TOKEN`; the sender domain must be
-  **verified** in that Cloudflare account.
+- **Anything a gem registers** — the value passes straight to
+  ActionMailer, so e.g. `aws-actionmailer-ses` (`sesv2`) or
+  `postmark-rails` (`postmark`) works: add the gem, configure it per its
+  README, set `METIS_MAIL_DELIVERY` to its name.
 
-There is no default in production: boot fails with a pointer here when
-`METIS_MAIL_DELIVERY` is unset. Set it to `smtp`, `cloudflare`, or
-`test` to run without outbound email. Development defaults to `test` —
-no real send, mail accumulates in `ActionMailer::Base.deliveries`.
-
-The value goes straight through to ActionMailer, so any delivery method
-registered by a gem works too: add e.g. `aws-actionmailer-ses`
-(`sesv2`, IAM-role auth instead of SMTP credentials) or
-`postmark-rails` (`postmark`) to the Gemfile, configure its settings
-per its README, and set `METIS_MAIL_DELIVERY` to its name.
-
-Point `METIS_MAIL_FROM` at an address on a domain your transport may send
-for. `METIS_APP_HOST` is the host links in those emails resolve to
-(production; a shared dev host uses `METIS_DEV_HOST`).
+`METIS_MAIL_FROM` is the sender — an address on a domain your transport
+may send for. `METIS_APP_HOST` is the host links in those emails resolve
+to (production; a shared dev host uses `METIS_DEV_HOST`).
 
 Account creation is the access boundary — every account runs the agent on
 the deployment's shared provider keys — so `METIS_REGISTRATION_MODE`
