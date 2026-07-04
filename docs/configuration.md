@@ -17,6 +17,12 @@ credentials). Every variable below applies the same way in both worlds —
 `.env` for development, `deploy.yml` + `.kamal/secrets` for production.
 Step-by-step deploy guide: [`deployment.md`](deployment.md).
 
+**`bin/rails metis:doctor`** prints this whole checklist against the
+current environment — each subsystem as configured, missing, or
+defaulted, with the exact variable names (exit code 1 when something
+required is missing). In a deployment:
+`kamal app exec "bin/rails metis:doctor"`.
+
 ## Environment variables
 
 | Variable | Purpose |
