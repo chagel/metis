@@ -65,6 +65,14 @@ class DoctorTest < ActiveSupport::TestCase
     }).ok?
   end
 
+  test "encryption check fails without crashing when keys are missing" do
+    # config.primary_key raises when unset; the doctor must report :fail,
+    # not abort with a stack trace, in the keyless env it diagnoses.
+    ActiveRecord::Encryption.config.stub(:has_primary_key?, false) do
+      assert_equal :fail, check(doctor, "Core", "encryption").status
+    end
+  end
+
   test "report never includes secret values" do
     env = { "ANTHROPIC_API_KEY" => "sk-secret-123", "LANGFUSE_SECRET_KEY" => "lf-secret" }
     assert_not_includes doctor(env).report, "sk-secret-123"

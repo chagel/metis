@@ -74,7 +74,10 @@ class Doctor
   end
 
   def encryption_check
-    if ActiveRecord::Encryption.config.primary_key.present?
+    # config.primary_key raises Errors::Configuration when unset (it's
+    # `has_primary_key? or raise`), so use the predicate — this check must
+    # survive the very keyless environment it exists to diagnose.
+    if ActiveRecord::Encryption.config.has_primary_key?
       Check.new(:ok, "encryption", "Active Record encryption keys present")
     else
       Check.new(:fail, "encryption", "keys missing — bin/rails db:encryption:init, then credentials or ACTIVE_RECORD_ENCRYPTION_* env")
