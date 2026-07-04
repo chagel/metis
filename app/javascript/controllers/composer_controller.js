@@ -36,8 +36,10 @@ export default class extends Controller {
     if (event.key !== "Enter" || event.shiftKey || event.isComposing) return
     // Mobile chat convention is the reverse of desktop: the virtual
     // keyboard's return key inserts a newline (it has no Shift+Enter)
-    // and the send button submits.
-    if (window.matchMedia("(pointer: coarse)").matches) return
+    // and the send button submits. True on touch-primary devices and in
+    // the native shells; a touchscreen laptop stays desktop because its
+    // trackpad still reports hover:hover.
+    if (this._touchPrimary()) return
 
     event.preventDefault()
     const form = this.element.form
@@ -85,7 +87,7 @@ export default class extends Controller {
   }
 
   _focusIfIdle() {
-    if (window.matchMedia("(pointer: coarse)").matches) return
+    if (this._touchPrimary()) return
     if (this._streaming(this.element.form)) return
 
     // Only treat focus on another *editable* element as a reason to bail —
@@ -102,5 +104,10 @@ export default class extends Controller {
 
   _streaming(form) {
     return form?.querySelector("#composer_actions")?.dataset.composerState === "streaming"
+  }
+
+  _touchPrimary() {
+    return document.body.classList.contains("hotwire-native") ||
+      window.matchMedia("(pointer: coarse) and (hover: none)").matches
   }
 }
