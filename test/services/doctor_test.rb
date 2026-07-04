@@ -1,4 +1,5 @@
 require "test_helper"
+require "minitest/mock"
 
 class DoctorTest < ActiveSupport::TestCase
   def doctor(env = {}, delivery_method: :test)
