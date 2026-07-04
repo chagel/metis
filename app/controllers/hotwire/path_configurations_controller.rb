@@ -10,6 +10,11 @@ class Hotwire::PathConfigurationsController < ApplicationController
     # Form screens present as native modals.
     { patterns: [ "/new$", "/edit$" ],
       properties: { context: "modal" } },
+    # Top-level sections reached from the sidebar drawer (no native tab
+    # bar): replace the stack root so switching between them stays flat
+    # instead of pushing an ever-deeper back stack.
+    { patterns: [ "^/$", "^/conversations$", "^/projects$", "^/board$", "^/settings$", "^/settings/profile$" ],
+      properties: { presentation: "replace_root" } },
     # Auth replaces the stack root — no back-swiping into signed-in pages.
     { patterns: [ "/users/sign_in", "/users/sign_up", "/users/password" ],
       properties: { pull_to_refresh_enabled: false, presentation: "replace_root" } },

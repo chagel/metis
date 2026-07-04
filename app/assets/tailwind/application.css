@@ -3123,10 +3123,8 @@ body.drawer-open { overflow:hidden; }
    own the safe areas; everything else reuses the mobile (768px)
    layer as-is.
    ============================================================ */
-/* Chats / Projects / Board links duplicate the native tab bar. */
-.hotwire-native .prnav { display:none; }
-/* Settings is its own native tab — no "back to chat" escape hatch. */
-.hotwire-native .settings-sidebar .ws-back { display:none; }
+/* No native tab bar — the sidebar drawer is the navigation, so keep its
+   primary nav and the settings "back to chat" link visible. */
 /* The native tab bar floats over the web view's bottom, and these pages
    scroll inside inner (100dvh) containers that never see the native
    scroll-view inset — so the last row (e.g. Save profile) would sit
