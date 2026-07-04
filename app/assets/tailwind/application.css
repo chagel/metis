@@ -1250,7 +1250,7 @@ img.avatar { background:none; object-fit:cover; }
 .attach svg { width:16px; height:16px; }
 .send {
   display:grid; place-items:center; flex:none;
-  width:36px; height:36px; border:none; border-radius:10px;
+  width:36px; height:36px; border:none; border-radius:50%;
   cursor:pointer; background:var(--accent); color:var(--on-accent);
   transition:opacity .15s,color .15s,border-color .15s;
 }
@@ -2277,6 +2277,10 @@ body.auth-shell { min-height:100vh; display:grid; place-items:center; padding:24
   .welcome { padding:24px 18px; }
   .welcome h1 { font-size:21px; }
   .welcome p { font-size:14px; }
+
+  /* New-chat: same layout as before, just a taller composer — starts a
+     few lines tall (inviting to type) and grows from there via autoResize. */
+  .chat-new .composer textarea { min-height:132px; }
 
   /* Share popover — anchored right:0 it hangs past the left viewport
      edge on phones; pin it to the viewport under the header instead. */
