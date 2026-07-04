@@ -112,6 +112,9 @@ body {
   background:var(--bg);
   color:var(--ink);
   -webkit-font-smoothing:auto;
+  /* Kill the gray flash iOS draws on every tap — the touch layer below
+     provides its own feedback. */
+  -webkit-tap-highlight-color:transparent;
 }
 body.app-shell { overflow:hidden; }
 ::selection { background:var(--accent-soft); color:var(--accent-fg); }
@@ -121,6 +124,47 @@ body.app-shell { overflow:hidden; }
   border:3px solid transparent; background-clip:padding-box;
 }
 ::-webkit-scrollbar-thumb:hover { background:var(--scroll-h); background-clip:padding-box; }
+
+/* ───────────── touch ─────────────
+   Ported from themis. Interactive elements drop the legacy 300ms tap
+   delay and double-tap zoom; `manipulation` keeps pinch-zoom elsewhere. */
+a, button, [role="button"] { touch-action:manipulation; }
+
+@media (hover:none) {
+  /* Long-pressing a sidebar row pops Safari's link callout or lifts the
+     link into a drag preview — app chrome should feel native. Message
+     content keeps the default so links there stay long-pressable. */
+  .sidebar a, .sidebar button, .sidebar-toggle {
+    -webkit-touch-callout:none;
+    -webkit-user-drag:none;
+    -webkit-user-select:none;
+    user-select:none;
+  }
+
+  /* Touch has no hover — flash the hover treatment on press instead. */
+  .convo:active, .nav-item:active, .prjnav-item:active {
+    background:var(--card); color:var(--ink);
+    transform:scale(.98);
+    transition:background-color .05s ease, transform .05s ease;
+  }
+  /* Universal fallback for everything without its own :active style. */
+  a:active, button:active, [role="button"]:active {
+    opacity:.6;
+    transition:opacity .05s ease;
+  }
+}
+
+/* Native shell: no long-press link callout / drag-lift anywhere — both
+   read as "web page inside an app". */
+.hotwire-native a, .hotwire-native button {
+  -webkit-touch-callout:none;
+  -webkit-user-drag:none;
+}
+/* iOS auto-zooms focused fields under 16px. The 768px mobile layer
+   already bumps phone fields; this covers the native shell on iPad. */
+.hotwire-native input, .hotwire-native textarea, .hotwire-native select {
+  font-size:max(16px, 1em);
+}
 
 /* ───────────── shell ───────────── */
 .app {
