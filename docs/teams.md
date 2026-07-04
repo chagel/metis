@@ -56,8 +56,8 @@ secure `token`, the offered `role`, and `expires_at` (14 days,
 ### The email
 
 `TeamMailer.invitation` is delivered **async** (`deliver_later` →
-`MailDeliveryJob`) and sent through Cloudflare Email Service
-([`configuration.md`](configuration.md), `Delivery::Cloudflare`). The
+`MailDeliveryJob`) and sent through the configured mail transport —
+SMTP or Cloudflare Email Service ([`configuration.md`](configuration.md)). The
 link points at the **show page** (a GET), not the POST-only accept route.
 
 **Resend** (`#resend`) re-arms expiry (`Invitation#reissue!`) and

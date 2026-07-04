@@ -23,8 +23,10 @@ cp .env.example .env
 | `DAYTONA_API_KEY` / `METIS_DAYTONA_SNAPSHOT` | required by the `daytona` runtime |
 | `DAYTONA_API_URL` / `DAYTONA_TARGET` | optional Daytona API endpoint / region |
 | `METIS_DAYTONA_AUTO_STOP_MINUTES` / `_AUTO_ARCHIVE_MINUTES` / `_AUTO_DELETE_MINUTES` | Daytona idle-lifecycle intervals, minutes (default 120 / 60 / 1440). Stop is a crash-only safety net — keep it above the longest turn. |
-| `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_EMAIL_API_TOKEN` | outbound email — see [Email & access](#email--account-access) |
-| `METIS_MAIL_FROM` | sender for all email (on the Cloudflare-verified domain) |
+| `SMTP_ADDRESS`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, … | outbound email over SMTP — see [Email & access](#email--account-access) |
+| `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_EMAIL_API_TOKEN` | outbound email via Cloudflare Email Service — see [Email & access](#email--account-access) |
+| `METIS_MAIL_DELIVERY` | force a mail transport (`smtp` / `cloudflare` / `test`); normally inferred from the vars above |
+| `METIS_MAIL_FROM` | sender for all email (on a domain your transport may send for) |
 | `METIS_APP_HOST` | host for links in emails (invites, password reset) |
 | `METIS_REGISTRATION_MODE` | `invite_only` (default) or `open` |
 | `METIS_ALLOWED_DOMAINS` | comma-separated email domains that may register without an invitation in invite-only mode (default empty — off) |
@@ -128,14 +130,37 @@ into the sandbox by `Agent::Runtime::Base#sandbox_env`.
 
 ## Email & account access
 
-Transactional email — team invitations and Devise's password reset — is
-sent through **Cloudflare Email Service**'s REST API (`Delivery::Cloudflare`),
-not SMTP. Set `CLOUDFLARE_ACCOUNT_ID` and a send-scoped
-`CLOUDFLARE_EMAIL_API_TOKEN`, and point `METIS_MAIL_FROM` at an address on
-a **domain you've verified** in that Cloudflare account. `METIS_APP_HOST`
-is the host links in those emails resolve to (production; a shared dev
-host uses `METIS_DEV_HOST`). With the token unset, development falls back
-to ActionMailer's `:test` delivery (no real send).
+Transactional email — team invitations and Devise's password reset — goes
+out through one of two transports (all wiring lives in
+`config/initializers/mail.rb`):
+
+- **SMTP** — any provider (Amazon SES, Mailgun, Postmark, a corporate
+  relay). Setting `SMTP_ADDRESS` turns it on; the rest have sane defaults:
+
+  | Variable | Default | Purpose |
+  |---|---|---|
+  | `SMTP_ADDRESS` | — | server hostname; selects SMTP delivery |
+  | `SMTP_PORT` | `587` | |
+  | `SMTP_USERNAME` / `SMTP_PASSWORD` | — | blank → connect without AUTH |
+  | `SMTP_AUTHENTICATION` | `plain` | `plain`, `login`, or `cram_md5` |
+  | `SMTP_DOMAIN` | — | HELO domain, if your provider requires it |
+  | `SMTP_ENABLE_STARTTLS` | `true` | upgrade to TLS after connect |
+  | `SMTP_TLS` | `false` | implicit TLS from byte one (SMTPS, port 465) |
+
+- **Cloudflare Email Service** — a REST API instead of an SMTP server
+  (`Delivery::Cloudflare`). Set `CLOUDFLARE_ACCOUNT_ID` and a send-scoped
+  `CLOUDFLARE_EMAIL_API_TOKEN`; the sender domain must be **verified** in
+  that Cloudflare account.
+
+`SMTP_ADDRESS` set selects SMTP; otherwise a Cloudflare token selects
+Cloudflare; `METIS_MAIL_DELIVERY` (`smtp` / `cloudflare` / `test`) forces
+one explicitly when needed. With neither configured, development falls
+back to ActionMailer's `:test` delivery (no real send) and production
+fails loudly on the first send.
+
+Point `METIS_MAIL_FROM` at an address on a domain your transport may send
+for. `METIS_APP_HOST` is the host links in those emails resolve to
+(production; a shared dev host uses `METIS_DEV_HOST`).
 
 Account creation is the access boundary — every account runs the agent on
 the deployment's shared provider keys — so `METIS_REGISTRATION_MODE`
