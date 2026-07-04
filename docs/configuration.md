@@ -34,7 +34,7 @@ Step-by-step deploy guide: [`deployment.md`](deployment.md).
 | `METIS_DAYTONA_AUTO_STOP_MINUTES` / `_AUTO_ARCHIVE_MINUTES` / `_AUTO_DELETE_MINUTES` | Daytona idle-lifecycle intervals, minutes (default 120 / 60 / 1440). Stop is a crash-only safety net — keep it above the longest turn. |
 | `SMTP_ADDRESS`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, … | outbound email over SMTP — see [Email & access](#email--account-access) |
 | `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_EMAIL_API_TOKEN` | outbound email via Cloudflare Email Service — see [Email & access](#email--account-access) |
-| `METIS_MAIL_DELIVERY` | mail transport — **required in production**: `smtp`, `cloudflare`, or `test` to run without email; development defaults to `test` (no real send) |
+| `METIS_MAIL_DELIVERY` | mail transport: `smtp` (production default), `cloudflare`, or `test` (development default — no real send) |
 | `METIS_MAIL_FROM` | sender for all email (on a domain your transport may send for) |
 | `METIS_APP_HOST` | host for links in emails (invites, password reset) |
 | `METIS_REGISTRATION_MODE` | `invite_only` (default) or `open` |
@@ -140,11 +140,10 @@ into the sandbox by `Agent::Runtime::Base#sandbox_env`.
 ## Email & account access
 
 Transactional email — team invitations and Devise's password reset —
-goes out through the transport `METIS_MAIL_DELIVERY` names. Production
-requires it: `smtp`, `cloudflare`, or `test` to run without email.
-Development defaults to `test` — mail accumulates in
-`ActionMailer::Base.deliveries`, nothing is sent. Credentials are read
-from ENV in `config/initializers/mail.rb`.
+goes out through the transport `METIS_MAIL_DELIVERY` names: `smtp` (the
+production default), `cloudflare`, or `test` (the development default —
+mail accumulates in `ActionMailer::Base.deliveries`, nothing is sent).
+Credentials are read from ENV in `config/initializers/mail.rb`.
 
 - **`smtp`** — Rails' built-in transport; works with any provider. Only
   `SMTP_ADDRESS` is required:
