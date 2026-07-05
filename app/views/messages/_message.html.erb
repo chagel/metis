@@ -55,8 +55,7 @@
         <div id="<%= dom_id(message) %>_body"
              class="chat-content"><%= markdown(message.content) %></div>
 
-        <%= render "messages/artifacts", message: message,
-              shared: local_assigns[:shared], can_manage: local_assigns[:can_manage] %>
+        <%= render "messages/artifacts", message: message %>
 
         <% if message.streaming? || message.pending? %>
           <%# A just-pending turn seeds the indicator with the predicted

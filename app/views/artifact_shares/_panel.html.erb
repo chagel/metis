@@ -1,10 +1,10 @@
-<%# URL is a path — share_controller absolutizes it on connect, so this
-    also renders correctly from a Turbo broadcast (no request host there). %>
-<% share = local_assigns[:share] %>
+<%# Share popover for the preview header, mirroring the chat header's
+    conversation panel: the .share wrapper owns the Stimulus controller
+    and open state; this panel is what create/destroy re-render over
+    Turbo. %>
 <div id="<%= dom_id(blob, :share) %>"
-     class="art-share"
-     data-controller="share"
-     data-share-copied-value="<%= t('.copied') %>">
+     class="share-panel"
+     data-share-target="panel">
   <div class="access-row">
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -30,7 +30,7 @@
       <input type="text"
              class="share-panel-url"
              readonly
-             value="<%= shared_artifact_path(token: share.token) %>"
+             value="<%= shared_artifact_url(token: share.token) %>"
              data-share-target="url"
              data-action="focus->share#selectAll">
       <button type="button"

@@ -1046,13 +1046,24 @@ img.avatar { background:none; object-fit:cover; }
 .art-action--ghost { color:var(--ink-3); border-color:transparent; background:transparent; }
 .art-action--ghost:hover { color:var(--ink); background:var(--canvas); }
 
-/* artifact card share panel (public-link switch + URL row) */
-.art-share {
-  display:flex; flex-direction:column; gap:8px;
-  padding:8px 11px; border-top:1px solid var(--line); background:var(--canvas);
+/* Share button in the preview header — same family as Download/Fullscreen;
+   its popover reuses the chat header's .share/.share-panel pattern. */
+.preview-share-btn {
+  height:32px; box-sizing:border-box;
+  display:inline-flex; align-items:center;
+  padding:0 12px; border-radius:8px;
+  font-family:inherit; font-size:13px; font-weight:500; line-height:1;
+  color:var(--ink); cursor:pointer;
+  background:transparent; border:1px solid var(--line);
 }
-.art-share .access-title { font-size:12.5px; }
-.art-share .access-desc { font-size:11px; }
+.preview-share-btn:hover { background:var(--card); border-color:var(--line-2); }
+/* Same share glyph as the chat header's toggle (conversations/show). */
+.preview-share-btn::before {
+  content:""; width:13px; height:13px; margin-right:6px;
+  background:currentColor;
+  -webkit-mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='3.5' r='1.75'/><circle cx='4' cy='8' r='1.75'/><circle cx='12' cy='12.5' r='1.75'/><path d='M5.5 7.1l5-2.7'/><path d='M5.5 8.9l5 2.7'/></svg>") center/contain no-repeat;
+          mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='3.5' r='1.75'/><circle cx='4' cy='8' r='1.75'/><circle cx='12' cy='12.5' r='1.75'/><path d='M5.5 7.1l5-2.7'/><path d='M5.5 8.9l5 2.7'/></svg>") center/contain no-repeat;
+}
 
 /* preview page (standalone tab) */
 .preview-shell {
@@ -1157,12 +1168,10 @@ img.avatar { background:none; object-fit:cover; }
 .preview-size { font-family:var(--fm); font-size:11px; color:var(--ink-3); flex:none; }
 .preview-image { display:block; max-width:100%; margin:0 auto; border-radius:10px; }
 .preview-none { margin:auto; color:var(--ink-3); font-size:13.5px; }
-.preview-foot {
-  flex:none; padding:10px 22px; border-top:1px solid var(--line);
-  background:var(--card); text-align:center; font-size:11.5px; color:var(--ink-3);
-}
-.preview-foot a { color:var(--ink-2); text-decoration:none; }
-.preview-foot a:hover { color:var(--ink); }
+/* Public shared-artifact page reuses the shared page's footer + brand;
+   in the fixed-height preview shell the footer must not be squeezed. */
+.preview-shell .shared-foot { flex:none; }
+.preview-shell .shared-brand { flex:none; margin-right:2px; }
 
 /* ───────────── composer ───────────── */
 .composer-wrap { padding:12px 28px 18px; }
@@ -2331,10 +2340,12 @@ body.auth-shell { min-height:100vh; display:grid; place-items:center; padding:24
   .preview-action-label { display:none; }
   .preview-back { padding:0; }
   .preview-fs { display:none; }
-  .preview-download {
+  /* Brand collapses to the mark alone in the tight public header. */
+  .preview-shell .shared-word { display:none; }
+  .preview-download, .preview-share-btn {
     width:32px; padding:0; justify-content:center;
   }
-  .preview-download::before { margin-right:0; }
+  .preview-download::before, .preview-share-btn::before { margin-right:0; }
   .preview-mode { padding:0 9px; font-size:12px; }
 
   /* Auth pages already use a centered card; just trim padding. */

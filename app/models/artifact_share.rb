@@ -8,7 +8,6 @@ class ArtifactShare < ApplicationRecord
 
   before_create { self.token ||= SecureRandom.urlsafe_base64(16) }
 
-  scope :for_blobs, ->(blob_ids) { where(blob_id: blob_ids) }
   scope :minted_by, ->(user) { where(created_by: user) }
   # Mirrors Sharing#conversations' rule: a share is listable only for a
   # viewer who can open a conversation the blob is an artifact of — a

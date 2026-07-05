@@ -1,8 +1,16 @@
 <% content_for :title, @blob.filename.to_s %>
 
 <header class="preview-header">
+  <a class="shared-brand" href="<%= root_path %>" target="_blank" rel="noopener">
+    <span class="shared-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 18.5V7l7 6.5 7-6.5v11.5"/>
+      </svg>
+    </span>
+    <span class="shared-word">Metis</span>
+  </a>
   <h1 class="preview-title"><%= @blob.filename %></h1>
-  <span class="preview-size"><%= number_to_human_size(@blob.byte_size) %></span>
 
   <% if @previewer.preview_modes.size > 1 %>
     <nav class="preview-modes" aria-label="<%= t('.view_mode') %>">
@@ -12,6 +20,13 @@
                     class: "preview-mode#{' is-on' if @mode == mode}" %>
       <% end %>
     </nav>
+  <% end %>
+
+  <% if @partial == "previewers/html_full" %>
+    <button type="button" class="preview-fs"
+            data-action="click->fullscreen#enter">
+      <span class="preview-action-label"><%= t('.fullscreen') %></span>
+    </button>
   <% end %>
 
   <%= link_to download_shared_artifact_path(token: @share.token),
@@ -34,4 +49,8 @@
   <% end %>
 </main>
 
-<footer class="preview-foot"><%= t('.shared_via_prefix') %> <a href="<%= root_url %>" target="_blank" rel="noopener">Metis</a></footer>
+<footer class="shared-foot">
+  <div class="shared-foot-inner">
+    <%= t('.powered_by_prefix') %> <a href="<%= root_url %>" target="_blank" rel="noopener">Metis</a>
+  </div>
+</footer>

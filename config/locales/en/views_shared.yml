@@ -5,6 +5,7 @@ en:
       view_mode: "View mode"
       fullscreen: "Fullscreen"
       download: "Download"
+      share: "Share"
   layouts:
     head:
       title: "Metis"

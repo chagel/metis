@@ -25,6 +25,35 @@ class ArtifactPreviewsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/data\.csv/, response.body)
   end
 
+  test "shows the header share button and popover to the conversation owner" do
+    sign_in @user
+    get artifact_preview_path(@blob.signed_id)
+
+    assert_select ".preview-header .preview-share-btn"
+    assert_select ".share .share-panel .access-switch:not(.on)"
+
+    ArtifactShare.share_blob!(blob: @blob, message: @message, user: @user)
+    get artifact_preview_path(@blob.signed_id)
+    assert_select ".share .share-panel .access-switch.on"
+    assert_select ".share .share-panel-url"
+  end
+
+  test "hides the share panel from a teammate who is not the owner" do
+    team = Team.create!(name: "Shared")
+    team.memberships.create!(user: @user, role: :owner)
+    teammate = User.create!(email: "mate@example.com", password: "password123")
+    team.memberships.create!(user: teammate, role: :member)
+    conversation = @user.conversations.create!(title: "Team chat", team: team, visibility: :team)
+    msg = conversation.messages.create!(role: :assistant, content: "x", streaming_status: :done)
+    msg.artifacts.attach(io: StringIO.new("col\na\n"), filename: "shared.csv", content_type: "text/csv")
+
+    sign_in teammate
+    get artifact_preview_path(msg.artifacts.first.blob.signed_id)
+
+    assert_response :success
+    assert_select ".preview-share", false
+  end
+
   test "404s a stranger even with a valid signed_id" do
     sign_in @stranger
     get artifact_preview_path(@blob.signed_id)
@@ -63,7 +92,7 @@ class ArtifactPreviewsControllerTest < ActionDispatch::IntegrationTest
     assert_select "pre.preview-text", text: /# Heading/
   end
 
-  test "renders HTML source by default; ?mode=preview renders inside a sandboxed iframe" do
+  test "renders the HTML preview by default in a sandboxed iframe; ?mode=source shows raw" do
     @message.artifacts.attach(
       io: StringIO.new("<h1>Hi</h1>"),
       filename: "page.html", content_type: "text/html"
@@ -72,15 +101,15 @@ class ArtifactPreviewsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in @user
     get artifact_preview_path(html_blob.signed_id)
-    assert_select "pre.preview-text", text: /<h1>Hi<\/h1>/
-
-    get artifact_preview_path(html_blob.signed_id, mode: :preview)
     assert_select "iframe.preview-html"
     assert_match(/<iframe[^>]*\bsandbox="allow-scripts"/, response.body,
                  "sandbox must be present with allow-scripts but nothing else")
     refute_match(/sandbox="[^"]*allow-same-origin/, response.body,
                  "allow-same-origin alongside allow-scripts is equivalent to no sandbox — never add it")
     assert_select "button.preview-fs", text: "Fullscreen"
+
+    get artifact_preview_path(html_blob.signed_id, mode: :source)
+    assert_select "pre.preview-text", text: /<h1>Hi<\/h1>/
   end
 
   test "Fullscreen button does not appear in non-HTML previews" do

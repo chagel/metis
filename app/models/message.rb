@@ -41,6 +41,11 @@ class Message < ApplicationRecord
   scope :owning_artifact_blob, ->(blob) {
     joins(:artifacts_attachments).where(active_storage_attachments: { blob_id: blob.id, name: "artifacts" })
   }
+  # Messages in conversations the user authored and can still act in —
+  # the share-management gate: authorship must not outlive team membership.
+  scope :owned_by, ->(user) {
+    joins(:conversation).where(conversations: { user_id: user.id, team_id: user.team_ids })
+  }
   scope :conversational, -> { where(role: %i[user assistant]) }
   # An in-flight turn: the assistant message still pending or streaming.
   scope :inflight, -> { assistant.where(streaming_status: %i[pending streaming]) }

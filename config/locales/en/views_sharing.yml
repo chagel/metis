@@ -19,6 +19,7 @@ en:
   shared_artifacts:
     show:
       view_mode: "View mode"
+      fullscreen: "Fullscreen"
       download: "Download"
       no_preview: "No preview for this file type — use Download."
-      shared_via_prefix: "Shared via"
+      powered_by_prefix: "Powered by"

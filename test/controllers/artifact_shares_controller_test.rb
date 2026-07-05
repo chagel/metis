@@ -76,25 +76,6 @@ class ArtifactSharesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 0, ArtifactShare.count
   end
 
-  test "panel resolves the share toggle for the owner" do
-    ArtifactShare.share_blob!(blob: @blob, message: @message, user: @user)
-
-    sign_in @user
-    get panel_artifact_shares_path(signed_id: @blob.signed_id)
-
-    assert_response :success
-    assert_select "turbo-frame .art-share .access-switch.on"
-  end
-
-  test "panel resolves an empty frame for anyone who may not manage the blob" do
-    sign_in @stranger
-    get panel_artifact_shares_path(signed_id: @blob.signed_id)
-
-    assert_response :success
-    assert_select "turbo-frame"
-    assert_select ".art-share", false
-  end
-
   test "destroy revokes the share and re-renders the panel switched off" do
     share = ArtifactShare.share_blob!(blob: @blob, message: @message, user: @user)
 
@@ -123,22 +104,10 @@ class ArtifactSharesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_user_session_path
   end
 
-  test "the artifact card shows the share panel to the owner in the authed chat" do
+  test "the artifact card carries no share panel — sharing lives on the preview page" do
     sign_in @user
     get conversation_path(@conversation)
 
-    assert_select ".art-card .art-share"
-    assert_select ".art-share .access-switch:not(.on)"
-  end
-
-  test "a read-only teammate does not see the share panel" do
-    teammate = in_shared_team_view
-
-    sign_in teammate
-    post switch_team_path(@shared_team)
-    get conversation_path(@team_conversation)
-
-    assert_response :success
     assert_select ".art-card"
     assert_select ".art-share", false
   end

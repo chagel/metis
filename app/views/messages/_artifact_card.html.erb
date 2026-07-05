@@ -34,16 +34,4 @@
       <% end %>
     </span>
   </footer>
-  <%# The share panel is owner-only. A page load knows the viewer and
-      renders it inline; a viewer-less render (Turbo broadcast) emits a
-      lazy frame each authed session resolves for itself, so the toggle
-      appears on freshly streamed artifacts too. Never on the public
-      page — an anonymous frame fetch would just bounce off auth. %>
-  <% if local_assigns[:can_manage] %>
-    <%= render "artifact_shares/panel", blob: artifact.blob, share: local_assigns[:share] %>
-  <% elsif !local_assigns[:shared] %>
-    <%= turbo_frame_tag artifact.blob, :share_frame,
-          src: panel_artifact_shares_path(signed_id: artifact.blob.signed_id),
-          loading: "lazy" %>
-  <% end %>
 </article>

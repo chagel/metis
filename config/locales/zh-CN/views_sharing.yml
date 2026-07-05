@@ -19,6 +19,7 @@
   shared_artifacts:
     show:
       view_mode: "查看模式"
+      fullscreen: "全屏"
       download: "下载"
       no_preview: "此文件类型暂无预览 — 请下载查看。"
-      shared_via_prefix: "分享自"
+      powered_by_prefix: "由…提供"

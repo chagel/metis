@@ -4,8 +4,7 @@
 
 <%# Still pending — ChatBroadcaster#reveal_fork adds Fork once it finishes. %>
 <%= turbo_stream.append "messages" do %>
-  <%# can_manage: the composer only renders for the conversation owner. %>
-  <%= render "messages/message", message: @assistant_message, forkable: true, can_manage: true %>
+  <%= render "messages/message", message: @assistant_message, forkable: true %>
 <% end %>
 
 <%= turbo_stream.replace "composer",

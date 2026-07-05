@@ -1,14 +1,7 @@
 <div id="<%= dom_id(message) %>_artifacts" class="msg-artifacts">
-  <%# Only the owner sees the share toggle, so only then do we need the
-      shares — one query for the whole strip instead of one per card. %>
-  <% can_manage = local_assigns[:can_manage] %>
-  <% shares = can_manage && message.artifacts.any? ? ArtifactShare.for_blobs(message.artifacts.map(&:blob_id)).index_by(&:blob_id) : {} %>
   <% message.artifacts.each do |artifact| %>
     <%= render "messages/artifact_card",
                artifact: artifact,
-               previewer: ArtifactPreviewer.for(artifact),
-               shared: local_assigns[:shared],
-               can_manage: can_manage,
-               share: shares[artifact.blob_id] %>
+               previewer: ArtifactPreviewer.for(artifact) %>
   <% end %>
 </div>

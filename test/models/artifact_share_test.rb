@@ -25,13 +25,6 @@ class ArtifactShareTest < ActiveSupport::TestCase
     assert_equal 1, ArtifactShare.count
   end
 
-  test "for_blobs keys the strip's lookup by blob id" do
-    share = ArtifactShare.share_blob!(blob: @blob, message: @message, user: @user)
-
-    assert_equal [ share ], ArtifactShare.for_blobs([ @blob.id ]).to_a
-    assert_empty ArtifactShare.for_blobs([])
-  end
-
   test "the share survives its owning message being destroyed" do
     share = ArtifactShare.share_blob!(blob: @blob, message: @message, user: @user)
     @message.destroy!

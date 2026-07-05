@@ -24,6 +24,18 @@
     </button>
   <% end %>
 
+  <% if @can_share %>
+    <div class="share" data-controller="share"
+         data-share-copied-value="<%= t('artifact_shares.panel.copied') %>">
+      <button type="button" class="preview-share-btn"
+              data-action="click->share#toggle"
+              title="<%= t('.share') %>" aria-label="<%= t('.share') %>">
+        <span class="preview-action-label"><%= t('.share') %></span>
+      </button>
+      <%= render "artifact_shares/panel", blob: @blob, share: @share %>
+    </div>
+  <% end %>
+
   <%= link_to rails_blob_path(@blob, disposition: "attachment"),
               class: "preview-download" do %>
     <span class="preview-action-label"><%= t('.download') %></span>

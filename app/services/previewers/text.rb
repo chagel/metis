@@ -31,8 +31,7 @@ module Previewers
     def open_url(routes) = routes.artifact_preview_path(blob.signed_id)
 
     def preview_modes
-      return %i[preview source] if markdown?
-      return %i[source preview] if html?
+      return %i[preview source] if markdown? || html?
 
       [ :source ]
     end

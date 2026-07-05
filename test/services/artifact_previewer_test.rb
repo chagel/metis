@@ -92,15 +92,15 @@ class ArtifactPreviewerTest < ActiveSupport::TestCase
     assert_equal "FILE", long_ext.kind_label
   end
 
-  test "Text exposes preview+source modes for markdown, source+preview for html, source-only for plain code" do
+  test "Text exposes preview+source modes for markdown and html, source-only for plain code" do
     md = Previewers::Text.new(blob_with(content_type: "text/markdown", filename: "x.md"))
     html = Previewers::Text.new(blob_with(content_type: "text/html", filename: "x.html"))
     rb = Previewers::Text.new(blob_with(content_type: "application/octet-stream", filename: "x.rb"))
 
     assert_equal %i[preview source], md.preview_modes
     assert_equal :preview, md.default_mode
-    assert_equal %i[source preview], html.preview_modes
-    assert_equal :source, html.default_mode
+    assert_equal %i[preview source], html.preview_modes
+    assert_equal :preview, html.default_mode
     assert_equal [ :source ], rb.preview_modes
   end
 

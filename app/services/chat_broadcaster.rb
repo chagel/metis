@@ -78,9 +78,7 @@ class ChatBroadcaster
   end
 
   # Replaces into an always-rendered placeholder, so the first strip
-  # works the same as subsequent updates. Rendered without can_manage:
-  # this stream is shared with read-only co-viewers, so the owner-only
-  # share toggle is omitted live and appears on the owner's next load.
+  # works the same as subsequent updates.
   def refresh_artifacts
     Turbo::StreamsChannel.broadcast_replace_to(
       @conversation,
