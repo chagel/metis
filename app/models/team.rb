@@ -13,6 +13,9 @@ class Team < ApplicationRecord
   has_many :routines, dependent: :destroy
   has_many :webhook_events, dependent: :destroy
   has_many :invitations, dependent: :destroy
+  # delete_all: the FK is RESTRICT and blob purges are async, so shares
+  # must be gone before the team row goes.
+  has_many :artifact_shares, dependent: :delete_all
 
   validates :name, presence: true
 

@@ -28,6 +28,19 @@ class SharedArtifactsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "col\na\nb\n", response.body
   end
 
+  test "show skips the in-memory preview for blobs over the byte limit" do
+    big = @conversation.messages.create!(role: :assistant, content: "y", streaming_status: :done)
+    big.artifacts.attach(io: StringIO.new("a" * (SharedArtifactsController::PREVIEW_BYTE_LIMIT + 1)),
+                         filename: "huge.txt", content_type: "text/plain")
+    share = ArtifactShare.share_blob!(blob: big.artifacts.first.blob, message: big, user: @user)
+
+    get shared_artifact_path(token: share.token)
+
+    assert_response :success
+    assert_select ".preview-none"
+    assert_select ".preview-download"
+  end
+
   test "404s an unknown token" do
     get shared_artifact_path(token: "no-such-token")
     assert_response :not_found

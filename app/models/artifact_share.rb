@@ -10,6 +10,14 @@ class ArtifactShare < ApplicationRecord
 
   scope :for_blobs, ->(blob_ids) { where(blob_id: blob_ids) }
   scope :minted_by, ->(user) { where(created_by: user) }
+  # Mirrors Sharing#conversations' rule: a share is listable only for a
+  # viewer who can open a conversation the blob is an artifact of — a
+  # personal conversation's artifact must not leak via the Sharing page.
+  scope :accessible_to, ->(user) {
+    where(blob_id: Message.where(conversation: Conversation.accessible_to(user))
+                          .joins(:artifacts_attachments)
+                          .select("active_storage_attachments.blob_id"))
+  }
 
   # Idempotent, and race-safe: a concurrent double-submit hits the unique
   # blob_id index and finds the winner instead of raising RecordNotUnique.

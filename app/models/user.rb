@@ -13,6 +13,10 @@ class User < ApplicationRecord
   has_many :connector_credentials, dependent: :destroy
   has_many :identities, dependent: :destroy
   has_many :oauth_grants, dependent: :destroy
+  # A deleted account takes its public artifact links with it (the FK is
+  # RESTRICT, so user.destroy would otherwise raise once anything is shared).
+  has_many :artifact_shares, foreign_key: :created_by_id, inverse_of: :created_by,
+           dependent: :delete_all
 
   # An uploaded avatar overrides `avatar_url` (the OAuth-cached URL);
   # see `AvatarHelper#avatar_for` for the resolution order.

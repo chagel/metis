@@ -7,6 +7,7 @@
     <%= render "messages/artifact_card",
                artifact: artifact,
                previewer: ArtifactPreviewer.for(artifact),
+               shared: local_assigns[:shared],
                can_manage: can_manage,
                share: shares[artifact.blob_id] %>
   <% end %>

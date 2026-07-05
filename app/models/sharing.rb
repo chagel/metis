@@ -21,7 +21,7 @@ class Sharing
   end
 
   def artifact_shares
-    @artifact_shares ||= ArtifactShare.where(team: @team)
+    @artifact_shares ||= ArtifactShare.where(team: @team).accessible_to(@user)
                                       .includes(:blob).order(created_at: :desc).to_a
   end
 

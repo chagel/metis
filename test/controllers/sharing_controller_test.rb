@@ -26,6 +26,17 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_user_session_path
   end
 
+  test "renders a share_token minted without shared_at (rolling-deploy row)" do
+    conversation = share_conversation
+    conversation.update_column(:shared_at, nil)
+
+    sign_in @user
+    get sharing_path
+
+    assert_response :success
+    assert_select ".sharing-row .sharing-title", text: "Shared chat"
+  end
+
   test "lists the team's shared conversations and artifacts in two sections" do
     conversation = share_conversation
     share = share_artifact

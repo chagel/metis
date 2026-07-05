@@ -14,6 +14,10 @@ class Membership < ApplicationRecord
   validates :role, presence: true
   validates :user_id, uniqueness: { scope: :team_id }
 
+  # A departing member's public artifact links die with the membership —
+  # revocation is creator-only, so nobody left in the team could revoke them.
+  after_destroy { ArtifactShare.minted_by(user).where(team: team).delete_all }
+
   # Owners and admins manage the team (members, settings); plain
   # members only use its shared resources.
   def manages_team?

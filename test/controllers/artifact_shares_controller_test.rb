@@ -60,6 +60,41 @@ class ArtifactSharesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 0, ArtifactShare.count
   end
 
+  test "create 404s an ex-member even for conversations they authored" do
+    team = Team.create!(name: "Left behind")
+    team.memberships.create!(user: @user, role: :member)
+    conversation = @user.conversations.create!(title: "T", team: team, visibility: :team)
+    message = conversation.messages.create!(role: :assistant, content: "x", streaming_status: :done)
+    message.artifacts.attach(io: StringIO.new("d"), filename: "d.csv", content_type: "text/csv")
+    blob = message.artifacts.first.blob
+    team.memberships.find_by(user: @user).destroy!
+
+    sign_in @user
+    post artifact_shares_path(format: :turbo_stream), params: { signed_id: blob.signed_id }
+
+    assert_response :not_found
+    assert_equal 0, ArtifactShare.count
+  end
+
+  test "panel resolves the share toggle for the owner" do
+    ArtifactShare.share_blob!(blob: @blob, message: @message, user: @user)
+
+    sign_in @user
+    get panel_artifact_shares_path(signed_id: @blob.signed_id)
+
+    assert_response :success
+    assert_select "turbo-frame .art-share .access-switch.on"
+  end
+
+  test "panel resolves an empty frame for anyone who may not manage the blob" do
+    sign_in @stranger
+    get panel_artifact_shares_path(signed_id: @blob.signed_id)
+
+    assert_response :success
+    assert_select "turbo-frame"
+    assert_select ".art-share", false
+  end
+
   test "destroy revokes the share and re-renders the panel switched off" do
     share = ArtifactShare.share_blob!(blob: @blob, message: @message, user: @user)
 

@@ -14,7 +14,7 @@
                 kind: :conversation,
                 title: conversation.display_title,
                 url: shared_conversation_url(token: conversation.share_token),
-                shared_at: conversation.shared_at,
+                shared_at: conversation.shared_at || conversation.updated_at,
                 revoke_path: (conversation.user_id == current_user.id ? share_conversation_path(conversation) : nil) %>
         <% end %>
       </section>

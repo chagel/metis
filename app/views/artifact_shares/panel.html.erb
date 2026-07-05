@@ -1,0 +1,5 @@
+<%= turbo_frame_tag @blob, :share_frame do %>
+  <% if @manageable %>
+    <%= render "artifact_shares/panel", blob: @blob, share: @share %>
+  <% end %>
+<% end %>

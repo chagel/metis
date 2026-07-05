@@ -55,6 +55,23 @@ class SharingTest < ActiveSupport::TestCase
     assert_not_includes conversations, personal
   end
 
+  test "hides artifact shares from a teammate's personal conversation" do
+    teammate = User.create!(email: "mate-art@example.com", password: "password123")
+    @team.memberships.create!(user: teammate, role: :member)
+    personal = teammate.conversations.create!(title: "P", team: @team, visibility: :personal)
+    message = personal.messages.create!(role: :assistant, content: "x", streaming_status: :done)
+    message.artifacts.attach(io: StringIO.new("secret"), filename: "secret.csv", content_type: "text/csv")
+    hidden = ArtifactShare.share_blob!(blob: message.artifacts.first.blob, message: message, user: teammate)
+
+    team_visible = teammate.conversations.create!(title: "V", team: @team, visibility: :team)
+    visible_msg = team_visible.messages.create!(role: :assistant, content: "x", streaming_status: :done)
+    visible_msg.artifacts.attach(io: StringIO.new("open"), filename: "open.csv", content_type: "text/csv")
+    visible = ArtifactShare.share_blob!(blob: visible_msg.artifacts.first.blob, message: visible_msg, user: teammate)
+
+    assert_equal [ visible ], Sharing.for(team: @team, user: @user).artifact_shares
+    assert_includes Sharing.for(team: @team, user: teammate).artifact_shares, hidden
+  end
+
   test "is a pure projection — reading writes no state" do
     share_artifact("data.csv")
 

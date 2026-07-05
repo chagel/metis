@@ -7,11 +7,16 @@ class SharedArtifactsController < ApplicationController
 
   layout "preview"
 
+  # Rendered previews buffer the blob into worker memory (Text#full_content,
+  # Csv#all_rows), so this unauthenticated door only previews small files —
+  # bigger ones fall through to the streamed download.
+  PREVIEW_BYTE_LIMIT = 2.megabytes
+
   def show
     set_share
     @previewer = ArtifactPreviewer.for(@blob)
     @mode = @previewer.resolve_mode(params[:mode])
-    @partial = @mode && @previewer.partial_for_mode(@mode)
+    @partial = (@previewer.partial_for_mode(@mode) if @mode && @blob.byte_size <= PREVIEW_BYTE_LIMIT)
   end
 
   # Stream in chunks rather than buffering the whole blob in worker memory

@@ -21,14 +21,27 @@ class ArtifactSharesController < ApplicationController
     respond_with_panel { redirect_back fallback_location: sharing_path }
   end
 
+  # Resolves the owner-only share panel for a lazy frame: Turbo broadcasts
+  # render viewer-less, so each authed session fetches its own panel —
+  # owners get the toggle, everyone else an empty frame.
+  def panel
+    @blob = ActiveStorage::Blob.find_signed!(params[:signed_id])
+    @manageable = owned_artifact_message(@blob).present?
+    @share = @manageable ? ArtifactShare.find_by(blob: @blob) : nil
+    render layout: false
+  end
+
   private
 
   # The blob has to be an :artifacts attachment on a Message in a
   # conversation the current user owns — else a leaked signed_id (or a
-  # read-only teammate) could publish someone else's file.
+  # read-only teammate) could publish someone else's file. Ownership must
+  # not outlive team membership: an ex-member's conversations keep their
+  # team_id, but their sharing rights end with the membership.
   def owned_artifact_message(blob)
     Message.owning_artifact_blob(blob)
-           .joins(:conversation).where(conversations: { user_id: current_user.id })
+           .joins(:conversation)
+           .where(conversations: { user_id: current_user.id, team_id: current_user.team_ids })
            .first
   end
 
