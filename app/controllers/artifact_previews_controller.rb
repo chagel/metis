@@ -7,8 +7,6 @@ class ArtifactPreviewsController < ApplicationController
     raise ActiveRecord::RecordNotFound unless @message&.conversation&.team&.members&.include?(current_user)
 
     @previewer = ArtifactPreviewer.for(@blob)
-    raise ActiveRecord::RecordNotFound if @previewer.preview_modes.empty?
-
     @mode = @previewer.resolve_mode(params[:mode])
     @partial = @previewer.partial_for_mode(@mode)
 

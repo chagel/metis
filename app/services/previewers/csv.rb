@@ -9,7 +9,6 @@ module Previewers
     end
 
     def card_partial = "previewers/csv_card"
-    def open_url(routes) = routes.artifact_preview_path(blob.signed_id)
 
     def preview_modes = [ :preview ]
     def partial_for_mode(_mode) = "previewers/csv_full"

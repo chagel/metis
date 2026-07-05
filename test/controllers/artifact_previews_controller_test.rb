@@ -125,7 +125,7 @@ class ArtifactPreviewsControllerTest < ActionDispatch::IntegrationTest
     assert_select "table.preview-csv"
   end
 
-  test "404s a renderer with no preview modes (e.g. PDF — opened via blob URL, not this route)" do
+  test "renders PDFs in the browser-native viewer iframe" do
     @message.artifacts.attach(
       io: StringIO.new("%PDF-1.4 fake"),
       filename: "report.pdf",
@@ -136,6 +136,38 @@ class ArtifactPreviewsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in @user
     get artifact_preview_path(pdf_blob.signed_id)
-    assert_response :not_found
+
+    assert_response :success
+    assert_select "iframe.preview-pdf"
+  end
+
+  test "renders images on the preview page with the full chrome" do
+    @message.artifacts.attach(
+      io: File.open(Rails.root.join("test/fixtures/files/sample.png")),
+      filename: "sample.png", content_type: "image/png"
+    )
+    png_blob = ActiveStorage::Blob.find_by(filename: "sample.png")
+
+    sign_in @user
+    get artifact_preview_path(png_blob.signed_id)
+
+    assert_response :success
+    assert_select "img.preview-image"
+    assert_select ".preview-share-btn"
+  end
+
+  test "a renderer with no preview modes gets the download-only page, not a 404" do
+    @message.artifacts.attach(
+      io: StringIO.new("\x00\x01binary"),
+      filename: "data.bin", content_type: "application/octet-stream"
+    )
+    bin_blob = ActiveStorage::Blob.find_by(filename: "data.bin")
+
+    sign_in @user
+    get artifact_preview_path(bin_blob.signed_id)
+
+    assert_response :success
+    assert_select "p.preview-none"
+    assert_select ".preview-share-btn"
   end
 end

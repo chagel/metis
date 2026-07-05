@@ -1,0 +1,4 @@
+<%# Browser-native viewer. content_src: see _image_full. %>
+<iframe class="preview-pdf"
+        src="<%= local_assigns[:content_src] || previewer.display_path(self) %>"
+        title="<%= blob.filename %>"></iframe>

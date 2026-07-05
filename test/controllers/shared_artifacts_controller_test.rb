@@ -77,15 +77,31 @@ class SharedArtifactsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/inline/, response.headers["Content-Disposition"])
   end
 
-  test "inline disposition is refused for non-image blobs" do
+  test "inline disposition is refused for blobs that could execute on our origin" do
     get download_shared_artifact_path(token: @share.token, disposition: :inline)
     assert_match(/attachment/, response.headers["Content-Disposition"])
   end
 
-  test "a mode-less renderer still gets a page with a working download" do
+  test "a PDF renders in the embedded viewer through the token route" do
     @message.artifacts.attach(io: StringIO.new("%PDF-1.4 fake"), filename: "report.pdf",
                               content_type: "application/pdf")
     blob = ActiveStorage::Blob.find_by(filename: "report.pdf")
+    share = ArtifactShare.share_blob!(blob: blob, message: @message, user: @user)
+
+    get shared_artifact_path(token: share.token)
+    assert_response :success
+    assert_select "iframe.preview-pdf[src=?]",
+                  download_shared_artifact_path(token: share.token, disposition: :inline)
+    refute_match(/rails\/active_storage/, response.body)
+
+    get download_shared_artifact_path(token: share.token, disposition: :inline)
+    assert_match(/inline/, response.headers["Content-Disposition"])
+  end
+
+  test "a mode-less renderer still gets a page with a working download" do
+    @message.artifacts.attach(io: StringIO.new("\x00\x01binary"), filename: "data.bin",
+                              content_type: "application/octet-stream")
+    blob = ActiveStorage::Blob.find_by(filename: "data.bin")
     share = ArtifactShare.share_blob!(blob: blob, message: @message, user: @user)
 
     get shared_artifact_path(token: share.token)

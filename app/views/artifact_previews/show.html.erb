@@ -43,5 +43,9 @@
 </header>
 
 <main class="preview-body">
-  <%= render @partial, previewer: @previewer, blob: @blob %>
+  <% if @partial %>
+    <%= render @partial, previewer: @previewer, blob: @blob %>
+  <% else %>
+    <p class="preview-none"><%= t('.no_preview') %></p>
+  <% end %>
 </main>

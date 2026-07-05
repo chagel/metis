@@ -37,14 +37,11 @@
 
 <main class="preview-body">
   <% if @partial %>
-    <%= render @partial, previewer: @previewer, blob: @blob %>
-  <% elsif @previewer.is_a?(Previewers::Image) %>
-    <img class="preview-image"
-         src="<%= download_shared_artifact_path(token: @share.token, disposition: :inline) %>"
-         alt="<%= @blob.filename %>">
+    <%# content_src keeps image/PDF bytes behind the revocable token
+        route; buffered partials (text, csv) ignore it. %>
+    <%= render @partial, previewer: @previewer, blob: @blob,
+          content_src: download_shared_artifact_path(token: @share.token, disposition: :inline) %>
   <% else %>
-    <%# A shared link must always at least download — never 404 like the
-        authed preview does on a mode-less renderer. %>
     <p class="preview-none"><%= t('.no_preview') %></p>
   <% end %>
 </main>

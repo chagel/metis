@@ -1,0 +1,5 @@
+<%# content_src: the public page passes its token route so a revoked
+    share dies with the token — never a signed blob URL there. %>
+<img class="preview-image"
+     src="<%= local_assigns[:content_src] || previewer.display_path(self) %>"
+     alt="<%= blob.filename %>">

@@ -38,20 +38,51 @@ class ArtifactPreviewerTest < ActiveSupport::TestCase
                        ArtifactPreviewer.for(blob_with(content_type: "application/octet-stream"))
   end
 
-  test "Image renderer uses a path helper so Turbo broadcasts get the right host" do
+  test "every previewer's Open points at the preview page via a path helper" do
     # Turbo broadcasts render outside a request context; *_url helpers
     # fall back to example.org. Paths are host-agnostic.
+    routes = Object.new
+    def routes.artifact_preview_path(signed_id) = "/artifacts/#{signed_id}/preview"
+
+    [ "image/jpeg", "application/pdf", "application/zip" ].each do |type|
+      blob = blob_with(content_type: type)
+      blob.define_singleton_method(:signed_id) { "signed" }
+      previewer = ArtifactPreviewer.for(blob)
+      assert_equal "/artifacts/signed/preview", previewer.open_url(routes)
+    end
+  end
+
+  test "Image display_path serves the blob small and a bounded variant large" do
     image = Previewers::Image.new(blob_with(content_type: "image/jpeg"))
     routes = Object.new
     def routes.rails_blob_path(blob, **opts) = "/blob/#{blob.filename}"
 
-    assert_equal "/blob/x", image.open_url(routes)
+    assert_equal "/blob/x", image.display_path(routes)
   end
 
-  test "Fallback has no open_url and no preview modes so the card only offers Download" do
+  test "Image and Pdf render on the preview page; only they are inline-safe and uncapped" do
+    image = Previewers::Image.new(blob_with(content_type: "image/png"))
+    pdf = Previewers::Pdf.new(blob_with(content_type: "application/pdf"))
+    text = Previewers::Text.new(blob_with(content_type: "text/plain", filename: "x.txt"))
+
+    assert_equal [ :preview ], image.preview_modes
+    assert_equal "previewers/image_full", image.partial_for_mode(:preview)
+    assert_equal [ :preview ], pdf.preview_modes
+    assert_equal "previewers/pdf_full", pdf.partial_for_mode(:preview)
+
+    assert image.inline_safe?
+    assert pdf.inline_safe?
+    assert_not text.inline_safe?
+    assert_not image.buffered_preview?
+    assert_not pdf.buffered_preview?
+    assert text.buffered_preview?
+  end
+
+  test "Fallback has no preview modes so the page shows the download-only state" do
     fallback = Previewers::Fallback.new(blob_with(content_type: "application/zip"))
-    assert_nil fallback.open_url(Object.new)
     assert_empty fallback.preview_modes
+    assert_nil fallback.partial_for_mode(:preview)
+    assert_not fallback.inline_safe?
   end
 
   test "Text head_lines returns UTF-8 even when the blob carries non-ASCII bytes" do

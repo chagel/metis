@@ -1164,6 +1164,10 @@ img.avatar { background:none; object-fit:cover; }
   flex:1; min-height:0; width:100%;
   background:var(--card); border:1px solid var(--line); border-radius:10px;
 }
+.preview-pdf {
+  flex:1; min-height:0; width:100%;
+  background:var(--card); border:1px solid var(--line); border-radius:10px;
+}
 /* public shared-artifact page (same shell, no back link) */
 .preview-size { font-family:var(--fm); font-size:11px; color:var(--ink-3); flex:none; }
 .preview-image { display:block; max-width:100%; margin:0 auto; border-radius:10px; }

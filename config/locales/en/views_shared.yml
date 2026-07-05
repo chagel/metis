@@ -6,6 +6,7 @@ en:
       fullscreen: "Fullscreen"
       download: "Download"
       share: "Share"
+      no_preview: "No preview for this file type — use Download."
   layouts:
     head:
       title: "Metis"

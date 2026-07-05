@@ -9,10 +9,16 @@ module Previewers
 
     def card_partial = "previewers/image_card"
 
-    # Path helpers (not URL helpers) so this works both in the live
-    # HTTP request and in a Turbo broadcast — broadcasts have no
-    # request context and *_url falls back to example.org.
-    def open_url(routes)
+    def preview_modes = [ :preview ]
+    def partial_for_mode(_mode) = "previewers/image_full"
+
+    def inline_safe? = true
+    def buffered_preview? = false
+
+    # Where the authed preview page's <img> points: a bounded variant
+    # for big originals, the blob itself otherwise. The public page
+    # overrides this with its token route — never a signed blob URL.
+    def display_path(routes)
       if blob.byte_size > VARIANT_THRESHOLD
         routes.rails_representation_path(
           blob.variant(resize_to_limit: [ 2000, 2000 ]).processed

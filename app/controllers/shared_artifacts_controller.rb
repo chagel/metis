@@ -7,16 +7,17 @@ class SharedArtifactsController < ApplicationController
 
   layout "preview"
 
-  # Rendered previews buffer the blob into worker memory (Text#full_content,
-  # Csv#all_rows), so this unauthenticated door only previews small files —
-  # bigger ones fall through to the streamed download.
+  # Buffered previews load the blob into worker memory (Text#full_content,
+  # Csv#all_rows), so this unauthenticated door only renders them for small
+  # files — bigger ones fall through to the streamed download. Client-
+  # streamed previews (img, PDF iframe) are exempt.
   PREVIEW_BYTE_LIMIT = 2.megabytes
 
   def show
     set_share
     @previewer = ArtifactPreviewer.for(@blob)
     @mode = @previewer.resolve_mode(params[:mode])
-    @partial = (@previewer.partial_for_mode(@mode) if @mode && @blob.byte_size <= PREVIEW_BYTE_LIMIT)
+    @partial = (@previewer.partial_for_mode(@mode) if @mode && previewable?)
   end
 
   # Stream in chunks rather than buffering the whole blob in worker memory
@@ -34,10 +35,14 @@ class SharedArtifactsController < ApplicationController
     @blob = @share.blob
   end
 
-  # Inline serving is only for image previews — streaming e.g. text/html
-  # inline would execute it on the app's origin.
+  def previewable?
+    !@previewer.buffered_preview? || @blob.byte_size <= PREVIEW_BYTE_LIMIT
+  end
+
+  # Inline serving only for types the previewer declares inert on our
+  # origin — streaming e.g. text/html inline would execute it here.
   def disposition
-    return "inline" if params[:disposition] == "inline" && Previewers::Image.handles?(@blob)
+    return "inline" if params[:disposition] == "inline" && ArtifactPreviewer.for(@blob).inline_safe?
 
     "attachment"
   end

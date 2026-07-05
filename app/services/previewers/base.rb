@@ -26,15 +26,28 @@ module Previewers
     end
 
     def card_partial = "previewers/fallback_card"
-    def open_url(_routes) = nil
 
-    # Modes the dedicated preview page supports. Empty = there is no
-    # preview page (the type opens directly via blob URL or is
-    # download-only). When 2+, the page renders a Source/Preview
-    # toggle in the header.
+    # Every artifact opens through the preview page — the one surface
+    # with the full chrome (share, download, modes). Path helper (not
+    # _url) so Turbo broadcasts without a request host render correctly.
+    def open_url(routes) = routes.artifact_preview_path(blob.signed_id)
+
+    # Modes the preview page supports. Empty = the page shows the
+    # no-preview fallback (download still works). When 2+, the page
+    # renders a Source/Preview toggle in the header.
     def preview_modes = []
     def default_mode = preview_modes.first
     def partial_for_mode(_mode) = nil
+
+    # May the public door serve this blob's bytes with an inline
+    # disposition? Only types that are inert on our origin — text/html
+    # inline would execute there.
+    def inline_safe? = false
+
+    # Does the full preview buffer the blob into worker memory? The
+    # public page byte-caps those; client-streamed previews (img, PDF
+    # iframe) are exempt.
+    def buffered_preview? = true
 
     # Pick the mode a preview page should render for a raw params value.
     # Coerces defensively (a `?mode[]=x` array must not reach Array#to_sym)

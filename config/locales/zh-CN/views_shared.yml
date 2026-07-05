@@ -6,6 +6,7 @@
       fullscreen: "全屏"
       download: "下载"
       share: "分享"
+      no_preview: "此文件类型暂无预览 — 请下载查看。"
   layouts:
     head:
       title: "Metis"
