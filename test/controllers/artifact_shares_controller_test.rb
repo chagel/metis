@@ -49,6 +49,17 @@ class ArtifactSharesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 0, ArtifactShare.count
   end
 
+  test "create 404s a read-only teammate viewing the owner's team-visible conversation" do
+    teammate = in_shared_team_view
+
+    sign_in teammate
+    post switch_team_path(@shared_team)
+    post artifact_shares_path(format: :turbo_stream), params: { signed_id: @team_blob.signed_id }
+
+    assert_response :not_found
+    assert_equal 0, ArtifactShare.count
+  end
+
   test "destroy revokes the share and re-renders the panel switched off" do
     share = ArtifactShare.share_blob!(blob: @blob, message: @message, user: @user)
 
@@ -61,10 +72,11 @@ class ArtifactSharesControllerTest < ActionDispatch::IntegrationTest
     refute_match(/share-panel-url/, response.body)
   end
 
-  test "destroy 404s a member of another team" do
+  test "destroy 404s anyone who did not create the share" do
     share = ArtifactShare.share_blob!(blob: @blob, message: @message, user: @user)
+    teammate = User.create!(email: "mate2@example.com", password: "password123")
 
-    sign_in @stranger
+    sign_in teammate
     delete artifact_share_path(share, format: :turbo_stream)
 
     assert_response :not_found
@@ -76,12 +88,38 @@ class ArtifactSharesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_user_session_path
   end
 
-  test "the artifact card shows the share panel in the authed chat" do
+  test "the artifact card shows the share panel to the owner in the authed chat" do
     sign_in @user
     get conversation_path(@conversation)
 
     assert_select ".art-card .art-share"
     assert_select ".art-share .access-switch:not(.on)"
+  end
+
+  test "a read-only teammate does not see the share panel" do
+    teammate = in_shared_team_view
+
+    sign_in teammate
+    post switch_team_path(@shared_team)
+    get conversation_path(@team_conversation)
+
+    assert_response :success
+    assert_select ".art-card"
+    assert_select ".art-share", false
+  end
+
+  # A team-visible conversation the owner and a member both belong to, with
+  # one artifact — the setup for read-only teammate checks.
+  def in_shared_team_view
+    @shared_team = Team.create!(name: "Shared")
+    @user.memberships.create!(team: @shared_team, role: :owner)
+    teammate = User.create!(email: "mate@example.com", password: "password123")
+    @shared_team.memberships.create!(user: teammate, role: :member)
+    @team_conversation = @user.conversations.create!(title: "Team chat", team: @shared_team, visibility: :team)
+    msg = @team_conversation.messages.create!(role: :assistant, content: "x", streaming_status: :done)
+    msg.artifacts.attach(io: StringIO.new("col\na\n"), filename: "shared.csv", content_type: "text/csv")
+    @team_blob = msg.artifacts.first.blob
+    teammate
   end
 
   test "the artifact card hides the share panel on the public conversation page" do

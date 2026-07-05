@@ -35,5 +35,16 @@ module Previewers
     def preview_modes = []
     def default_mode = preview_modes.first
     def partial_for_mode(_mode) = nil
+
+    # Pick the mode a preview page should render for a raw params value.
+    # Coerces defensively (a `?mode[]=x` array must not reach Array#to_sym)
+    # and falls back to the default so the two public/authed doors can't
+    # drift.
+    def resolve_mode(requested)
+      sym = requested.to_s.presence&.to_sym
+      return sym if preview_modes.include?(sym)
+
+      default_mode
+    end
   end
 end

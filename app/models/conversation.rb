@@ -84,14 +84,16 @@ class Conversation < ApplicationRecord
 
   # Mint a public share token on first call; later calls return the
   # existing token so the URL stays stable for already-distributed links.
+  # shared_at records when it was first made public (the Sharing page
+  # orders/labels by it — updated_at bumps on every message).
   def generate_share_token!
     return share_token if shared?
-    update!(share_token: SecureRandom.urlsafe_base64(16))
+    update!(share_token: SecureRandom.urlsafe_base64(16), shared_at: Time.current)
     share_token
   end
 
   def revoke_share!
-    update!(share_token: nil)
+    update!(share_token: nil, shared_at: nil)
   end
 
   # Light up the "Team" tab for every teammate currently in this team —

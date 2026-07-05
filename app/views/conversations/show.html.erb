@@ -131,7 +131,7 @@
       <%# A shared (read-only) view hides the whole activity block —
           reasoning and tool calls — matching the public share template. %>
       <%= render partial: "messages/message", collection: @messages,
-            as: :message, locals: { hide_activity: @read_only, forkable: !@read_only } %>
+            as: :message, locals: { hide_activity: @read_only, forkable: !@read_only, can_manage: !@read_only } %>
     </div>
     <% if workflow_run %>
       <div class="thread"><%= render "workflow_runs/gate", run: workflow_run %></div>

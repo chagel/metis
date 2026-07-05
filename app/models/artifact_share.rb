@@ -8,10 +8,11 @@ class ArtifactShare < ApplicationRecord
 
   before_create { self.token ||= SecureRandom.urlsafe_base64(16) }
 
-  # Idempotent: byte-identical artifacts de-dupe to one blob, so a second
-  # share of the same content returns the existing row.
+  # Idempotent, and race-safe: byte-identical artifacts de-dupe to one
+  # blob, so a concurrent double-submit hits the unique blob_id index and
+  # finds the winner instead of raising RecordNotUnique.
   def self.share_blob!(blob:, message:, user:)
-    find_or_create_by!(blob: blob) do |share|
+    create_or_find_by!(blob: blob) do |share|
       share.team = message.conversation.team
       share.created_by = user
     end

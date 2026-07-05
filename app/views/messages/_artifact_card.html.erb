@@ -34,10 +34,9 @@
       <% end %>
     </span>
   </footer>
-  <%# No share toggle on the public shared-conversation page — that render
-      passes shared: true; everywhere else (authed views and Turbo
-      broadcasts to the chat) the viewer is a team member. %>
-  <% unless local_assigns[:shared] %>
-    <%= render "artifact_shares/panel", blob: artifact.blob %>
+  <%# Owner-only: the panel mints/revokes a public link, so it's gated on
+      can_manage (never rendered on the public conversation page). %>
+  <% if local_assigns[:can_manage] %>
+    <%= render "artifact_shares/panel", blob: artifact.blob, share: local_assigns[:share] %>
   <% end %>
 </article>

@@ -9,16 +9,7 @@ class ArtifactPreviewsController < ApplicationController
     @previewer = ArtifactPreviewer.for(@blob)
     raise ActiveRecord::RecordNotFound if @previewer.preview_modes.empty?
 
-    @mode = resolve_mode
+    @mode = @previewer.resolve_mode(params[:mode])
     @partial = @previewer.partial_for_mode(@mode)
-  end
-
-  private
-
-  def resolve_mode
-    requested = params[:mode]&.to_sym
-    return requested if @previewer.preview_modes.include?(requested)
-
-    @previewer.default_mode
   end
 end

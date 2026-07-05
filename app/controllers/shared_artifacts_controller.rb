@@ -1,6 +1,8 @@
 # The public door for a shared artifact: token → ArtifactShare → blob,
 # never a raw signed id, so a destroyed share is authoritatively dead.
 class SharedArtifactsController < ApplicationController
+  include ActiveStorage::Streaming
+
   skip_before_action :authenticate_user!
 
   layout "preview"
@@ -8,14 +10,16 @@ class SharedArtifactsController < ApplicationController
   def show
     set_share
     @previewer = ArtifactPreviewer.for(@blob)
-    @mode = resolve_mode
+    @mode = @previewer.resolve_mode(params[:mode])
     @partial = @mode && @previewer.partial_for_mode(@mode)
   end
 
+  # Stream in chunks rather than buffering the whole blob in worker memory
+  # (this endpoint is unauthenticated and has no artifact size cap). The
+  # token gate still decides access, so revocation stays authoritative.
   def download
     set_share
-    send_data @blob.download, filename: @blob.filename.to_s,
-              content_type: @blob.content_type, disposition: disposition
+    send_blob_stream @blob, disposition: disposition
   end
 
   private
@@ -23,13 +27,6 @@ class SharedArtifactsController < ApplicationController
   def set_share
     @share = ArtifactShare.find_by!(token: params[:token])
     @blob = @share.blob
-  end
-
-  def resolve_mode
-    requested = params[:mode]&.to_sym
-    return requested if @previewer.preview_modes.include?(requested)
-
-    @previewer.default_mode
   end
 
   # Inline serving is only for image previews — streaming e.g. text/html
