@@ -153,10 +153,11 @@ module ApplicationHelper
   # hasn't picked a timezone yet — keeping the conditional in Ruby
   # avoids embedding ERB inside the `<body>` opening tag, which leaves
   # stray whitespace before the closing `>`.
-  # Sections that open collapsed (icon rail) by default — the board is a
-  # full-width grid the panel only crowds. Server-rendered to avoid a flash;
-  # the controller still honors a sticky per-section override.
-  NAV_DEFAULT_COLLAPSED = %w[board].freeze
+  # Sections that open collapsed (icon rail) by default — the board and
+  # sharing pages are full-width grids the panel only crowds. Server-
+  # rendered to avoid a flash; the controller still honors a sticky
+  # per-section override.
+  NAV_DEFAULT_COLLAPSED = %w[board sharing].freeze
 
   def nav_default_collapsed?
     NAV_DEFAULT_COLLAPSED.include?(controller_name)

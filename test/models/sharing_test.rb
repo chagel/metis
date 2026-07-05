@@ -13,20 +13,30 @@ class SharingTest < ActiveSupport::TestCase
     ArtifactShare.share_blob!(blob: message.artifacts.first.blob, message: message, user: @user)
   end
 
-  test "groups shared conversations and artifact shares, newest first" do
+  test "items interleave conversations and artifact shares, newest first" do
     old_share = share_artifact("old.csv")
     old_share.update_column(:created_at, 2.days.ago)
-    new_share = share_artifact("new.csv")
 
     conversation = @user.conversations.create!(title: "C")
     conversation.generate_share_token!
+    conversation.update_column(:shared_at, 1.day.ago)
     @user.conversations.create!(title: "unshared")
+
+    new_share = share_artifact("new.csv")
 
     sharing = Sharing.for(team: @team, user: @user)
 
-    assert_equal [ conversation ], sharing.conversations
-    assert_equal [ new_share, old_share ], sharing.artifact_shares
+    assert_equal [ new_share, conversation, old_share ], sharing.items
     assert sharing.any?
+  end
+
+  test "kind narrows items to one type" do
+    share = share_artifact("only.csv")
+    conversation = @user.conversations.create!(title: "C")
+    conversation.generate_share_token!
+
+    assert_equal [ share ], Sharing.for(team: @team, user: @user, kind: :artifacts).items
+    assert_equal [ conversation ], Sharing.for(team: @team, user: @user, kind: :chats).items
   end
 
   test "orders shared conversations by shared-at, not last activity" do
@@ -38,7 +48,7 @@ class SharingTest < ActiveSupport::TestCase
     # A stale message bump on the older conversation must not reorder it.
     older.update_column(:updated_at, Time.current)
 
-    assert_equal [ newer, older ], Sharing.for(team: @team, user: @user).conversations
+    assert_equal [ newer, older ], Sharing.for(team: @team, user: @user).items
   end
 
   test "hides a teammate's personal conversation even when it is shared publicly" do
@@ -49,10 +59,22 @@ class SharingTest < ActiveSupport::TestCase
     team_visible = teammate.conversations.create!(title: "Team notes", team: @team, visibility: :team)
     team_visible.generate_share_token!
 
-    conversations = Sharing.for(team: @team, user: @user).conversations
+    conversations = Sharing.for(team: @team, user: @user, scope: :team).conversations
 
     assert_includes conversations, team_visible
     assert_not_includes conversations, personal
+  end
+
+  test "mine scope lists only my shares; team scope only teammates'" do
+    teammate = User.create!(email: "mate-scope@example.com", password: "password123")
+    @team.memberships.create!(user: teammate, role: :member)
+    mine = @user.conversations.create!(title: "Mine", team: @team, visibility: :personal)
+    mine.generate_share_token!
+    theirs = teammate.conversations.create!(title: "Theirs", team: @team, visibility: :team)
+    theirs.generate_share_token!
+
+    assert_equal [ mine ], Sharing.for(team: @team, user: @user).conversations
+    assert_equal [ theirs ], Sharing.for(team: @team, user: @user, scope: :team).conversations
   end
 
   test "hides artifact shares from a teammate's personal conversation" do
@@ -68,7 +90,7 @@ class SharingTest < ActiveSupport::TestCase
     visible_msg.artifacts.attach(io: StringIO.new("open"), filename: "open.csv", content_type: "text/csv")
     visible = ArtifactShare.share_blob!(blob: visible_msg.artifacts.first.blob, message: visible_msg, user: teammate)
 
-    assert_equal [ visible ], Sharing.for(team: @team, user: @user).artifact_shares
+    assert_equal [ visible ], Sharing.for(team: @team, user: @user, scope: :team).artifact_shares
     assert_includes Sharing.for(team: @team, user: teammate).artifact_shares, hidden
   end
 

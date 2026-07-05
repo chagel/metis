@@ -2,13 +2,20 @@
   sharing:
     index:
       title: "分享"
-      conversations: "已分享的对话"
-      artifacts: "已分享的文件"
+      tab_me: "我的"
+      tab_team: "团队"
+      filter_all: "全部"
+      filter_chats: "对话"
+      filter_artifacts: "文件"
       empty_title: "还没有分享任何内容"
       empty_desc: "你为对话和文件创建的公开链接会显示在这里。"
+      empty_team_title: "团队还没有分享内容"
+      empty_team_desc: "团队成员为团队可见对话创建的公开链接会显示在这里。"
       shared_ago: "%{time}前"
-      copy: "复制"
+      public_label: "公开"
       copied: "已复制"
+      actions: "分享操作"
+      copy_link: "复制链接"
       stop_sharing: "停止分享"
   artifact_shares:
     panel:

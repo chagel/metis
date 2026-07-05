@@ -2,13 +2,20 @@ en:
   sharing:
     index:
       title: "Sharing"
-      conversations: "Shared conversations"
-      artifacts: "Shared artifacts"
+      tab_me: "Me"
+      tab_team: "Team"
+      filter_all: "All"
+      filter_chats: "Chats"
+      filter_artifacts: "Artifacts"
       empty_title: "Nothing shared yet"
       empty_desc: "Public links you create for conversations and artifacts show up here."
+      empty_team_title: "No team shares yet"
+      empty_team_desc: "Public links teammates create from team-visible conversations show up here."
       shared_ago: "%{time} ago"
-      copy: "Copy"
+      public_label: "Public"
       copied: "Copied"
+      actions: "Share actions"
+      copy_link: "Copy link"
       stop_sharing: "Stop sharing"
   artifact_shares:
     panel:

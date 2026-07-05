@@ -3,40 +3,57 @@
 <main class="sharing">
   <header class="sharing-head">
     <h1><%= t(".title") %></h1>
+    <% unless current_team.personal? %>
+      <%# Preserve the kind filter across a scope switch; keep defaults
+          out of the URL so tab links stay clean. %>
+      <% tab_kind = @kind unless @kind == :all %>
+      <div class="convo-tabs sharing-tabs" role="tablist">
+        <%= link_to t(".tab_me"), sharing_path(kind: tab_kind),
+              class: class_names("convo-tab", "on" => @scope == :mine) %>
+        <%= link_to t(".tab_team"), sharing_path(scope: "team", kind: tab_kind),
+              class: class_names("convo-tab", "on" => @scope == :team) %>
+      </div>
+    <% end %>
+    <% tab_scope = "team" if @scope == :team %>
+    <div class="convo-tabs sharing-kinds" role="tablist">
+      <%= link_to t(".filter_all"), sharing_path(scope: tab_scope),
+            class: class_names("convo-tab", "on" => @kind == :all) %>
+      <%= link_to t(".filter_chats"), sharing_path(scope: tab_scope, kind: "chats"),
+            class: class_names("convo-tab", "on" => @kind == :chats) %>
+      <%= link_to t(".filter_artifacts"), sharing_path(scope: tab_scope, kind: "artifacts"),
+            class: class_names("convo-tab", "on" => @kind == :artifacts) %>
+    </div>
   </header>
 
   <% if @sharing.any? %>
-    <% if @sharing.conversations.any? %>
-      <section class="sharing-section">
-        <h2 class="sharing-section-title"><%= t(".conversations") %></h2>
-        <% @sharing.conversations.each do |conversation| %>
-          <%= render "sharing/row",
-                kind: :conversation,
-                title: conversation.display_title,
-                url: shared_conversation_url(token: conversation.share_token),
-                shared_at: conversation.shared_at || conversation.updated_at,
-                revoke_path: (conversation.user_id == current_user.id ? share_conversation_path(conversation) : nil) %>
-        <% end %>
-      </section>
-    <% end %>
-
-    <% if @sharing.artifact_shares.any? %>
-      <section class="sharing-section">
-        <h2 class="sharing-section-title"><%= t(".artifacts") %></h2>
-        <% @sharing.artifact_shares.each do |share| %>
-          <%= render "sharing/row",
+    <div class="sharing-grid">
+      <% @sharing.items.each do |item| %>
+        <% if item.is_a?(ArtifactShare) %>
+          <%= render "sharing/card",
                 kind: :artifact,
-                title: share.blob.filename,
-                url: shared_artifact_url(token: share.token),
-                shared_at: share.created_at,
-                revoke_path: (share.created_by_id == current_user.id ? artifact_share_path(share) : nil) %>
+                title: item.blob.filename,
+                url: shared_artifact_url(token: item.token),
+                shared_at: @sharing.shared_at(item),
+                previewer: ArtifactPreviewer.for(item.blob),
+                blob: item.blob,
+                source_path: artifact_preview_path(item.blob.signed_id),
+                revoke_path: (item.created_by_id == current_user.id ? artifact_share_path(item) : nil) %>
+        <% else %>
+          <%= render "sharing/card",
+                kind: :conversation,
+                title: item.display_title,
+                url: shared_conversation_url(token: item.share_token),
+                shared_at: @sharing.shared_at(item),
+                preview_messages: item.messages.conversational.chronological.first(2),
+                source_path: conversation_path(item),
+                revoke_path: (item.user_id == current_user.id ? share_conversation_path(item) : nil) %>
         <% end %>
-      </section>
-    <% end %>
+      <% end %>
+    </div>
   <% else %>
     <div class="sharing-empty">
-      <p class="sharing-empty-title"><%= t(".empty_title") %></p>
-      <p class="sharing-empty-desc"><%= t(".empty_desc") %></p>
+      <p class="sharing-empty-title"><%= t(@scope == :team ? ".empty_team_title" : ".empty_title") %></p>
+      <p class="sharing-empty-desc"><%= t(@scope == :team ? ".empty_team_desc" : ".empty_desc") %></p>
     </div>
   <% end %>
 </main>

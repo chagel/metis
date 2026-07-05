@@ -1,0 +1,69 @@
+<%# One live public link. revoke_path nil => no Stop-sharing item (you
+    can only revoke what you shared). The URL itself stays out of sight —
+    a hidden input feeds share#copy. %>
+<div class="sharing-card" data-controller="share" data-share-copied-value="<%= t('sharing.index.copied') %>">
+  <div class="sharing-card-top">
+    <span class="sharing-ico">
+      <% if kind == :conversation %>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/>
+        </svg>
+      <% else %>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+      <% end %>
+    </span>
+    <%# The preview shell is its own layout, so artifacts open a tab —
+        same as the chat card's Open; conversations navigate in-app. %>
+    <% source_opts = kind == :artifact ? { target: "_blank", rel: "noopener" } : {} %>
+    <%= link_to title, source_path, { class: "sharing-title", title: title }.merge(source_opts) %>
+
+    <input type="hidden" class="sharing-url" value="<%= url %>" data-share-target="url">
+    <div class="sharing-menu" data-controller="dropdown">
+      <button type="button" class="sharing-kebab"
+              data-action="click->dropdown#toggle"
+              aria-haspopup="true" aria-expanded="false"
+              aria-label="<%= t('sharing.index.actions') %>" title="<%= t('sharing.index.actions') %>">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <circle cx="8" cy="3.25" r="1.25"/><circle cx="8" cy="8" r="1.25"/><circle cx="8" cy="12.75" r="1.25"/>
+        </svg>
+      </button>
+      <div class="sharing-menu-panel" role="menu">
+        <button type="button" class="sharing-menu-item" role="menuitem"
+                data-action="click->share#copy"
+                data-share-target="copyButton"><%= t("sharing.index.copy_link") %></button>
+        <% if revoke_path %>
+          <%# Full-page submit on purpose: the toggle answers over Turbo Stream
+              targeting an inline panel that doesn't exist on this page. %>
+          <%= button_to t("sharing.index.stop_sharing"), revoke_path,
+                method: :delete, role: "menuitem",
+                class: "sharing-menu-item sharing-stop", form: { data: { turbo: false } } %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <%# Artifact cards reuse the chat card's per-type preview bodies
+      (image thumbnail, csv head, text head, type icon); conversation
+      cards show the opening exchange. %>
+  <% if local_assigns[:previewer] %>
+    <%= link_to source_path, { class: "sharing-card-preview" }.merge(source_opts) do %>
+      <%= render previewer.card_partial, previewer: previewer, artifact: blob %>
+    <% end %>
+  <% elsif local_assigns[:preview_messages].present? %>
+    <%= link_to source_path, class: "sharing-card-preview sharing-card-preview--chat" do %>
+      <% preview_messages.each do |message| %>
+        <p class="sharing-chat-line sharing-chat-line--<%= message.role %>"><%= message.content %></p>
+      <% end %>
+    <% end %>
+  <% end %>
+
+  <div class="sharing-card-foot">
+    <span class="sharing-live" aria-hidden="true"></span>
+    <span class="sharing-time"><%= t("sharing.index.public_label") %> · <%= t("sharing.index.shared_ago", time: time_ago_in_words(shared_at)) %></span>
+  </div>
+</div>
