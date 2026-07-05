@@ -7,14 +7,15 @@ class ArtifactSharesController < ApplicationController
     message = owned_artifact_message(@blob)
     raise ActiveRecord::RecordNotFound unless message
 
-    ArtifactShare.share_blob!(blob: @blob, message: message, user: current_user)
+    @share = ArtifactShare.share_blob!(blob: @blob, message: message, user: current_user)
     respond_with_panel { redirect_to message.conversation }
   end
 
   def destroy
     # Scope by creator, not current_team: the owner minted it, so revoke
     # works regardless of which team the session is currently viewing.
-    share = ArtifactShare.where(created_by: current_user).find(params[:id])
+    # @share stays unset — the re-rendered panel shows the switch off.
+    share = ArtifactShare.minted_by(current_user).find(params[:id])
     @blob = share.blob
     share.destroy!
     respond_with_panel { redirect_back fallback_location: sharing_path }
@@ -27,7 +28,8 @@ class ArtifactSharesController < ApplicationController
   # read-only teammate) could publish someone else's file.
   def owned_artifact_message(blob)
     Message.owning_artifact_blob(blob)
-           .find { |m| m.conversation&.user_id == current_user.id }
+           .joins(:conversation).where(conversations: { user_id: current_user.id })
+           .first
   end
 
   # The artifact card's share panel re-renders over Turbo; the Sharing

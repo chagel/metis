@@ -56,7 +56,7 @@
              class="chat-content"><%= markdown(message.content) %></div>
 
         <%= render "messages/artifacts", message: message,
-              shared: local_assigns[:shared], can_manage: local_assigns[:can_manage] %>
+              can_manage: local_assigns[:can_manage] %>
 
         <% if message.streaming? || message.pending? %>
           <%# A just-pending turn seeds the indicator with the predicted

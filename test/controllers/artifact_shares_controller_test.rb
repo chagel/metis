@@ -17,7 +17,7 @@ class ArtifactSharesControllerTest < ActionDispatch::IntegrationTest
     post artifact_shares_path(format: :turbo_stream), params: { signed_id: @blob.signed_id }
 
     assert_response :success
-    share = ArtifactShare.for_blob(@blob)
+    share = ArtifactShare.find_by(blob: @blob)
     assert share.present?
     assert_match(/access-switch on/, response.body)
     assert_match %r{/shared/artifacts/#{share.token}}, response.body

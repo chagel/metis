@@ -1,6 +1,6 @@
 <%# URL is a path — share_controller absolutizes it on connect, so this
     also renders correctly from a Turbo broadcast (no request host there). %>
-<% share = local_assigns.fetch(:share) { ArtifactShare.for_blob(blob) } %>
+<% share = local_assigns[:share] %>
 <div id="<%= dom_id(blob, :share) %>"
      class="art-share"
      data-controller="share"
