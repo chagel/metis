@@ -1,0 +1,94 @@
+require "test_helper"
+
+class ArtifactSharesControllerTest < ActionDispatch::IntegrationTest
+  include Devise::Test::IntegrationHelpers
+
+  setup do
+    @user = User.create!(email: "owner@example.com", password: "password123")
+    @stranger = User.create!(email: "stranger@example.com", password: "password123")
+    @conversation = @user.conversations.create!(title: "T")
+    @message = @conversation.messages.create!(role: :assistant, content: "x", streaming_status: :done)
+    @message.artifacts.attach(io: StringIO.new("col\na\n"), filename: "data.csv", content_type: "text/csv")
+    @blob = @message.artifacts.first.blob
+  end
+
+  test "create shares the blob and re-renders the panel switched on with the public URL" do
+    sign_in @user
+    post artifact_shares_path(format: :turbo_stream), params: { signed_id: @blob.signed_id }
+
+    assert_response :success
+    share = ArtifactShare.for_blob(@blob)
+    assert share.present?
+    assert_match(/access-switch on/, response.body)
+    assert_match %r{/shared/artifacts/#{share.token}}, response.body
+  end
+
+  test "a second create for the same blob reuses the existing share" do
+    sign_in @user
+    2.times { post artifact_shares_path(format: :turbo_stream), params: { signed_id: @blob.signed_id } }
+
+    assert_equal 1, ArtifactShare.count
+  end
+
+  test "create 404s for a signed_id that is not an artifact attachment" do
+    user_msg = @conversation.messages.create!(role: :user, content: "u", streaming_status: :done)
+    user_msg.files.attach(io: StringIO.new("oops"), filename: "secret.txt", content_type: "text/plain")
+
+    sign_in @user
+    post artifact_shares_path(format: :turbo_stream), params: { signed_id: user_msg.files.first.blob.signed_id }
+
+    assert_response :not_found
+    assert_equal 0, ArtifactShare.count
+  end
+
+  test "create 404s a stranger even with a valid signed_id" do
+    sign_in @stranger
+    post artifact_shares_path(format: :turbo_stream), params: { signed_id: @blob.signed_id }
+
+    assert_response :not_found
+    assert_equal 0, ArtifactShare.count
+  end
+
+  test "destroy revokes the share and re-renders the panel switched off" do
+    share = ArtifactShare.share_blob!(blob: @blob, message: @message, user: @user)
+
+    sign_in @user
+    delete artifact_share_path(share, format: :turbo_stream)
+
+    assert_response :success
+    assert_not ArtifactShare.exists?(share.id)
+    refute_match(/access-switch on/, response.body)
+    refute_match(/share-panel-url/, response.body)
+  end
+
+  test "destroy 404s a member of another team" do
+    share = ArtifactShare.share_blob!(blob: @blob, message: @message, user: @user)
+
+    sign_in @stranger
+    delete artifact_share_path(share, format: :turbo_stream)
+
+    assert_response :not_found
+    assert ArtifactShare.exists?(share.id)
+  end
+
+  test "requires authentication" do
+    post artifact_shares_path, params: { signed_id: @blob.signed_id }
+    assert_redirected_to new_user_session_path
+  end
+
+  test "the artifact card shows the share panel in the authed chat" do
+    sign_in @user
+    get conversation_path(@conversation)
+
+    assert_select ".art-card .art-share"
+    assert_select ".art-share .access-switch:not(.on)"
+  end
+
+  test "the artifact card hides the share panel on the public conversation page" do
+    token = @conversation.generate_share_token!
+    get shared_conversation_path(token: token)
+
+    assert_select ".art-card"
+    assert_select ".art-share", false
+  end
+end

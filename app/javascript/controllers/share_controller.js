@@ -8,6 +8,11 @@ export default class extends Controller {
   static values = { copied: String }
 
   connect() {
+    // A panel rendered from a Turbo broadcast has no request host, so the
+    // server emits a path — absolutize it for display and copy.
+    if (this.hasUrlTarget && this.urlTarget.value.startsWith("/")) {
+      this.urlTarget.value = new URL(this.urlTarget.value, window.location.origin).toString()
+    }
     this._onDocClick = (event) => {
       if (!this.element.contains(event.target)) this.close()
     }

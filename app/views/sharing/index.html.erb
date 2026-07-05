@@ -1,0 +1,76 @@
+<% content_for :title, t(".title") %>
+
+<main class="sharing">
+  <header class="sharing-head">
+    <h1><%= t(".title") %></h1>
+  </header>
+
+  <% if @sharing.any? %>
+    <% if @sharing.conversations.any? %>
+      <section class="sharing-section">
+        <h2 class="sharing-section-title"><%= t(".conversations") %></h2>
+        <% @sharing.conversations.each do |conversation| %>
+          <div class="sharing-row" data-controller="share" data-share-copied-value="<%= t('.copied') %>">
+            <span class="sharing-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/>
+              </svg>
+            </span>
+            <div class="sharing-meta">
+              <span class="sharing-title"><%= conversation.display_title %></span>
+              <input type="text" class="sharing-url" readonly
+                     value="<%= shared_conversation_url(token: conversation.share_token) %>"
+                     data-share-target="url"
+                     data-action="focus->share#selectAll">
+            </div>
+            <span class="sharing-time"><%= t(".shared_ago", time: time_ago_in_words(conversation.updated_at)) %></span>
+            <button type="button" class="sharing-copy"
+                    data-action="click->share#copy"
+                    data-share-target="copyButton"><%= t(".copy") %></button>
+            <%# Full-page submit on purpose: the conversation share toggle
+                answers in Turbo Stream targeting the chat header's panel,
+                which doesn't exist here. %>
+            <%= button_to t(".stop_sharing"), share_conversation_path(conversation),
+                  method: :delete, class: "sharing-stop", form: { data: { turbo: false } } %>
+          </div>
+        <% end %>
+      </section>
+    <% end %>
+
+    <% if @sharing.artifact_shares.any? %>
+      <section class="sharing-section">
+        <h2 class="sharing-section-title"><%= t(".artifacts") %></h2>
+        <% @sharing.artifact_shares.each do |share| %>
+          <div class="sharing-row" data-controller="share" data-share-copied-value="<%= t('.copied') %>">
+            <span class="sharing-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+            </span>
+            <div class="sharing-meta">
+              <span class="sharing-title"><%= share.blob.filename %></span>
+              <input type="text" class="sharing-url" readonly
+                     value="<%= shared_artifact_url(token: share.token) %>"
+                     data-share-target="url"
+                     data-action="focus->share#selectAll">
+            </div>
+            <span class="sharing-time"><%= t(".shared_ago", time: time_ago_in_words(share.created_at)) %></span>
+            <button type="button" class="sharing-copy"
+                    data-action="click->share#copy"
+                    data-share-target="copyButton"><%= t(".copy") %></button>
+            <%= button_to t(".stop_sharing"), artifact_share_path(share),
+                  method: :delete, class: "sharing-stop", form: { data: { turbo: false } } %>
+          </div>
+        <% end %>
+      </section>
+    <% end %>
+  <% else %>
+    <div class="sharing-empty">
+      <p class="sharing-empty-title"><%= t(".empty_title") %></p>
+      <p class="sharing-empty-desc"><%= t(".empty_desc") %></p>
+    </div>
+  <% end %>
+</main>

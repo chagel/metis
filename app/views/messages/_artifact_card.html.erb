@@ -34,4 +34,10 @@
       <% end %>
     </span>
   </footer>
+  <%# No share toggle on the public shared-conversation page — that render
+      passes shared: true; everywhere else (authed views and Turbo
+      broadcasts to the chat) the viewer is a team member. %>
+  <% unless local_assigns[:shared] %>
+    <%= render "artifact_shares/panel", blob: artifact.blob %>
+  <% end %>
 </article>

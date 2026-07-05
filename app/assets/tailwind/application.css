@@ -1046,6 +1046,14 @@ img.avatar { background:none; object-fit:cover; }
 .art-action--ghost { color:var(--ink-3); border-color:transparent; background:transparent; }
 .art-action--ghost:hover { color:var(--ink); background:var(--canvas); }
 
+/* artifact card share panel (public-link switch + URL row) */
+.art-share {
+  display:flex; flex-direction:column; gap:8px;
+  padding:8px 11px; border-top:1px solid var(--line); background:var(--canvas);
+}
+.art-share .access-title { font-size:12.5px; }
+.art-share .access-desc { font-size:11px; }
+
 /* preview page (standalone tab) */
 .preview-shell {
   background:var(--bg); min-height:100vh; height:100vh; height:100dvh;
@@ -1145,6 +1153,16 @@ img.avatar { background:none; object-fit:cover; }
   flex:1; min-height:0; width:100%;
   background:var(--card); border:1px solid var(--line); border-radius:10px;
 }
+/* public shared-artifact page (same shell, no back link) */
+.preview-size { font-family:var(--fm); font-size:11px; color:var(--ink-3); flex:none; }
+.preview-image { display:block; max-width:100%; margin:0 auto; border-radius:10px; }
+.preview-none { margin:auto; color:var(--ink-3); font-size:13.5px; }
+.preview-foot {
+  flex:none; padding:10px 22px; border-top:1px solid var(--line);
+  background:var(--card); text-align:center; font-size:11.5px; color:var(--ink-3);
+}
+.preview-foot a { color:var(--ink-2); text-decoration:none; }
+.preview-foot a:hover { color:var(--ink); }
 
 /* ───────────── composer ───────────── */
 .composer-wrap { padding:12px 28px 18px; }
@@ -2824,6 +2842,62 @@ body.drawer-open { overflow:hidden; }
   font-family:var(--fm); font-size:11px; line-height:1;
   background:var(--gold); color:#231a06; border-radius:9px; padding:2px 6px;
 }
+
+/* ───────────── sharing page ───────────── */
+.sharing {
+  background:var(--canvas); border-radius:18px; box-shadow:var(--sh-lg);
+  display:flex; flex-direction:column; min-width:0; min-height:0;
+  overflow-y:auto; padding:18px 22px 22px;
+}
+.sharing-head h1 {
+  font-family:var(--fd); font-weight:700; font-size:21px; letter-spacing:-.02em;
+}
+.sharing-section { margin-top:22px; }
+.sharing-section-title {
+  font-size:11.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink-3); padding-bottom:8px; border-bottom:1px solid var(--line);
+}
+.sharing-row {
+  display:flex; align-items:center; gap:12px;
+  padding:12px 0; border-bottom:1px solid var(--line);
+}
+.sharing-ico {
+  width:34px; height:34px; border-radius:8px; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--card); border:1px solid var(--line); color:var(--ink-3);
+}
+.sharing-ico svg { width:17px; height:17px; }
+.sharing-meta { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.sharing-title {
+  font-size:13.5px; font-weight:500; color:var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.sharing-url {
+  width:100%; padding:0; border:none; background:transparent;
+  font-family:var(--fm); font-size:11.5px; color:var(--accent-fg);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.sharing-url:focus { outline:none; }
+.sharing-time { flex:none; font-size:12px; color:var(--ink-3); }
+.sharing-copy {
+  flex:none; padding:5px 10px; font-size:12px;
+  background:transparent; color:var(--ink-2);
+  border:1px solid var(--line); border-radius:7px; cursor:pointer;
+}
+.sharing-copy:hover { color:var(--ink); border-color:var(--line-2); }
+.sharing-row form { margin:0; flex:none; }
+.sharing-stop {
+  padding:5px 10px; font-size:12px;
+  background:transparent; color:var(--danger);
+  border:1px solid var(--danger-line); border-radius:7px; cursor:pointer;
+}
+.sharing-stop:hover { background:var(--danger-soft); }
+.sharing-empty {
+  margin-top:22px; padding:44px 20px; text-align:center;
+  border:1px dashed var(--line); border-radius:12px; color:var(--ink-2);
+}
+.sharing-empty-title { font-size:15px; font-weight:600; color:var(--ink); margin-bottom:6px; }
+.sharing-empty-desc { font-size:13px; color:var(--ink-3); }
 
 .board {
   background:var(--canvas); border-radius:18px; box-shadow:var(--sh-lg);

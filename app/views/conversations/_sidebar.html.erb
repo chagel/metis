@@ -33,7 +33,7 @@
       then, so the tab would otherwise stay lit). %>
   <nav class="prnav" aria-label="<%= t('.primary_nav') %>" data-controller="nav-tabs">
     <%= link_to t('.chats'), conversations_path,
-          class: "prnav-item#{' on' unless controller_name.in?(%w[board projects])}",
+          class: "prnav-item#{' on' unless controller_name.in?(%w[board projects sharing])}",
           data: { nav_tabs_target: "link" } %>
     <%= link_to t('.projects'), projects_path,
           class: "prnav-item#{' on' if controller_name == 'projects'}",
@@ -44,6 +44,9 @@
       <%= t('.board') %>
       <%= render "conversations/nav_badge", count: @needs_you&.size %>
     <% end %>
+    <%= link_to t('.sharing'), sharing_path,
+          class: "prnav-item#{' on' if controller_name == 'sharing'}",
+          data: { nav_tabs_target: "link" } %>
   </nav>
 
   <% if controller_name == "conversations" %>
@@ -166,6 +169,14 @@
       </svg>
       <% if @needs_you&.any? %><span class="rail-dot" aria-hidden="true"></span><% end %>
       <span class="rail-label"><%= t('.board') %></span>
+    <% end %>
+    <%= link_to sharing_path, class: "rail-dest#{' on' if controller_name == 'sharing'}" do %>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6.5 9.5a3 3 0 0 0 4.4.2l2.2-2.2a3 3 0 0 0-4.2-4.2L7.7 4.5"/>
+        <path d="M9.5 6.5a3 3 0 0 0-4.4-.2L2.9 8.5a3 3 0 0 0 4.2 4.2l1.2-1.2"/>
+      </svg>
+      <span class="rail-label"><%= t('.sharing') %></span>
     <% end %>
     <span style="flex:1"></span>
     <%= link_to "/settings", class: "rail-dest", data: { turbo_frame: "_top" } do %>

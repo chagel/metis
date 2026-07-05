@@ -1,0 +1,37 @@
+<% content_for :title, @blob.filename.to_s %>
+
+<header class="preview-header">
+  <h1 class="preview-title"><%= @blob.filename %></h1>
+  <span class="preview-size"><%= number_to_human_size(@blob.byte_size) %></span>
+
+  <% if @previewer.preview_modes.size > 1 %>
+    <nav class="preview-modes" aria-label="<%= t('.view_mode') %>">
+      <% @previewer.preview_modes.each do |mode| %>
+        <%= link_to mode.to_s.capitalize,
+                    shared_artifact_path(token: @share.token, mode: mode),
+                    class: "preview-mode#{' is-on' if @mode == mode}" %>
+      <% end %>
+    </nav>
+  <% end %>
+
+  <%= link_to download_shared_artifact_path(token: @share.token),
+              class: "preview-download" do %>
+    <span class="preview-action-label"><%= t('.download') %></span>
+  <% end %>
+</header>
+
+<main class="preview-body">
+  <% if @partial %>
+    <%= render @partial, previewer: @previewer, blob: @blob %>
+  <% elsif @previewer.is_a?(Previewers::Image) %>
+    <img class="preview-image"
+         src="<%= download_shared_artifact_path(token: @share.token, disposition: :inline) %>"
+         alt="<%= @blob.filename %>">
+  <% else %>
+    <%# A shared link must always at least download — never 404 like the
+        authed preview does on a mode-less renderer. %>
+    <p class="preview-none"><%= t('.no_preview') %></p>
+  <% end %>
+</main>
+
+<footer class="preview-foot"><%= t('.shared_via_prefix') %> <a href="<%= root_url %>" target="_blank" rel="noopener">Metis</a></footer>

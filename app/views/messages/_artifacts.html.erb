@@ -2,6 +2,7 @@
   <% message.artifacts.each do |artifact| %>
     <%= render "messages/artifact_card",
                artifact: artifact,
-               previewer: ArtifactPreviewer.for(artifact) %>
+               previewer: ArtifactPreviewer.for(artifact),
+               shared: local_assigns[:shared] %>
   <% end %>
 </div>

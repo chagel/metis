@@ -116,11 +116,12 @@ class ConversationsController < ApplicationController
   end
 
   # The star/share toggles re-render their inline header panel over Turbo,
-  # or fall back to a full-page redirect.
+  # or fall back to a full-page redirect — back to wherever the toggle was
+  # pressed (the Sharing page revokes with a plain form and relies on this).
   def respond_with_panel(partial)
     respond_to do |format|
       format.turbo_stream { render partial }
-      format.html { redirect_to @conversation }
+      format.html { redirect_back fallback_location: @conversation }
     end
   end
 end

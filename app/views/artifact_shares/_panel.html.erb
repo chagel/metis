@@ -1,0 +1,52 @@
+<%# The artifact card's public-link switch + copyable URL row, re-rendered
+    whole on every toggle (imitates conversations/_share). The URL is a
+    path — share_controller absolutizes it on connect, so the partial also
+    renders correctly from Turbo broadcasts (no request host there). %>
+<% share = ArtifactShare.for_blob(blob) %>
+<div id="<%= dom_id(blob, :share) %>"
+     class="art-share"
+     data-controller="share"
+     data-share-copied-value="<%= t('.copied') %>">
+  <div class="access-row">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M6.5 9.5a3 3 0 0 0 4.4.2l2.2-2.2a3 3 0 0 0-4.2-4.2L7.7 4.5"/>
+      <path d="M9.5 6.5a3 3 0 0 0-4.4-.2L2.9 8.5a3 3 0 0 0 4.2 4.2l1.2-1.2"/>
+    </svg>
+    <div class="access-text">
+      <span class="access-title"><%= t('.public_link') %></span>
+      <span class="access-desc"><%= t('.public_link_desc') %></span>
+    </div>
+    <% if share %>
+      <%= button_to artifact_share_path(share), method: :delete,
+            class: "access-switch on",
+            role: "switch", "aria-checked": "true", "aria-label": t('.public_link'),
+            form: { data: { turbo_stream: true } } do %>
+        <span class="access-knob"></span>
+      <% end %>
+    <% else %>
+      <%= button_to artifact_shares_path, method: :post,
+            params: { signed_id: blob.signed_id },
+            class: "access-switch",
+            role: "switch", "aria-checked": "false", "aria-label": t('.public_link'),
+            form: { data: { turbo_stream: true } } do %>
+        <span class="access-knob"></span>
+      <% end %>
+    <% end %>
+  </div>
+
+  <% if share %>
+    <div class="share-panel-row">
+      <input type="text"
+             class="share-panel-url"
+             readonly
+             value="<%= shared_artifact_path(token: share.token) %>"
+             data-share-target="url"
+             data-action="focus->share#selectAll">
+      <button type="button"
+              class="share-panel-copy"
+              data-action="click->share#copy"
+              data-share-target="copyButton"><%= t('.copy') %></button>
+    </div>
+  <% end %>
+</div>

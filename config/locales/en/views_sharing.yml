@@ -1,0 +1,24 @@
+en:
+  sharing:
+    index:
+      title: "Sharing"
+      conversations: "Shared conversations"
+      artifacts: "Shared artifacts"
+      empty_title: "Nothing shared yet"
+      empty_desc: "Public links you create for conversations and artifacts show up here."
+      shared_ago: "%{time} ago"
+      copy: "Copy"
+      copied: "Copied"
+      stop_sharing: "Stop sharing"
+  artifact_shares:
+    panel:
+      public_link: "Public link"
+      public_link_desc: "Anyone with the link can view this file"
+      copy: "Copy"
+      copied: "Copied"
+  shared_artifacts:
+    show:
+      view_mode: "View mode"
+      download: "Download"
+      no_preview: "No preview for this file type — use Download."
+      shared_via_prefix: "Shared via"

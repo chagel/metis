@@ -35,6 +35,12 @@ class Message < ApplicationRecord
   MAX_UPLOAD_SIZE = 10.megabytes
 
   scope :chronological, -> { order(:created_at) }
+  # The messages a blob is attached to as an :artifacts attachment — the
+  # gate for artifact preview/share: a leaked signed_id for some other
+  # blob (a user upload, an avatar) must not resolve.
+  scope :owning_artifact_blob, ->(blob) {
+    joins(:artifacts_attachments).where(active_storage_attachments: { blob_id: blob.id, name: "artifacts" })
+  }
   scope :conversational, -> { where(role: %i[user assistant]) }
   # An in-flight turn: the assistant message still pending or streaming.
   scope :inflight, -> { assistant.where(streaming_status: %i[pending streaming]) }

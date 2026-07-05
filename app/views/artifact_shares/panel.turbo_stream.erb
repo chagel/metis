@@ -1,0 +1,3 @@
+<%= turbo_stream.replace dom_id(@blob, :share),
+      partial: "artifact_shares/panel",
+      locals: { blob: @blob } %>

@@ -64,6 +64,11 @@ Rails.application.routes.draw do
   get "/share/:token", to: "shared_conversations#show", as: :shared_conversation
   get "/artifacts/:signed_id/preview", to: "artifact_previews#show", as: :artifact_preview
 
+  resources :artifact_shares, only: %i[create destroy]
+  get "/shared/artifacts/:token", to: "shared_artifacts#show", as: :shared_artifact
+  get "/shared/artifacts/:token/download", to: "shared_artifacts#download", as: :download_shared_artifact
+  get "sharing", to: "sharing#index"
+
   get "/settings", to: redirect("/settings/profile")
   scope "/settings", as: nil do
     resource :team, only: %i[show update destroy], controller: "settings/teams" do
