@@ -1088,6 +1088,13 @@ img.avatar { background:none; object-fit:cover; }
   flex:1; min-width:0; font-size:14px; font-weight:600; color:var(--ink);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0;
 }
+/* Share attribution, above the powered-by line in the footer. */
+.preview-meta {
+  display:flex; align-items:center; justify-content:center;
+  margin-bottom:8px;
+}
+.preview-meta .shared-author { font-size:12px; }
+.preview-meta .shared-author-avatar { width:18px; height:18px; font-size:9px; }
 /* Standalone action buttons (Fullscreen, Download). Sized to match
    the segmented toggle below so the header reads as one row of
    equally-weighted controls. */
@@ -1136,7 +1143,7 @@ img.avatar { background:none; object-fit:cover; }
   box-shadow:var(--sh-sm);
 }
 .preview-body {
-  flex:1; min-height:0; padding:22px;
+  flex:1; min-height:0; padding:22px; overflow-y:auto;
   display:flex; flex-direction:column;
 }
 /* Text-flow content reads better in a narrow column; HTML/CSV

@@ -20,6 +20,14 @@ class SharedArtifactsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".preview-back", false
   end
 
+  test "the header attributes the sharing author and timestamp" do
+    get shared_artifact_path(token: @share.token)
+
+    assert_response :success
+    assert_select ".preview-meta .shared-author-name", text: @user.display_label
+    assert_select ".preview-meta .shared-author-time", text: /ago/
+  end
+
   test "download streams the blob as an attachment" do
     get download_shared_artifact_path(token: @share.token)
 
