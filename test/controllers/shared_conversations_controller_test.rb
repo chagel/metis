@@ -17,6 +17,11 @@ class SharedConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".thread .chat-content", text: /hi back/
   end
 
+  test "a pre-chats-namespace bare-token link redirects to the canonical URL" do
+    get "/share/#{@token}"
+    assert_redirected_to "/share/chats/#{@token}"
+  end
+
   test "shows each user message's sender on the public page" do
     teammate = User.create!(email: "teammate@example.com", password: "password123",
                             display_name: "Tea M. Mate")

@@ -20,7 +20,7 @@ class ArtifactSharesControllerTest < ActionDispatch::IntegrationTest
     share = ArtifactShare.find_by(blob: @blob)
     assert share.present?
     assert_match(/access-switch on/, response.body)
-    assert_match %r{/shared/artifacts/#{share.token}}, response.body
+    assert_match %r{/share/artifacts/#{share.token}}, response.body
   end
 
   test "a second create for the same blob reuses the existing share" do

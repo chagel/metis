@@ -61,12 +61,17 @@ Rails.application.routes.draw do
     member { post :accept }
   end
 
-  get "/share/:token", to: "shared_conversations#show", as: :shared_conversation
+  # /share/* is the public namespace (token doors), one segment per
+  # kind; /sharing is the in-app audit page.
+  get "/share/chats/:token", to: "shared_conversations#show", as: :shared_conversation
+  get "/share/artifacts/:token", to: "shared_artifacts#show", as: :shared_artifact
+  get "/share/artifacts/:token/download", to: "shared_artifacts#download", as: :download_shared_artifact
+  # Pre-chats-namespace conversation links are already distributed —
+  # keep the bare-token shape alive. Must stay below the kinds above.
+  get "/share/:token", to: redirect("/share/chats/%{token}")
   get "/artifacts/:signed_id/preview", to: "artifact_previews#show", as: :artifact_preview
 
   resources :artifact_shares, only: %i[create destroy]
-  get "/shared/artifacts/:token", to: "shared_artifacts#show", as: :shared_artifact
-  get "/shared/artifacts/:token/download", to: "shared_artifacts#download", as: :download_shared_artifact
   get "sharing", to: "sharing#index"
 
   get "/settings", to: redirect("/settings/profile")
