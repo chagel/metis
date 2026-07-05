@@ -25,6 +25,7 @@
     </div>
   </header>
 
+  <div class="sharing-body">
   <% if @sharing.any? %>
     <div class="sharing-grid">
       <% @sharing.items.each do |item| %>
@@ -56,4 +57,5 @@
       <p class="sharing-empty-desc"><%= t(@scope == :team ? ".empty_team_desc" : ".empty_desc") %></p>
     </div>
   <% end %>
+  </div>
 </main>
