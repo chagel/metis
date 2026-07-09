@@ -28,6 +28,15 @@ Rails.application.configure do
   # Change to :null_store to avoid any caching.
   config.cache_store = :memory_store
 
+  # A fresh clone has no master.key, so credentials can't supply encryption
+  # keys — fall back to fixed dev keys (as test.rb does) so the first
+  # Message write works out of the box. Credentials win when present.
+  if Rails.application.credentials.active_record_encryption.blank?
+    config.active_record.encryption.primary_key = "dev_ar_encryption_primary_key___"
+    config.active_record.encryption.deterministic_key = "dev_ar_encryption_deterministic_"
+    config.active_record.encryption.key_derivation_salt = "dev_ar_encryption_key_derivation"
+  end
+
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 

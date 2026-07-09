@@ -75,21 +75,25 @@ a fast, open agent harness. The lessons come along; the lock-in does not.
 
 ## Quickstart
 
-First, copy the env template and set at least one provider key (e.g.
-`ANTHROPIC_API_KEY`) so the agent can talk to a model:
+One line — clones the repo, asks for a provider key, and boots the whole
+stack (Rails, Postgres, pi) in containers:
 
 ```sh
-cp .env.example .env   # then edit it: set ANTHROPIC_API_KEY (or another provider)
+curl -fsSL https://metiser.com/setup | bash
 ```
 
-Then start it with Docker — nothing local to install but Docker.
-`compose.yaml` bakes Ruby, pi, the MCP bridge, and the gws CLI into the dev
-image, runs Postgres alongside, and serves the agent on the `local` runtime
-inside the container at http://localhost:3000.
+Then open http://localhost:3000 and sign in with the seeded dev login
+(`admin@metis.local` / `password`). Uses Docker if
+you have it; on Apple silicon (macOS 26+), [Apple's native `container`
+runtime](https://github.com/apple/container) (`brew install container`)
+works with no Docker at all.
+
+The same by hand, from a checkout:
 
 ```sh
-docker compose up --build   # first run, or after a Gemfile change
-docker compose up           # subsequent runs
+cp .env.example .env        # set ANTHROPIC_API_KEY (or another provider)
+docker compose up --build   # Docker (--build on first run / Gemfile change)…
+bin/container-dev           # …or Apple's container runtime, no Docker
 ```
 
 See [`docs/configuration.md`](docs/configuration.md) for runtimes,

@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# Dev environment on Apple's native `container` runtime (Apple silicon,
+# macOS 26+) — the no-Docker analog of compose.yaml. `container` ships no
+# compose and no container-name DNS, so this script starts the same three
+# services by hand and injects the db container's IP into DATABASE_URL.
+#
+#   bin/container-dev            # start (builds the image on first run)
+#   bin/container-dev --build    # rebuild the image (after a Gemfile change)
+#   bin/container-dev down       # stop and remove the containers
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+if [[ "${1:-}" == "down" ]]; then
+  container rm -f metis-web metis-css metis-db 2>/dev/null || true
+  echo "Stopped. Postgres data kept in the metis-pgdata volume."
+  exit 0
+fi
+
+command -v container >/dev/null || {
+  echo "Apple container CLI not found — brew install container (Apple silicon, macOS 26+)"
+  exit 1
+}
+[[ -f .env ]] || {
+  echo "No .env — run: cp .env.example .env, then set a provider key (e.g. ANTHROPIC_API_KEY)"
+  exit 1
+}
+
+container system status >/dev/null 2>&1 || container system start
+
+if [[ "${1:-}" == "--build" ]] || ! container image ls | grep -q "^metis-dev[[:space:]]"; then
+  container build -f Dockerfile.dev -t metis-dev .
+fi
+
+container network create metis 2>/dev/null || true
+container volume create metis-pgdata 2>/dev/null || true
+# Container-local tmp: the host's tmp/ holds a darwin bootsnap cache and
+# pidfiles that must not leak into the linux containers (see compose.yaml).
+# One volume per container — `container` volumes are block devices and
+# cannot attach to two VMs at once.
+container volume create metis-tmp 2>/dev/null || true
+container volume create metis-tmp-css 2>/dev/null || true
+container rm -f metis-web metis-css metis-db 2>/dev/null || true
+
+# PGDATA in a subdirectory: `container` volumes are ext4 mounts whose
+# lost+found makes initdb refuse the mount point itself.
+container run -d --name metis-db --network metis \
+  -v metis-pgdata:/var/lib/postgresql/data \
+  -e PGDATA=/var/lib/postgresql/data/pgdata \
+  -e POSTGRES_USER=metis -e POSTGRES_PASSWORD=metis -e POSTGRES_DB=metis_development \
+  postgres:17-alpine >/dev/null
+
+# TCP check on purpose: the image's first-run initdb runs a temporary
+# socket-only server that a socket pg_isready would mistake for ready.
+for i in {1..60}; do
+  container exec metis-db pg_isready -q -h 127.0.0.1 -U metis -d metis_development 2>/dev/null && break
+  if [[ $i == 60 ]]; then
+    echo "Postgres did not become ready — check: container logs metis-db"
+    exit 1
+  fi
+  sleep 1
+done
+
+db_ip=$(container ls | awk '$1 == "metis-db" { sub("/.*", "", $6); print $6 }')
+
+container run -d --name metis-web --network metis \
+  -v "$PWD:/rails" -v metis-tmp:/rails/tmp \
+  --env-file .env \
+  -e RAILS_ENV=development -e PORT=3000 -e METIS_AGENT_RUNTIME=local \
+  -e DATABASE_URL="postgres://metis:metis@$db_ip:5432/metis_development" \
+  -p 3000:3000 \
+  metis-dev bash -c "rm -f tmp/pids/server.pid && bin/rails db:prepare && bin/rails server -b 0.0.0.0" >/dev/null
+
+container run -d --name metis-css --network metis \
+  -v "$PWD:/rails" -v metis-tmp-css:/rails/tmp \
+  -e RAILS_ENV=development \
+  metis-dev bash -c "echo 1048576 > /proc/sys/fs/inotify/max_user_watches && bin/rails 'tailwindcss:watch[always]'" >/dev/null
+
+echo "Metis starting at http://localhost:3000"
+echo "  login: admin@metis.local / password (dev seed)"
+echo "  logs:  container logs -f metis-web"
+echo "  stop:  bin/container-dev down"
