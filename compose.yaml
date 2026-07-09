@@ -33,7 +33,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: bash -c "bin/rails db:prepare && bin/rails server -b 0.0.0.0"
+    # rm server.pid: a hard-killed container leaves a stale pidfile in the
+    # tmp volume and Puma refuses to boot (pid 1 always exists in-container).
+    command: bash -c "rm -f tmp/pids/server.pid && bin/rails db:prepare && bin/rails server -b 0.0.0.0"
     env_file: .env
     environment:
       RAILS_ENV: development

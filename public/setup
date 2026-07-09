@@ -12,6 +12,8 @@ set -euo pipefail
 
 repo=${METIS_REPO:-https://github.com/chagel/metis.git}
 dir=${METIS_DIR:-metis}
+# Already inside a checkout? Use it instead of nesting a fresh clone.
+[[ -z "${METIS_DIR:-}" && -f compose.yaml && -f .env.example ]] && dir=.
 
 command -v git >/dev/null || { echo "git is required"; exit 1; }
 
