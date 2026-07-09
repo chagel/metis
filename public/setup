@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Metis quickstart — clone, configure, and boot the stack with one line:
 #
-#   curl -fsSL https://metiser.com/setup | bash
+#   curl -fsSL https://metiser.com/setup | bash               # install + boot
+#   curl -fsSL https://metiser.com/setup | bash -s uninstall  # remove the stack
 #
 # Served statically from public/setup by every Metis deployment.
 #
@@ -28,6 +29,22 @@ if [[ -z "$runtime" ]]; then
     echo "on Apple silicon (macOS 26+): brew install container"
     exit 1
   fi
+fi
+
+if [[ "${1:-}" == "uninstall" ]]; then
+  cd "$dir" 2>/dev/null && [[ -f compose.yaml ]] ||
+    { echo "Run uninstall from the Metis checkout or its parent."; exit 1; }
+  if [[ "$runtime" == docker ]]; then
+    docker compose down --volumes --rmi local
+  else
+    bin/container-dev down
+    container volume rm metis-pgdata metis-tmp metis-tmp-css 2>/dev/null || true
+    container network rm metis 2>/dev/null || true
+    container image rm metis-dev 2>/dev/null || true
+  fi
+  echo "Removed containers, volumes, and locally built images."
+  echo "Delete the checkout itself with: rm -rf $PWD"
+  exit 0
 fi
 
 [[ -d "$dir" ]] || git clone --depth 1 "$repo" "$dir"

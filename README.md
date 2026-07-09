@@ -96,6 +96,9 @@ docker compose up --build   # Docker (--build on first run / Gemfile change)…
 bin/container-dev           # …or Apple's container runtime, no Docker
 ```
 
+Undo it all (containers, volumes, locally built images — the checkout
+stays) with `… | bash -s uninstall`.
+
 See [`docs/configuration.md`](docs/configuration.md) for runtimes,
 providers, and every variable.
 
