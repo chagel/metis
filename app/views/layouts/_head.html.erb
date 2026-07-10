@@ -16,12 +16,20 @@
     (function () {
       var server = <%= raw current_user&.theme.to_json %>;
       var saved = server === "system" ? null : (server || localStorage.getItem("metisTheme"));
+      if (server === "system") localStorage.removeItem("metisTheme");
       if (server && server !== "system") localStorage.setItem("metisTheme", server);
-      var theme = saved || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-      document.documentElement.dataset.theme = theme;
-      // Mirror --bg so browser chrome / PWA status bar matches the theme.
-      document.querySelector('meta[name="theme-color"]').content =
-        theme === "dark" ? "#0e1014" : "#f4f2ee";
+      function apply(theme) {
+        document.documentElement.dataset.theme = theme;
+        // Mirror --bg so browser chrome / PWA status bar matches the theme.
+        document.querySelector('meta[name="theme-color"]').content =
+          theme === "dark" ? "#0e1014" : "#f4f2ee";
+      }
+      var media = matchMedia("(prefers-color-scheme: dark)");
+      apply(saved || (media.matches ? "dark" : "light"));
+      // Follow live OS light/dark flips while in "system" mode.
+      media.addEventListener("change", function (e) {
+        if (!localStorage.getItem("metisTheme")) apply(e.matches ? "dark" : "light");
+      });
     })();
   </script>
 

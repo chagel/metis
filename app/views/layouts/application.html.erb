@@ -14,12 +14,18 @@
     <script>
       // Apply the saved color scheme before paint — no flash.
       (function () {
-        var theme = localStorage.getItem("metisTheme") ||
-          (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-        document.documentElement.dataset.theme = theme;
-        // Mirror --bg so browser chrome / PWA status bar matches the theme.
-        document.querySelector('meta[name="theme-color"]').content =
-          theme === "dark" ? "#0e1014" : "#f4f2ee";
+        function apply(theme) {
+          document.documentElement.dataset.theme = theme;
+          // Mirror --bg so browser chrome / PWA status bar matches the theme.
+          document.querySelector('meta[name="theme-color"]').content =
+            theme === "dark" ? "#0e1014" : "#f4f2ee";
+        }
+        var media = matchMedia("(prefers-color-scheme: dark)");
+        apply(localStorage.getItem("metisTheme") || (media.matches ? "dark" : "light"));
+        // Follow live OS light/dark flips while in "system" mode.
+        media.addEventListener("change", function (e) {
+          if (!localStorage.getItem("metisTheme")) apply(e.matches ? "dark" : "light");
+        });
       })();
     </script>
 
