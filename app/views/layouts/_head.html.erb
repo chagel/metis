@@ -15,9 +15,9 @@
     // sidebar toggle still writes localStorage for instant flips.
     (function () {
       var server = <%= raw current_user&.theme.to_json %>;
-      var saved = server === "system" ? null : (server || localStorage.getItem("metisTheme"));
       if (server === "system") localStorage.removeItem("metisTheme");
-      if (server && server !== "system") localStorage.setItem("metisTheme", server);
+      else if (server) localStorage.setItem("metisTheme", server);
+      var saved = localStorage.getItem("metisTheme");
       function apply(theme) {
         document.documentElement.dataset.theme = theme;
         // Mirror --bg so browser chrome / PWA status bar matches the theme.
