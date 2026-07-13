@@ -392,6 +392,73 @@ class ConversationTest < ActiveSupport::TestCase
     assert_empty @conversation.replayable_history
   end
 
+  test "title_matching finds case-insensitive substrings" do
+    hit = @user.conversations.create!(title: "Deploy Pipeline")
+    @user.conversations.create!(title: "Weekly notes")
+
+    results = @user.conversations.title_matching("dEpLoY")
+    assert_equal [ hit ], results.to_a
+  end
+
+  test "title_matching treats SQL wildcards as literal text" do
+    percent = @user.conversations.create!(title: "100% coverage")
+    underscore = @user.conversations.create!(title: "a_b naming")
+    @user.conversations.create!(title: "100x coverage")
+    @user.conversations.create!(title: "axb naming")
+
+    assert_equal [ percent ], @user.conversations.title_matching("100%").to_a
+    assert_equal [ underscore ], @user.conversations.title_matching("a_b").to_a
+  end
+
+  test "title_matching survives quotes and SQL-looking input" do
+    hit = @user.conversations.create!(title: %(the "big'un" plan))
+
+    assert_equal [ hit ], @user.conversations.title_matching(%("big'un")).to_a
+    assert_empty @user.conversations.title_matching("'; DROP TABLE conversations; --").to_a
+    assert Conversation.exists?(hit.id)
+  end
+
+  test "title_matching ranks by similarity, then recency, then id" do
+    loose = @user.conversations.create!(title: "Deploy the staging pipeline")
+    exact = @user.conversations.create!(title: "Deploy")
+    older_twin = @user.conversations.create!(title: "Deploy again")
+    newer_twin = @user.conversations.create!(title: "Deploy again")
+    exact.update_column(:updated_at, 3.days.ago)
+    older_twin.update_column(:updated_at, 1.day.ago)
+    newer_twin.update_column(:updated_at, 1.hour.ago)
+
+    results = @user.conversations.title_matching("deploy").to_a
+    assert_equal exact, results.first, "highest similarity ranks first despite being oldest"
+    assert_equal loose, results.last
+    assert_operator results.index(newer_twin), :<, results.index(older_twin),
+                    "equal similarity falls back to recency"
+  end
+
+  test "title_matching pairs equal timestamps deterministically by id" do
+    stamp = 2.days.ago
+    first = @user.conversations.create!(title: "Retro notes")
+    second = @user.conversations.create!(title: "Retro notes")
+    [ first, second ].each { |c| c.update_column(:updated_at, stamp) }
+
+    assert_equal [ second, first ], @user.conversations.title_matching("retro notes").to_a
+  end
+
+  test "title_matching skips blank titles and strips the query" do
+    @user.conversations.create!(title: nil)
+    @user.conversations.create!(title: "")
+    hit = @user.conversations.create!(title: "Real title")
+
+    assert_equal [ hit ], @user.conversations.title_matching("  real  ").to_a
+  end
+
+  test "title_matching composes with an authorized relation instead of widening it" do
+    mine = @user.conversations.create!(title: "Shared name")
+    other = User.create!(email: "match-other@example.com", password: "password123")
+    other.conversations.create!(title: "Shared name")
+
+    assert_equal [ mine ], @user.conversations.title_matching("shared name").to_a
+  end
+
   test "replayable_history ignores tool and system messages" do
     @conversation.messages.create!(role: :user, content: "do it", streaming_status: :done)
     @conversation.messages.create!(role: :tool, content: "tool noise", streaming_status: :done)

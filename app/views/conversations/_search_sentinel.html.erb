@@ -1,0 +1,14 @@
+<%# locals: (pagy:, query:, filter:, kind:)
+
+    Endless-scroll trigger for search results. Observed by the
+    conversation-search controller (not the browse infinite-scroll —
+    separate targets and URLs on purpose, so the two paginations never
+    cross). %>
+<% if pagy&.next %>
+  <div id="convos-search-sentinel"
+       class="convos-sentinel"
+       data-conversation-search-target="sentinel"
+       data-url="<%= search_conversations_path(q: query, filter: filter, kind: kind, page: pagy.next) %>">
+    <span class="convos-loading" aria-hidden="true"><%= t('conversations.convo_sentinel.loading') %></span>
+  </div>
+<% end %>

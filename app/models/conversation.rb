@@ -66,6 +66,17 @@ class Conversation < ApplicationRecord
              senders: { avatar_attachment: :blob })
   }
 
+  # Case-insensitive literal substring match on title, ranked by trigram
+  # similarity (index_conversations_on_title_trigram), then recency, then
+  # id for stable countless pagination. Matching only — compose it onto an
+  # already-authorized relation.
+  def self.title_matching(query)
+    normalized = query.to_s.strip
+    where("conversations.title ILIKE ?", "%#{sanitize_sql_like(normalized)}%")
+      .reorder(Arel.sql(sanitize_sql_array([ "similarity(conversations.title, ?) DESC", normalized ])))
+      .order(updated_at: :desc, id: :desc)
+  end
+
   def accessible_to?(user)
     user_id == user.id || visibility_team?
   end

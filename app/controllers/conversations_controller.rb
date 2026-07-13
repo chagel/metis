@@ -3,6 +3,8 @@ class ConversationsController < ApplicationController
 
   layout "chat"
 
+  SEARCH_PAGE_SIZE = 20
+
   before_action :set_conversation, only: %i[cancel archive unarchive star unstar update share unshare toggle_visibility]
   before_action :set_sidebar, only: %i[index show archived]
 
@@ -10,6 +12,22 @@ class ConversationsController < ApplicationController
     respond_to do |format|
       format.html
       # Gated on :page so Turbo Drive form redirects don't get the scroll stream.
+      format.turbo_stream if params[:page].present?
+    end
+  end
+
+  # Server-side title search for the sidebar (docs: Phase 1 — titles only,
+  # encrypted message content is never searched). Same team/visibility/kind
+  # boundaries as the browse list, archived included. Page 1 answers a
+  # turbo-frame navigation; later pages stream in via the search sentinel.
+  def search
+    set_sidebar_params
+    @query = params[:q].to_s.strip
+    relation = @query.length < 2 ? Conversation.none : searchable_conversations
+    @search_pagy, @search_results = pagy(:countless, relation, limit: SEARCH_PAGE_SIZE)
+
+    respond_to do |format|
+      format.html { render layout: false }
       format.turbo_stream if params[:page].present?
     end
   end
@@ -110,6 +128,12 @@ class ConversationsController < ApplicationController
   end
 
   private
+
+  def searchable_conversations
+    sidebar_kind_scope(search_scope(@sidebar_filter), @sidebar_kind)
+      .title_matching(@query)
+      .preloaded_for_sidebar.includes(:project, :routine)
+  end
 
   def set_conversation
     @conversation = current_user.conversations.find(params[:id])

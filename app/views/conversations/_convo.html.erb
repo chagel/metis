@@ -9,10 +9,8 @@
 <%= link_to conversation,
       id: dom_id(conversation),
       class: "convo#{' on' if conversation == @conversation}",
-      data: { conversation_filter_target: "item",
-              active_link_target: "link",
-              turbo_frame: "main",
-              title: conversation.display_title } do %>
+      data: { active_link_target: "link",
+              turbo_frame: "main" } do %>
   <%# Attribution only where it informs: the Team tab spans the whole
       team, and any row someone else has spoken in. The Me/Starred tabs
       list the viewer's own conversations — a solo row needs no avatar. %>

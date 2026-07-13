@@ -119,7 +119,7 @@ export default class extends Controller {
   }
   expandAndSearch() {
     this.expand()
-    this.element.querySelector('[data-conversation-filter-target="query"]')?.focus()
+    this.element.querySelector('[data-conversation-search-target="input"]')?.focus()
   }
   newChat() {
     this.expand()

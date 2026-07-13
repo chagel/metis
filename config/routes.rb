@@ -15,6 +15,7 @@ Rails.application.routes.draw do
   resources :conversations, only: %i[index create show update] do
     collection do
       get :archived
+      get :search
     end
     member do
       post :cancel

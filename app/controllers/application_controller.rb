@@ -144,13 +144,19 @@ class ApplicationController < ActionController::Base
   # The conversation-type axis, orthogonal to the scope filter above.
   SIDEBAR_KINDS = %w[all chats workflows routines].freeze
 
-  # :countless (LIMIT+1 probe, no COUNT). Don't switch to headless: true —
-  # that drops the probe and `@sidebar_pagy.next` goes nil.
-  def set_sidebar
+  # Normalize the scope/kind params shared by the sidebar list and title
+  # search, so the two surfaces can't grow divergent allowlists.
+  def set_sidebar_params
     @sidebar_filter = SIDEBAR_FILTERS.include?(params[:filter]) ? params[:filter] : "active"
     # No "team" scope in a team of one — there's nobody to share with.
     @sidebar_filter = "active" if @sidebar_filter == "team" && current_team.personal?
     @sidebar_kind = SIDEBAR_KINDS.include?(params[:kind]) ? params[:kind] : "all"
+  end
+
+  # :countless (LIMIT+1 probe, no COUNT). Don't switch to headless: true —
+  # that drops the probe and `@sidebar_pagy.next` goes nil.
+  def set_sidebar
+    set_sidebar_params
     @needs_you = needs_you_conversations
     @sidebar_pagy, @conversations = pagy(
       :countless,
@@ -184,6 +190,18 @@ class ApplicationController < ActionController::Base
     when "team"    then current_team.conversations.visibility_team.active.recent
     when "starred" then mine.starred.active.recent
     else                mine.active.recent
+    end
+  end
+
+  # Title search spans history: the same team/visibility boundaries as
+  # sidebar_scope, but archived rows stay eligible and ordering is left
+  # to Conversation.title_matching.
+  def search_scope(filter)
+    mine = current_user.conversations.for_team(current_team)
+    case filter
+    when "team"    then current_team.conversations.visibility_team
+    when "starred" then mine.starred
+    else                mine
     end
   end
 
