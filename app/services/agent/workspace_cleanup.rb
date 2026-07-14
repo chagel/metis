@@ -153,11 +153,11 @@ module Agent
 
       bytes = self.class.bytes_under(path)
       FileUtils.rm_r(path)
-      raise Errno::EIO, "failed to remove #{path}" if File.lexist?(path)
+      raise Errno::EIO, "failed to remove #{path}" if path.exist? || path.symlink?
 
       bytes
     rescue Errno::ENOENT
-      raise if File.lexist?(path)
+      raise if path.exist? || path.symlink?
 
       0
     end

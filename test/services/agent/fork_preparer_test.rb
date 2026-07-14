@@ -66,7 +66,7 @@ class Agent::ForkPreparerTest < ActiveSupport::TestCase
     locked_source = false
     watcher = lambda do |_name, _start, _finish, _id, payload|
       sql = payload[:sql].to_s
-      locked_source ||= sql.include?("FOR UPDATE") && sql.include?(%Q{"conversations"})
+      locked_source ||= sql.include?("FOR UPDATE") && sql.include?(%Q("conversations"))
     end
 
     ActiveSupport::Notifications.subscribed(watcher, "sql.active_record") do

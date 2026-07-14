@@ -57,7 +57,7 @@ class Agent::WorkspaceCleanupTest < ActiveSupport::TestCase
   test "evict_workspace! raises when deletion leaves the workspace behind" do
     scope = build_scope
 
-    with_stub(FileUtils, :rm_r, ->(*) {}) do
+    with_stub(FileUtils, :rm_r, ->(*) { }) do
       assert_raises(Errno::EIO) { cleanup.evict_workspace! }
     end
 
