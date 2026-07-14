@@ -100,9 +100,9 @@ Retention is per lifecycle class, each an independent env knob
 
 | Class | Window | Measured from |
 |---|---|---|
-| Workflow run in a terminal status (`completed` / `failed` / `cancelled`) — `METIS_DOCKER_WORKFLOW_EVICTION_HOURS` | 24h | later of the run's `updated_at` and `docker_workspace_last_used_at` |
-| Archived ordinary conversation — `METIS_DOCKER_ARCHIVED_WORKSPACE_EVICTION_HOURS` | 24h | later of `archived_at` and `docker_workspace_last_used_at` |
-| Other ordinary conversation — `METIS_DOCKER_WORKSPACE_EVICTION_HOURS` | 168h (7d) | `docker_workspace_last_used_at`, falling back to the conversation's `updated_at` for legacy rows |
+| Workflow run in a terminal status (`completed` / `failed` / `cancelled`) — `METIS_DOCKER_WORKFLOW_EVICTION_HOURS` | 24h | latest of the run's `updated_at`, the conversation's `updated_at`, and `docker_workspace_last_used_at` |
+| Archived ordinary conversation — `METIS_DOCKER_ARCHIVED_WORKSPACE_EVICTION_HOURS` | 24h | latest of `archived_at`, the conversation's `updated_at`, and `docker_workspace_last_used_at` |
+| Other ordinary conversation — `METIS_DOCKER_WORKSPACE_EVICTION_HOURS` | 168h (7d) | later of the conversation's `updated_at` and `docker_workspace_last_used_at` (the former also covers legacy rows) |
 
 Workflow classification wins over archived/ordinary. Only
 conversations whose **last turn ran on Docker** are eligible — Local,
