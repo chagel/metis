@@ -77,7 +77,7 @@ class EvictDockerWorkspacesJob < ApplicationJob
       next unless reason
 
       bytes = Agent::WorkspaceCleanup.for(conversation).evict_workspace!
-      conversation.update_columns(
+      conversation.update!(
         docker_workspace_evicted_at: Time.current,
         docker_workspace_eviction_reason: reason
       )

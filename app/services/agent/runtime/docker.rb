@@ -157,7 +157,7 @@ module Agent
       # Logged-not-raised: a DB hiccup must not crash a turn the user
       # already saw stream.
       def record_workspace_use
-        conversation.update_columns(
+        conversation.update!(
           docker_workspace_last_used_at: Time.current,
           docker_workspace_evicted_at: nil,
           docker_workspace_eviction_reason: nil

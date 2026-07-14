@@ -3,7 +3,6 @@ class Conversation < ApplicationRecord
   # stays a separate, explicit owner action.
   enum :visibility, { personal: 0, team: 1 }, prefix: :visibility
 
-  # String constants, not an enum, so a future reason needs no migration.
   DOCKER_EVICTION_REASONS = %w[workflow_terminal archived_idle ordinary_idle low_disk].freeze
 
   validates :docker_workspace_eviction_reason,
