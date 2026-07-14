@@ -215,7 +215,21 @@ class Doctor
     [ pair_check("github app", %w[GITHUB_APP_CLIENT_ID GITHUB_APP_CLIENT_SECRET]),
       pair_check("github bot", %w[GITHUB_APP_ID GITHUB_APP_PRIVATE_KEY]),
       pair_check("google oauth", %w[GOOGLE_OAUTH_CLIENT_ID GOOGLE_OAUTH_CLIENT_SECRET]),
-      pair_check("linear", %w[LINEAR_CLIENT_ID LINEAR_CLIENT_SECRET]) ]
+      pair_check("linear", %w[LINEAR_CLIENT_ID LINEAR_CLIENT_SECRET]),
+      x_check ]
+  end
+
+  # X config resolves ENV-then-credentials per key (XApp::Config), so this
+  # can't be a plain pair_check; missing keys are reported by ENV name.
+  def x_check
+    missing = XApp::Config.missing_keys(env: @env)
+    if missing.empty?
+      Check.new(:ok, "x oauth", "configured")
+    elsif missing.size == XApp::Config::KEYS.size
+      Check.new(:off, "x oauth", "not configured")
+    else
+      Check.new(:fail, "x oauth", "partial — #{missing.join(", ")} unset")
+    end
   end
 
   def observability_checks

@@ -52,6 +52,13 @@ en:
         cancelled: "Authorization was cancelled."
         notice: "Linear project access authorized."
         failed: "Couldn't authorize Linear access: %{message}"
+      x_oauth:
+        unconfigured: "X is not configured on this Metis deployment."
+        expired: "That connection expired — try again."
+        cancelled: "Connection was cancelled."
+        notice: "X connected."
+        failed: "Couldn't connect X. Check that the X callback URL matches this deployment, then try again."
+        disconnected: "X disconnected."
     composer:
       blank_new: "Type a message to start a conversation."
       pick_project: "Pick a project to launch this workflow."

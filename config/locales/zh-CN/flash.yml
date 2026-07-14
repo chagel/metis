@@ -45,6 +45,13 @@
           cancelled: "连接已取消。"
           notice: "%{name} 已连接。"
           failed: "无法完成该连接：%{message}"
+      x_oauth:
+        unconfigured: "此 Metis 部署尚未配置 X。"
+        expired: "该连接已过期 — 请重试。"
+        cancelled: "连接已取消。"
+        notice: "X 已连接。"
+        failed: "无法连接 X。请检查 X 回调地址与此部署一致后重试。"
+        disconnected: "X 已断开连接。"
     composer:
       blank_new: "输入消息以开始一段对话。"
       pick_project: "请选择一个项目来启动此工作流。"

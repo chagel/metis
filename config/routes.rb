@@ -104,6 +104,10 @@ Rails.application.routes.draw do
     # distinct from the connector's MCP-OAuth.
     post "connectors/linear/authorize",   to: "connectors/linear_oauth#start",    as: :connector_linear_authorize
     get  "connectors/linear/callback",    to: "connectors/linear_oauth#callback", as: :connector_linear_callback
+    # Direct X OAuth 2.0 + PKCE — per-member connect for the X connector.
+    post   "connectors/x/authorize",  to: "connectors/x_oauth#start",      as: :connector_x_authorize
+    get    "connectors/x/callback",   to: "connectors/x_oauth#callback",   as: :connector_x_callback
+    delete "connectors/x/disconnect", to: "connectors/x_oauth#disconnect", as: :connector_x_disconnect
 
     resources :workflows, except: :show
 

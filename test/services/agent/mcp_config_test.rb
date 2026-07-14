@@ -238,6 +238,70 @@ class Agent::McpConfigTest < ActiveSupport::TestCase
     end
   end
 
+  # The X connector stages the xurl-mcp wrapper with the deployment app
+  # config + the member's live tokens in the entry's env — never argv.
+  def add_x(scopes: XApp::Config::SCOPES.join(" "))
+    connector = add_connector(name: "x", transport: :stdio, catalog_key: "x",
+                              definition: { "command" => "xurl-mcp" })
+    connector.connector_credentials.create!(user: member)
+    member.oauth_grants.create!(provider: "x", access_token: "xat", refresh_token: "xrt",
+                                expires_at: 1.hour.from_now, scopes: scopes)
+    connector
+  end
+
+  def with_x_config(&block)
+    with_stub(XApp::Config, :configured?, ->(env: ENV) { true }) do
+      with_stub(XApp::Config, :client_id, -> { "xcid" }) do
+        with_stub(XApp::Config, :client_secret, -> { "xsec" }) do
+          with_stub(XApp::Config, :redirect_uri, -> { "https://m/cb" }, &block)
+        end
+      end
+    end
+  end
+
+  test "stages the x connector as the xurl-mcp wrapper with tokens in env, never argv" do
+    add_x
+    grant = member.oauth_grants.find_by(provider: "x")
+
+    with_x_config do
+      entry = rendered["mcpServers"]["x"]
+
+      assert_equal "xurl-mcp", entry["command"]
+      assert_nil entry["args"]
+      assert_equal "xcid", entry["env"]["XURL_CLIENT_ID"]
+      assert_equal "xsec", entry["env"]["XURL_CLIENT_SECRET"]
+      assert_equal "https://m/cb", entry["env"]["XURL_REDIRECT_URI"]
+      assert_equal "xat", entry["env"]["XURL_ACCESS_TOKEN"]
+      assert_equal "xrt", entry["env"]["XURL_REFRESH_TOKEN"]
+      assert_equal grant.expires_at.to_i.to_s, entry["env"]["XURL_EXPIRATION_TIME"]
+    end
+  end
+
+  test "drops the x connector when the deployment app config is gone" do
+    add_x
+    with_stub(XApp::Config, :configured?, ->(env: ENV) { false }) do
+      assert_nil rendered["mcpServers"]["x"]
+    end
+  end
+
+  test "drops the x connector when the grant lacks the catalog scopes" do
+    add_x(scopes: "tweet.read users.read")
+    with_x_config do
+      assert_nil rendered["mcpServers"]["x"]
+    end
+  end
+
+  test "drops the x connector when its refresh fails — the turn still renders" do
+    add_x
+    member.oauth_grants.find_by(provider: "x").update!(expires_at: 10.seconds.ago)
+
+    with_x_config do
+      with_stub(XApp::Oauth, :refresh, ->(_rt) { raise XApp::Oauth::Error, "boom" }) do
+        assert_nil rendered["mcpServers"]["x"]
+      end
+    end
+  end
+
   # MCP-OAuth (DCR) connectors carry the member's token on their
   # ConnectorCredential; McpConfig injects it as the bearer (refreshing
   # when stale), with no catalog credential block.

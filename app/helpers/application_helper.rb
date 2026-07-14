@@ -302,6 +302,9 @@ module ApplicationHelper
   # user has already authorized. The callback dispatches on the
   # `connect=<key>` param to upsert the connector marker.
   def connector_authorize_path_for(app)
+    # X connects through its own controller (no omniauth strategy).
+    return XApp::Config.configured? ? connector_x_authorize_path : nil if app.oauth_provider == "x"
+
     strategy = OauthBroker.omniauth_strategy(app.oauth_provider)
     return nil unless strategy
     return nil unless oauth_provider_configured?(app.oauth_provider)
@@ -332,6 +335,8 @@ module ApplicationHelper
       GithubApp::Config.configured?
     when "google"
       GoogleApp::Config.configured?
+    when "x"
+      XApp::Config.configured?
     else
       false
     end

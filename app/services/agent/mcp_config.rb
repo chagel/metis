@@ -101,11 +101,34 @@ module Agent
       end
 
       token = OauthBroker.access_token_for(grant)
+      return xurl_env(grant) if grant.provider == "x"
+
       app.credential_map_for(token) || {}
     rescue OauthBroker::Error => error
       Rails.logger.error("McpConfig: OAuth refresh failed for connector " \
                           "#{connector.id}: #{error.message}")
       nil
+    end
+
+    # The X connector's stdio entry runs the xurl-mcp wrapper (baked into
+    # every runtime image), which builds a throwaway $HOME/.xurl from these
+    # variables and runs the pinned xurl MCP bridge — tokens travel in the
+    # entry's env, never in argv. Deployment config gone → drop the server
+    # rather than stage a bridge that can't authenticate.
+    def xurl_env(grant)
+      unless XApp::Config.configured?
+        Rails.logger.warn("McpConfig: X connector dropped — deployment X OAuth app is not configured")
+        return nil
+      end
+
+      {
+        "XURL_CLIENT_ID" => XApp::Config.client_id,
+        "XURL_CLIENT_SECRET" => XApp::Config.client_secret,
+        "XURL_REDIRECT_URI" => XApp::Config.redirect_uri,
+        "XURL_ACCESS_TOKEN" => grant.access_token,
+        "XURL_REFRESH_TOKEN" => grant.refresh_token.to_s,
+        "XURL_EXPIRATION_TIME" => grant.expires_at.to_i.to_s
+      }
     end
 
     # Bearer for an MCP-OAuth (DCR) connector — the member's token,

@@ -20,6 +20,7 @@ ENV BUNDLE_PATH="/usr/local/bundle" \
 # lib/tasks/e2b.rake. PI_VERSION mirrors PiAgent::SUPPORTED_PI_VERSION.
 ARG PI_VERSION=0.80.6
 ARG PI_MCP_ADAPTER_VERSION=2.7.0
+ARG XURL_VERSION=1.2.2
 
 # Base toolchain: gem build deps + libvips/libpq for the app, plus the
 # basics pi's bash tool and skills expect (git, ripgrep, curl). `gh` is
@@ -45,6 +46,17 @@ RUN apt-get update -qq && \
 RUN npm install --global "@earendil-works/pi-coding-agent@${PI_VERSION}" && \
     npm install --global @googleworkspace/cli && \
     pi install "npm:pi-mcp-adapter@${PI_MCP_ADAPTER_VERSION}"
+
+# xurl (pinned) + the xurl-mcp wrapper — the X connector's stdio MCP bridge.
+RUN case "$(dpkg --print-architecture)" in \
+      amd64) xurl_arch=x86_64 ;; \
+      arm64) xurl_arch=arm64 ;; \
+      *) echo "unsupported arch for xurl" >&2; exit 1 ;; \
+    esac && \
+    curl -fsSL "https://github.com/xdevplatform/xurl/releases/download/v${XURL_VERSION}/xurl_Linux_${xurl_arch}.tar.gz" \
+      | tar -xz -C /usr/local/bin xurl
+COPY docker/pi-runtime/xurl-mcp /usr/local/bin/xurl-mcp
+RUN chmod 0755 /usr/local/bin/xurl-mcp
 
 # foreman drives bin/dev; baked in so the entrypoint doesn't gem-install it.
 RUN gem install foreman

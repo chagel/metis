@@ -193,6 +193,39 @@ class ConnectorsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "the x tile is a disabled Connect with the unavailable copy when unconfigured" do
+    with_stub(XApp::Config, :configured?, ->(env: ENV) { false }) do
+      get connectors_path
+
+      assert_select %(form[action="#{connector_x_authorize_path}"]), false
+      assert_select ".app-state", text: "X is not configured on this Metis deployment."
+      assert_select "button[disabled]", text: "Connect X"
+    end
+  end
+
+  test "the x tile posts to the dedicated authorize URL when configured" do
+    with_stub(XApp::Config, :configured?, ->(env: ENV) { true }) do
+      get connectors_path
+
+      assert_select %(form[action="#{connector_x_authorize_path}"] button), text: "Connect X"
+    end
+  end
+
+  test "the connected x tile offers Disconnect" do
+    connector = team.connectors.create!(catalog_key: "x", name: "x",
+                                        transport: :stdio, definition: { "command" => "xurl-mcp" })
+    connector.connector_credentials.create!(user: @user)
+    @user.oauth_grants.create!(provider: "x", access_token: "xat", refresh_token: "xrt",
+                               expires_at: 1.hour.from_now, scopes: XApp::Config::SCOPES.join(" "))
+
+    with_stub(XApp::Config, :configured?, ->(env: ENV) { true }) do
+      get connectors_path
+
+      assert_select ".app-state.connected", text: "Connected"
+      assert_select %(form[action="#{connector_x_disconnect_path}"] button), text: "Disconnect"
+    end
+  end
+
   test "an mcp_oauth tile connects through the DCR flow, not omniauth" do
     get connectors_path
     assert_select %(form[action="#{connector_oauth_start_path("notion")}"] button), text: "Connect"

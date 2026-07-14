@@ -181,10 +181,72 @@ class OauthBrokerTest < ActiveSupport::TestCase
   end
 
   test "omniauth_strategy is the inverse of normalize_provider" do
-    OauthBroker::PROVIDERS.each do |provider|
+    OauthBroker::STRATEGY_TO_PROVIDER.each_value do |provider|
       strategy = OauthBroker.omniauth_strategy(provider)
       assert strategy, "omniauth_strategy(#{provider.inspect}) returned nil"
       assert_equal provider, OauthBroker.normalize_provider(strategy)
     end
+  end
+
+  test "x is a grant provider with no omniauth strategy" do
+    # X connects through Connectors::XOauthController, not Devise omniauth.
+    assert_includes OauthBroker::PROVIDERS, "x"
+    assert_nil OauthBroker.omniauth_strategy("x")
+  end
+
+  test "refreshes through the X client and absorbs the rotated refresh token" do
+    g = grant(provider: "x", access_token: "old", refresh_token: "xrt0", expires_at: 10.seconds.ago)
+
+    token = with_stub(XApp::Oauth, :refresh, lambda { |_rt|
+      { "access_token" => "xat1", "refresh_token" => "xrt1", "expires_in" => 7200 }
+    }) { OauthBroker.access_token_for(g) }
+
+    assert_equal "xat1", token
+    g.reload
+    assert_equal "xat1", g.access_token
+    assert_equal "xrt1", g.refresh_token
+  end
+
+  test "an X refresh response without a refresh token preserves the prior one" do
+    g = grant(provider: "x", access_token: "old", refresh_token: "xrt-keep", expires_at: 10.seconds.ago)
+
+    with_stub(XApp::Oauth, :refresh, ->(_rt) { { "access_token" => "xat1", "expires_in" => 7200 } }) do
+      OauthBroker.access_token_for(g)
+    end
+
+    assert_equal "xrt-keep", g.reload.refresh_token
+  end
+
+  test "an X invalid_grant clears the grant and raises" do
+    g = grant(provider: "x", access_token: "old", refresh_token: "xrt-dead", expires_at: 10.seconds.ago)
+
+    failing = ->(_rt) { raise OauthBroker::InvalidGrantError, "x invalid_grant: token revoked or expired" }
+    assert_raises(OauthBroker::InvalidGrantError) do
+      with_stub(XApp::Oauth, :refresh, failing) { OauthBroker.access_token_for(g) }
+    end
+
+    assert_not OauthGrant.exists?(g.id)
+  end
+
+  test "an XApp error surfaces as a broker error" do
+    g = grant(provider: "x", access_token: "old", refresh_token: "xrt", expires_at: 10.seconds.ago)
+
+    failing = ->(_rt) { raise XApp::Oauth::Error, "x oauth refresh status 500: unexpected response" }
+    error = assert_raises(OauthBroker::Error) do
+      with_stub(XApp::Oauth, :refresh, failing) { OauthBroker.access_token_for(g) }
+    end
+    assert_match(/status 500/, error.message)
+    assert OauthGrant.exists?(g.id), "a transient failure must not delete the grant"
+  end
+
+  test "revoke sends X's refresh token" do
+    g = grant(provider: "x", access_token: "xat", refresh_token: "xrt")
+    called_with = nil
+
+    with_stub(XApp::Oauth, :revoke, ->(token) { called_with = token }) do
+      OauthBroker.revoke(g)
+    end
+
+    assert_equal "xrt", called_with
   end
 end

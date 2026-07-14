@@ -24,6 +24,27 @@ FileUtils.chdir APP_ROOT do
     system! "pi", "install", "npm:pi-mcp-adapter@2.7.0"
   end
 
+  puts "\n== Installing xurl (X connector MCP bridge) =="
+  # Keep the version in sync with Dockerfile.dev,
+  # docker/pi-runtime/Dockerfile, lib/tasks/e2b.rake, and daytona.rake.
+  # Best-effort: the X connector is optional, so a failed download warns
+  # instead of aborting setup.
+  bin_dir = File.expand_path("~/.local/bin")
+  FileUtils.mkdir_p(bin_dir)
+  if system("command -v xurl >/dev/null 2>&1") || File.executable?(File.join(bin_dir, "xurl"))
+    puts "xurl already installed."
+  else
+    os = `uname -s`.strip
+    arch = { "x86_64" => "x86_64", "arm64" => "arm64", "aarch64" => "arm64" }[`uname -m`.strip]
+    url = "https://github.com/xdevplatform/xurl/releases/download/v1.2.2/xurl_#{os}_#{arch}.tar.gz"
+    if %w[Darwin Linux].include?(os) && arch && system("curl -fsSL #{url} | tar -xz -C #{bin_dir} xurl")
+      puts "xurl installed to #{bin_dir} — make sure it's on PATH."
+    else
+      puts "xurl install skipped/failed — the X connector needs it on PATH (#{url})."
+    end
+  end
+  FileUtils.install "docker/pi-runtime/xurl-mcp", File.join(bin_dir, "xurl-mcp"), mode: 0o755
+
   # puts "\n== Copying sample files =="
   # unless File.exist?("config/database.yml")
   #   FileUtils.cp "config/database.yml.sample", "config/database.yml"

@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Stdio MCP bridge for the X connector. Agent::McpConfig stages the
+# deployment app config and the member's tokens as XURL_* env on the
+# server entry; this wrapper turns them into a throwaway 0700 $HOME with
+# a 0600 .xurl and runs the pinned xurl against the hosted X MCP
+# endpoint. Tokens never touch argv, the workspace, or a shared $HOME,
+# and the temp home dies with the process. Stdout stays a clean JSON-RPC
+# channel; diagnostics go to stderr. See docs/connectors.md.
+set -euo pipefail
+
+for var in XURL_CLIENT_ID XURL_CLIENT_SECRET XURL_REDIRECT_URI XURL_ACCESS_TOKEN; do
+  [[ -n "${!var:-}" ]] || { echo "xurl-mcp: $var is not set" >&2; exit 78; }
+done
+expiry="${XURL_EXPIRATION_TIME:-0}"
+[[ "$expiry" =~ ^[0-9]+$ ]] || { echo "xurl-mcp: XURL_EXPIRATION_TIME must be unix seconds" >&2; exit 78; }
+
+xurl_home="$(mktemp -d)"
+chmod 700 "$xurl_home"
+trap 'rm -rf "$xurl_home"' EXIT
+
+quote() { local v=${1//\\/\\\\}; printf '"%s"' "${v//\"/\\\"}"; }
+
+umask 077
+cat > "$xurl_home/.xurl" <<EOF
+apps:
+  metis:
+    client_id: $(quote "$XURL_CLIENT_ID")
+    client_secret: $(quote "$XURL_CLIENT_SECRET")
+    redirect_uri: $(quote "$XURL_REDIRECT_URI")
+    default_user: "metis-user"
+    oauth2_tokens:
+      metis-user:
+        type: oauth2
+        oauth2:
+          access_token: $(quote "$XURL_ACCESS_TOKEN")
+          refresh_token: $(quote "${XURL_REFRESH_TOKEN:-}")
+          expiration_time: $expiry
+default_app: metis
+EOF
+
+# Child (not exec) so the EXIT trap still runs; <&0 keeps the JSON-RPC
+# stdin that a non-interactive `&` would otherwise point at /dev/null.
+HOME="$xurl_home" xurl mcp "${XURL_MCP_URL:-https://api.x.com/mcp}" <&0 &
+child=$!
+trap 'kill -TERM "$child" 2>/dev/null' HUP INT TERM
+wait "$child"

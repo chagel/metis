@@ -19,7 +19,8 @@ module OauthBroker
 
   CLIENTS = {
     "github" => Clients::Github,
-    "google" => Clients::Google
+    "google" => Clients::Google,
+    "x" => Clients::X
   }.freeze
 
   STRATEGY_TO_PROVIDER = {
@@ -29,7 +30,9 @@ module OauthBroker
 
   PROVIDER_TO_STRATEGY = STRATEGY_TO_PROVIDER.invert.freeze
 
-  PROVIDERS = STRATEGY_TO_PROVIDER.values.freeze
+  # "x" connects through Connectors::XOauthController (X has no omniauth
+  # sign-in strategy), so it's a valid grant provider with no strategy map.
+  PROVIDERS = (STRATEGY_TO_PROVIDER.values + %w[x]).freeze
 
   # The base sign-in scope set per provider — the smallest set that
   # lets us identify the user (matching what config/initializers/devise.rb

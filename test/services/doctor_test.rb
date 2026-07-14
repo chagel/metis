@@ -51,6 +51,19 @@ class DoctorTest < ActiveSupport::TestCase
     assert_includes partial.detail, "GOOGLE_OAUTH_CLIENT_SECRET"
   end
 
+  test "x oauth is off when absent, names missing keys when partial, ok when complete" do
+    assert_equal :off, check(doctor, "Connectors", "x oauth").status
+
+    partial = check(doctor({ "X_CLIENT_ID" => "id" }), "Connectors", "x oauth")
+    assert_equal :fail, partial.status
+    assert_includes partial.detail, "X_CLIENT_SECRET"
+    assert_includes partial.detail, "X_REDIRECT_URI"
+    assert_not_includes partial.detail, "id"
+
+    env = { "X_CLIENT_ID" => "id", "X_CLIENT_SECRET" => "s", "X_REDIRECT_URI" => "https://m/cb" }
+    assert_equal :ok, check(doctor(env), "Connectors", "x oauth").status
+  end
+
   test "langfuse enabled without keys fails" do
     assert_equal :off, check(doctor, "Observability", "langfuse").status
     assert_equal :fail, check(doctor({ "METIS_LANGFUSE_ENABLED" => "1" }), "Observability", "langfuse").status

@@ -141,6 +141,27 @@ linear:
     url: https://mcp.linear.app/mcp
   auth: mcp_oauth
 
+# X (Twitter). Brokered OAuth like GitHub/Google, but through a dedicated
+# controller (X has no omniauth sign-in strategy). The stdio command is
+# the pinned xurl-mcp wrapper baked into every runtime image; McpConfig
+# stages the member's tokens into the entry's env. See docs/connectors.md.
+x:
+  name: X
+  category: Social
+  description: Analyze your X account and posts, then use the X tools you authorize.
+  transport: stdio
+  definition:
+    command: xurl-mcp
+  auth: oauth
+  oauth_provider: x
+  oauth_scopes:
+    - tweet.read
+    - tweet.write
+    - users.read
+    - bookmark.read
+    - bookmark.write
+    - offline.access
+
 google_calendar:
   name: Google Calendar
   category: Productivity
