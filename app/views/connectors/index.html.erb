@@ -53,12 +53,12 @@
                   <% end %>
                 <% elsif app.oauth? && (oauth_path = connector_authorize_path_for(app)) %>
                   <div style="flex:1"></div>
-                  <%= button_to(mine ? t('.reconnect') : t(app.oauth_provider == "x" ? '.connect_x' : '.connect'), oauth_path,
+                  <%= button_to(mine ? t('.reconnect') : t('.connect'), oauth_path,
                         data: { turbo: false }, class: "btn btn-primary") %>
                 <% elsif app.oauth_provider == "x" %>
                   <span class="app-state"><%= t('.x_unavailable') %></span>
                   <div style="flex:1"></div>
-                  <button class="btn btn-primary" disabled><%= t('.connect_x') %></button>
+                  <button class="btn btn-primary" disabled><%= t('.connect') %></button>
                 <% elsif app.oauth? %>
                   <span class="app-state"><%= t('.oauth_coming_soon') %></span>
                 <% elsif app.mcp_oauth? && app.inputs.any? %>

@@ -10,7 +10,6 @@ en:
       manage: "Manage"
       reconnect: "Reconnect"
       connect: "Connect"
-      connect_x: "Connect X"
       disconnect: "Disconnect"
       x_unavailable: "X is not configured on this Metis deployment."
       x_disconnect_confirm: "Disconnect X? The agent loses access to your X account."

@@ -10,7 +10,6 @@
       manage: "管理"
       reconnect: "重新连接"
       connect: "连接"
-      connect_x: "连接 X"
       disconnect: "断开连接"
       x_unavailable: "此 Metis 部署尚未配置 X。"
       x_disconnect_confirm: "断开 X？智能体将失去对你 X 账户的访问权限。"

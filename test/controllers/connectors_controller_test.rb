@@ -199,7 +199,7 @@ class ConnectorsControllerTest < ActionDispatch::IntegrationTest
 
       assert_select %(form[action="#{connector_x_authorize_path}"]), false
       assert_select ".app-state", text: "X is not configured on this Metis deployment."
-      assert_select "button[disabled]", text: "Connect X"
+      assert_select "button[disabled]", text: "Connect"
     end
   end
 
@@ -207,7 +207,7 @@ class ConnectorsControllerTest < ActionDispatch::IntegrationTest
     with_stub(XApp::Config, :configured?, ->(env: ENV) { true }) do
       get connectors_path
 
-      assert_select %(form[action="#{connector_x_authorize_path}"] button), text: "Connect X"
+      assert_select %(form[action="#{connector_x_authorize_path}"] button), text: "Connect"
     end
   end
 
