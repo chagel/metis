@@ -1,17 +1,12 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Server-side title search for the sidebar. Debounced input navigates the
-// convos-search turbo-frame (page 1); a dedicated sentinel streams later
-// pages. While a query is active the browse list hides via .is-searching —
-// nothing is filtered client-side. Scope/kind tab swaps re-render the
-// convos frame as usual; we watch for that and rerun the query against
-// the newly-picked scope.
+// Server-side title search; scope/kind frame swaps rerun the active query.
 export default class extends Controller {
   static targets = ["input", "panel", "frame", "hint", "loading", "error", "sentinel"]
   static values = {
     url: String,
     delay: { type: Number, default: 250 },
-    minLength: { type: Number, default: 2 }
+    minLength: Number
   }
 
   connect() {
@@ -82,9 +77,7 @@ export default class extends Controller {
     else this.frameTarget.src = url
   }
 
-  // A frame response landed: if it isn't the newest query (a slow older
-  // request settling late), immediately re-point the frame at the newest —
-  // stale results never stand.
+  // Keep a slow response from replacing results for the newest query.
   settle(frame) {
     if (this.latestUrl && frame.src !== this.latestUrl) {
       frame.src = this.latestUrl
@@ -110,7 +103,6 @@ export default class extends Controller {
     }
   }
 
-  // ── search-result pagination (separate from the browse sentinel) ──
   sentinelTargetConnected(element) {
     this.sentinelObserver?.disconnect()
     this.sentinelObserver = new IntersectionObserver(
@@ -137,9 +129,15 @@ export default class extends Controller {
         headers: { Accept: "text/vnd.turbo-stream.html" },
         credentials: "same-origin"
       })
-      // Skip if the search moved on while this page was in flight.
       const stale = !this.hasSentinelTarget || this.sentinelTarget.dataset.url !== url
-      if (response.ok && !stale) Turbo.renderStreamMessage(await response.text())
+      if (stale) return
+      if (!response.ok) {
+        this.fail()
+        return
+      }
+      Turbo.renderStreamMessage(await response.text())
+    } catch {
+      if (this.hasSentinelTarget && this.sentinelTarget.dataset.url === url) this.fail()
     } finally {
       this.loadingMore = false
       this.frameTarget.removeAttribute("aria-busy")

@@ -1,9 +1,6 @@
-<%# Page 1 of a title search, answering the convos-search frame
-    navigation (layout: false — the sidebar shell is already on the
-    page). A short query renders the empty frame; the client keeps the
-    browse list for that state. %>
+<%# A short query leaves this frame empty so the client keeps browse mode. %>
 <turbo-frame id="convos-search">
-  <% if @query.length >= 2 %>
+  <% if @query.length >= ConversationsController::SEARCH_MIN_LENGTH %>
     <% if @search_results.any? %>
       <h2 class="convos-search-summary"><%= t(".results_for", query: @query) %></h2>
       <div id="convos-search-list">

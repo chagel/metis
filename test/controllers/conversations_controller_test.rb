@@ -752,6 +752,28 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "search middle page replaces the sentinel and preserves nondefault filters" do
+    stub_const(ConversationsController, :SEARCH_PAGE_SIZE, 2) do
+      5.times do |i|
+        @user.conversations.create!(title: "Paged match #{i}").star!
+      end
+      sign_in @user
+
+      get search_conversations_path(q: "paged match", filter: "starred", kind: "chats", page: 2),
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+      assert_response :success
+      assert_select "turbo-stream[action='replace'][target='convos-search-sentinel']"
+      assert_select "#convos-search-sentinel" do |nodes|
+        query = Rack::Utils.parse_query(URI.parse(nodes.first["data-url"]).query)
+        assert_equal "paged match", query["q"]
+        assert_equal "starred", query["filter"]
+        assert_equal "chats", query["kind"]
+        assert_equal "3", query["page"]
+      end
+    end
+  end
+
   test "search under the default scope includes the user's archived matches" do
     archived = @user.conversations.create!(title: "Archived treasure")
     archived.archive!
@@ -889,6 +911,8 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "#sidebar[data-controller='conversation-search'][data-conversation-search-url-value=?]",
                   search_conversations_path
+    assert_select "#sidebar[data-conversation-search-min-length-value=?]",
+                  ConversationsController::SEARCH_MIN_LENGTH.to_s
     assert_select ".search input[data-conversation-search-target='input']"
     assert_select ".search-status[aria-live='polite']"
     assert_select ".convos-search turbo-frame#convos-search"

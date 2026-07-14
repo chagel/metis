@@ -181,21 +181,11 @@ class ApplicationController < ActionController::Base
      .recent.preloaded_for_sidebar.to_a
   end
 
-  # "team" spans the whole team (every member's team-visible
-  # conversations); "active" and "starred" are the signed-in user's own,
-  # archived excluded. All ordered by recency for the same bucketed list.
   def sidebar_scope(filter)
-    mine = current_user.conversations.for_team(current_team)
-    case filter
-    when "team"    then current_team.conversations.visibility_team.active.recent
-    when "starred" then mine.starred.active.recent
-    else                mine.active.recent
-    end
+    search_scope(filter).active.recent
   end
 
-  # Title search spans history: the same team/visibility boundaries as
-  # sidebar_scope, but archived rows stay eligible and ordering is left
-  # to Conversation.title_matching.
+  # Search keeps archived rows eligible; browse adds active/recent.
   def search_scope(filter)
     mine = current_user.conversations.for_team(current_team)
     case filter

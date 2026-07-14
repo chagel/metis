@@ -1,9 +1,5 @@
 <%# locals: (pagy:, query:, filter:, kind:)
-
-    Endless-scroll trigger for search results. Observed by the
-    conversation-search controller (not the browse infinite-scroll —
-    separate targets and URLs on purpose, so the two paginations never
-    cross). %>
+    Kept separate from browse pagination so their targets cannot cross. %>
 <% if pagy&.next %>
   <div id="convos-search-sentinel"
        class="convos-sentinel"

@@ -66,10 +66,7 @@ class Conversation < ApplicationRecord
              senders: { avatar_attachment: :blob })
   }
 
-  # Case-insensitive literal substring match on title, ranked by trigram
-  # similarity (index_conversations_on_title_trigram), then recency, then
-  # id for stable countless pagination. Matching only — compose it onto an
-  # already-authorized relation.
+  # Matching only — compose onto an already-authorized relation.
   def self.title_matching(query)
     normalized = query.to_s.strip
     where("conversations.title ILIKE ?", "%#{sanitize_sql_like(normalized)}%")

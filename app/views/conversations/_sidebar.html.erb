@@ -4,7 +4,8 @@
     body collapses to the icon rail (.sidebar-rail) — the board opens
     collapsed by default (full-width grid); see nav_default_collapsed?. %>
 <aside id="sidebar" class="sidebar" data-controller="conversation-search"
-       data-conversation-search-url-value="<%= search_conversations_path %>">
+       data-conversation-search-url-value="<%= search_conversations_path %>"
+       data-conversation-search-min-length-value="<%= ConversationsController::SEARCH_MIN_LENGTH %>">
   <div class="sidebar-full">
   <div class="ws">
     <div class="ws-crumb">
@@ -60,8 +61,6 @@
              data-action="input->conversation-search#queryChanged keydown.esc->conversation-search#clear">
     </div>
 
-    <%# Search status line: min-length hint, in-flight note, or a
-        localized error with retry — one polite live region for all three. %>
     <div class="search-status" aria-live="polite">
       <span class="search-status-hint" data-conversation-search-target="hint" hidden><%= t('.search_hint') %></span>
       <span class="search-status-loading" data-conversation-search-target="loading" hidden><%= t('.search_loading') %></span>
@@ -150,10 +149,8 @@
         </div>
       </turbo-frame>
 
-      <%# Search results replace the browse list (CSS hides it via
-          .is-searching) but live outside the convos frame, so a scope/kind
-          tab swap doesn't wipe them mid-search. Page 1 loads by frame src;
-          the search sentinel streams later pages. %>
+      <%# Keeping results outside #convos prevents scope/kind swaps from
+          clearing them before the updated search arrives. %>
       <div class="convos-search" data-conversation-search-target="panel" hidden>
         <turbo-frame id="convos-search" data-conversation-search-target="frame"
                      loading="eager" data-turbo-prefetch="false"></turbo-frame>

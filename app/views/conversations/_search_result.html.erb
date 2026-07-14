@@ -1,7 +1,4 @@
-<%# One row in the sidebar's search results. A dedicated partial, not
-    _convo: search rows carry extra meta (updated time, project, archived
-    badge) and must not repeat the browse rows' dom_ids — the hidden
-    browse list keeps them while a search is showing. %>
+<%# Omit dom_id because matching browse rows remain hidden in the DOM. %>
 <%= link_to conversation, class: "convo convo-search-row",
       data: { active_link_target: "link", turbo_frame: "main" } do %>
   <span class="convo-search-main">

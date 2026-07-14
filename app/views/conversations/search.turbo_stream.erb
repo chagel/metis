@@ -1,6 +1,3 @@
-<%# Endless-scroll response for search results: append the next page's
-    rows and swap the search sentinel for a fresh one (more pages) or
-    remove it (last page). %>
 <%= turbo_stream.append "convos-search-list",
       partial: "conversations/search_result",
       collection: @search_results, as: :conversation %>
