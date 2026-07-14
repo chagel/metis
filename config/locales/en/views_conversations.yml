@@ -45,7 +45,10 @@ en:
       projects: "Projects"
       board: "Board"
       sharing: "Sharing"
-      search: "Search conversations"
+      search: "Search history"
+      search_loading: "Searching history…"
+      search_error: "Search unavailable. Try again."
+      search_retry: "Retry"
       tab_me: "Me"
       tab_team: "Team"
       tab_starred: "Starred"
@@ -55,7 +58,6 @@ en:
       kind_workflows: "Workflows"
       kind_routines: "Routines"
       needs_you: "Needs you"
-      no_matches: "No matches."
       collapse: "Collapse sidebar"
       expand: "Expand sidebar"
       rail: "Collapsed sidebar"
@@ -76,6 +78,13 @@ en:
       tagline: "Metis is an open-source, self-hostable agent platform for individuals and teams."
     run:
       chat: "Chat"
+    search:
+      results_for: "Results for “%{query}”"
+      empty: "No conversations found for “%{query}”."
+    search_result:
+      updated_ago: "%{time} ago"
+      archived: "Archived"
+      workflow: "Workflow"
     show:
       shared_by: "Shared by %{name}"
       started_ago: "Started %{time} ago"

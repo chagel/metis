@@ -671,6 +671,254 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".convo-kind-item.is-active", text: /All/
   end
 
+  test "search requires authentication" do
+    get search_conversations_path(q: "deploy")
+    assert_redirected_to new_user_session_path
+  end
+
+  test "search finds titles beyond the first browse page" do
+    needle = @user.conversations.create!(title: "Needle in history")
+    needle.update_column(:updated_at, 1.year.ago)
+    (ApplicationController::SIDEBAR_PAGE_SIZE + 1).times { |i| @user.conversations.create!(title: "Noise #{i}") }
+    sign_in @user
+
+    get conversations_path
+    assert_select "#convos-list .convo .tt", text: "Needle in history", count: 0
+
+    get search_conversations_path(q: "needle")
+    assert_response :success
+    assert_select "turbo-frame#convos-search .convo .tt", text: "Needle in history"
+  end
+
+  test "search renders an ungrouped result list without pins or recency headers" do
+    pinned = @user.conversations.create!(title: "Needs me now")
+    @user.personal_team.workflow_runs.create!(conversation: pinned, status: :queued)
+    @user.conversations.create!(title: "Plain match")
+    sign_in @user
+
+    get search_conversations_path(q: "match")
+    assert_response :success
+    assert_select ".grp-label", count: 0
+    assert_select ".convos-pinned", count: 0
+    assert_select "#convos-sentinel", count: 0
+    assert_select ".convo .tt", text: "Plain match"
+  end
+
+  test "search below two characters returns no results" do
+    @user.conversations.create!(title: "Aha moment")
+    sign_in @user
+
+    get search_conversations_path(q: " a ")
+    assert_response :success
+    assert_select "turbo-frame#convos-search"
+    assert_select ".convo", count: 0
+    assert_select ".convos-empty", count: 0
+  end
+
+  test "search paginates at SEARCH_PAGE_SIZE with a sentinel preserving q, filter, and kind" do
+    stub_const(ConversationsController, :SEARCH_PAGE_SIZE, 2) do
+      3.times { |i| @user.conversations.create!(title: "Match #{i}") }
+      sign_in @user
+
+      get search_conversations_path(q: "match", filter: "starred", kind: "chats")
+      assert_response :success
+      assert_select "#convos-search-list .convo", count: 0 # starred scope excludes them
+
+      get search_conversations_path(q: "match", kind: "chats")
+      assert_select "#convos-search-list .convo", count: 2
+      assert_select "#convos-search-sentinel[data-conversation-search-target='sentinel']" do |nodes|
+        url = nodes.first["data-url"]
+        assert_includes url, "q=match"
+        assert_includes url, "kind=chats"
+        assert_includes url, "filter=active"
+        assert_includes url, "page=2"
+      end
+    end
+  end
+
+  test "search page 2 streams the remaining rows without duplicates and drops the sentinel" do
+    stub_const(ConversationsController, :SEARCH_PAGE_SIZE, 2) do
+      3.times { |i| @user.conversations.create!(title: "Match #{i}") }
+      sign_in @user
+
+      get search_conversations_path(q: "match", page: 2),
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+      assert_response :success
+      assert_equal "text/vnd.turbo-stream.html", response.media_type
+      assert_match(/turbo-stream action="append" target="convos-search-list"/, response.body)
+      assert_match(/turbo-stream action="remove" target="convos-search-sentinel"/, response.body)
+      assert_match(/Match 0/, response.body)
+      assert_no_match(/Match 2/, response.body)
+    end
+  end
+
+  test "search middle page replaces the sentinel and preserves nondefault filters" do
+    stub_const(ConversationsController, :SEARCH_PAGE_SIZE, 2) do
+      5.times do |i|
+        @user.conversations.create!(title: "Paged match #{i}").star!
+      end
+      sign_in @user
+
+      get search_conversations_path(q: "paged match", filter: "starred", kind: "chats", page: 2),
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+      assert_response :success
+      assert_select "turbo-stream[action='replace'][target='convos-search-sentinel']"
+      assert_select "#convos-search-sentinel" do |nodes|
+        query = Rack::Utils.parse_query(URI.parse(nodes.first["data-url"]).query)
+        assert_equal "paged match", query["q"]
+        assert_equal "starred", query["filter"]
+        assert_equal "chats", query["kind"]
+        assert_equal "3", query["page"]
+      end
+    end
+  end
+
+  test "search under the default scope includes the user's archived matches" do
+    archived = @user.conversations.create!(title: "Archived treasure")
+    archived.archive!
+    sign_in @user
+
+    get search_conversations_path(q: "treasure")
+    assert_response :success
+    assert_select ".convo .tt", text: "Archived treasure"
+    assert_select ".convo-badge-archived", text: "Archived"
+  end
+
+  test "search never crosses team or visibility boundaries, even for exact titles" do
+    team = Team.create!(name: "Acme")
+    @user.memberships.create!(team: team, role: :owner)
+    teammate = User.create!(email: "search-mate@example.com", password: "password123")
+    team.memberships.create!(user: teammate, role: :member)
+
+    mine = @user.conversations.create!(team: team, title: "Quarterly plan", visibility: :team)
+    my_private = @user.conversations.create!(team: team, title: "Quarterly plan")
+    team_visible = teammate.conversations.create!(team: team, title: "Quarterly plan", visibility: :team)
+    archived_team_visible = teammate.conversations.create!(team: team, title: "Quarterly plan", visibility: :team)
+    archived_team_visible.archive!
+    teammate_private = teammate.conversations.create!(team: team, title: "Quarterly plan")
+    linked = teammate.conversations.create!(team: team, title: "Quarterly plan")
+    linked.generate_share_token!
+
+    other_team = Team.create!(name: "Elsewhere")
+    stranger = User.create!(email: "search-stranger@example.com", password: "password123")
+    other_team.memberships.create!(user: stranger, role: :owner)
+    stranger.conversations.create!(team: other_team, title: "Quarterly plan", visibility: :team)
+
+    sign_in @user
+    post switch_team_path(team)
+
+    get search_conversations_path(q: "quarterly", filter: "team")
+    assert_response :success
+    ids = css_select(".convo").map { |node| node["href"] }
+    expected = [ mine, team_visible, archived_team_visible ].map { |c| conversation_path(c) }
+    assert_equal expected.sort, ids.sort
+    refute_includes ids, conversation_path(teammate_private)
+    refute_includes ids, conversation_path(linked)
+    refute_includes ids, conversation_path(my_private)
+
+    get search_conversations_path(q: "quarterly", filter: "active")
+    assert_equal [ conversation_path(mine), conversation_path(my_private) ].sort,
+                 css_select(".convo").map { |node| node["href"] }.sort
+  end
+
+  test "search coerces the team filter to active in a personal team" do
+    @user.conversations.create!(title: "Personal find", visibility: :team)
+    sign_in @user
+
+    get search_conversations_path(q: "personal find", filter: "team")
+    assert_response :success
+    assert_select ".convo .tt", text: "Personal find"
+  end
+
+  test "search under starred includes archived starred matches only" do
+    starred = @user.conversations.create!(title: "Gem idea")
+    starred.star!
+    starred.archive!
+    @user.conversations.create!(title: "Gem idea (unstarred)")
+    sign_in @user
+
+    get search_conversations_path(q: "gem idea", filter: "starred")
+    assert_response :success
+    assert_select ".convo", count: 1
+    assert_select ".convo-badge-archived"
+  end
+
+  test "search falls back to active/all on unknown filter and kind" do
+    @user.conversations.create!(title: "Fallback target")
+    sign_in @user
+
+    get search_conversations_path(q: "fallback", filter: "bogus", kind: "bogus")
+    assert_response :success
+    assert_select ".convo .tt", text: "Fallback target"
+  end
+
+  test "search honors the kind axis" do
+    @user.conversations.create!(title: "Kindred chat")
+    workflow = @user.conversations.create!(title: "Kindred workflow")
+    @user.personal_team.workflow_runs.create!(conversation: workflow)
+    sign_in @user
+
+    get search_conversations_path(q: "kindred", kind: "workflows")
+    assert_response :success
+    assert_select ".convo", count: 1
+    assert_select ".convo .tt", text: "Kindred workflow"
+    assert_select ".convo .convo-pill", text: "Workflow"
+  end
+
+  test "search rows show meta but no message snippet" do
+    project = @user.personal_team.projects.create!(name: "Skunkworks")
+    conversation = @user.conversations.create!(title: "Meta rich", project: project)
+    conversation.messages.create!(role: :user, content: "secret message body", streaming_status: :done)
+    sign_in @user
+
+    get search_conversations_path(q: "meta rich")
+    assert_response :success
+    assert_select ".convo[data-turbo-frame='main'][href=?]", conversation_path(conversation)
+    assert_select ".convo-search-meta", text: /ago/
+    assert_select ".convo-search-project", text: "Skunkworks"
+    assert_no_match(/secret message body/, response.body)
+  end
+
+  test "search shows an empty state with the query" do
+    sign_in @user
+    get search_conversations_path(q: "zz-nothing")
+    assert_response :success
+    assert_select ".convos-empty", text: /zz-nothing/
+  end
+
+  test "search copy is localized in English and Simplified Chinese" do
+    {
+      "conversations.sidebar.search" => [ "Search history", "搜索历史" ],
+      "conversations.sidebar.search_loading" => [ "Searching history…", "正在搜索历史…" ],
+      "conversations.sidebar.search_retry" => [ "Retry", "重试" ],
+      "conversations.search_result.archived" => [ "Archived", "已归档" ]
+    }.each do |key, (en, zh)|
+      assert_equal en, I18n.t(key, locale: :en)
+      assert_equal zh, I18n.t(key, locale: :"zh-CN")
+    end
+    assert_equal "Results for “deploy”",
+                 I18n.t("conversations.search.results_for", query: "deploy", locale: :en)
+    assert_equal "未找到与“deploy”相关的对话。",
+                 I18n.t("conversations.search.empty", query: "deploy", locale: :"zh-CN")
+  end
+
+  test "the sidebar wires the search controller and status region" do
+    sign_in @user
+    get conversations_path
+
+    assert_response :success
+    assert_select "#sidebar[data-controller='conversation-search'][data-conversation-search-url-value=?]",
+                  search_conversations_path
+    assert_select "#sidebar[data-conversation-search-min-length-value=?]",
+                  ConversationsController::SEARCH_MIN_LENGTH.to_s
+    assert_select ".search input[data-conversation-search-target='input']"
+    assert_select ".convos-search .convos-search-summary[aria-live='polite'][data-conversation-search-target='loading']"
+    assert_select ".convos-search .convos-search-summary[aria-live='polite'][data-conversation-search-target='error']"
+    assert_select ".convos-search turbo-frame#convos-search"
+    assert_select ".convo-controls[data-filter='active'][data-kind='all']"
+  end
+
   test "the owner sees a star toggle on their own conversation" do
     sign_in @user
     conversation = @user.conversations.create!(title: "Mine")

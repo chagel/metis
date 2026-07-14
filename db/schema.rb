@@ -118,6 +118,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_13_083000) do
     t.index ["share_token"], name: "index_conversations_on_share_token", unique: true
     t.index ["starred_at"], name: "index_conversations_on_starred_at"
     t.index ["team_id"], name: "index_conversations_on_team_id"
+    t.index ["title"], name: "index_conversations_on_title_trigram", opclass: :gin_trgm_ops, using: :gin
     t.index ["user_id"], name: "index_conversations_on_user_id"
   end
 

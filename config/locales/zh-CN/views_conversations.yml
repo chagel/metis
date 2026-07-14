@@ -45,7 +45,10 @@
       projects: "项目"
       board: "看板"
       sharing: "分享"
-      search: "搜索对话"
+      search: "搜索历史"
+      search_loading: "正在搜索历史…"
+      search_error: "搜索不可用，请重试。"
+      search_retry: "重试"
       tab_me: "我的"
       tab_team: "团队"
       tab_starred: "已收藏"
@@ -55,7 +58,6 @@
       kind_workflows: "工作流"
       kind_routines: "例程"
       needs_you: "需要你处理"
-      no_matches: "无匹配项。"
       collapse: "收起侧边栏"
       expand: "展开侧边栏"
       rail: "已收起的侧边栏"
@@ -76,6 +78,13 @@
       tagline: "Metis 是一个面向个人和团队的开源、可自托管的智能体平台。"
     run:
       chat: "对话"
+    search:
+      results_for: "“%{query}”的搜索结果"
+      empty: "未找到与“%{query}”相关的对话。"
+    search_result:
+      updated_ago: "%{time}前"
+      archived: "已归档"
+      workflow: "工作流"
     show:
       shared_by: "由 %{name} 分享"
       started_ago: "%{time}前开始"

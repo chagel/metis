@@ -1,0 +1,17 @@
+<%# A short query leaves this frame empty so the client keeps browse mode. %>
+<turbo-frame id="convos-search">
+  <% if @query.length >= ConversationsController::SEARCH_MIN_LENGTH %>
+    <% if @search_results.any? %>
+      <h2 class="convos-search-summary"><%= t(".results_for", query: @query) %></h2>
+      <div id="convos-search-list">
+        <%= render partial: "conversations/search_result",
+              collection: @search_results, as: :conversation %>
+      </div>
+      <%= render "conversations/search_sentinel",
+            pagy: @search_pagy, query: @query,
+            filter: @sidebar_filter, kind: @sidebar_kind %>
+    <% else %>
+      <div class="convos-empty"><%= t(".empty", query: @query) %></div>
+    <% end %>
+  <% end %>
+</turbo-frame>

@@ -3,7 +3,9 @@
     user menu. Rendered by the "chat" layout on every top-level page. The
     body collapses to the icon rail (.sidebar-rail) — the board opens
     collapsed by default (full-width grid); see nav_default_collapsed?. %>
-<aside id="sidebar" class="sidebar" data-controller="conversation-filter">
+<aside id="sidebar" class="sidebar" data-controller="conversation-search"
+       data-conversation-search-url-value="<%= search_conversations_path %>"
+       data-conversation-search-min-length-value="<%= ConversationsController::SEARCH_MIN_LENGTH %>">
   <div class="sidebar-full">
   <div class="ws">
     <div class="ws-crumb">
@@ -55,8 +57,8 @@
         <circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/>
       </svg>
       <input type="search" placeholder="<%= t('.search') %>" aria-label="<%= t('.search') %>"
-             data-conversation-filter-target="query"
-             data-action="input->conversation-filter#filter">
+             data-conversation-search-target="input"
+             data-action="input->conversation-search#queryChanged keydown.esc->conversation-search#clear">
     </div>
 
     <nav class="convos" aria-label="Conversations" data-turbo-prefetch="false"
@@ -66,7 +68,9 @@
           sidebar's scroll position stay put. Tabs are inside the frame, so
           the server re-renders their active state on each swap. %>
       <turbo-frame id="convos">
-        <div class="convo-controls">
+        <%# filter/kind ride along so an active search can rerun with the
+            newly-picked scope after this frame swaps (conversation-search). %>
+        <div class="convo-controls" data-filter="<%= @sidebar_filter %>" data-kind="<%= @sidebar_kind %>">
           <%# Preserve the active kind across a scope switch, but keep it out
               of the URL when it's the "all" default so tab links stay clean. %>
           <% tab_kind = @sidebar_kind unless @sidebar_kind == "all" %>
@@ -134,8 +138,25 @@
             <div class="convos-empty"><%= sidebar_empty_message(@sidebar_filter) %></div>
           <% end %>
         </div>
-        <div class="convos-empty" data-conversation-filter-target="empty" hidden><%= t('.no_matches') %></div>
       </turbo-frame>
+
+      <%# Keeping results outside #convos prevents scope/kind swaps from
+          clearing them before the updated search arrives. %>
+      <div class="convos-search" data-conversation-search-target="panel" hidden>
+        <%# In-flight / error notes share the results-summary row and style:
+            while loading, .is-loading hides the stale summary inside the
+            frame so "Searching…" reads as that row, then the fresh
+            "Results for …" takes its place. %>
+        <div class="convos-search-summary" aria-live="polite"
+             data-conversation-search-target="loading" hidden><%= t('.search_loading') %></div>
+        <div class="convos-search-summary" aria-live="polite"
+             data-conversation-search-target="error" hidden>
+          <%= t('.search_error') %>
+          <button type="button" class="search-retry" data-action="click->conversation-search#retry"><%= t('.search_retry') %></button>
+        </div>
+        <turbo-frame id="convos-search" data-conversation-search-target="frame"
+                     loading="eager" data-turbo-prefetch="false"></turbo-frame>
+      </div>
     </nav>
   <% else %>
     <%= render "conversations/projects_nav" %>

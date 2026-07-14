@@ -91,6 +91,14 @@ class Conversation < ApplicationRecord
              senders: { avatar_attachment: :blob })
   }
 
+  # Matching only — compose onto an already-authorized relation.
+  def self.title_matching(query)
+    normalized = query.to_s.strip
+    where("conversations.title ILIKE ?", "%#{sanitize_sql_like(normalized)}%")
+      .reorder(Arel.sql(sanitize_sql_array([ "similarity(conversations.title, ?) DESC", normalized ])))
+      .order(updated_at: :desc, id: :desc)
+  end
+
   def accessible_to?(user)
     user_id == user.id || visibility_team?
   end

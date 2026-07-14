@@ -451,6 +451,44 @@ turbo-frame#convos { display:contents; }
   color:var(--faint); font-size:12px; letter-spacing:.04em;
 }
 
+/* ───────────── sidebar title search ─────────────
+   While a query is active (.is-searching on the sidebar) the browse
+   list hides and .convos-search takes its place; the scope/kind
+   controls stay usable. */
+.search-retry {
+  background:none; border:none; padding:0; margin-left:4px;
+  color:var(--accent-fg); font:inherit; font-weight:600;
+  cursor:pointer; text-decoration:underline;
+}
+.is-searching .convos-pinned,
+.is-searching #convos-list,
+.is-searching #convos-sentinel { display:none; }
+.convos-search-summary {
+  font-family:var(--fm); font-size:10px; font-weight:500; letter-spacing:.1em;
+  color:var(--faint); text-transform:uppercase; padding:10px 8px 6px; margin:0;
+}
+/* While a new page 1 is in flight the panel's "Searching…" note stands in
+   for the summary row; hide the stale one inside the frame so only one
+   summary row ever shows. */
+.convos-search.is-loading #convos-search .convos-search-summary { display:none; }
+.convo-search-row { align-items:flex-start; }
+.convo-search-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.convo-search-title { display:flex; align-items:center; gap:6px; min-width:0; }
+.convo-search-meta {
+  display:flex; align-items:center; gap:5px; min-width:0;
+  font-size:11.5px; color:var(--ink-3);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.convo-search-meta > * { flex:none; }
+.convo-search-project { overflow:hidden; text-overflow:ellipsis; min-width:0; flex:0 1 auto; }
+.convo-search-owner { display:inline-flex; align-items:center; gap:4px; min-width:0; }
+.convo-search-owner-avatar { width:14px; height:14px; font-size:7px; }
+.convo-badge-archived {
+  flex:none; padding:1px 6px; border-radius:6px;
+  border:1px solid var(--line); background:var(--bg);
+  color:var(--ink-3); font-size:10px; font-weight:600;
+}
+
 /* ───────────── conversation scope tabs ─────────────
    Mine / Shared / Starred / Archived. Compact text tabs that swap the sidebar
    list's scope in place (turbo-frame). The active tab carries `.on`. */

@@ -3,6 +3,9 @@ class ConversationsController < ApplicationController
 
   layout "chat"
 
+  SEARCH_PAGE_SIZE = 20
+  SEARCH_MIN_LENGTH = 2
+
   before_action :set_conversation, only: %i[cancel archive unarchive star unstar update share unshare toggle_visibility]
   before_action :set_sidebar, only: %i[index show archived]
 
@@ -10,6 +13,19 @@ class ConversationsController < ApplicationController
     respond_to do |format|
       format.html
       # Gated on :page so Turbo Drive form redirects don't get the scroll stream.
+      format.turbo_stream if params[:page].present?
+    end
+  end
+
+  # Phase 1 searches titles only; encrypted message content stays untouched.
+  def search
+    set_sidebar_params
+    @query = params[:q].to_s.strip
+    relation = @query.length < SEARCH_MIN_LENGTH ? Conversation.none : searchable_conversations
+    @search_pagy, @search_results = pagy(:countless, relation, limit: SEARCH_PAGE_SIZE)
+
+    respond_to do |format|
+      format.html { render layout: false }
       format.turbo_stream if params[:page].present?
     end
   end
@@ -110,6 +126,12 @@ class ConversationsController < ApplicationController
   end
 
   private
+
+  def searchable_conversations
+    sidebar_kind_scope(search_scope(@sidebar_filter), @sidebar_kind)
+      .title_matching(@query)
+      .includes(:workflow_run, :project, :routine, user: { avatar_attachment: :blob })
+  end
 
   def set_conversation
     @conversation = current_user.conversations.find(params[:id])

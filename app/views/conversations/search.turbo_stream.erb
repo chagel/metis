@@ -1,0 +1,12 @@
+<%= turbo_stream.append "convos-search-list",
+      partial: "conversations/search_result",
+      collection: @search_results, as: :conversation %>
+
+<% if @search_pagy.next %>
+  <%= turbo_stream.replace "convos-search-sentinel",
+        partial: "conversations/search_sentinel",
+        locals: { pagy: @search_pagy, query: @query,
+                  filter: @sidebar_filter, kind: @sidebar_kind } %>
+<% else %>
+  <%= turbo_stream.remove "convos-search-sentinel" %>
+<% end %>
