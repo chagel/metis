@@ -7,6 +7,7 @@
       personal_unavailable: "该功能在你的个人工作区中不可用。"
     shared:
       invite_only: "Metis 仅限邀请注册 — 请让团队管理员邀请你。"
+      request_failed: "该请求出了点问题 — 请重试，或刷新页面。"
     skills:
       create:
         notice: "技能已创建。"

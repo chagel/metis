@@ -7,6 +7,7 @@ en:
       personal_unavailable: "That isn't available for your personal workspace."
     shared:
       invite_only: "Metis is invite-only — ask a team admin to invite you."
+      request_failed: "Something went wrong with that request — try again, or reload the page."
     skills:
       create:
         notice: "Skill created."
