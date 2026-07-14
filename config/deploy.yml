@@ -90,6 +90,9 @@ env:
     # so the per-turn workspace mount is path-identical under DooD. The host
     # dir must be writable by the container's runtime uid (rails = 1000).
     METIS_PERSISTENT_ROOT: /srv/metis/agent
+    # 14 days idle before a conversation's workspace/ is warm-evicted
+    # (sessions kept — see docs/session-persistence.md).
+    METIS_DOCKER_WORKSPACE_EVICTION_HOURS: "336"
     METIS_AGENT_PROVIDER: anthropic
     METIS_AGENT_MODEL: anthropic/claude-opus-4-8
     METIS_E2B_TEMPLATE: metis-pi

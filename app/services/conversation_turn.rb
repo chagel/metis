@@ -8,6 +8,10 @@ module ConversationTurn
   def self.start(conversation, content:, kind: :chat, sender: nil)
     user_message = assistant_message = nil
     conversation.transaction do
+      # The row lock is the serialization primitive for anything that
+      # must not race a turn being born — e.g. workspace eviction takes
+      # it before deleting files.
+      conversation.lock!
       user_message = conversation.messages.create!(
         role: :user, content: content, streaming_status: :done, kind: kind, sender: sender
       )

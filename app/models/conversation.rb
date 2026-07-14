@@ -22,13 +22,16 @@ class Conversation < ApplicationRecord
   # personal team unless one was given (docs/tenancy.md).
   before_validation :default_team, on: :create
 
-  # Cloud runtimes leave a sandbox behind between turns; if we forget to
-  # kill it when its conversation is destroyed, it lingers on the
-  # provider's servers (see docs/coding-runtime.md). For E2B the idle case
-  # is handled by EvictPausedSandboxesJob; Daytona reaps idle sandboxes via
-  # its native auto-delete interval. Each hook is a no-op when its id is blank.
+  # A destroyed conversation must not leave runtime state behind: cloud
+  # runtimes leave a sandbox on the provider's servers (each kill hook
+  # no-ops when its id is blank; idle reaping is EvictPausedSandboxesJob
+  # for E2B, Daytona's native auto-delete interval for Daytona), and the
+  # host runtimes leave a persistent scope directory, deleted after
+  # commit by CleanupPersistentWorkspaceJob — never rm_rf inside the
+  # destroy transaction. See docs/session-persistence.md.
   before_destroy :kill_paused_e2b_sandbox
   before_destroy :kill_daytona_sandbox
+  after_destroy_commit :cleanup_persistent_workspace
 
   scope :recent, -> { order(updated_at: :desc) }
   scope :active, -> { where(archived_at: nil) }
@@ -42,6 +45,14 @@ class Conversation < ApplicationRecord
   scope :workflows, -> { where.associated(:workflow_run) }
   scope :routines, -> { where.not(routine_id: nil) }
   scope :for_team, ->(team) { where(team: team) }
+  # Coarse candidate scan for EvictDockerWorkspacesJob — Docker runtime,
+  # quiet past the cutoff (messages touch the conversation, so updated_at
+  # tracks turn activity). Precise eligibility (in-flight turn, active
+  # workflow, workspace still on disk) is re-checked per row under the lock.
+  scope :docker_workspace_evictable, ->(cutoff) {
+    where("conversations.runtime_state->>'runtime' = ?", "docker")
+      .where(updated_at: ..cutoff)
+  }
   # The visibility rule, in one place: the launcher always, teammates
   # only when team-visible. Every surface (run page, gates, bridge
   # claims) must apply it through this scope or the predicate below.
@@ -281,5 +292,10 @@ class Conversation < ApplicationRecord
 
   def kill_daytona_sandbox
     Agent::Runtime::Daytona.kill_sandbox(daytona_sandbox_id)
+  end
+
+  # Immutable scalars only — the row is gone by the time the job runs.
+  def cleanup_persistent_workspace
+    CleanupPersistentWorkspaceJob.perform_later(user_id: user_id, conversation_id: id)
   end
 end

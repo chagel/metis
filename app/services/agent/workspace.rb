@@ -43,9 +43,16 @@ module Agent
       @root = root
     end
 
+    # The one definition of the on-disk scope layout; takes bare ids so
+    # cleanup can run after the conversation row is destroyed. Integer()
+    # rejects anything unsafe to interpolate into a deletable path.
+    def self.scope_dir_for(root, user_id, conversation_id)
+      root.join("u#{Integer(user_id)}", "c#{Integer(conversation_id)}")
+    end
+
     # The conversation's whole scope.
     def scope_dir
-      @root.join("u#{@conversation.user_id}", "c#{@conversation.id}")
+      self.class.scope_dir_for(@root, @conversation.user_id, @conversation.id)
     end
 
     def session_dir = scope_dir.join("sessions")
@@ -65,6 +72,21 @@ module Agent
     def ensure!
       [ session_dir, workspace_dir, uploads_dir ].each { |dir| FileUtils.mkdir_p(dir) }
       self
+    end
+
+    # Warm eviction: reclaim the working tree, keep sessions/ so pi still
+    # resumes with --continue (docs/session-persistence.md). Idempotent;
+    # rm_r never follows symlinks.
+    def evict_workspace!
+      FileUtils.rm_r(workspace_dir)
+    rescue Errno::ENOENT
+    end
+
+    # Remove the whole persistent scope, sessions included — runs after
+    # the conversation row is destroyed, hence the bare ids. Idempotent.
+    def self.destroy_scope!(user_id:, conversation_id:)
+      FileUtils.rm_r(scope_dir_for(PERSISTENT_ROOT, user_id, conversation_id))
+    rescue Errno::ENOENT
     end
 
     # Project uploaded file attachments into uploads/. Filenames are

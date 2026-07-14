@@ -4,10 +4,11 @@ module Agent
   class Identity
     FILENAME = "AGENTS.md".freeze
 
-    def initialize(conversation, runtime_kind, restore_history: false)
+    def initialize(conversation, runtime_kind, restore_history: false, workspace_evicted: false)
       @conversation = conversation
       @runtime_kind = runtime_kind.to_s
       @restore_history = restore_history
+      @workspace_evicted = workspace_evicted
     end
 
     def content
@@ -68,6 +69,7 @@ module Agent
           back later — keep those elsewhere in `workspace/`. When in
           doubt, publish. Mention the filename in your reply.
 
+        #{workspace_eviction_block}
         #{conversation_history_block}
         #{project_context_block}
         #{team_projects_block}
@@ -141,6 +143,22 @@ module Agent
     end
 
     private
+
+    # Warm eviction reclaimed workspace/ but kept sessions/ — pi still has
+    # its transcript, so this warns about lost files only (cf. the
+    # reaped-sandbox history replay below). See Runtime::Docker#workspace_evicted?.
+    def workspace_eviction_block
+      return "" unless @workspace_evicted
+
+      "\n" + <<~MD
+        ## Workspace notice
+
+        Metis reclaimed this conversation's workspace while it was idle.
+        Repositories, dependencies, build output, and uncommitted files
+        from earlier turns are gone; the conversation transcript remains.
+        Verify or recreate files before relying on them.
+      MD
+    end
 
     # The sandbox holding pi's transcript was reaped; replay the conversation
     # from the DB so a fresh sandbox keeps the thread. The warning is

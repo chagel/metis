@@ -26,6 +26,52 @@ class Agent::WorkspaceTest < ActiveSupport::TestCase
     assert_includes Agent::Workspace::PERSISTENT_ROOT.to_s, "tmp/agent_persistent_test"
   end
 
+  test "evict_workspace! deletes workspace/ and keeps sessions/, idempotently" do
+    workspace = Agent::Workspace.persistent(@conversation).ensure!
+    File.write(workspace.session_dir.join("s.jsonl"), "{}")
+    File.write(workspace.workspace_dir.join("wip.txt"), "agent file")
+
+    workspace.evict_workspace!
+
+    refute workspace.workspace_dir.exist?
+    assert workspace.session_dir.join("s.jsonl").exist?
+    assert_nothing_raised { workspace.evict_workspace! }
+  end
+
+  test "evict_workspace! unlinks a symlinked workspace without following it" do
+    workspace = Agent::Workspace.persistent(@conversation)
+    victim = Agent::Workspace::PERSISTENT_ROOT.join("u#{@user.id}", "victim")
+    FileUtils.mkdir_p(victim)
+    File.write(victim.join("keep.txt"), "keep")
+    FileUtils.mkdir_p(workspace.scope_dir)
+    File.symlink(victim, workspace.workspace_dir)
+
+    workspace.evict_workspace!
+
+    refute File.symlink?(workspace.workspace_dir)
+    assert victim.join("keep.txt").exist?
+  end
+
+  test "destroy_scope! removes the whole scope from bare ids, idempotently" do
+    workspace = Agent::Workspace.persistent(@conversation).ensure!
+    File.write(workspace.session_dir.join("s.jsonl"), "{}")
+
+    Agent::Workspace.destroy_scope!(user_id: @user.id, conversation_id: @conversation.id)
+
+    refute workspace.scope_dir.exist?
+    assert_nothing_raised do
+      Agent::Workspace.destroy_scope!(user_id: @user.id, conversation_id: @conversation.id)
+    end
+  end
+
+  test "destroy_scope! rejects ids that are not integers" do
+    [ "7; rm -rf /", nil ].each do |bad|
+      assert_raises(ArgumentError, TypeError) do
+        Agent::Workspace.destroy_scope!(user_id: bad, conversation_id: @conversation.id)
+      end
+    end
+  end
+
   test "scopes the session, workspace, and uploads dirs per user and conversation" do
     workspace = Agent::Workspace.scratch(@conversation)
     scope = Agent::Workspace::SCRATCH_ROOT.join("u#{@user.id}", "c#{@conversation.id}")

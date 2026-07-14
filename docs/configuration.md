@@ -34,6 +34,7 @@ required is missing). In a deployment:
 | `SEARXNG_URL` | keyless web-search alternative — base URL of a self-hosted SearXNG with the JSON format enabled; see [Web search](#web-search) |
 | `METIS_DOCKER_IMAGE` | image for the `docker` runtime (default `metis-pi`) |
 | `METIS_DOCKER_RUNTIME` | OCI runtime for `docker`-runtime containers — unset = daemon default (`runc`); `runsc` for gVisor (see [coding runtime](coding-runtime.md)) |
+| `METIS_DOCKER_WORKSPACE_EVICTION_HOURS` | idle hours before a Docker conversation's persistent `workspace/` is warm-evicted (default 72, invalid fails boot) — see [session persistence](session-persistence.md) |
 | `E2B_API_KEY` / `METIS_E2B_TEMPLATE` | required by the `e2b` runtime |
 | `DAYTONA_API_KEY` / `METIS_DAYTONA_SNAPSHOT` | required by the `daytona` runtime |
 | `DAYTONA_API_URL` / `DAYTONA_TARGET` | optional Daytona API endpoint / region |

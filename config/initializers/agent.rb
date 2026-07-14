@@ -44,6 +44,15 @@ Rails.application.config.x.agent.docker_image =
 Rails.application.config.x.agent.docker_runtime =
   ENV["METIS_DOCKER_RUNTIME"].presence
 
+# Idle window after which EvictDockerWorkspacesJob warm-evicts a Docker
+# conversation's persistent workspace/ (sessions/ kept — pi still resumes
+# with --continue; see docs/session-persistence.md). In-flight turns and
+# active workflow runs are never evicted. Garbage or a non-positive value
+# fails boot: a silently defaulted cleanup window is dangerous.
+docker_eviction_hours = Integer(ENV.fetch("METIS_DOCKER_WORKSPACE_EVICTION_HOURS", "72"))
+raise "METIS_DOCKER_WORKSPACE_EVICTION_HOURS must be positive" unless docker_eviction_hours.positive?
+Rails.application.config.x.agent.docker_workspace_eviction_window = docker_eviction_hours.hours
+
 # Daytona credentials and target for the :daytona runtime. The API key is a
 # shared, deployment-level resource (no per-user keys). api_url/target are
 # optional — unset uses the SDK defaults (https://app.daytona.io/api, the

@@ -265,4 +265,27 @@ class Agent::Runtime::DockerTest < ActiveSupport::TestCase
       end
     end
   end
+
+  test "the first turn after a workspace eviction gets the files-are-gone warning" do
+    # An evicted conversation: pi has run before (backend_session_id set),
+    # sessions/ survives, workspace/ is gone.
+    @conversation.update_column(:backend_session_id, "sess-1")
+    @workspace.ensure!
+    FileUtils.rm_rf(@workspace.workspace_dir)
+
+    with_pi_session(fake_session) do
+      @runtime.run(pi_args: [ "--mode", "rpc" ]) { }
+    end
+
+    agents_md = @workspace.workspace_dir.join(Agent::Identity::FILENAME).read
+    assert_match(/## Workspace notice/, agents_md)
+  end
+
+  test "no eviction warning on a first turn" do
+    with_pi_session(fake_session) do
+      @runtime.run(pi_args: [ "--mode", "rpc" ]) { }
+    end
+
+    refute_match(/## Workspace notice/, @workspace.workspace_dir.join(Agent::Identity::FILENAME).read)
+  end
 end

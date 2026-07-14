@@ -8,8 +8,9 @@ class Agent::IdentityTest < ActiveSupport::TestCase
     end
   end
 
-  def render(runtime_kind: "docker", restore_history: false)
-    Agent::Identity.new(conversation, runtime_kind, restore_history: restore_history).content
+  def render(runtime_kind: "docker", restore_history: false, workspace_evicted: false)
+    Agent::Identity.new(conversation, runtime_kind,
+                        restore_history: restore_history, workspace_evicted: workspace_evicted).content
   end
 
   test "anchors the agent — Metis as identity, human-served" do
@@ -440,5 +441,17 @@ class Agent::IdentityTest < ActiveSupport::TestCase
     refute_match(/## Coding tools/, out)
     refute_match(/### Tools this turn/, out)
     refute_match(/GH_TOKEN/, out)
+  end
+
+  test "warns a turn whose workspace was evicted" do
+    out = render(workspace_evicted: true)
+
+    assert_match(/## Workspace notice/, out)
+    assert_match(/uncommitted files/i, out)
+    assert_match(/transcript remains/i, out)
+  end
+
+  test "no eviction warning by default" do
+    refute_match(/## Workspace notice/, render)
   end
 end

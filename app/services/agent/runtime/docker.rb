@@ -107,6 +107,8 @@ module Agent
       end
 
       def run(pi_args:, extension_ui: nil)
+        # Detect a warm-evicted workspace before ensure! recreates the dir.
+        @workspace_evicted = conversation.backend_session_id.present? && !workspace.workspace_dir.directory?
         workspace.ensure!
         workspace.stage_uploads(conversation.uploaded_files)
         workspace.stage_mcp_config(mcp_config)
@@ -147,6 +149,11 @@ module Agent
       def workspace
         @workspace ||= Agent::Workspace.persistent(conversation)
       end
+
+      # A prior turn ran here but workspace/ was reclaimed
+      # (EvictDockerWorkspacesJob) — Identity warns the agent its files
+      # are gone. Set by #run from disk state; no marker column.
+      def workspace_evicted? = !!@workspace_evicted
 
       def container_name
         @container_name ||= "metis-c#{conversation.id}-#{SecureRandom.hex(4)}"

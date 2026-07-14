@@ -77,8 +77,14 @@ module Agent
       # also replays the conversation from the DB.
       def identity_content
         restore = context_lost? || conversation.needs_history_replay?
-        Agent::Identity.new(conversation, kind, restore_history: restore).content
+        Agent::Identity.new(conversation, kind, restore_history: restore,
+                            workspace_evicted: workspace_evicted?).content
       end
+
+      # The working tree was reclaimed while its transcript survived —
+      # only Runtime::Docker's warm eviction produces this; cloud
+      # runtimes lose both and go through context_lost? instead.
+      def workspace_evicted? = false
 
       # The runtime's short name (`local`, `docker`, `e2b`) — used in
       # the agent identity file and the runtime_info trace.

@@ -16,6 +16,9 @@ production:
   evict_paused_e2b_sandboxes:
     class: EvictPausedSandboxesJob
     schedule: every hour at minute 7
+  evict_docker_workspaces:
+    class: EvictDockerWorkspacesJob
+    schedule: every hour at minute 37
   reap_stalled_turns:
     class: ReapStalledTurnsJob
     schedule: every 5 minutes

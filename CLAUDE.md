@@ -113,6 +113,11 @@ turns is a **per-runtime concern** — see `docs/session-persistence.md`:
   relies on pi's own `--continue`.
 - `Runtime::Docker` bind-mounts a persistent host directory into a
   disposable `--rm` container; the host filesystem is the durable source.
+  That host root is a reclaimable hot cache: `EvictDockerWorkspacesJob`
+  warm-evicts idle scopes' `workspace/` (keeping `sessions/`, so pi still
+  `--continue`s) and `Agent::Identity` warns the next turn its files are
+  gone; destroying a conversation removes the whole scope via
+  `CleanupPersistentWorkspaceJob`.
 - `Runtime::E2b` uses E2B's native `pause`/`resume` by sandbox id —
   first turn creates and pauses, later turns resume the same microVM.
   `EvictPausedSandboxesJob` reaps long-idle sandboxes.

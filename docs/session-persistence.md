@@ -29,7 +29,9 @@ agent ran — so it belongs to the `Runtime`, not to one shared mechanism.
   root must sit at an **identical absolute path** on host and worker —
   `METIS_PERSISTENT_ROOT`, default `/srv/metis/agent` in prod — so the
   per-turn bind mount the host daemon performs resolves to the same
-  files. See coding-runtime's provisioning notes.
+  files. See coding-runtime's provisioning notes. The host root is a
+  **reclaimable hot cache, not permanent storage** — see
+  [Docker workspace eviction](#docker-workspace-eviction).
 
 - **`Runtime::E2b`** — the microVM has no host bind mount, but E2B
   natively pauses and resumes a sandbox by id. First turn:
@@ -57,6 +59,33 @@ agent ran — so it belongs to the `Runtime`, not to one shared mechanism.
 
 `Agent::SessionArchive` is gone. The tar-to-Active-Storage path is no
 longer needed by any runtime.
+
+## Docker workspace eviction
+
+Without a bound, every Docker conversation leaves its clone, dependency
+installs, and build output on the host forever. Two jobs keep the
+persistent root finite; durable state (`Message` rows, attachments,
+projected inputs) is never touched.
+
+- **Warm eviction** — `EvictDockerWorkspacesJob` (hourly,
+  `config/recurring.yml`) deletes `workspace/` for Docker conversations
+  idle past `METIS_DOCKER_WORKSPACE_EVICTION_HOURS` (default 72; messages
+  touch the conversation, so `updated_at` is the idle clock). `sessions/`
+  stays, so pi still resumes with `--continue` and no DB history replay.
+  In-flight turns and active workflow runs are never evicted; eligibility
+  is re-checked under the conversation row lock — the same lock
+  `ConversationTurn.start` takes — so an eviction can't race a turn being
+  born. No marker column: `Runtime::Docker#workspace_evicted?` derives
+  the state from disk (a prior turn ran but `workspace/` is missing) and
+  `Agent::Identity` warns that turn its files are gone.
+- **Scope destruction** — destroying a `Conversation` enqueues
+  `CleanupPersistentWorkspaceJob` (`after_destroy_commit`, immutable
+  scalar ids), which removes the whole scope, sessions included.
+
+`Agent::Workspace` owns both deletions (`#evict_workspace!`,
+`.destroy_scope!`) so the scope layout and its removal live in one
+place; destroy takes bare integer-validated ids because the row is
+already gone.
 
 ## Context rehydration on a reaped sandbox
 
