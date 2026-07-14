@@ -351,18 +351,17 @@ Expand a connector's `oauth_scopes` to unlock more `gws` surface
 on that service — e.g. add `gmail.send` if you want the agent to
 send mail without going through a draft.
 
-### X — hosted MCP via the xurl bridge
+### X — hosted MCP, brokered bearer
 
 The X connector reaches X's **hosted MCP server** (`api.x.com/mcp`)
-through [`xurl`](https://github.com/xdevplatform/xurl), pinned to
-**v1.2.2** and used strictly as a stdio bridge (`xurl mcp`). Metis owns
-the OAuth flow and the durable token lifecycle; xurl only relays
-JSON-RPC with a bearer it reads from its config file. X offers no
-Dynamic Client Registration, so this is a **brokered OAuth** connector
-like GitHub/Google — but X is not a sign-in provider, so the flow runs
-through a dedicated controller (`Connectors::XOauthController`,
-authorization-code + PKCE `S256`, one-time 10-minute state in the
-initiator's session) instead of omniauth.
+directly: a plain streamable-HTTP entry whose `Authorization: Bearer`
+header carries the member's current access token — the same shape as
+the GitHub connector. X offers no Dynamic Client Registration, so this
+is a **brokered OAuth** connector like GitHub/Google — but X is not a
+sign-in provider, so the flow runs through a dedicated controller
+(`Connectors::XOauthController`, authorization-code + PKCE `S256`,
+one-time 10-minute state in the initiator's session) instead of
+omniauth.
 
 - **Deployment config** — resolved per key, ENV first, then Rails
   credentials: `X_CLIENT_ID`/`x.client_id`,
@@ -387,30 +386,13 @@ initiator's session) instead of omniauth.
   tokens in one save. `invalid_grant` clears the grant so the next
   Connect re-consents; the turn still runs, just without X.
 - **Per-turn staging** — `Agent::McpConfig` stages the `x` server only
-  when the member has a usable grant: a stdio entry whose command is
-  the **`xurl-mcp` wrapper** and whose `env` carries only the deployment
-  client ID and current access token (`XURL_*`), never argv. Metis
-  refreshes before staging; it never gives xurl the client secret or
-  refresh token, because xurl cannot report a rotated refresh token back
-  to the durable grant. The wrapper (`docker/pi-runtime/xurl-mcp`)
-  creates a unique `0700` temporary `HOME`, writes a `0600` `$HOME/.xurl`
-  in xurl's multi-app YAML shape, runs the pinned `xurl mcp
-  https://api.x.com/mcp`, and removes the temp home on exit or signal.
-  If the access token expires during a turn, the MCP call fails and the
-  broker refreshes it before the next turn.
-- **Runtimes** — the pinned xurl binary (from the project's GitHub
-  Releases) and the wrapper are installed in all four places, kept in
-  lockstep: `docker/pi-runtime/Dockerfile` (+ `Dockerfile.dev` for the
-  compose dev env), `lib/tasks/e2b.rake`, `lib/tasks/daytona.rake`, and
-  `bin/setup` (local runtime, `~/.local/bin`). Bump the version in all
-  of them and rebuild the Docker image, E2B template, and Daytona
-  snapshot together.
-- **Validation caveat** — xurl's documented MCP path assumes it owns
-  the browser OAuth bootstrap; Metis instead injects a current access
-  token via the temporary `.xurl`. The generated YAML matches xurl
-  v1.2.2's documented storage shape; a version bump must re-validate
-  that the bridge accepts this non-refreshable token without opening a
-  browser.
+  when the member has a usable grant, through the generic catalog
+  `credential` block: the entry's headers carry the current access
+  token as a bearer, refreshed before staging. Only the short-lived
+  access token reaches the sandbox — never the client secret or
+  refresh token. If the access token expires during a turn, the MCP
+  call fails and the broker refreshes it before the next turn. Nothing
+  is installed in the runtimes for this connector.
 
 ## Identities, not a single provider per user
 

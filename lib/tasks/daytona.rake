@@ -23,16 +23,6 @@ namespace :daytona do
       rm -rf /var/lib/apt/lists/*
     SH
 
-    # xurl (pinned) + the xurl-mcp wrapper — the X connector's stdio MCP
-    # bridge. No build context here, so the wrapper rides in as base64.
-    # Keep the version in sync with bin/setup, Dockerfile.dev,
-    # docker/pi-runtime/Dockerfile, and e2b.rake.
-    wrapper = [ File.read(Rails.root.join("docker/pi-runtime/xurl-mcp")) ].pack("m0")
-    install_xurl =
-      "curl -fsSL \"https://github.com/xdevplatform/xurl/releases/download/v1.2.2/" \
-      "xurl_Linux_$(uname -m | sed s/aarch64/arm64/).tar.gz\" | tar -xz -C /usr/local/bin xurl && " \
-      "echo #{wrapper} | base64 -d > /usr/local/bin/xurl-mcp && chmod 0755 /usr/local/bin/xurl-mcp"
-
     # The community Daytona SDK's snapshot builder ships only the Dockerfile
     # (no local build context), so the repo's .pi/skills/ tree is NOT baked in.
     # Runtime::Daytona#stage_skills detects the missing BAKED_REPO_SKILLS_DIR
@@ -47,8 +37,7 @@ namespace :daytona do
                               # bearer from GOOGLE_WORKSPACE_CLI_TOKEN, exported
                               # per turn from the user's Google OauthGrant.
                               "npm install -g @googleworkspace/cli",
-                              "pi install npm:pi-mcp-adapter@2.7.0",
-                              install_xurl
+                              "pi install npm:pi-mcp-adapter@2.7.0"
                             )
 
     client = Agent::Runtime::Daytona.client

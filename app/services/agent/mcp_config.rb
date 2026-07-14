@@ -101,27 +101,11 @@ module Agent
       end
 
       token = OauthBroker.access_token_for(grant)
-      return xurl_env(token) if grant.provider == "x"
-
       app.credential_map_for(token) || {}
     rescue OauthBroker::Error => error
       Rails.logger.error("McpConfig: OAuth refresh failed for connector " \
                           "#{connector.id}: #{error.message}")
       nil
-    end
-
-    # xurl receives only the current access token. Refresh stays in the broker
-    # so xurl cannot rotate a token that it cannot report back to Metis.
-    def xurl_env(token)
-      unless XApp::Config.configured?
-        Rails.logger.warn("McpConfig: X connector dropped — deployment X OAuth app is not configured")
-        return nil
-      end
-
-      {
-        "XURL_CLIENT_ID" => XApp::Config.client_id,
-        "XURL_ACCESS_TOKEN" => token
-      }
     end
 
     # Bearer for an MCP-OAuth (DCR) connector — the member's token,

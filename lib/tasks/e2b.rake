@@ -23,14 +23,6 @@ namespace :e2b do
       rm -rf /var/lib/apt/lists/*
     SH
 
-    # xurl (pinned) — the X connector's MCP bridge. Keep the version in
-    # sync with bin/setup, Dockerfile.dev, docker/pi-runtime/Dockerfile,
-    # and daytona.rake; the xurl-mcp wrapper is copied in below.
-    install_xurl = <<~SH.strip.gsub(/\s+/, " ")
-      curl -fsSL "https://github.com/xdevplatform/xurl/releases/download/v1.2.2/xurl_Linux_$(uname -m | sed s/aarch64/arm64/).tar.gz"
-        | tar -xz -C /usr/local/bin xurl
-    SH
-
     # Debian trixie (glibc 2.41), not the default node:lts (bookworm, glibc
     # 2.36). The @googleworkspace/cli prebuilt glibc binary requires GLIBC
     # 2.39 — on bookworm every `gws` call hard-crashes with a version error.
@@ -52,9 +44,6 @@ namespace :e2b do
                             # agent. npm fetches the matching prebuilt
                             # binary from the project's GitHub Releases.
                             .npm_install("@googleworkspace/cli", g: true)
-                            .run_cmd(install_xurl, user: "root")
-                            .copy("docker/pi-runtime/xurl-mcp", "/usr/local/bin/xurl-mcp", user: "root")
-                            .run_cmd("chmod 0755 /usr/local/bin/xurl-mcp", user: "root")
                             # Explicit user: pi extensions install into the user's
                             # home; running as root would write to /root/.pi and
                             # pi at runtime (user `user`) wouldn't find them.

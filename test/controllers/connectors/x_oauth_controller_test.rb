@@ -63,8 +63,8 @@ class Connectors::XOauthControllerTest < ActionDispatch::IntegrationTest
     assert grant.covers?(XApp::Config::SCOPES)
 
     connector = @user.personal_team.connectors.find_by(catalog_key: "x")
-    assert_equal "stdio", connector.transport
-    assert_equal({ "command" => "xurl-mcp" }, connector.definition)
+    assert_equal "http", connector.transport
+    assert_equal({ "url" => "https://api.x.com/mcp" }, connector.definition)
     assert connector.connector_credentials.exists?(user: @user)
   end
 
@@ -142,7 +142,7 @@ class Connectors::XOauthControllerTest < ActionDispatch::IntegrationTest
 
   test "disconnect removes the grant, the presence marker, and an orphaned connector" do
     connector = @user.personal_team.connectors.create!(
-      name: "x", transport: :stdio, catalog_key: "x", definition: { "command" => "xurl-mcp" }
+      name: "x", transport: :http, catalog_key: "x", definition: { "url" => "https://api.x.com/mcp" }
     )
     connector.connector_credentials.create!(user: @user)
     @user.oauth_grants.create!(provider: "x", access_token: "xat", refresh_token: "xrt",
@@ -165,7 +165,7 @@ class Connectors::XOauthControllerTest < ActionDispatch::IntegrationTest
     post switch_team_path(team)
 
     connector = team.connectors.create!(
-      name: "x", transport: :stdio, catalog_key: "x", definition: { "command" => "xurl-mcp" }
+      name: "x", transport: :http, catalog_key: "x", definition: { "url" => "https://api.x.com/mcp" }
     )
     connector.connector_credentials.create!(user: @user)
     connector.connector_credentials.create!(user: other)

@@ -239,55 +239,33 @@ class Agent::McpConfigTest < ActiveSupport::TestCase
   end
 
   def add_x(scopes: XApp::Config::SCOPES.join(" "))
-    connector = add_connector(name: "x", transport: :stdio, catalog_key: "x",
-                              definition: { "command" => "xurl-mcp" })
+    connector = add_connector(name: "x", transport: :http, catalog_key: "x",
+                              definition: { "url" => "https://api.x.com/mcp" })
     connector.connector_credentials.create!(user: member)
     member.oauth_grants.create!(provider: "x", access_token: "xat", refresh_token: "xrt",
                                 expires_at: 1.hour.from_now, scopes: scopes)
     connector
   end
 
-  def with_x_config(&block)
-    with_stub(XApp::Config, :configured?, ->(env: ENV) { true }) do
-      with_stub(XApp::Config, :client_id, -> { "xcid" }, &block)
-    end
-  end
-
-  test "stages the x connector as the xurl-mcp wrapper with tokens in env, never argv" do
+  test "stages the x connector with the member's bearer on X's hosted server" do
     add_x
-    with_x_config do
-      entry = rendered["mcpServers"]["x"]
+    entry = rendered["mcpServers"]["x"]
 
-      assert_equal "xurl-mcp", entry["command"]
-      assert_nil entry["args"]
-      assert_equal "xcid", entry["env"]["XURL_CLIENT_ID"]
-      assert_equal "xat", entry["env"]["XURL_ACCESS_TOKEN"]
-      assert_equal %w[XURL_ACCESS_TOKEN XURL_CLIENT_ID], entry["env"].keys.sort
-    end
-  end
-
-  test "drops the x connector when the deployment app config is gone" do
-    add_x
-    with_stub(XApp::Config, :configured?, ->(env: ENV) { false }) do
-      assert_nil rendered["mcpServers"]["x"]
-    end
+    assert_equal "https://api.x.com/mcp", entry["url"]
+    assert_equal "Bearer xat", entry["headers"]["Authorization"]
   end
 
   test "drops the x connector when the grant lacks the catalog scopes" do
     add_x(scopes: "tweet.read users.read")
-    with_x_config do
-      assert_nil rendered["mcpServers"]["x"]
-    end
+    assert_nil rendered["mcpServers"]["x"]
   end
 
   test "drops the x connector when its refresh fails — the turn still renders" do
     add_x
     member.oauth_grants.find_by(provider: "x").update!(expires_at: 10.seconds.ago)
 
-    with_x_config do
-      with_stub(XApp::Oauth, :refresh, ->(_rt) { raise XApp::Oauth::Error, "boom" }) do
-        assert_nil rendered["mcpServers"]["x"]
-      end
+    with_stub(XApp::Oauth, :refresh, ->(_rt) { raise XApp::Oauth::Error, "boom" }) do
+      assert_nil rendered["mcpServers"]["x"]
     end
   end
 

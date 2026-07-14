@@ -56,21 +56,6 @@ RUN HOME=/tmp pi install npm:pi-mcp-adapter@2.7.0 \
 # from the project's GitHub Releases.
 RUN npm install --global @googleworkspace/cli
 
-# xurl (pinned) + the xurl-mcp wrapper — the X connector's stdio MCP
-# bridge (see app/services/agent/mcp_config.rb, docs/connectors.md).
-# Keep the version in sync with bin/setup, Dockerfile.dev,
-# lib/tasks/e2b.rake, and lib/tasks/daytona.rake.
-ARG XURL_VERSION=1.2.2
-RUN case "$(dpkg --print-architecture)" in \
-      amd64) xurl_arch=x86_64 ;; \
-      arm64) xurl_arch=arm64 ;; \
-      *) echo "unsupported arch for xurl" >&2; exit 1 ;; \
-    esac \
- && curl -fsSL "https://github.com/xdevplatform/xurl/releases/download/v${XURL_VERSION}/xurl_Linux_${xurl_arch}.tar.gz" \
-      | tar -xz -C /usr/local/bin xurl
-COPY docker/pi-runtime/xurl-mcp /usr/local/bin/xurl-mcp
-RUN chmod 0755 /usr/local/bin/xurl-mcp
-
 # The app's bundled pi extensions, baked in at the path
 # Runtime::Docker#extension_paths expects (EXTENSIONS_DIR =
 # /metis-extensions). Baked rather than bind-mounted from the Rails side

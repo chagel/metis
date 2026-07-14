@@ -213,7 +213,7 @@ class ConnectorsControllerTest < ActionDispatch::IntegrationTest
 
   test "the connected x tile offers Disconnect" do
     connector = team.connectors.create!(catalog_key: "x", name: "x",
-                                        transport: :stdio, definition: { "command" => "xurl-mcp" })
+                                        transport: :http, definition: { "url" => "https://api.x.com/mcp" })
     connector.connector_credentials.create!(user: @user)
     @user.oauth_grants.create!(provider: "x", access_token: "xat", refresh_token: "xrt",
                                expires_at: 1.hour.from_now, scopes: XApp::Config::SCOPES.join(" "))
