@@ -61,6 +61,39 @@ class Agent::ForkPreparerTest < ActiveSupport::TestCase
     assert_equal 5, File.readlines(file).size
   end
 
+  test "locks the source while copying its scope" do
+    fork = fork_from(@a2)
+    locked_source = false
+    watcher = lambda do |_name, _start, _finish, _id, payload|
+      sql = payload[:sql].to_s
+      locked_source ||= sql.include?("FOR UPDATE") && sql.include?(%Q{"conversations"})
+    end
+
+    ActiveSupport::Notifications.subscribed(watcher, "sql.active_record") do
+      Agent::ForkPreparer.prepare(fork)
+    end
+
+    assert locked_source, "expected the source conversation row to be locked during copy"
+  end
+
+  test "propagates an evicted source marker so the fork warns about missing files" do
+    @source.update!(
+      runtime_state: { "runtime" => "docker" },
+      docker_workspace_evicted_at: 1.hour.ago,
+      docker_workspace_eviction_reason: "ordinary_idle"
+    )
+    FileUtils.rm_rf(@src_ws.workspace_dir)
+    fork = fork_from(@a2)
+
+    Agent::ForkPreparer.prepare(fork)
+
+    fork.reload
+    assert fork.docker_workspace_evicted?
+    assert_equal "ordinary_idle", fork.docker_workspace_eviction_reason
+    identity = Agent::Identity.new(fork, "docker").content
+    assert_includes identity, "Metis reclaimed this conversation’s workspace after it was idle."
+  end
+
   test "does not copy the secret .mcp.json into the fork" do
     File.write(@src_ws.workspace_dir.join(Agent::McpConfig::FILENAME), "{}")
     fork = fork_from(@a2)

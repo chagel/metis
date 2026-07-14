@@ -75,6 +75,14 @@ class EvictDockerWorkspacesJobTest < ActiveSupport::TestCase
     assert_evicted conversation, "ordinary_idle"
   end
 
+  test "fresh message activity protects a workspace after the last clean docker run" do
+    conversation = docker_conversation(last_used: 30.days.ago, updated: 1.hour.ago)
+
+    perform_with_healthy_disk
+
+    assert_untouched conversation
+  end
+
   test "evicts an archived conversation on the shorter archived window" do
     conversation = docker_conversation(last_used: 2.days.ago, updated: 2.days.ago, archived: 2.days.ago)
 
@@ -160,6 +168,25 @@ class EvictDockerWorkspacesJobTest < ActiveSupport::TestCase
 
     assert_evicted good, "ordinary_idle"
     assert_untouched bad
+  end
+
+  test "emergency ordering uses the latest clean run or conversation activity" do
+    stale_stamp_but_recent = docker_conversation(last_used: 30.days.ago, updated: 1.hour.ago)
+    genuinely_old = docker_conversation(last_used: 3.days.ago, updated: 3.days.ago)
+
+    evictions = 0
+    space = ->(kb_free) { Agent::WorkspaceCleanup::FreeSpace.new(100, kb_free) }
+    with_stub(Agent::WorkspaceCleanup, :free_space, ->(**) { evictions.positive? ? space.call(40) : space.call(10) }) do
+      with_stub(Agent::WorkspaceCleanup, :for, ->(conversation) {
+        evictions += 1
+        Agent::WorkspaceCleanup.new(user_id: conversation.user_id, conversation_id: conversation.id)
+      }) do
+        EvictDockerWorkspacesJob.perform_now
+      end
+    end
+
+    assert_evicted genuinely_old, "low_disk"
+    assert_untouched stale_stamp_but_recent
   end
 
   test "emergency eviction reclaims oldest-first until the recovery watermark" do

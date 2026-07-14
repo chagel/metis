@@ -71,6 +71,16 @@ class Agent::WorkspaceReportTest < ActiveSupport::TestCase
     assert_match(/orphan=false$/, out)
   end
 
+  test "raises ScanError instead of undercounting an unreadable scope" do
+    build_scope(@user.id, @conversation.id)
+    with_stub(Agent::WorkspaceCleanup, :bytes_under, ->(*) { raise Errno::EACCES }) do
+      error = assert_raises(Agent::WorkspaceReport::ScanError) do
+        Agent::WorkspaceReport.new(root: @root).rows
+      end
+      assert_match(/cannot scan/, error.message)
+    end
+  end
+
   test "raises ScanError when the root is missing" do
     assert_raises(Agent::WorkspaceReport::ScanError) do
       Agent::WorkspaceReport.new(root: @root.join("absent")).rows

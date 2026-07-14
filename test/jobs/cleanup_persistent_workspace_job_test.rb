@@ -43,6 +43,19 @@ class CleanupPersistentWorkspaceJobTest < ActiveSupport::TestCase
     assert_match(/ArgumentError/, log.string)
   end
 
+  test "retries transient filesystem failures" do
+    cleanup = Object.new
+    cleanup.define_singleton_method(:destroy_scope!) { raise Errno::EIO, "busy filesystem" }
+
+    with_stub(Agent::WorkspaceCleanup, :new, ->(**) { cleanup }) do
+      assert_enqueued_jobs 1, only: CleanupPersistentWorkspaceJob do
+        CleanupPersistentWorkspaceJob.perform_now(
+          user_id: @user.id, conversation_id: @conversation.id
+        )
+      end
+    end
+  end
+
   test "destroying a conversation enqueues cleanup with immutable scalar ids after commit" do
     ids = { user_id: @user.id, conversation_id: @conversation.id }
 

@@ -13,8 +13,6 @@
 class EvictDockerWorkspacesJob < ApplicationJob
   queue_as :default
 
-  TERMINAL_WORKFLOW_STATUSES = %w[completed failed cancelled].freeze
-
   def perform
     @stats = Hash.new(0)
     free_before = Agent::WorkspaceCleanup.free_space
@@ -42,9 +40,7 @@ class EvictDockerWorkspacesJob < ApplicationJob
     shortest = [ config.docker_workflow_eviction_window,
                  config.docker_workspace_eviction_window,
                  config.docker_archived_workspace_eviction_window ].min
-    Conversation.docker_runtime
-      .where(docker_workspace_evicted_at: nil)
-      .where("COALESCE(conversations.docker_workspace_last_used_at, conversations.updated_at) <= ?", shortest.ago)
+    Conversation.docker_workspace_present.docker_workspace_idle_before(shortest.ago)
   end
 
   # The eviction reason the retention policy assigns right now, or nil
@@ -53,15 +49,15 @@ class EvictDockerWorkspacesJob < ApplicationJob
   def retention_reason(conversation, now = Time.current)
     run = conversation.workflow_run
     if run
-      return nil unless TERMINAL_WORKFLOW_STATUSES.include?(run.status)
+      return nil if run.active?
 
-      base = [ run.updated_at, conversation.docker_workspace_last_used_at ].compact.max
+      base = [ run.updated_at, conversation.docker_workspace_last_used_at, conversation.updated_at ].compact.max
       "workflow_terminal" if base <= now - config.docker_workflow_eviction_window
     elsif conversation.archived?
-      base = [ conversation.archived_at, conversation.docker_workspace_last_used_at ].compact.max
+      base = [ conversation.archived_at, conversation.docker_workspace_last_used_at, conversation.updated_at ].compact.max
       "archived_idle" if base <= now - config.docker_archived_workspace_eviction_window
     else
-      base = conversation.docker_workspace_last_used_at || conversation.updated_at
+      base = [ conversation.docker_workspace_last_used_at, conversation.updated_at ].compact.max
       "ordinary_idle" if base <= now - config.docker_workspace_eviction_window
     end
   end
@@ -141,10 +137,7 @@ class EvictDockerWorkspacesJob < ApplicationJob
   end
 
   def emergency_candidate_ids
-    Conversation.docker_runtime
-      .where(docker_workspace_evicted_at: nil)
-      .order(Arel.sql("COALESCE(conversations.docker_workspace_last_used_at, conversations.updated_at) ASC"))
-      .pluck(:id)
+    Conversation.docker_workspace_present.docker_workspace_oldest_first.pluck(:id)
   end
 
   def log_summary(free_before, free_after, emergency)

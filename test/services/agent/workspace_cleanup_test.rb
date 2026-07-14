@@ -54,6 +54,16 @@ class Agent::WorkspaceCleanupTest < ActiveSupport::TestCase
     assert_equal 0, cleanup.evict_workspace!
   end
 
+  test "evict_workspace! raises when deletion leaves the workspace behind" do
+    scope = build_scope
+
+    with_stub(FileUtils, :rm_r, ->(*) {}) do
+      assert_raises(Errno::EIO) { cleanup.evict_workspace! }
+    end
+
+    assert scope.join("workspace").exist?
+  end
+
   test "destroy_scope! removes the whole scope including sessions, idempotently" do
     scope = build_scope
     cleanup.destroy_scope!
@@ -104,6 +114,12 @@ class Agent::WorkspaceCleanupTest < ActiveSupport::TestCase
     assert_equal 0, Agent::WorkspaceCleanup.bytes_under(@root.join("nope"))
   end
 
+  test "bytes_under surfaces permission failures" do
+    with_stub(File, :lstat, ->(*) { raise Errno::EACCES }) do
+      assert_raises(Errno::EACCES) { Agent::WorkspaceCleanup.bytes_under(@root) }
+    end
+  end
+
   test "free_space reports the filesystem holding the root" do
     space = Agent::WorkspaceCleanup.free_space(root: @root)
     assert space, "df on a real directory should parse"
@@ -111,8 +127,25 @@ class Agent::WorkspaceCleanupTest < ActiveSupport::TestCase
     assert_includes 0.0..100.0, space.free_percent
   end
 
-  test "free_space is nil for a missing root" do
-    assert_nil Agent::WorkspaceCleanup.free_space(root: @root.join("absent"))
+  test "free_space logs and returns nil for a missing root" do
+    log = StringIO.new
+    logger = ActiveSupport::Logger.new(log)
+    with_stub(Rails, :logger, -> { logger }) do
+      assert_nil Agent::WorkspaceCleanup.free_space(root: @root.join("absent"))
+    end
+    assert_match(/event=persistent_free_space_failed reason=missing_root/, log.string)
+  end
+
+  test "free_space times out safely and logs the failure" do
+    log = StringIO.new
+    logger = ActiveSupport::Logger.new(log)
+    with_stub(Rails, :logger, -> { logger }) do
+      with_stub(Timeout, :timeout, ->(*) { raise Timeout::Error, "timed out" }) do
+        assert_nil Agent::WorkspaceCleanup.free_space(root: @root)
+      end
+    end
+    assert_match(/event=persistent_free_space_failed reason=exception/, log.string)
+    assert_match(/Timeout::Error/, log.string)
   end
 
   test "free_space is nil when df fails or emits garbage" do

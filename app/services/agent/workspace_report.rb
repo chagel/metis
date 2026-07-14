@@ -29,6 +29,8 @@ module Agent
       WorkspaceCleanup.scan_scopes(root: @root)
         .sort_by { |scope| [ scope[:user_id], scope[:conversation_id] ] }
         .map { |scope| row_for(scope) }
+    rescue SystemCallError => e
+      raise ScanError, "cannot scan #{@root}: #{e.message}"
     end
 
     private

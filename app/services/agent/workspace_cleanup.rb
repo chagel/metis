@@ -1,4 +1,5 @@
 require "open3"
+require "timeout"
 
 module Agent
   # Safe deletion and measurement of persistent conversation scopes
@@ -60,19 +61,28 @@ module Agent
     # skip emergency eviction on it.
     def self.free_space(root: Workspace::PERSISTENT_ROOT)
       root = Pathname.new(root).expand_path
-      return nil unless root.directory?
+      return free_space_failure("missing_root") unless root.directory?
 
-      out, _err, status = Open3.capture3("df", "-Pk", root.to_s)
-      return nil unless status.success?
+      out, err, status = Timeout.timeout(5) { Open3.capture3("df", "-Pk", root.to_s) }
+      return free_space_failure("command_failed", detail: err) unless status.success?
 
       fields = out.lines[1].to_s.split
-      total, available = fields.values_at(1, 3)
-      return nil unless [ total, available ].all? { |v| v.to_s.match?(/\A\d+\z/) }
-      return nil unless total.to_i.positive?
+      total, available = fields.values_at(-5, -3)
+      unless [ total, available ].all? { |value| value.to_s.match?(/\A\d+\z/) }
+        return free_space_failure("unparseable_output")
+      end
+      return free_space_failure("zero_total") unless total.to_i.positive?
 
       FreeSpace.new(total.to_i, available.to_i)
     rescue StandardError => e
-      Rails.logger.warn("event=persistent_free_space_failed error_class=#{e.class} error=#{e.message.inspect}")
+      free_space_failure("exception", error: e)
+    end
+
+    def self.free_space_failure(reason, detail: nil, error: nil)
+      message = "event=persistent_free_space_failed reason=#{reason}"
+      message += " detail=#{detail.to_s.strip.inspect}" if detail.present?
+      message += " error_class=#{error.class} error=#{error.message.inspect}" if error
+      Rails.logger.warn(message)
       nil
     end
 
@@ -83,7 +93,7 @@ module Agent
       return stat.size unless stat.directory?
 
       Dir.children(path.to_s).sum { |child| bytes_under(File.join(path.to_s, child)) }
-    rescue Errno::ENOENT, Errno::EACCES
+    rescue Errno::ENOENT
       0
     end
 
@@ -142,9 +152,13 @@ module Agent
       raise UnsafePath, "#{path} resolves outside #{@root}" unless real.start_with?("#{real_root}/")
 
       bytes = self.class.bytes_under(path)
-      FileUtils.rm_rf(path)
+      FileUtils.rm_r(path)
+      raise Errno::EIO, "failed to remove #{path}" if File.lexist?(path)
+
       bytes
     rescue Errno::ENOENT
+      raise if File.lexist?(path)
+
       0
     end
   end

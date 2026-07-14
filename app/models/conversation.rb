@@ -54,6 +54,19 @@ class Conversation < ApplicationRecord
   # Conversations whose last turn ran on the Docker runtime — the only
   # ones EvictDockerWorkspacesJob may touch (docs/session-persistence.md).
   scope :docker_runtime, -> { where("conversations.runtime_state->>'runtime' = ?", "docker") }
+  scope :docker_workspace_present, -> { docker_runtime.where(docker_workspace_evicted_at: nil) }
+  scope :docker_workspace_idle_before, ->(cutoff) {
+    where(
+      "GREATEST(COALESCE(conversations.docker_workspace_last_used_at, conversations.updated_at), " \
+      "conversations.updated_at) <= ?", cutoff
+    )
+  }
+  scope :docker_workspace_oldest_first, -> {
+    order(Arel.sql(
+      "GREATEST(COALESCE(conversations.docker_workspace_last_used_at, conversations.updated_at), " \
+      "conversations.updated_at) ASC"
+    ))
+  }
   # The visibility rule, in one place: the launcher always, teammates
   # only when team-visible. Every surface (run page, gates, bridge
   # claims) must apply it through this scope or the predicate below.

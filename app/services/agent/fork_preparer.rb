@@ -19,14 +19,23 @@ module Agent
       return unless @conversation.fork_pending?
       return @conversation.update_columns(fork_pending: false) unless source
 
-      copy_scope
+      eviction = source.with_lock do
+        copy_scope
+        {
+          backend_session_id: source.backend_session_id,
+          docker_workspace_evicted_at: source.docker_workspace_evicted_at,
+          docker_workspace_eviction_reason: source.docker_workspace_eviction_reason
+        }
+      end
       SessionTree.truncate_before_user(
         session_dir: dst.session_dir,
         user_index: ForkPlan.new(@message).truncate_user_index
       )
       @conversation.update_columns(
-        backend_session_id: source.backend_session_id.presence || "forked",
-        fork_pending: false
+        backend_session_id: eviction[:backend_session_id].presence || "forked",
+        fork_pending: false,
+        docker_workspace_evicted_at: eviction[:docker_workspace_evicted_at],
+        docker_workspace_eviction_reason: eviction[:docker_workspace_eviction_reason]
       )
     rescue StandardError => e
       Rails.logger.warn("ForkPreparer failed for conversation #{@conversation.id}: #{e.message}")
