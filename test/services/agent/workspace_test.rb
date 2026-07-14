@@ -93,16 +93,6 @@ class Agent::WorkspaceTest < ActiveSupport::TestCase
     assert_equal "code", File.read(workspace.workspace_dir.join("keep.rb")), "existing content kept"
   end
 
-  test "reset! discards stale scratch from a previous run" do
-    workspace = Agent::Workspace.scratch(@conversation)
-    workspace.ensure!
-    File.write(workspace.workspace_dir.join("stale.rb"), "old")
-
-    workspace.reset!
-    assert Dir.exist?(workspace.workspace_dir)
-    refute File.exist?(workspace.workspace_dir.join("stale.rb"))
-  end
-
   # An upload double whose filename is hostile — Active Storage already
   # sanitizes path separators, so a crafted name has to be injected here.
   class CraftedUpload

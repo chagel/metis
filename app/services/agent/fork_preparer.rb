@@ -40,8 +40,11 @@ module Agent
     def src = @src ||= Agent::Workspace.persistent(source)
     def dst = @dst ||= Agent::Workspace.persistent(@conversation)
 
+    # Mirrors only what the source has — an evicted source's missing
+    # workspace/ must stay missing on the fork so the first turn's
+    # eviction detection fires (Runtime::Docker#workspace_evicted?).
     def copy_scope
-      dst.reset!
+      FileUtils.rm_rf(dst.scope_dir)
       copy_dir(src.session_dir, dst.session_dir)
       copy_dir(src.workspace_dir, dst.workspace_dir)
       # .mcp.json carries live OAuth tokens and is re-staged each turn anyway.

@@ -301,6 +301,22 @@ class ChatJobTest < ActiveSupport::TestCase
     assert @assistant_message.reload.errored?
   end
 
+  test "a turn that raises mid-stream still records where it ran" do
+    # The failed turn may have written a workspace already —
+    # EvictDockerWorkspacesJob can only find it through runtime_state.
+    adapter = FakeAdapter.new([], runtime_info: { "runtime" => "docker" })
+    def adapter.stream(*)
+      raise "pi crashed"
+    end
+
+    with_adapter(adapter) do
+      ChatJob.perform_now(@conversation.id, @user_message.id, @assistant_message.id)
+    end
+
+    assert_equal "docker", @conversation.reload.runtime_state["runtime"]
+    assert @assistant_message.reload.errored?
+  end
+
   test "records where the turn ran on the conversation" do
     run_with([ Agent::UiEvent.new(:turn_finished) ],
              runtime_info: { "runtime" => "e2b", "sandbox_id" => "sbx-1" })

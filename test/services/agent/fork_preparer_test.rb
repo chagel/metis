@@ -80,6 +80,18 @@ class Agent::ForkPreparerTest < ActiveSupport::TestCase
     assert_empty Dir.glob(File.join(Agent::Workspace.persistent(fork).session_dir.to_s, "*"))
   end
 
+  test "an evicted source's missing workspace stays missing on the fork" do
+    FileUtils.rm_rf(@src_ws.workspace_dir)
+    fork = fork_from(@a2)
+
+    Agent::ForkPreparer.prepare(fork)
+
+    ws = Agent::Workspace.persistent(fork)
+    refute ws.workspace_dir.exist?, "fork must mirror the evicted state so its first turn warns"
+    assert Agent::SessionTree.active_session_file(ws.session_dir)
+    assert fork.reload.backend_session_id.present?
+  end
+
   test "a vanished source degrades gracefully instead of crashing the turn" do
     fork = fork_from(@a2)
     @source.destroy # nullifies fork.forked_from_message_id

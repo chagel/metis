@@ -61,13 +61,6 @@ module Agent
     def artifacts_dir = workspace_dir.join(ARTIFACTS_SUBPATH)
     def skills_dir = workspace_dir.join(SKILLS_SUBPATH)
 
-    # Discard any stale scope and recreate it empty — for a runtime that
-    # repopulates it from the archive.
-    def reset!
-      FileUtils.rm_rf(scope_dir)
-      ensure!
-    end
-
     # Create the scope directories if absent, leaving existing content.
     def ensure!
       [ session_dir, workspace_dir, uploads_dir ].each { |dir| FileUtils.mkdir_p(dir) }

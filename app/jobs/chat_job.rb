@@ -33,6 +33,10 @@ class ChatJob < ApplicationJob
 
   def run(conversation, user_message, assistant_message, broadcaster, adapter)
     assistant_message.update!(streaming_status: :streaming)
+    # Before streaming, not just after: a turn that raises mid-stream may
+    # already have written a workspace, and EvictDockerWorkspacesJob can
+    # only find it through runtime_state.
+    persist_runtime(conversation, adapter)
     broadcaster.start_sidebar_indicator
     text = +""
     reasoning = +""
