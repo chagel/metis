@@ -3,6 +3,12 @@ class Conversation < ApplicationRecord
   # stays a separate, explicit owner action.
   enum :visibility, { personal: 0, team: 1 }, prefix: :visibility
 
+  # String constants, not an enum, so a future reason needs no migration.
+  DOCKER_EVICTION_REASONS = %w[workflow_terminal archived_idle ordinary_idle low_disk].freeze
+
+  validates :docker_workspace_eviction_reason,
+            inclusion: { in: DOCKER_EVICTION_REASONS }, allow_nil: true
+
   belongs_to :user
   belongs_to :team
   belongs_to :project, optional: true
@@ -22,13 +28,16 @@ class Conversation < ApplicationRecord
   # personal team unless one was given (docs/tenancy.md).
   before_validation :default_team, on: :create
 
-  # Cloud runtimes leave a sandbox behind between turns; if we forget to
-  # kill it when its conversation is destroyed, it lingers on the
-  # provider's servers (see docs/coding-runtime.md). For E2B the idle case
-  # is handled by EvictPausedSandboxesJob; Daytona reaps idle sandboxes via
-  # its native auto-delete interval. Each hook is a no-op when its id is blank.
+  # A destroyed conversation must not leave runtime state behind: cloud
+  # runtimes leave a sandbox on the provider's servers (E2B's idle case is
+  # handled by EvictPausedSandboxesJob; Daytona reaps via its native
+  # auto-delete interval — each hook no-ops when its id is blank), and the
+  # host runtimes leave a persistent scope directory, deleted after commit
+  # by CleanupPersistentWorkspaceJob (never rm_rf inside the destroy
+  # transaction). See docs/session-persistence.md.
   before_destroy :kill_paused_e2b_sandbox
   before_destroy :kill_daytona_sandbox
+  after_destroy_commit :cleanup_persistent_workspace
 
   scope :recent, -> { order(updated_at: :desc) }
   scope :active, -> { where(archived_at: nil) }
@@ -42,6 +51,9 @@ class Conversation < ApplicationRecord
   scope :workflows, -> { where.associated(:workflow_run) }
   scope :routines, -> { where.not(routine_id: nil) }
   scope :for_team, ->(team) { where(team: team) }
+  # Conversations whose last turn ran on the Docker runtime — the only
+  # ones EvictDockerWorkspacesJob may touch (docs/session-persistence.md).
+  scope :docker_runtime, -> { where("conversations.runtime_state->>'runtime' = ?", "docker") }
   # The visibility rule, in one place: the launcher always, teammates
   # only when team-visible. Every surface (run page, gates, bridge
   # claims) must apply it through this scope or the predicate below.
@@ -213,6 +225,13 @@ class Conversation < ApplicationRecord
     runtime_state["runtime"].presence
   end
 
+  # The Docker workspace was warm-evicted (workspace/ reclaimed, sessions/
+  # kept) and no successful Docker turn has re-established it since —
+  # Agent::Identity warns the agent its files are gone.
+  def docker_workspace_evicted?
+    docker_workspace_evicted_at.present?
+  end
+
   # True while a turn is running — an assistant message is still pending
   # or streaming. Used to refuse a second concurrent turn, so it stays a
   # live query unless inflight_message was preloaded for a list page.
@@ -273,5 +292,10 @@ class Conversation < ApplicationRecord
 
   def kill_daytona_sandbox
     Agent::Runtime::Daytona.kill_sandbox(daytona_sandbox_id)
+  end
+
+  # Immutable scalars only — the row is gone by the time the job runs.
+  def cleanup_persistent_workspace
+    CleanupPersistentWorkspaceJob.perform_later(user_id: user_id, conversation_id: id)
   end
 end

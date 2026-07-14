@@ -8,6 +8,10 @@ module ConversationTurn
   def self.start(conversation, content:, kind: :chat, sender: nil)
     user_message = assistant_message = nil
     conversation.transaction do
+      # The conversation row lock is the turn/eviction serialization
+      # primitive: EvictDockerWorkspacesJob takes it before deleting the
+      # workspace, so a turn can't be born mid-eviction (or vice versa).
+      conversation.lock!
       user_message = conversation.messages.create!(
         role: :user, content: content, streaming_status: :done, kind: kind, sender: sender
       )

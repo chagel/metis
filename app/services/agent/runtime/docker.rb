@@ -125,6 +125,10 @@ module Agent
           remove_container
           workspace.discard_mcp_config
         end
+        # Only reached when the whole run — setup, pi, finalization —
+        # returned cleanly; a raised turn keeps the eviction marker so the
+        # next turn is warned again.
+        record_workspace_use
       end
 
       # Container writes land on the bind-mounted host workspace; the
@@ -146,6 +150,20 @@ module Agent
 
       def workspace
         @workspace ||= Agent::Workspace.persistent(conversation)
+      end
+
+      # Stamps the eviction clock and clears any warm-eviction marker —
+      # the workspace is live again (docs/session-persistence.md).
+      # Logged-not-raised: a DB hiccup must not crash a turn the user
+      # already saw stream.
+      def record_workspace_use
+        conversation.update_columns(
+          docker_workspace_last_used_at: Time.current,
+          docker_workspace_evicted_at: nil,
+          docker_workspace_eviction_reason: nil
+        )
+      rescue StandardError => e
+        Rails.logger.warn("record_workspace_use failed for conversation #{conversation.id}: #{e.message}")
       end
 
       def container_name

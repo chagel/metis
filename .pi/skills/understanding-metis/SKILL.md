@@ -86,7 +86,14 @@ see [`session-persistence.md`](../../../docs/session-persistence.md):
 - `Runtime::Local` keeps the scope under `storage/agent/` and relies
   on pi's own `--continue`.
 - `Runtime::Docker` bind-mounts the host scope into a disposable
-  `--rm` container; the host filesystem is the durable source.
+  `--rm` container; the host filesystem is the durable source. The
+  scope is a reclaimable cache: `EvictDockerWorkspacesJob` warm-evicts
+  idle `workspace/` trees (`sessions/` kept — pi still resumes, no
+  history replay; the next turn's `AGENTS.md` warns that files are
+  gone) and backstops low disk oldest-first. `Agent::WorkspaceCleanup`
+  owns safe paths/deletion; `bin/rails metis:workspaces:report` is the
+  operator view. Destroying a conversation removes its whole scope via
+  `CleanupPersistentWorkspaceJob`.
 - `Runtime::E2b` uses E2B's native `pause`/`resume` by sandbox id —
   first turn creates and pauses, later turns resume the same microVM.
   `EvictPausedSandboxesJob` reaps long-idle sandboxes (E2B does not

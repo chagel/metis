@@ -130,6 +130,12 @@ kernel intercepts pi's syscalls. pi's `.pi/extensions` are baked into the
 `metis-pi` image, auto-synced by a Kamal pre-deploy hook. See
 `docs/coding-runtime.md`.
 
+The host scope is a **reclaimable cache**, not permanent storage: a
+fully successful `run` stamps `docker_workspace_last_used_at` and
+clears any eviction marker; `EvictDockerWorkspacesJob` warm-evicts
+idle scopes (see below). While the marker is set, `Agent::Identity`
+warns the agent its earlier workspace files are gone.
+
 ### `Runtime::E2b`
 
 Pi inside an E2B microVM. The microVM lives across turns — first
@@ -599,6 +605,30 @@ The next turn against an evicted conversation provisions fresh — the
 working tree is gone, the message history is not (Agent::Identity replays
 `replayable_history` into AGENTS.md). Daytona needs no equivalent job — its
 sandboxes self-reap on native auto-stop/archive/delete intervals.
+
+## `EvictDockerWorkspacesJob` & `Agent::WorkspaceCleanup`
+
+The Docker analog (recurring, every 15 min): warm-evicts idle Docker
+scopes' `workspace/` while **preserving `sessions/`** — pi still
+resumes with `--continue`, so no history replay; only working files
+are lost, and `Agent::Identity` renders a verbatim warning while the
+conversation's eviction marker is set. Retention windows per class
+(terminal workflow 24h / archived 24h / ordinary 168h, env-tunable),
+plus a low-disk emergency pass (oldest-first, watermark-bounded,
+never touching in-flight turns or active workflow runs). Every
+eviction re-checks eligibility under the conversation **row lock** —
+the same lock `ConversationTurn.start` takes — so deletion can't race
+a turn being born.
+
+`Agent::WorkspaceCleanup` owns the sharp edges: id-validated
+`u<ID>/c<ID>` path construction verified under the expanded root,
+no-follow byte accounting and deletion, and safe `df -Pk` free-space
+probing (any parse/exec failure → nil → no emergency deletion).
+`CleanupPersistentWorkspaceJob` (enqueued by `Conversation`
+`after_destroy_commit`) removes the whole scope, sessions included.
+`Agent::WorkspaceReport` backs the read-only
+`bin/rails metis:workspaces:report` (orphan scopes flagged, never
+auto-deleted). See `docs/session-persistence.md#docker-workspace-eviction`.
 
 ## `ReapStalledTurnsJob`
 

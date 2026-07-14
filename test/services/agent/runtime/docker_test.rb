@@ -246,6 +246,36 @@ class Agent::Runtime::DockerTest < ActiveSupport::TestCase
     assert_equal [ "chart.png" ], @runtime.artifacts.map { |a| a[:filename] }
   end
 
+  test "a successful run stamps workspace use and clears the eviction marker" do
+    @conversation.update!(docker_workspace_evicted_at: 1.day.ago,
+                          docker_workspace_eviction_reason: "ordinary_idle")
+
+    with_pi_session(fake_session) do
+      @runtime.run(pi_args: [ "--mode", "rpc" ]) { |_s| nil }
+    end
+
+    @conversation.reload
+    assert_not_nil @conversation.docker_workspace_last_used_at
+    assert_nil @conversation.docker_workspace_evicted_at
+    assert_nil @conversation.docker_workspace_eviction_reason
+  end
+
+  test "a failed run keeps the eviction marker so the next turn is warned again" do
+    @conversation.update!(docker_workspace_evicted_at: 1.day.ago,
+                          docker_workspace_eviction_reason: "low_disk")
+
+    assert_raises(RuntimeError) do
+      with_pi_session(fake_session) do
+        @runtime.run(pi_args: [ "--mode", "rpc" ]) { |_s| raise "pi crashed" }
+      end
+    end
+
+    @conversation.reload
+    assert_not_nil @conversation.docker_workspace_evicted_at
+    assert_equal "low_disk", @conversation.docker_workspace_eviction_reason
+    assert_nil @conversation.docker_workspace_last_used_at
+  end
+
   test "files the agent writes survive into the next turn via the persistent bind mount" do
     # Drop something into the workspace during the first turn; assert it
     # is still there at the start of the second turn. This is the core

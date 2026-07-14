@@ -46,6 +46,30 @@ class Agent::IdentityTest < ActiveSupport::TestCase
     assert_match(/don't guess it/i, out)
   end
 
+  test "warns verbatim about a reclaimed docker workspace while the marker is set" do
+    conversation.update!(docker_workspace_evicted_at: 1.hour.ago,
+                         docker_workspace_eviction_reason: "ordinary_idle")
+
+    out = render(runtime_kind: "docker")
+
+    assert_includes out,
+      "Metis reclaimed this conversation’s workspace after it was idle. " \
+      "Repositories, dependencies, build output, artifacts, and uncommitted " \
+      "files from earlier turns are gone. The pi conversation transcript " \
+      "remains; verify or recreate files before relying on them."
+    # Warm eviction kept sessions/ — pi resumes natively, no DB replay.
+    refute_match(/## Conversation so far/, out)
+  end
+
+  test "renders no eviction warning without the marker or off the docker runtime" do
+    refute_match(/reclaimed this conversation/, render(runtime_kind: "docker"))
+
+    conversation.update!(docker_workspace_evicted_at: 1.hour.ago,
+                         docker_workspace_eviction_reason: "low_disk")
+    refute_match(/reclaimed this conversation/, render(runtime_kind: "local"))
+    refute_match(/reclaimed this conversation/, render(runtime_kind: "e2b"))
+  end
+
   test "tells the agent that working-tree files persist between turns" do
     # All three runtimes are now persistent enough that this holds:
     # Local on the host filesystem, Docker via the bind mount, E2b via

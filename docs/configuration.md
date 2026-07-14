@@ -34,6 +34,9 @@ required is missing). In a deployment:
 | `SEARXNG_URL` | keyless web-search alternative — base URL of a self-hosted SearXNG with the JSON format enabled; see [Web search](#web-search) |
 | `METIS_DOCKER_IMAGE` | image for the `docker` runtime (default `metis-pi`) |
 | `METIS_DOCKER_RUNTIME` | OCI runtime for `docker`-runtime containers — unset = daemon default (`runc`); `runsc` for gVisor (see [coding runtime](coding-runtime.md)) |
+| `METIS_PERSISTENT_ROOT` | host directory holding `local`/`docker` conversation scopes (production default `/srv/metis/agent`) — see [session persistence](session-persistence.md) |
+| `METIS_DOCKER_WORKFLOW_EVICTION_HOURS` / `METIS_DOCKER_WORKSPACE_EVICTION_HOURS` / `METIS_DOCKER_ARCHIVED_WORKSPACE_EVICTION_HOURS` | idle windows (hours) before a Docker scope's `workspace/` is warm-evicted — terminal workflow runs / ordinary conversations / archived conversations (defaults 24 / 168 / 24). `sessions/` is kept; see [session persistence](session-persistence.md#docker-workspace-eviction) |
+| `METIS_PERSISTENT_LOW_WATERMARK_PERCENT` / `METIS_PERSISTENT_RECOVERY_WATERMARK_PERCENT` | percent-free thresholds for low-disk emergency eviction of Docker scopes, oldest-first (defaults 15 / 25; boot enforces `0 <= low < recovery <= 100`) |
 | `E2B_API_KEY` / `METIS_E2B_TEMPLATE` | required by the `e2b` runtime |
 | `DAYTONA_API_KEY` / `METIS_DAYTONA_SNAPSHOT` | required by the `daytona` runtime |
 | `DAYTONA_API_URL` / `DAYTONA_TARGET` | optional Daytona API endpoint / region |

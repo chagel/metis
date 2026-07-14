@@ -44,6 +44,43 @@ Rails.application.config.x.agent.docker_image =
 Rails.application.config.x.agent.docker_runtime =
   ENV["METIS_DOCKER_RUNTIME"].presence
 
+# Docker workspace retention (docs/session-persistence.md). The :docker
+# runtime's persistent host scopes are a reclaimable hot cache:
+# EvictDockerWorkspacesJob warm-evicts workspace/ (sessions/ kept, pi
+# still resumes) once a scope has idled past its window — one window per
+# lifecycle class, independent knobs. Invalid values fail boot: silently
+# defaulted cleanup settings are dangerous.
+#
+#   workflow — the run reached a terminal status (completed/failed/cancelled)
+#   archived — the conversation was archived
+#   ordinary — everything else
+docker_eviction_hours = lambda do |var, default|
+  value = Integer(ENV.fetch(var, default), exception: false)
+  raise "#{var} must be a positive integer number of hours, got #{ENV[var].inspect}" unless value&.positive?
+  value.hours
+end
+Rails.application.config.x.agent.docker_workflow_eviction_window =
+  docker_eviction_hours.call("METIS_DOCKER_WORKFLOW_EVICTION_HOURS", "24")
+Rails.application.config.x.agent.docker_workspace_eviction_window =
+  docker_eviction_hours.call("METIS_DOCKER_WORKSPACE_EVICTION_HOURS", "168")
+Rails.application.config.x.agent.docker_archived_workspace_eviction_window =
+  docker_eviction_hours.call("METIS_DOCKER_ARCHIVED_WORKSPACE_EVICTION_HOURS", "24")
+
+# Low-disk emergency eviction watermarks, percent free of the filesystem
+# holding METIS_PERSISTENT_ROOT. Below the low watermark the eviction job
+# evicts otherwise-eligible Docker scopes oldest-first (retention windows
+# waived, active work never touched) until free space recovers.
+low_watermark = Integer(ENV.fetch("METIS_PERSISTENT_LOW_WATERMARK_PERCENT", "15"), exception: false)
+recovery_watermark = Integer(ENV.fetch("METIS_PERSISTENT_RECOVERY_WATERMARK_PERCENT", "25"), exception: false)
+unless low_watermark && recovery_watermark &&
+       low_watermark >= 0 && low_watermark < recovery_watermark && recovery_watermark <= 100
+  raise "METIS_PERSISTENT_{LOW,RECOVERY}_WATERMARK_PERCENT must satisfy 0 <= low < recovery <= 100, " \
+        "got low=#{ENV['METIS_PERSISTENT_LOW_WATERMARK_PERCENT'].inspect} " \
+        "recovery=#{ENV['METIS_PERSISTENT_RECOVERY_WATERMARK_PERCENT'].inspect}"
+end
+Rails.application.config.x.agent.persistent_low_watermark_percent = low_watermark
+Rails.application.config.x.agent.persistent_recovery_watermark_percent = recovery_watermark
+
 # Daytona credentials and target for the :daytona runtime. The API key is a
 # shared, deployment-level resource (no per-user keys). api_url/target are
 # optional — unset uses the SDK defaults (https://app.daytona.io/api, the

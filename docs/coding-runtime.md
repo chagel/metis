@@ -102,9 +102,21 @@ install` and expect it to be there next turn).
 The simpler shape avoids two pieces of infrastructure the persistent-
 container shape needs:
 
-- **No eviction job.** Containers are gone the moment the turn ends.
-  Idle conversations cost no Docker resources, just disk for the
-  persistent workspace.
+- **No container eviction job.** Containers are gone the moment the
+  turn ends. Idle conversations cost no Docker resources — only disk
+  for the persistent workspace, which `EvictDockerWorkspacesJob`
+  bounds by warm-evicting idle `workspace/` trees (`sessions/` kept,
+  pi still resumes) and backstopping low disk with oldest-first
+  emergency eviction. Windows: `METIS_DOCKER_WORKFLOW_EVICTION_HOURS`
+  (default 24), `METIS_DOCKER_ARCHIVED_WORKSPACE_EVICTION_HOURS` (24),
+  `METIS_DOCKER_WORKSPACE_EVICTION_HOURS` (168); watermarks:
+  `METIS_PERSISTENT_LOW_WATERMARK_PERCENT` (15) /
+  `METIS_PERSISTENT_RECOVERY_WATERMARK_PERCENT` (25). Inspect usage
+  with `bin/rails metis:workspaces:report`. Full policy — eligibility,
+  the row-lock serialization with `ConversationTurn.start`, the
+  post-eviction `AGENTS.md` warning, path safety, orphan-scope
+  handling — in
+  [`session-persistence.md`](session-persistence.md#docker-workspace-eviction).
 - **No "container wedged" recovery path.** Every turn starts a fresh
   container.
 
@@ -299,4 +311,6 @@ be GC'd later out-of-band.
   posture](#security-posture-rootful-daemon-accepted-rootless-deferred).
 - **Workspace size cap.** Per-conversation disk budget — a runaway
   `git clone` of a huge monorepo should fail predictably, not
-  consume host disk (Docker) or E2B quota.
+  consume host disk (Docker) or E2B quota. Idle accumulation and
+  full-disk recovery are now handled by `EvictDockerWorkspacesJob`,
+  but a single active turn can still fill the disk mid-flight.

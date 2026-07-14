@@ -68,6 +68,7 @@ module Agent
           back later — keep those elsewhere in `workspace/`. When in
           doubt, publish. Mention the filename in your reply.
 
+        #{workspace_eviction_block}
         #{conversation_history_block}
         #{project_context_block}
         #{team_projects_block}
@@ -141,6 +142,22 @@ module Agent
     end
 
     private
+
+    # Warm eviction reclaimed workspace/ but kept sessions/ — pi still has
+    # its transcript, so this warns about lost files only; it is not the
+    # reaped-sandbox history replay below. Cleared by the next successful
+    # Docker turn (Runtime::Docker#record_workspace_use).
+    EVICTION_WARNING =
+      "Metis reclaimed this conversation’s workspace after it was idle. " \
+      "Repositories, dependencies, build output, artifacts, and uncommitted " \
+      "files from earlier turns are gone. The pi conversation transcript " \
+      "remains; verify or recreate files before relying on them.".freeze
+
+    def workspace_eviction_block
+      return "" unless @runtime_kind == "docker" && @conversation.docker_workspace_evicted?
+
+      "\n## Workspace notice\n\n#{EVICTION_WARNING}\n"
+    end
 
     # The sandbox holding pi's transcript was reaped; replay the conversation
     # from the DB so a fresh sandbox keeps the thread. The warning is

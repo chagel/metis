@@ -14,4 +14,13 @@ namespace :metis do
     puts doctor.report
     abort unless doctor.ok?
   end
+
+  namespace :workspaces do
+    desc "Disk usage report for the persistent agent workspace root (read-only)"
+    task report: :environment do
+      puts Agent::WorkspaceReport.new
+    rescue Agent::WorkspaceReport::ScanError => e
+      abort "metis:workspaces:report failed: #{e.message}"
+    end
+  end
 end

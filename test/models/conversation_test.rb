@@ -401,4 +401,33 @@ class ConversationTest < ActiveSupport::TestCase
 
     assert_equal [ "do it", "done" ], @conversation.replayable_history.map(&:content)
   end
+
+  test "docker workspace eviction reason accepts only the known reasons, or nil" do
+    Conversation::DOCKER_EVICTION_REASONS.each do |reason|
+      @conversation.docker_workspace_eviction_reason = reason
+      assert @conversation.valid?, "#{reason} should be a valid reason"
+    end
+
+    @conversation.docker_workspace_eviction_reason = nil
+    assert @conversation.valid?
+
+    @conversation.docker_workspace_eviction_reason = "manual"
+    refute @conversation.valid?
+  end
+
+  test "docker_runtime scope selects conversations whose last turn ran on docker" do
+    @conversation.update_column(:runtime_state, { "runtime" => "docker" })
+    other = @user.conversations.create!(runtime_state: { "runtime" => "local" })
+
+    assert_includes Conversation.docker_runtime, @conversation
+    refute_includes Conversation.docker_runtime, other
+  end
+
+  test "docker_workspace_evicted? tracks the marker" do
+    refute @conversation.docker_workspace_evicted?
+
+    @conversation.update!(docker_workspace_evicted_at: Time.current,
+                          docker_workspace_eviction_reason: "low_disk")
+    assert @conversation.docker_workspace_evicted?
+  end
 end

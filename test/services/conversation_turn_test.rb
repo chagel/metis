@@ -23,6 +23,18 @@ class ConversationTurnTest < ActiveSupport::TestCase
     assert_not_nil assistant_message.started_at
   end
 
+  test "locks the conversation row so a turn cannot race workspace eviction" do
+    locked = false
+    watcher = lambda do |_name, _start, _finish, _id, payload|
+      locked ||= payload[:sql].to_s.include?("FOR UPDATE")
+    end
+    ActiveSupport::Notifications.subscribed(watcher, "sql.active_record") do
+      ConversationTurn.start(@conversation, content: "hello")
+    end
+
+    assert locked, "expected the turn to take the conversation row lock"
+  end
+
   test "yields the user message before the assistant row exists" do
     seen_assistant_count = nil
     ConversationTurn.start(@conversation, content: "hi") do |user_message|

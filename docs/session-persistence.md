@@ -29,7 +29,10 @@ agent ran — so it belongs to the `Runtime`, not to one shared mechanism.
   root must sit at an **identical absolute path** on host and worker —
   `METIS_PERSISTENT_ROOT`, default `/srv/metis/agent` in prod — so the
   per-turn bind mount the host daemon performs resolves to the same
-  files. See coding-runtime's provisioning notes.
+  files. See coding-runtime's provisioning notes. The host scope is a
+  **reclaimable hot cache**, not permanent storage — idle `workspace/`
+  trees are warm-evicted by `EvictDockerWorkspacesJob` (see
+  [Docker workspace eviction](#docker-workspace-eviction) below).
 
 - **`Runtime::E2b`** — the microVM has no host bind mount, but E2B
   natively pauses and resumes a sandbox by id. First turn:
@@ -75,6 +78,84 @@ is rendered into the per-turn `AGENTS.md` (`Agent::Identity`, gated on
 separate read step. The render is bounded (recent turns within a char
 budget) and leads with a warning that the workspace files are gone too —
 the agent must not act as if anything it wrote earlier is still on disk.
+
+## Docker workspace eviction
+
+Docker's persistent host scopes accumulate repository clones, `.git`,
+dependency installs, and build output indefinitely — workflow runs
+amplify this because every run owns a conversation. `EvictDockerWorkspacesJob`
+(recurring, **every 15 minutes** in production) treats them as a hot
+cache and reclaims idle ones.
+
+**Warm eviction** deletes only `scope/workspace/` and preserves
+`scope/sessions/` — pi's transcript survives, so the next turn resumes
+with `--continue` as usual and **no DB history replay happens** (this is
+not the reaped-sandbox case above). What's lost is exactly the working
+files: repos, dependencies, artifacts, uncommitted WIP. Durable Rails
+state — `Message` rows, attachments, the projected inputs — is
+untouched and re-staged as always.
+
+Retention is per lifecycle class, each an independent env knob
+(invalid values fail boot):
+
+| Class | Window | Measured from |
+|---|---|---|
+| Workflow run in a terminal status (`completed` / `failed` / `cancelled`) — `METIS_DOCKER_WORKFLOW_EVICTION_HOURS` | 24h | later of the run's `updated_at` and `docker_workspace_last_used_at` |
+| Archived ordinary conversation — `METIS_DOCKER_ARCHIVED_WORKSPACE_EVICTION_HOURS` | 24h | later of `archived_at` and `docker_workspace_last_used_at` |
+| Other ordinary conversation — `METIS_DOCKER_WORKSPACE_EVICTION_HOURS` | 168h (7d) | `docker_workspace_last_used_at`, falling back to the conversation's `updated_at` for legacy rows |
+
+Workflow classification wins over archived/ordinary. Only
+conversations whose **last turn ran on Docker** are eligible — Local,
+E2B, and Daytona storage is never touched by this job. A conversation
+with an in-flight turn, or whose workflow run is in any active status
+(`queued` / `pending` / `running` / `awaiting_approval` /
+`awaiting_local`), is never evicted — a run parked at an approval or
+local gate keeps its workspace no matter how long it waits.
+
+**Serialization.** `ConversationTurn.start` and the eviction job take
+the same Conversation **row lock**; eviction re-checks eligibility
+after acquiring it and holds it through deletion, so a turn can never
+be born mid-eviction. Successful eviction records
+`docker_workspace_evicted_at` + `docker_workspace_eviction_reason`
+(`workflow_terminal` / `archived_idle` / `ordinary_idle` / `low_disk`)
+on the conversation. While the marker is set, `Agent::Identity` puts a
+verbatim warning in the next Docker turn's `AGENTS.md` telling the
+agent its earlier files are gone; a **successful** Docker turn clears
+the marker (a failed one keeps it, so the warning repeats).
+
+**Low-disk emergency.** When the filesystem holding
+`METIS_PERSISTENT_ROOT` drops below
+`METIS_PERSISTENT_LOW_WATERMARK_PERCENT` free (default 15), the job
+warm-evicts otherwise-eligible Docker scopes **oldest-first,
+retention windows waived**, re-checking free space after each
+deletion, until `METIS_PERSISTENT_RECOVERY_WATERMARK_PERCENT` (default
+25) is reached or eligible scopes run out — active work is never
+sacrificed. Boot validates `0 <= low < recovery <= 100`. If free space
+can't be determined safely (missing root, `df` failure, unparseable
+output), the job logs and deletes nothing — unknown never reads as
+"disk full".
+
+**Permanent deletion.** Destroying a `Conversation` enqueues
+`CleanupPersistentWorkspaceJob` after commit (never `rm_rf` inside the
+destroy transaction), which removes the **whole scope including
+`sessions/`**, idempotently, from the captured scalar ids.
+
+**Path safety.** All deletion paths go through
+`Agent::WorkspaceCleanup`: built only from validated positive-integer
+ids into the exact `u<ID>/c<ID>[/workspace]` shape, verified beneath
+the expanded root, symlinks unlinked rather than followed (measurement
+is no-follow too), canonicalization mismatches refused. **Orphan
+scopes** — directories with no matching Conversation row — are flagged
+by the report but never auto-deleted.
+
+**Operations.** `bin/rails metis:workspaces:report` prints a read-only
+usage report: free space, per-scope byte counts (total / `sessions/` /
+`workspace/`), each scope's conversation / runtime / workflow /
+archive / in-flight / eviction state, and `orphan=true|false`. The
+eviction job logs structured events (`docker_workspace_evicted`,
+`…_skipped`, `…_failed`, `…_summary`, `persistent_workspace_destroyed`)
+— disk scans run only in the background jobs and this task, never in
+request paths.
 
 ## Scope layout
 

@@ -304,6 +304,14 @@ scope :board_visible, ->(user, board_scope, project_ids) { … }
 #   e2b_sandbox_id     — for Runtime::E2b resume across turns
 #   daytona_sandbox_id — for Runtime::Daytona start across turns
 #   cancel_requested_at — set by #request_cancel!, polled by ChatJob
+# Docker workspace lifecycle (EvictDockerWorkspacesJob,
+#   docs/session-persistence.md): docker_workspace_last_used_at stamped
+#   by a successful Docker turn; docker_workspace_evicted_at +
+#   docker_workspace_eviction_reason (workflow_terminal / archived_idle /
+#   ordinary_idle / low_disk — string, not enum) mark a warm-evicted
+#   workspace until the next successful Docker turn clears them.
+#   Destroying a conversation enqueues CleanupPersistentWorkspaceJob
+#   (after_destroy_commit) to remove the whole host scope.
 # Sharing / inbox columns: title, share_token (public read link),
 #   starred_at, archived_at.
 # Forking: forked_from_message marks the fork point; fork_pending defers

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_04_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_13_083000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -91,6 +91,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_04_000001) do
     t.jsonb "context_usage", default: {}, null: false
     t.datetime "created_at", null: false
     t.string "daytona_sandbox_id"
+    t.datetime "docker_workspace_evicted_at"
+    t.string "docker_workspace_eviction_reason"
+    t.datetime "docker_workspace_last_used_at"
     t.string "e2b_sandbox_id"
     t.boolean "fork_pending", default: false, null: false
     t.bigint "forked_from_message_id"
