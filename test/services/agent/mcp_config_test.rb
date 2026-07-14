@@ -238,8 +238,6 @@ class Agent::McpConfigTest < ActiveSupport::TestCase
     end
   end
 
-  # The X connector stages the xurl-mcp wrapper with the deployment app
-  # config + the member's live tokens in the entry's env — never argv.
   def add_x(scopes: XApp::Config::SCOPES.join(" "))
     connector = add_connector(name: "x", transport: :stdio, catalog_key: "x",
                               definition: { "command" => "xurl-mcp" })
@@ -251,29 +249,20 @@ class Agent::McpConfigTest < ActiveSupport::TestCase
 
   def with_x_config(&block)
     with_stub(XApp::Config, :configured?, ->(env: ENV) { true }) do
-      with_stub(XApp::Config, :client_id, -> { "xcid" }) do
-        with_stub(XApp::Config, :client_secret, -> { "xsec" }) do
-          with_stub(XApp::Config, :redirect_uri, -> { "https://m/cb" }, &block)
-        end
-      end
+      with_stub(XApp::Config, :client_id, -> { "xcid" }, &block)
     end
   end
 
   test "stages the x connector as the xurl-mcp wrapper with tokens in env, never argv" do
     add_x
-    grant = member.oauth_grants.find_by(provider: "x")
-
     with_x_config do
       entry = rendered["mcpServers"]["x"]
 
       assert_equal "xurl-mcp", entry["command"]
       assert_nil entry["args"]
       assert_equal "xcid", entry["env"]["XURL_CLIENT_ID"]
-      assert_equal "xsec", entry["env"]["XURL_CLIENT_SECRET"]
-      assert_equal "https://m/cb", entry["env"]["XURL_REDIRECT_URI"]
       assert_equal "xat", entry["env"]["XURL_ACCESS_TOKEN"]
-      assert_equal "xrt", entry["env"]["XURL_REFRESH_TOKEN"]
-      assert_equal grant.expires_at.to_i.to_s, entry["env"]["XURL_EXPIRATION_TIME"]
+      assert_equal %w[XURL_ACCESS_TOKEN XURL_CLIENT_ID], entry["env"].keys.sort
     end
   end
 

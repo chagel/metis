@@ -1,20 +1,13 @@
 module Connectors
-  # Direct X OAuth 2.0 + PKCE (x.com/i/oauth2/authorize) — X has no
-  # omniauth sign-in strategy, so the marketplace Connect button lands
-  # here instead of the Devise callback. Per-member like the brokered
-  # providers: start → consent at X → callback exchanges the code and
-  # absorbs the tokens into the member's (user, "x") OauthGrant; the
-  # ConnectorCredential row is just the presence marker McpConfig keys
-  # off. The one-time state + PKCE verifier live in the initiator's
-  # session, so only that user's browser can complete (or replay) the
-  # callback. See docs/connectors.md.
+  # X has no omniauth sign-in strategy, so it uses this PKCE callback.
   class XOauthController < ApplicationController
+    STATE_TTL = 10.minutes
     def start
       return redirect_to(connectors_path, alert: t("flash.connectors.x_oauth.unconfigured")) unless XApp::Config.configured?
 
       pkce = Mcp::Oauth::Pkce.new
       state = SecureRandom.urlsafe_base64(24)
-      session[:x_oauth] = { "state" => state, "verifier" => pkce.verifier }
+      session[:x_oauth] = { "state" => state, "verifier" => pkce.verifier, "issued_at" => Time.current.to_i }
 
       redirect_to XApp::Oauth.authorize_url(state: state, code_challenge: pkce.challenge),
                   allow_other_host: true
@@ -34,12 +27,9 @@ module Connectors
       redirect_to connectors_path, alert: t("flash.connectors.x_oauth.failed")
     end
 
-    # Removes this member's X access: their grant (revoked on X's side,
-    # best-effort) and their presence marker. The team's Connector row
-    # stays only while other members still have credentials on it.
     def disconnect
       connector = current_team.connectors.find_by(catalog_key: "x")
-      connector&.connector_credentials&.where(user: current_user)&.destroy_all
+      connector.connector_credentials.where(user: current_user).destroy_all if connector
       if (grant = current_user.oauth_grants.find_by(provider: "x"))
         OauthBroker.revoke(grant)
         grant.destroy
@@ -51,7 +41,8 @@ module Connectors
     private
 
     def valid_state?(flow)
-      flow["state"].present? &&
+      flow["issued_at"].to_i >= STATE_TTL.ago.to_i &&
+        flow["state"].present? &&
         ActiveSupport::SecurityUtils.secure_compare(flow["state"], params[:state].to_s)
     end
 

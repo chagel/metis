@@ -361,8 +361,8 @@ JSON-RPC with a bearer it reads from its config file. X offers no
 Dynamic Client Registration, so this is a **brokered OAuth** connector
 like GitHub/Google — but X is not a sign-in provider, so the flow runs
 through a dedicated controller (`Connectors::XOauthController`,
-authorization-code + PKCE `S256`, one-time state in the initiator's
-session) instead of omniauth.
+authorization-code + PKCE `S256`, one-time 10-minute state in the
+initiator's session) instead of omniauth.
 
 - **Deployment config** — resolved per key, ENV first, then Rails
   credentials: `X_CLIENT_ID`/`x.client_id`,
@@ -388,14 +388,16 @@ session) instead of omniauth.
   Connect re-consents; the turn still runs, just without X.
 - **Per-turn staging** — `Agent::McpConfig` stages the `x` server only
   when the member has a usable grant: a stdio entry whose command is
-  the **`xurl-mcp` wrapper** and whose `env` carries the deployment app
-  config + the member's tokens (`XURL_*`). Tokens ride the entry's env,
-  never argv. The wrapper (`docker/pi-runtime/xurl-mcp`) creates a
-  unique `0700` temporary `HOME`, writes a `0600` `$HOME/.xurl` in
-  xurl's multi-app YAML shape, runs the pinned `xurl mcp
-  https://api.x.com/mcp`, and removes the temp home on exit or signal —
-  no xurl state survives the process, concurrent conversations get
-  isolated homes, and the encrypted grants stay the sole durable copy.
+  the **`xurl-mcp` wrapper** and whose `env` carries only the deployment
+  client ID and current access token (`XURL_*`), never argv. Metis
+  refreshes before staging; it never gives xurl the client secret or
+  refresh token, because xurl cannot report a rotated refresh token back
+  to the durable grant. The wrapper (`docker/pi-runtime/xurl-mcp`)
+  creates a unique `0700` temporary `HOME`, writes a `0600` `$HOME/.xurl`
+  in xurl's multi-app YAML shape, runs the pinned `xurl mcp
+  https://api.x.com/mcp`, and removes the temp home on exit or signal.
+  If the access token expires during a turn, the MCP call fails and the
+  broker refreshes it before the next turn.
 - **Runtimes** — the pinned xurl binary (from the project's GitHub
   Releases) and the wrapper are installed in all four places, kept in
   lockstep: `docker/pi-runtime/Dockerfile` (+ `Dockerfile.dev` for the
@@ -404,10 +406,10 @@ session) instead of omniauth.
   of them and rebuild the Docker image, E2B template, and Daytona
   snapshot together.
 - **Validation caveat** — xurl's documented MCP path assumes it owns
-  the browser OAuth bootstrap; Metis instead injects its own tokens via
-  the temp `.xurl`. The generated YAML matches xurl v1.2.2's documented
-  storage shape, but a version bump must re-validate that the bridge
-  accepts injected tokens and refreshes in-process without opening a
+  the browser OAuth bootstrap; Metis instead injects a current access
+  token via the temporary `.xurl`. The generated YAML matches xurl
+  v1.2.2's documented storage shape; a version bump must re-validate
+  that the bridge accepts this non-refreshable token without opening a
   browser.
 
 ## Identities, not a single provider per user

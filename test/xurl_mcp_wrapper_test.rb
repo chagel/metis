@@ -12,14 +12,12 @@ class XurlMcpWrapperTest < ActiveSupport::TestCase
   WRAPPER = Rails.root.join("docker/pi-runtime/xurl-mcp").to_s
 
   ENV_VARS = {
-    "XURL_CLIENT_ID" => "cid", "XURL_CLIENT_SECRET" => "csec",
-    "XURL_REDIRECT_URI" => "https://m/cb", "XURL_ACCESS_TOKEN" => "xat",
-    "XURL_REFRESH_TOKEN" => "xrt", "XURL_EXPIRATION_TIME" => "1783946096"
+    "XURL_CLIENT_ID" => "cid", "XURL_ACCESS_TOKEN" => "xat"
   }.freeze
 
   INSPECT_XURL = <<~SH.freeze
     #!/bin/bash
-    stat_mode() { stat -f %Lp "$1" 2>/dev/null || stat -c %a "$1"; }
+    stat_mode() { stat -c %a "$1" 2>/dev/null || stat -f %Lp "$1"; }
     echo "ARGS:$*"
     echo "HOMEDIR:$HOME"
     echo "HOME_MODE:$(stat_mode "$HOME")"
@@ -48,8 +46,8 @@ class XurlMcpWrapperTest < ActiveSupport::TestCase
     assert_includes out, 'client_id: "cid"'
     assert_includes out, 'default_user: "metis-user"'
     assert_includes out, 'access_token: "xat"'
-    assert_includes out, 'refresh_token: "xrt"'
-    assert_includes out, "expiration_time: 1783946096"
+    assert_not_includes out, "refresh_token:"
+    assert_includes out, "expiration_time: 4102444800"
     assert_includes out, "default_app: metis"
   end
 
@@ -76,14 +74,7 @@ class XurlMcpWrapperTest < ActiveSupport::TestCase
     assert_not status.success?
     assert_empty out
     assert_includes err, "XURL_ACCESS_TOKEN"
-    assert_not_includes err, "csec"
-  end
-
-  test "a non-numeric expiration is rejected" do
-    _out, err, status = run_wrapper(env: { "XURL_EXPIRATION_TIME" => "soon" })
-
-    assert_not status.success?
-    assert_includes err, "XURL_EXPIRATION_TIME"
+    assert_not_includes err, "xat"
   end
 
   test "removes the temp home when terminated mid-run" do

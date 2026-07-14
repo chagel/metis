@@ -98,6 +98,22 @@ class Connectors::XOauthControllerTest < ActionDispatch::IntegrationTest
     assert_equal I18n.t("flash.connectors.x_oauth.expired"), flash[:alert]
   end
 
+  test "an expired callback state never exchanges" do
+    state = start_flow
+    exchanged = false
+
+    travel Connectors::XOauthController::STATE_TTL + 1.second do
+      with_config do
+        with_stub(XApp::Oauth, :exchange, ->(**) { exchanged = true; TOKENS.dup }) do
+          get connector_x_callback_path(code: "abc", state: state)
+        end
+      end
+    end
+
+    assert_not exchanged
+    assert_equal I18n.t("flash.connectors.x_oauth.expired"), flash[:alert]
+  end
+
   test "consent denial consumes the state and keeps the prior grant" do
     @user.oauth_grants.create!(provider: "x", access_token: "prior", refresh_token: "prior-rt",
                                expires_at: 1.hour.from_now, scopes: "tweet.read")
