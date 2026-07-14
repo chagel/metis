@@ -46,7 +46,6 @@
       board: "看板"
       sharing: "分享"
       search: "搜索历史"
-      search_hint: "请输入至少 2 个字符以搜索历史。"
       search_loading: "正在搜索历史…"
       search_error: "搜索不可用，请重试。"
       search_retry: "重试"

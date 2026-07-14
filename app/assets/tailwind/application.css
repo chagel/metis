@@ -455,8 +455,6 @@ turbo-frame#convos { display:contents; }
    While a query is active (.is-searching on the sidebar) the browse
    list hides and .convos-search takes its place; the scope/kind
    controls stay usable. */
-.search-status { margin:-4px 10px 8px; font-size:12px; color:var(--ink-3); }
-.search-status:not(:has(> :not([hidden]))) { display:none; }
 .search-retry {
   background:none; border:none; padding:0; margin-left:4px;
   color:var(--accent-fg); font:inherit; font-weight:600;
@@ -469,6 +467,10 @@ turbo-frame#convos { display:contents; }
   font-family:var(--fm); font-size:10px; font-weight:500; letter-spacing:.1em;
   color:var(--faint); text-transform:uppercase; padding:10px 8px 6px; margin:0;
 }
+/* While a new page 1 is in flight the panel's "Searching…" note stands in
+   for the summary row; hide the stale one inside the frame so only one
+   summary row ever shows. */
+.convos-search.is-loading #convos-search .convos-search-summary { display:none; }
 .convo-search-row { align-items:flex-start; }
 .convo-search-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
 .convo-search-title { display:flex; align-items:center; gap:6px; min-width:0; }

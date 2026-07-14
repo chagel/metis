@@ -890,7 +890,6 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
   test "search copy is localized in English and Simplified Chinese" do
     {
       "conversations.sidebar.search" => [ "Search history", "搜索历史" ],
-      "conversations.sidebar.search_hint" => [ "Type at least 2 characters to search history.", "请输入至少 2 个字符以搜索历史。" ],
       "conversations.sidebar.search_loading" => [ "Searching history…", "正在搜索历史…" ],
       "conversations.sidebar.search_retry" => [ "Retry", "重试" ],
       "conversations.search_result.archived" => [ "Archived", "已归档" ]
@@ -914,7 +913,8 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_select "#sidebar[data-conversation-search-min-length-value=?]",
                   ConversationsController::SEARCH_MIN_LENGTH.to_s
     assert_select ".search input[data-conversation-search-target='input']"
-    assert_select ".search-status[aria-live='polite']"
+    assert_select ".convos-search .convos-search-summary[aria-live='polite'][data-conversation-search-target='loading']"
+    assert_select ".convos-search .convos-search-summary[aria-live='polite'][data-conversation-search-target='error']"
     assert_select ".convos-search turbo-frame#convos-search"
     assert_select ".convo-controls[data-filter='active'][data-kind='all']"
   end

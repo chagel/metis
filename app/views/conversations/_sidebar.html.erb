@@ -61,15 +61,6 @@
              data-action="input->conversation-search#queryChanged keydown.esc->conversation-search#clear">
     </div>
 
-    <div class="search-status" aria-live="polite">
-      <span class="search-status-hint" data-conversation-search-target="hint" hidden><%= t('.search_hint') %></span>
-      <span class="search-status-loading" data-conversation-search-target="loading" hidden><%= t('.search_loading') %></span>
-      <span class="search-status-error" data-conversation-search-target="error" hidden>
-        <%= t('.search_error') %>
-        <button type="button" class="search-retry" data-action="click->conversation-search#retry"><%= t('.search_retry') %></button>
-      </span>
-    </div>
-
     <nav class="convos" aria-label="Conversations" data-turbo-prefetch="false"
          data-controller="infinite-scroll active-link">
       <%# The list (and its scope tabs) live in a turbo-frame so picking a
@@ -152,6 +143,17 @@
       <%# Keeping results outside #convos prevents scope/kind swaps from
           clearing them before the updated search arrives. %>
       <div class="convos-search" data-conversation-search-target="panel" hidden>
+        <%# In-flight / error notes share the results-summary row and style:
+            while loading, .is-loading hides the stale summary inside the
+            frame so "Searching…" reads as that row, then the fresh
+            "Results for …" takes its place. %>
+        <div class="convos-search-summary" aria-live="polite"
+             data-conversation-search-target="loading" hidden><%= t('.search_loading') %></div>
+        <div class="convos-search-summary" aria-live="polite"
+             data-conversation-search-target="error" hidden>
+          <%= t('.search_error') %>
+          <button type="button" class="search-retry" data-action="click->conversation-search#retry"><%= t('.search_retry') %></button>
+        </div>
         <turbo-frame id="convos-search" data-conversation-search-target="frame"
                      loading="eager" data-turbo-prefetch="false"></turbo-frame>
       </div>

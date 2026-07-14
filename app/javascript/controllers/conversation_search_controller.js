@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 // Server-side title search; scope/kind frame swaps rerun the active query.
 export default class extends Controller {
-  static targets = ["input", "panel", "frame", "hint", "loading", "error", "sentinel"]
+  static targets = ["input", "panel", "frame", "loading", "error", "sentinel"]
   static values = {
     url: String,
     delay: { type: Number, default: 250 },
@@ -40,13 +40,10 @@ export default class extends Controller {
 
   queryChanged() {
     clearTimeout(this.debounce)
-    const query = this.normalizedQuery
-    if (query.length >= this.minLengthValue) {
-      this.showStatus(null)
+    if (this.normalizedQuery.length >= this.minLengthValue) {
       this.debounce = setTimeout(() => this.performSearch(), this.delayValue)
     } else {
       this.exitSearch()
-      if (query.length > 0) this.showStatus("hint")
     }
   }
 
@@ -157,9 +154,11 @@ export default class extends Controller {
     return url.toString()
   }
 
+  // The loading/error notes share the results-summary row; .is-loading
+  // hides the stale summary inside the frame so only one row shows.
   showStatus(state) {
-    if (this.hasHintTarget) this.hintTarget.hidden = state !== "hint"
     if (this.hasLoadingTarget) this.loadingTarget.hidden = state !== "loading"
     if (this.hasErrorTarget) this.errorTarget.hidden = state !== "error"
+    if (this.hasPanelTarget) this.panelTarget.classList.toggle("is-loading", state === "loading")
   }
 }
