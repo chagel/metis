@@ -53,7 +53,7 @@ func testUpgrader(t *testing.T, server *httptest.Server, current string) (*upgra
 		t.Fatal(err)
 	}
 	restarts := 0
-	u := &upgrader{api: server.URL + "/releases", current: current, target: target,
+	u := &upgrader{api: server.URL + "/releases", current: current, targets: []string{target},
 		restart: func(func(string, ...any)) error { restarts++; return nil },
 		logf:    func(string, ...any) {}}
 	return u, target, &restarts
@@ -80,6 +80,70 @@ func TestUpgradeSwapsBinaryAndRestarts(t *testing.T) {
 	}
 	if *restarts != 1 {
 		t.Fatalf("restarts = %d, want 1", *restarts)
+	}
+}
+
+// The invoked binary and the service's installed copy can differ (e.g.
+// ~/go/bin/metis upgrading a service on ~/.local/bin/metis) — both must
+// end up on the new version or the restarted service keeps the old one.
+func TestUpgradeReplacesServiceAndInvokedCopies(t *testing.T) {
+	binary := []byte("new-binary-content")
+	server := releaseServer(t, "9.0.0", binary, checksumLine(binary))
+	dir := t.TempDir()
+	service := filepath.Join(dir, "local-bin", "metis")
+	invoked := filepath.Join(dir, "go-bin", "metis")
+	for _, path := range []string{service, invoked} {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("old-binary"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	restarts := 0
+	u := &upgrader{api: server.URL + "/releases", current: "0.3.0",
+		targets: []string{service, invoked},
+		restart: func(func(string, ...any)) error { restarts++; return nil },
+		logf:    func(string, ...any) {}}
+
+	if err := u.run(); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{service, invoked} {
+		got, _ := os.ReadFile(path)
+		if string(got) != string(binary) {
+			t.Fatalf("%s = %q, want the released binary", path, got)
+		}
+	}
+	if restarts != 1 {
+		t.Fatalf("restarts = %d, want 1", restarts)
+	}
+}
+
+func TestUpgradeRefusesMissingChecksums(t *testing.T) {
+	binary := []byte("new-binary-content")
+	assetName := "metis-" + runtime.GOOS + "-" + runtime.GOARCH
+	mux := http.NewServeMux()
+	var server *httptest.Server
+	mux.HandleFunc("/releases", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, `[{"tag_name": "clients/metis/v9.0.0", "assets": [
+			{"name": "%s", "browser_download_url": "%s/assets/%s"}
+		]}]`, assetName, server.URL, assetName)
+	})
+	mux.HandleFunc("/assets/"+assetName, func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(binary)
+	})
+	server = httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+	u, target, restarts := testUpgrader(t, server, "0.3.0")
+
+	err := u.run()
+	if err == nil || !strings.Contains(err.Error(), "no checksums.txt") {
+		t.Fatalf("err = %v, want missing-checksums refusal", err)
+	}
+	got, _ := os.ReadFile(target)
+	if string(got) != "old-binary" || *restarts != 0 {
+		t.Fatalf("an unverifiable release must leave the binary and service alone (got %q, %d restarts)", got, *restarts)
 	}
 }
 

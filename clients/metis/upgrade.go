@@ -46,25 +46,46 @@ func (r release) assetURL(name string) string {
 }
 
 // upgradeService downloads the newest released daemon binary for this
-// platform, verifies its checksum, swaps it over the binary running
-// this command, and bounces the login service when one is installed.
+// platform, verifies its checksum, swaps every installed copy, and
+// bounces the login service when one is installed.
 func upgradeService(logf func(string, ...any)) error {
-	self, err := os.Executable()
+	targets, err := upgradeTargets()
 	if err != nil {
 		return err
 	}
-	if self, err = filepath.EvalSymlinks(self); err != nil {
-		return err
-	}
-	u := &upgrader{api: releaseAPI, current: version, target: self,
+	u := &upgrader{api: releaseAPI, current: version, targets: targets,
 		restart: restartService, logf: logf}
 	return u.run()
+}
+
+// upgradeTargets is every binary the upgrade must replace: the
+// installed copies a login service may run (`metis install` writes
+// /usr/local/bin or ~/.local/bin) plus the binary that ran this
+// command. Replacing only the invoked copy would restart a service
+// still on the old version — and later upgrades would report the
+// invoked copy as already current, so the service could never catch up.
+func upgradeTargets() ([]string, error) {
+	self, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+	if self, err = filepath.EvalSymlinks(self); err != nil {
+		return nil, err
+	}
+	targets := []string{}
+	for _, dir := range []string{"/usr/local/bin", localBinDir()} {
+		installed, err := filepath.EvalSymlinks(filepath.Join(dir, "metis"))
+		if err == nil && installed != self {
+			targets = append(targets, installed)
+		}
+	}
+	return append(targets, self), nil
 }
 
 type upgrader struct {
 	api     string
 	current string
-	target  string
+	targets []string
 	restart func(logf func(string, ...any)) error
 	logf    func(string, ...any)
 	http    *http.Client
@@ -99,10 +120,12 @@ func (u *upgrader) run() error {
 	if err := u.verify(latest, name, binary); err != nil {
 		return err
 	}
-	if err := writeExecutable(u.target, binary); err != nil {
-		return err
+	for _, target := range u.targets {
+		if err := writeExecutable(target, binary); err != nil {
+			return err
+		}
+		u.logf("upgraded %s: v%s → v%s", target, u.current, latest.version())
 	}
-	u.logf("upgraded %s: v%s → v%s", u.target, u.current, latest.version())
 	return u.restart(u.logf)
 }
 
@@ -125,15 +148,14 @@ func (u *upgrader) latestRelease() (*release, error) {
 	return nil, nil
 }
 
-// verify checks the binary against the release's checksums.txt. A
-// release without one is accepted with a warning — a hand-cut release
-// must not wedge every upgrade — but a present, non-matching entry is
-// fatal.
+// verify checks the binary against the release's checksums.txt and
+// fails closed: this code is about to be executed by a restarted
+// service, and the release workflow always emits checksums — a release
+// without them is malformed, not a case to accommodate.
 func (u *upgrader) verify(rel *release, name string, binary []byte) error {
 	url := rel.assetURL("checksums.txt")
 	if url == "" {
-		u.logf("release %s has no checksums.txt — skipping verification", rel.TagName)
-		return nil
+		return fmt.Errorf("release %s has no checksums.txt — refusing to install an unverified binary", rel.TagName)
 	}
 	sums, err := u.fetch(url)
 	if err != nil {

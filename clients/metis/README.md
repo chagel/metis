@@ -123,10 +123,13 @@ metis upgrade    # fetch the latest release, verify its checksum, swap this bina
 
 Checks GitHub for the newest `clients/metis/v*` release, downloads the
 binary for this platform, verifies it against the release's
-`checksums.txt`, replaces the binary that ran the command
-(write-then-rename, safe while the service runs the old one), and
-bounces the login service if one is installed. Already up to date — or
-running ahead of the latest release — is a no-op.
+`checksums.txt` (a release without checksums is refused), replaces
+every installed copy — the service's binary in `/usr/local/bin` or
+`~/.local/bin` *and* the one that ran the command, so a `~/go/bin`
+invocation can't leave the service behind — via write-then-rename
+(safe while the service runs the old one), and bounces the login
+service if one is installed. Already up to date — or running ahead of
+the latest release — is a no-op.
 
 Cutting a release (maintainers): bump `const version` in `main.go`,
 merge, then tag the nested module — the tag must match the source
