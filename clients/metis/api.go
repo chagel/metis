@@ -38,6 +38,9 @@ type Task struct {
 			About string `json:"about"`
 		} `json:"project"`
 		PriorSteps []PriorStep `json:"prior_steps"`
+		Workflow   struct {
+			Step int `json:"step"`
+		} `json:"workflow"`
 	} `json:"context"`
 }
 

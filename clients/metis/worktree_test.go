@@ -84,6 +84,33 @@ func TestWorktreePrepareRefreshesMetaWhenReusingExistingWorktree(t *testing.T) {
 	}
 }
 
+func TestSessionPointerSurvivesReclaimAndSettle(t *testing.T) {
+	repo, root := initRepo(t)
+	worktree := Worktree{Repo: repo, Root: root, Ref: "RUN-11"}
+	if err := worktree.Prepare(); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, ok := worktree.Session("claude"); ok {
+		t.Fatal("no session must exist before one is saved")
+	}
+	if err := worktree.SaveSession("claude", "sess-abc", 2); err != nil {
+		t.Fatal(err)
+	}
+	if err := worktree.Settle("completed"); err != nil {
+		t.Fatal(err)
+	}
+	if err := worktree.Prepare(); err != nil { // the next step re-claims
+		t.Fatal(err)
+	}
+	id, step, ok := worktree.Session("claude")
+	if !ok || id != "sess-abc" || step != 2 {
+		t.Fatalf("session after settle+reclaim = %q step %d ok %v", id, step, ok)
+	}
+	if _, _, ok := worktree.Session("codex"); ok {
+		t.Fatal("session pointers are per agent")
+	}
+}
+
 func TestMetaFileIsInvisibleToGit(t *testing.T) {
 	repo, root := initRepo(t)
 	worktree := Worktree{Repo: repo, Root: root, Ref: "RUN-5"}

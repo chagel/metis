@@ -50,6 +50,8 @@ type outcome struct {
 	detail    string
 	artifacts []Artifact
 	model     string
+	session   string
+	activity  bool
 }
 
 func (w *Worker) Run() {
@@ -64,10 +66,23 @@ func (w *Worker) Run() {
 		w.report(&outcome{status: "failed", summary: err.Error()})
 		return
 	}
-	result := w.driveAgent(worktree)
+	argv, resumed := w.command(worktree)
+	result := w.driveAgent(worktree, argv)
+	// A resume that dies without a single parsed event is a broken
+	// session pointer (stale id, upgraded CLI), not a real task failure
+	// — the fresh run with the full context bundle is the floor.
+	if result != nil && resumed && result.status == "failed" && !result.activity {
+		w.logf("task %s: resume produced nothing — starting fresh", w.label())
+		result = w.driveAgent(worktree, w.agent.Command(w.prompt(worktree.Branch(), false, false), w.cfg.AgentArgs))
+	}
 	if result == nil {
 		w.logf("task %s: gone — stopped", w.label())
 		return
+	}
+	if result.status == "completed" {
+		if err := worktree.SaveSession(w.cfg.Agent, result.session, w.stepNumber()); err != nil {
+			w.logf("task %s: could not save session pointer: %v", w.label(), err)
+		}
 	}
 	if err := worktree.Settle(result.status); err != nil {
 		w.logf("task %s: could not write meta: %v", w.label(), err)
@@ -75,12 +90,31 @@ func (w *Worker) Run() {
 	w.report(result)
 }
 
-// driveAgent reads the agent's event stream with three clocks: a
-// heartbeat post (progress is the server-side liveness signal), a
-// cancellation poll (the active upgrade of stop-on-410), and the
-// inactivity watchdog — semantic, not wall-clock: a session still
-// emitting events is never killed for running long. A nil return means
-// the task died server-side and the result must not be reported.
+// command picks resume when this worktree already holds a completed
+// session for the configured agent — the machine-local continuation of
+// the run's earlier steps. The prompt drops the prior-steps bundle only
+// when that session already saw the immediately prior step; a run whose
+// middle steps landed on another machine still gets the full re-brief.
+func (w *Worker) command(worktree Worktree) ([]string, bool) {
+	session, step, ok := worktree.Session(w.cfg.Agent)
+	if ok {
+		slim := step >= w.stepNumber()-1
+		if argv := w.agent.Resume(session, w.prompt(worktree.Branch(), true, slim), w.cfg.AgentArgs); argv != nil {
+			return argv, true
+		}
+	}
+	return w.agent.Command(w.prompt(worktree.Branch(), false, false), w.cfg.AgentArgs), false
+}
+
+// stepNumber is 1-based; the claim payload omits the workflow block for
+// single-step runs.
+func (w *Worker) stepNumber() int {
+	if step := w.task.Context.Workflow.Step; step > 0 {
+		return step
+	}
+	return 1
+}
+
 // worktreeRef keys the worktree and branch by run, so consecutive
 // delegated steps of one run share repo state on this machine; the task
 // ref is the fallback for servers that predate run_ref.
@@ -91,8 +125,13 @@ func (w *Worker) worktreeRef() string {
 	return w.task.Ref
 }
 
-func (w *Worker) driveAgent(worktree Worktree) *outcome {
-	argv := w.agent.Command(w.prompt(worktree.Branch()), w.cfg.AgentArgs)
+// driveAgent reads the agent's event stream with three clocks: a
+// heartbeat post (progress is the server-side liveness signal), a
+// cancellation poll (the active upgrade of stop-on-410), and the
+// inactivity watchdog — semantic, not wall-clock: a session still
+// emitting events is never killed for running long. A nil return means
+// the task died server-side and the result must not be reported.
+func (w *Worker) driveAgent(worktree Worktree, argv []string) *outcome {
 	w.logf("task %s: running %s in %s", w.label(), argv[0], worktree.Path())
 
 	cmd := exec.Command(argv[0], argv[1:]...)
@@ -129,6 +168,8 @@ func (w *Worker) driveAgent(worktree Worktree) *outcome {
 
 	finalText := ""
 	model := ""
+	session := ""
+	activity := false
 	lastSnippet := "starting " + w.cfg.Agent
 	lastActivity := time.Now()
 	heartbeat := time.NewTicker(time.Duration(w.cfg.HeartbeatInterval) * time.Second)
@@ -145,19 +186,27 @@ func (w *Worker) driveAgent(worktree Worktree) *outcome {
 			if !open {
 				if err := cmd.Wait(); err != nil {
 					return &outcome{status: "failed", summary: w.failureSummary(finalText),
-						detail: strings.TrimSpace(finalText), model: model}
+						detail: strings.TrimSpace(finalText), model: model, session: session, activity: activity}
 				}
 				result := w.conclude(finalText)
 				result.model = model
+				result.session = session
+				result.activity = activity
 				return result
 			}
 			lastActivity = time.Now()
 			event := w.agent.Parse(line)
+			if event != (ParsedEvent{}) {
+				activity = true
+			}
 			if snippet := lastLine(event.Text); snippet != "" {
 				lastSnippet = snippet
 			}
 			if event.Model != "" {
 				model = event.Model
+			}
+			if event.SessionID != "" {
+				session = event.SessionID
 			}
 			if event.HasFinal {
 				finalText = event.Final
@@ -245,23 +294,33 @@ func (w *Worker) report(result *outcome) {
 	}
 }
 
-func (w *Worker) prompt(branch string) string {
+// prompt assembles the step brief. resumed adds the continuity note;
+// slim additionally drops the prior-steps bundle — the resumed session
+// already contains those steps, re-briefing them only burns context.
+func (w *Worker) prompt(branch string, resumed, slim bool) string {
 	sections := []string{w.task.Prompt}
+	if resumed {
+		sections = append(sections, "## Session continuity\n"+
+			"This conversation continues the session that worked this run's earlier steps "+
+			"in this same worktree — your earlier context and decisions still apply.")
+	}
 	if input := w.task.Context.Input; input != "" {
 		sections = append(sections, "## Run subject\n"+input)
 	}
-	for _, step := range w.task.Context.PriorSteps {
-		body := fmt.Sprintf("## Context from earlier step: %s\n%s", step.Name, step.Content)
-		urls := []string{}
-		for _, artifact := range step.Artifacts {
-			if artifact.URL != "" {
-				urls = append(urls, artifact.URL)
+	if !slim {
+		for _, step := range w.task.Context.PriorSteps {
+			body := fmt.Sprintf("## Context from earlier step: %s\n%s", step.Name, step.Content)
+			urls := []string{}
+			for _, artifact := range step.Artifacts {
+				if artifact.URL != "" {
+					urls = append(urls, artifact.URL)
+				}
 			}
+			if len(urls) > 0 {
+				body += "\nArtifacts: " + strings.Join(urls, " ")
+			}
+			sections = append(sections, body)
 		}
-		if len(urls) > 0 {
-			body += "\nArtifacts: " + strings.Join(urls, " ")
-		}
-		sections = append(sections, body)
 	}
 	sections = append(sections, fmt.Sprintf(`## Unattended run rules
 You run unattended in a dedicated git worktree on a branch named

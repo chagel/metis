@@ -121,7 +121,15 @@ case-insensitively, mirroring the server.
 3. The agent runs headless in its native JSON stream (`claude -p
    --output-format stream-json`, `pi -p --mode json`, `codex exec
    --json`), with the user's own credentials and subscription, in its
-   own process group. Unattended means no one can answer permission
+   own process group. When the worktree already holds a completed
+   session for this agent (recorded in the worktree meta after each
+   completed step), the daemon *resumes* it — `claude --resume <id>`,
+   pi `--continue` (cwd-scoped), `codex exec resume <id>` — so later
+   steps keep the earlier steps' full conversational context, and the
+   prompt skips the prior-steps re-brief the session already saw. A
+   resume that produces no output falls back to a fresh run with the
+   full context bundle; a failed step never becomes the session a
+   retry resumes. Unattended means no one can answer permission
    prompts, so claude runs with `--permission-mode bypassPermissions`
    and codex with `--full-auto` — tighten via `agent_args` if your
    deployment wants less. The inner agent is isolated from your own MCP

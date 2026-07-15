@@ -93,18 +93,27 @@ func (s *stubServer) resultCount() int {
 	return len(s.results)
 }
 
-// fakeAgent runs a shell script emitting {"text":…} / {"final":…} lines.
-type fakeAgent struct{ script string }
+// fakeAgent runs a shell script emitting {"text":…} / {"final":…} /
+// {"session":…} lines; resumeScript (when set) is what a Resume runs.
+type fakeAgent struct{ script, resumeScript string }
 
 func (f fakeAgent) Command(_ string, _ []string) []string {
 	return []string{"/bin/sh", "-c", f.script}
 }
 
+func (f fakeAgent) Resume(_, _ string, _ []string) []string {
+	if f.resumeScript == "" {
+		return nil
+	}
+	return []string{"/bin/sh", "-c", f.resumeScript}
+}
+
 func (f fakeAgent) Parse(line string) ParsedEvent {
 	var event struct {
-		Text  string  `json:"text"`
-		Final *string `json:"final"`
-		Model string  `json:"model"`
+		Text    string  `json:"text"`
+		Final   *string `json:"final"`
+		Model   string  `json:"model"`
+		Session string  `json:"session"`
 	}
 	if json.Unmarshal([]byte(line), &event) != nil {
 		return ParsedEvent{}
@@ -112,7 +121,7 @@ func (f fakeAgent) Parse(line string) ParsedEvent {
 	if event.Final != nil {
 		return ParsedEvent{Text: *event.Final, Final: *event.Final, HasFinal: true, Model: event.Model}
 	}
-	return ParsedEvent{Text: event.Text, Model: event.Model}
+	return ParsedEvent{Text: event.Text, Model: event.Model, SessionID: event.Session}
 }
 
 func initRepo(t *testing.T) (repo, root string) {
@@ -334,13 +343,98 @@ func TestPromptFoldsContextAndRules(t *testing.T) {
 	repo, root := initRepo(t)
 	cfg := testConfig("http://x", repo, root, nil)
 	worker := &Worker{cfg: cfg, task: testTask("RUN-1")}
-	prompt := worker.prompt("metis/ship-r1")
+	prompt := worker.prompt("metis/ship-r1", false, false)
 	for _, want := range []string{"implement the thing", "## Run subject\nship feature 42",
 		"earlier step: spec", "the spec", "http://a/spec.md", resultMarker, "metis/ship-r1",
 		"Commit all your work"} {
 		if !strings.Contains(prompt, want) {
 			t.Fatalf("prompt missing %q:\n%s", want, prompt)
 		}
+	}
+	if strings.Contains(prompt, "Session continuity") {
+		t.Fatal("a fresh prompt must not claim session continuity")
+	}
+}
+
+func TestResumedPromptSlimsPriorStepsOnlyWhenSessionIsCurrent(t *testing.T) {
+	repo, root := initRepo(t)
+	cfg := testConfig("http://x", repo, root, nil)
+	worker := &Worker{cfg: cfg, task: testTask("RUN-1")}
+
+	slim := worker.prompt("metis/run-r1", true, true)
+	if strings.Contains(slim, "earlier step: spec") {
+		t.Fatalf("a current session already saw the prior steps:\n%s", slim)
+	}
+	for _, want := range []string{"Session continuity", "## Run subject", "Commit all your work"} {
+		if !strings.Contains(slim, want) {
+			t.Fatalf("slim prompt missing %q:\n%s", want, slim)
+		}
+	}
+
+	stale := worker.prompt("metis/run-r1", true, false)
+	if !strings.Contains(stale, "earlier step: spec") || !strings.Contains(stale, "Session continuity") {
+		t.Fatalf("a resumed-but-stale session still needs the full bundle:\n%s", stale)
+	}
+}
+
+func TestRunSessionResumesAcrossSteps(t *testing.T) {
+	repo, root := initRepo(t)
+	stub := newStubServer(t)
+	cfg := testConfig(stub.server.URL, repo, root, nil)
+	server := cfg.Servers[0]
+	step := func(ref string, number int, agent fakeAgent) {
+		task := testTask(ref)
+		task.RunRef = "SHIP-R2"
+		task.Context.Workflow.Step = number
+		worker := &Worker{api: NewApi(server, cfg.Client), cfg: cfg, server: server,
+			task: task, agent: agent, logf: func(string, ...any) {}}
+		worker.Run()
+	}
+	step("SHIP-3", 1, fakeAgent{script: `echo '{"session":"sess-1"}'; echo '{"final":"implemented"}'`})
+
+	worktree := Worktree{Repo: repo, Root: testWorktreeRoot(root), Ref: "SHIP-R2"}
+	id, seen, ok := worktree.Session("claude")
+	if !ok || id != "sess-1" || seen != 1 {
+		t.Fatalf("session pointer = %q step %d ok %v", id, seen, ok)
+	}
+
+	step("SHIP-4", 2, fakeAgent{script: `echo '{"final":"fresh — resume was skipped"}'`,
+		resumeScript: `echo '{"final":"resumed"}'`})
+	if result := stub.lastResult(t); result["summary"] != "resumed" {
+		t.Fatalf("the second step must resume the saved session: %v", result)
+	}
+}
+
+func TestBrokenResumeFallsBackToFresh(t *testing.T) {
+	repo, root := initRepo(t)
+	stub := newStubServer(t)
+	cfg := testConfig(stub.server.URL, repo, root, nil)
+	server := cfg.Servers[0]
+	worktree := Worktree{Repo: repo, Root: testWorktreeRoot(root), Ref: "RUN-8"}
+	if err := worktree.Prepare(); err != nil {
+		t.Fatal(err)
+	}
+	if err := worktree.SaveSession("claude", "gone-id", 1); err != nil {
+		t.Fatal(err) // e.g. the CLI's own retention swept the transcript
+	}
+	worker := &Worker{api: NewApi(server, cfg.Client), cfg: cfg, server: server,
+		task: testTask("RUN-8"), agent: fakeAgent{script: `echo '{"final":"fresh"}'`,
+			resumeScript: `exit 1`}, logf: func(string, ...any) {}}
+	worker.Run()
+
+	result := stub.lastResult(t)
+	if result["status"] != "completed" || result["summary"] != "fresh" {
+		t.Fatalf("a dead session pointer must fall back to a fresh run: %v", result)
+	}
+}
+
+func TestFailedStepSavesNoSessionPointer(t *testing.T) {
+	repo, root := initRepo(t)
+	stub := newStubServer(t)
+	runWorker(t, stub, repo, root, `echo '{"session":"s9"}'; exit 1`, "RUN-9", nil)
+	worktree := Worktree{Repo: repo, Root: testWorktreeRoot(root), Ref: "RUN-9"}
+	if _, _, ok := worktree.Session("claude"); ok {
+		t.Fatal("a failed step must not become the session the next step resumes")
 	}
 }
 

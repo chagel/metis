@@ -22,20 +22,25 @@ func (p textParts) join() string {
 }
 
 // ParsedEvent is one line of an agent's stream: Text is activity for the
-// heartbeat snippet; Final (when HasFinal) is the agent's final message.
+// heartbeat snippet; Final (when HasFinal) is the agent's final message;
+// SessionID (when the agent reports one) keys the machine-local resume.
 type ParsedEvent struct {
-	Text     string
-	Final    string
-	HasFinal bool
-	Model    string
+	Text      string
+	Final     string
+	HasFinal  bool
+	Model     string
+	SessionID string
 }
 
 // Agent is the adapter seam: each coding agent is a command builder plus
-// a stream-line parser over its native headless JSON mode. A generic ACP
+// a stream-line parser over its native headless JSON mode. Resume builds
+// the continue-that-session variant — nil when the agent can't resume
+// with what it is given, and the caller must start fresh. A generic ACP
 // adapter joins here the first time an agent without a native stream is
 // needed.
 type Agent interface {
 	Command(prompt string, extraArgs []string) []string
+	Resume(session, prompt string, extraArgs []string) []string
 	Parse(line string) ParsedEvent
 }
 
@@ -68,14 +73,26 @@ func (claudeAgent) Command(prompt string, extraArgs []string) []string {
 		filterArgs(extraArgs, claudeBlocked)...)
 }
 
-// stream-json: {"type":"assistant",...} carries turn text;
+// Sessions are cwd-keyed, so without a captured id --continue still
+// resumes this worktree's latest conversation.
+func (a claudeAgent) Resume(session, prompt string, extraArgs []string) []string {
+	resume := []string{"--continue"}
+	if session != "" {
+		resume = []string{"--resume", session}
+	}
+	return append(a.Command(prompt, extraArgs), resume...)
+}
+
+// stream-json: {"type":"system","subtype":"init"} carries the session id;
+// {"type":"assistant",...} carries turn text;
 // {"type":"result","result":"…"} is the final message.
 func (claudeAgent) Parse(line string) ParsedEvent {
 	var event struct {
-		Type    string `json:"type"`
-		Result  string `json:"result"`
-		Model   string `json:"model"`
-		Message struct {
+		Type      string `json:"type"`
+		Result    string `json:"result"`
+		Model     string `json:"model"`
+		SessionID string `json:"session_id"`
+		Message   struct {
 			Model   string    `json:"model"`
 			Content textParts `json:"content"`
 		} `json:"message"`
@@ -85,7 +102,7 @@ func (claudeAgent) Parse(line string) ParsedEvent {
 	}
 	switch event.Type {
 	case "system":
-		return ParsedEvent{Model: event.Model}
+		return ParsedEvent{Model: event.Model, SessionID: event.SessionID}
 	case "assistant":
 		return ParsedEvent{Text: event.Message.Content.join(), Model: event.Message.Model}
 	case "result":
@@ -101,6 +118,13 @@ type piAgent struct{}
 
 func (piAgent) Command(prompt string, extraArgs []string) []string {
 	args := append([]string{"pi", "-p", "--mode", "json"}, filterArgs(extraArgs, piBlocked)...)
+	return append(args, prompt)
+}
+
+// pi sessions are cwd-scoped and pi reports no id in its stream:
+// --continue in the per-run worktree is the whole resume story.
+func (piAgent) Resume(_, prompt string, extraArgs []string) []string {
+	args := append([]string{"pi", "-p", "--mode", "json", "--continue"}, filterArgs(extraArgs, piBlocked)...)
 	return append(args, prompt)
 }
 
@@ -143,18 +167,34 @@ func (codexAgent) Command(prompt string, extraArgs []string) []string {
 	return append(args, prompt)
 }
 
-// exec --json: one event per line; item.completed/agent_message carries
-// that turn's text — the last one is the final message.
+// codex sessions are global, not cwd-keyed — resuming without an id
+// could grab another worker's session, so no id means start fresh.
+func (codexAgent) Resume(session, prompt string, extraArgs []string) []string {
+	if session == "" {
+		return nil
+	}
+	args := append([]string{"codex", "exec", "resume", session, "--json", "--full-auto", "--skip-git-repo-check"},
+		filterArgs(extraArgs, codexBlocked)...)
+	return append(args, prompt)
+}
+
+// exec --json: thread.started carries the session id; one event per
+// line; item.completed/agent_message carries that turn's text — the
+// last one is the final message.
 func (codexAgent) Parse(line string) ParsedEvent {
 	var event struct {
-		Type string `json:"type"`
-		Item struct {
+		Type     string `json:"type"`
+		ThreadID string `json:"thread_id"`
+		Item     struct {
 			Type string `json:"type"`
 			Text string `json:"text"`
 		} `json:"item"`
 	}
 	if json.Unmarshal([]byte(line), &event) != nil {
 		return ParsedEvent{}
+	}
+	if event.Type == "thread.started" {
+		return ParsedEvent{SessionID: event.ThreadID}
 	}
 	if event.Type != "item.completed" {
 		return ParsedEvent{}

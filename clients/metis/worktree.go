@@ -46,7 +46,7 @@ func (w Worktree) Branch() string {
 
 func (w Worktree) Prepare() error {
 	if info, err := os.Stat(w.Path()); err == nil && info.IsDir() {
-		return w.writeMeta(map[string]any{"claimed_at": time.Now().UTC().Format(time.RFC3339)})
+		return w.claimMeta()
 	}
 	if err := os.MkdirAll(w.Root, 0o755); err != nil {
 		return err
@@ -67,7 +67,18 @@ func (w Worktree) Prepare() error {
 	if err := w.excludeMeta(); err != nil {
 		return err
 	}
-	return w.writeMeta(map[string]any{"claimed_at": time.Now().UTC().Format(time.RFC3339)})
+	return w.claimMeta()
+}
+
+// claimMeta marks the worktree active again: settled_at must go (it is
+// the gc eligibility signal) but everything else — the session pointers
+// above all — survives the re-claim.
+func (w Worktree) claimMeta() error {
+	return w.mergeMeta(func(meta map[string]any) {
+		meta["claimed_at"] = time.Now().UTC().Format(time.RFC3339)
+		delete(meta, "settled_at")
+		delete(meta, "status")
+	})
 }
 
 // excludeMeta keeps the bookkeeping file out of the agent's commits: the
@@ -96,16 +107,50 @@ func (w Worktree) excludeMeta() error {
 }
 
 func (w Worktree) Settle(status string) error {
+	return w.mergeMeta(func(meta map[string]any) {
+		meta["settled_at"] = time.Now().UTC().Format(time.RFC3339)
+		meta["status"] = status
+	})
+}
+
+// Session pointers are the machine-local memory across a run's steps:
+// the agent CLI keeps the transcript in its own store, the worktree meta
+// only records which session (and through which step) so the next step
+// can resume it. An empty id still marks "a completed session lives in
+// this cwd" — enough for the cwd-scoped --continue agents.
+func (w Worktree) SaveSession(agent, id string, step int) error {
+	return w.mergeMeta(func(meta map[string]any) {
+		sessions, _ := meta["sessions"].(map[string]any)
+		if sessions == nil {
+			sessions = map[string]any{}
+		}
+		sessions[agent] = map[string]any{"id": id, "step": step}
+		meta["sessions"] = sessions
+	})
+}
+
+func (w Worktree) Session(agent string) (id string, step int, ok bool) {
+	sessions, _ := w.readMeta()["sessions"].(map[string]any)
+	record, _ := sessions[agent].(map[string]any)
+	if record == nil {
+		return "", 0, false
+	}
+	id, _ = record["id"].(string)
+	number, _ := record["step"].(float64)
+	return id, int(number), true
+}
+
+func (w Worktree) readMeta() map[string]any {
 	meta := map[string]any{}
 	if raw, err := os.ReadFile(filepath.Join(w.Path(), metaFile)); err == nil {
 		_ = json.Unmarshal(raw, &meta)
 	}
-	meta["settled_at"] = time.Now().UTC().Format(time.RFC3339)
-	meta["status"] = status
-	return w.writeMeta(meta)
+	return meta
 }
 
-func (w Worktree) writeMeta(meta map[string]any) error {
+func (w Worktree) mergeMeta(update func(map[string]any)) error {
+	meta := w.readMeta()
+	update(meta)
 	encoded, err := json.MarshalIndent(meta, "", "  ")
 	if err != nil {
 		return err

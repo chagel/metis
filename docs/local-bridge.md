@@ -461,8 +461,23 @@ What shipped, against the spec:
   another machine starts fresh. This replaces the server-side
   `(client, work_dir, session_id)` pointer from the original spec —
   the machine's own disk is the resume pointer, no server state needed.
-  Agent-*session* resume (`--resume` into the same conversation) stays
-  future work.
+- **Agent-session continuity.** In the cloud every step of a run shares
+  one conversation; delegated steps used to start amnesiac each time,
+  with the context bundle as a lossy re-brief. Now the agent CLIs' own
+  cwd transcripts close the gap: when a step completes, the worktree
+  meta records a session pointer (`sessions: {agent: {id, step}}` —
+  the transcript itself stays in the agent's store), and the next step
+  on this machine resumes it (`claude --resume <id>`, pi `--continue`
+  — cwd-scoped, so the per-run worktree *is* the session key — and
+  `codex exec resume <id>`, captured from `thread.started` since codex
+  sessions are global). A resumed prompt drops the prior-steps bundle
+  only when the session already saw the immediately prior step; a
+  resume that dies without emitting a single event is treated as a
+  stale pointer (CLI upgraded, transcript reaped by the agent's own
+  retention) and falls back to a fresh run with the full bundle — the
+  bundle stays the guaranteed floor, and failed steps never become the
+  session a retry resumes. Nothing crosses machines and no server
+  state is added.
 - **Semantic-inactivity watchdog, no wall clock.** A session still
   emitting events is never killed for running long; N minutes of
   *silence* (default 10) kills the agent and reports a failed result,

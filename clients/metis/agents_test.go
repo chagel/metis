@@ -30,8 +30,16 @@ func TestClaudeCommandAndParse(t *testing.T) {
 		t.Fatal("user agent_args must come last so they can override defaults")
 	}
 
-	init := agent.Parse(`{"type":"system","subtype":"init","model":"claude-opus-4-8"}`)
-	if init.Model != "claude-opus-4-8" {
+	resume := agent.Resume("sess-1", "go on", nil)
+	if !slices.Contains(resume, "--resume") || !slices.Contains(resume, "sess-1") {
+		t.Fatalf("resume argv = %v", resume)
+	}
+	if cwd := agent.Resume("", "go on", nil); !slices.Contains(cwd, "--continue") {
+		t.Fatalf("id-less resume must fall back to the cwd session: %v", cwd)
+	}
+
+	init := agent.Parse(`{"type":"system","subtype":"init","model":"claude-opus-4-8","session_id":"sess-1"}`)
+	if init.Model != "claude-opus-4-8" || init.SessionID != "sess-1" {
 		t.Fatalf("init parse = %+v", init)
 	}
 	text := agent.Parse(`{"type":"assistant","message":{"content":[{"type":"text","text":"hi"}]}}`)
@@ -56,6 +64,10 @@ func TestPiCommandAndParse(t *testing.T) {
 	}
 	if cmd[len(cmd)-1] != "do it" {
 		t.Fatal("prompt must be the last argument")
+	}
+	resume := agent.Resume("ignored", "go on", nil)
+	if !slices.Contains(resume, "--continue") || resume[len(resume)-1] != "go on" {
+		t.Fatalf("pi resume must be cwd-scoped --continue with the prompt last: %v", resume)
 	}
 
 	final := agent.Parse(`{"type":"message_end","message":{"role":"assistant","provider":"anthropic","model":"claude-fable-5","content":[{"type":"text","text":"done"}]}}`)
@@ -83,6 +95,22 @@ func TestCodexCommandAndParse(t *testing.T) {
 	}
 	assertIncludes(t, cmd, "--model")
 
+	if argv := agent.Resume("", "go on", nil); argv != nil {
+		t.Fatalf("codex sessions are global — an id-less resume must be refused: %v", argv)
+	}
+	resume := agent.Resume("thread-7", "go on", nil)
+	want = []string{"codex", "exec", "resume", "thread-7"}
+	if !reflect.DeepEqual(resume[:4], want) {
+		t.Fatalf("resume prefix = %v", resume[:4])
+	}
+	if resume[len(resume)-1] != "go on" {
+		t.Fatal("prompt must be the last argument")
+	}
+
+	started := agent.Parse(`{"type":"thread.started","thread_id":"thread-7"}`)
+	if started.SessionID != "thread-7" {
+		t.Fatalf("thread.started parse = %+v", started)
+	}
 	final := agent.Parse(`{"type":"item.completed","item":{"id":"i0","type":"agent_message","text":"ready"}}`)
 	if final.Final != "ready" || !final.HasFinal {
 		t.Fatalf("agent_message parse = %+v", final)
