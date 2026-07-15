@@ -1,0 +1,67 @@
+name: Daemon release
+
+# Cut a daemon release by tagging the nested Go module:
+#   git tag clients/metis/v0.5.0 && git push origin clients/metis/v0.5.0
+# The tag version must match `const version` in clients/metis/main.go.
+# Builds darwin/linux x amd64/arm64 binaries + checksums and attaches
+# them to a GitHub release — what `metis upgrade` installs from.
+on:
+  push:
+    tags:
+      - "clients/metis/v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: clients/metis/go.mod
+
+      - name: Tag must match the source version
+        working-directory: clients/metis
+        run: |
+          tag_version="${GITHUB_REF_NAME#clients/metis/v}"
+          source_version="$(sed -n 's/^const version = "\(.*\)"$/\1/p' main.go)"
+          if [ "$tag_version" != "$source_version" ]; then
+            echo "tag says v$tag_version but main.go says v$source_version — bump const version first"
+            exit 1
+          fi
+
+      - name: Test
+        working-directory: clients/metis
+        run: |
+          test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+          go vet ./...
+          go test ./...
+
+      - name: Build release binaries
+        working-directory: clients/metis
+        run: |
+          mkdir -p dist
+          for os in darwin linux; do
+            for arch in amd64 arm64; do
+              CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" \
+                go build -trimpath -ldflags="-s -w" -o "dist/metis-$os-$arch" .
+            done
+          done
+          (cd dist && sha256sum metis-* > checksums.txt)
+
+      - name: Create the GitHub release
+        working-directory: clients/metis
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#clients/metis/v}"
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --verify-tag \
+            --title "metis daemon v$version" \
+            --notes "Local-bridge daemon release. Install a binary from the assets below, or run \`metis upgrade\` on a machine that already has one. Checksums in checksums.txt."

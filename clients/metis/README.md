@@ -11,16 +11,25 @@ Go stdlib only, single static binary. macOS / Linux.
 
 ## Install
 
-From a checkout:
+Grab a prebuilt binary from the latest `clients/metis/v*` [release](https://github.com/chagel/metis/releases)
+(darwin/linux × amd64/arm64, checksums attached):
 
 ```sh
-cd clients/metis && go build -o /usr/local/bin/metis .
+curl -fsSL -o /usr/local/bin/metis \
+  https://github.com/chagel/metis/releases/download/clients%2Fmetis%2Fv0.3.0/metis-darwin-arm64
+chmod +x /usr/local/bin/metis
 ```
 
-or directly:
+or build it with Go — `@latest` resolves the same release tags:
 
 ```sh
 go install github.com/chagel/metis/clients/metis@latest
+```
+
+or from a checkout:
+
+```sh
+cd clients/metis && go build -o /usr/local/bin/metis .
 ```
 
 ## Configure
@@ -103,8 +112,33 @@ usually live in version-manager shims. Logs: `~/.metis/daemon.log`.
 while idle (never mid-task) — a valid edit swaps in once running tasks
 finish, an invalid one is logged and ignored, keeping the previous
 config running. Restart (`metis install` again, which also re-validates) only
-for binary upgrades or PATH changes. Project names match
-case-insensitively, mirroring the server.
+for PATH changes. Project names match case-insensitively, mirroring
+the server.
+
+## Upgrade
+
+```sh
+metis upgrade    # fetch the latest release, verify its checksum, swap this binary, restart the service
+```
+
+Checks GitHub for the newest `clients/metis/v*` release, downloads the
+binary for this platform, verifies it against the release's
+`checksums.txt`, replaces the binary that ran the command
+(write-then-rename, safe while the service runs the old one), and
+bounces the login service if one is installed. Already up to date — or
+running ahead of the latest release — is a no-op.
+
+Cutting a release (maintainers): bump `const version` in `main.go`,
+merge, then tag the nested module — the tag must match the source
+version or the workflow refuses:
+
+```sh
+git tag clients/metis/v0.4.0 && git push origin clients/metis/v0.4.0
+```
+
+The `daemon-release` workflow tests, cross-compiles, and attaches the
+binaries + checksums to a GitHub release; `metis upgrade` and
+`go install …@latest` both resolve it.
 
 ## How a task runs
 

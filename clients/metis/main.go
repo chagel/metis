@@ -33,6 +33,8 @@ func main() {
 		err = withDaemon(logger, func(d *Daemon) error { d.GC(); return nil })
 	case "install":
 		err = installService(logger.Printf)
+	case "upgrade":
+		err = upgradeService(logger.Printf)
 	case "stop":
 		err = stopService(logger.Printf)
 	case "status":
@@ -91,12 +93,13 @@ func writeSkeleton(path string) error {
 func usage() {
 	fmt.Printf(`metis %s — unattended daemon for delegated Metis workflow steps
 
-Usage: metis <init|once|run|gc|install|stop|status|log|uninstall>
+Usage: metis <init|once|run|gc|install|upgrade|stop|status|log|uninstall>
   init       write a config skeleton to ~/.metis/config.json (or $METIS_BRIDGE_CONFIG)
   once       one poll → work the claimed tasks → exit
   run        poll forever
   gc         sweep settled task worktrees
   install    install the binary and register a login service (launchd / systemd --user)
+  upgrade    download the latest release, swap this binary, restart the service
   stop       halt the service until next login or metis install
   status     report whether the service is installed and running
   log        follow the daemon log (tail -F / journalctl -f)

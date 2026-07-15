@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -220,22 +219,25 @@ func localBinDir() string {
 }
 
 func copyExecutable(src, dst string) error {
-	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
-		return err
-	}
-	in, err := os.Open(src)
+	content, err := os.ReadFile(src)
 	if err != nil {
 		return err
 	}
-	defer in.Close()
-	// Write-then-rename: the target may be the currently running service
-	// binary, which cannot be overwritten in place.
+	return writeExecutable(dst, content)
+}
+
+// writeExecutable is write-then-rename: the target may be the currently
+// running service binary, which cannot be overwritten in place.
+func writeExecutable(dst string, content []byte) error {
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		return err
+	}
 	tmp, err := os.CreateTemp(filepath.Dir(dst), ".metis-install-*")
 	if err != nil {
 		return err
 	}
 	defer os.Remove(tmp.Name())
-	if _, err := io.Copy(tmp, in); err != nil {
+	if _, err := tmp.Write(content); err != nil {
 		tmp.Close()
 		return err
 	}
@@ -247,6 +249,38 @@ func copyExecutable(src, dst string) error {
 		return err
 	}
 	return os.Rename(tmp.Name(), dst)
+}
+
+// restartService bounces an installed login service so it picks up a
+// swapped binary; a machine without one (attended `metis run`) is a
+// no-op with a hint.
+func restartService(logf func(string, ...any)) error {
+	switch runtime.GOOS {
+	case "darwin":
+		plist := launchdPlistPath()
+		if _, err := os.Stat(plist); err != nil {
+			logf("no login service installed — restart any running `metis run` yourself")
+			return nil
+		}
+		_ = exec.Command("launchctl", "bootout", launchdDomain()+"/"+launchdLabel).Run()
+		if out, err := exec.Command("launchctl", "bootstrap", launchdDomain(), plist).CombinedOutput(); err != nil {
+			return fmt.Errorf("launchctl bootstrap: %s", strings.TrimSpace(string(out)))
+		}
+		logf("service %s restarted", launchdLabel)
+		return nil
+	case "linux":
+		if _, err := os.Stat(systemdUnitPath()); err != nil {
+			logf("no login service installed — restart any running `metis run` yourself")
+			return nil
+		}
+		if out, err := exec.Command("systemctl", "--user", "restart", "metis-bridge.service").CombinedOutput(); err != nil {
+			return fmt.Errorf("systemctl restart: %s", strings.TrimSpace(string(out)))
+		}
+		logf("service metis-bridge restarted")
+		return nil
+	default:
+		return fmt.Errorf("service restart not supported on %s", runtime.GOOS)
+	}
 }
 
 func launchdPlistPath() string {

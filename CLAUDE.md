@@ -244,7 +244,9 @@ agent pulls. **`clients/metis/`** is the unattended client: a Go daemon
 (`metis`, stdlib-only, its own `go test` suite + CI job) that polls one or
 more deployments, runs pi / Claude Code / Codex headless in per-task git
 worktrees under `~/.metis/worktrees/` (up to `max_workers` tasks concurrently), and
-installs as a login service via `metis install`.
+installs as a login service via `metis install`. It releases via nested-module
+tags (`clients/metis/v*` → the `daemon-release` workflow builds binaries onto a
+GitHub release) and self-updates from them via `metis upgrade`.
 
 The **run board** (`BoardController`, `docs/workflows.md`) is a read-only
 cross-project view of every visible `WorkflowRun`, grouped into status
