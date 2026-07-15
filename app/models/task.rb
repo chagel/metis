@@ -148,9 +148,11 @@ class Task < ApplicationRecord
   end
 
   # The agent's full closing report — what later steps read; the summary
-  # is only the timeline line.
+  # is only the timeline line. A detail that merely echoes the summary is
+  # noise, normalized away here so every reporting client stays dumb.
   def result_detail
-    result["detail"].presence
+    detail = result["detail"].presence
+    detail unless detail == result_summary
   end
 
   def result_artifact_urls

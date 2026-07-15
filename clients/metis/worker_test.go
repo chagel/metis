@@ -176,13 +176,18 @@ func testTask(ref string) *Task {
 	return task
 }
 
+func runTask(t *testing.T, stub *stubServer, cfg *Config, task *Task, agent Agent) {
+	t.Helper()
+	server := cfg.Servers[0]
+	worker := &Worker{api: NewApi(server, cfg.Client), cfg: cfg, server: server,
+		task: task, agent: agent, logf: func(string, ...any) {}}
+	worker.Run()
+}
+
 func runWorker(t *testing.T, stub *stubServer, repo, root, script, ref string, mutate func(*Config)) *Config {
 	t.Helper()
 	cfg := testConfig(stub.server.URL, repo, root, mutate)
-	server := cfg.Servers[0]
-	worker := &Worker{api: NewApi(server, cfg.Client), cfg: cfg, server: server,
-		task: testTask(ref), agent: fakeAgent{script: script}, logf: func(string, ...any) {}}
-	worker.Run()
+	runTask(t, stub, cfg, testTask(ref), fakeAgent{script: script})
 	return cfg
 }
 
@@ -231,9 +236,6 @@ func TestFallbackSummaryWithoutStructuredResult(t *testing.T) {
 	result := stub.lastResult(t)
 	if result["status"] != "completed" || result["summary"] != "Shipped the fix." {
 		t.Fatalf("result = %v", result)
-	}
-	if _, ok := result["detail"]; ok {
-		t.Fatalf("a detail identical to the summary must not be sent: %v", result)
 	}
 }
 
@@ -311,9 +313,7 @@ func TestMissingCheckoutFailsFast(t *testing.T) {
 	cfg := testConfig(stub.server.URL, repo, root, nil)
 	task := testTask("RUN-1")
 	task.Context.Project.Name = "other-proj"
-	worker := &Worker{api: NewApi(cfg.Servers[0], cfg.Client), cfg: cfg, server: cfg.Servers[0],
-		task: task, agent: fakeAgent{script: "true"}, logf: func(string, ...any) {}}
-	worker.Run()
+	runTask(t, stub, cfg, task, fakeAgent{script: "true"})
 	result := stub.lastResult(t)
 	if result["status"] != "failed" || !strings.Contains(result["summary"].(string), "No checkout configured") {
 		t.Fatalf("result = %v", result)
@@ -343,7 +343,7 @@ func TestPromptFoldsContextAndRules(t *testing.T) {
 	repo, root := initRepo(t)
 	cfg := testConfig("http://x", repo, root, nil)
 	worker := &Worker{cfg: cfg, task: testTask("RUN-1")}
-	prompt := worker.prompt("metis/ship-r1", false, false)
+	prompt := worker.prompt("metis/ship-r1", briefFresh)
 	for _, want := range []string{"implement the thing", "## Run subject\nship feature 42",
 		"earlier step: spec", "the spec", "http://a/spec.md", resultMarker, "metis/ship-r1",
 		"Commit all your work"} {
@@ -361,7 +361,7 @@ func TestResumedPromptSlimsPriorStepsOnlyWhenSessionIsCurrent(t *testing.T) {
 	cfg := testConfig("http://x", repo, root, nil)
 	worker := &Worker{cfg: cfg, task: testTask("RUN-1")}
 
-	slim := worker.prompt("metis/run-r1", true, true)
+	slim := worker.prompt("metis/run-r1", briefResumedCurrent)
 	if strings.Contains(slim, "earlier step: spec") {
 		t.Fatalf("a current session already saw the prior steps:\n%s", slim)
 	}
@@ -371,24 +371,26 @@ func TestResumedPromptSlimsPriorStepsOnlyWhenSessionIsCurrent(t *testing.T) {
 		}
 	}
 
-	stale := worker.prompt("metis/run-r1", true, false)
+	stale := worker.prompt("metis/run-r1", briefResumed)
 	if !strings.Contains(stale, "earlier step: spec") || !strings.Contains(stale, "Session continuity") {
 		t.Fatalf("a resumed-but-stale session still needs the full bundle:\n%s", stale)
 	}
+}
+
+func runStep(t *testing.T, stub *stubServer, cfg *Config, runRef, ref string, number int, agent fakeAgent) {
+	t.Helper()
+	task := testTask(ref)
+	task.RunRef = runRef
+	task.Step = number
+	runTask(t, stub, cfg, task, agent)
 }
 
 func TestRunSessionResumesAcrossSteps(t *testing.T) {
 	repo, root := initRepo(t)
 	stub := newStubServer(t)
 	cfg := testConfig(stub.server.URL, repo, root, nil)
-	server := cfg.Servers[0]
 	step := func(ref string, number int, agent fakeAgent) {
-		task := testTask(ref)
-		task.RunRef = "SHIP-R2"
-		task.Context.Workflow.Step = number
-		worker := &Worker{api: NewApi(server, cfg.Client), cfg: cfg, server: server,
-			task: task, agent: agent, logf: func(string, ...any) {}}
-		worker.Run()
+		runStep(t, stub, cfg, "SHIP-R2", ref, number, agent)
 	}
 	step("SHIP-3", 1, fakeAgent{script: `echo '{"session":"sess-1"}'; echo '{"final":"implemented"}'`})
 
@@ -409,7 +411,6 @@ func TestBrokenResumeFallsBackToFresh(t *testing.T) {
 	repo, root := initRepo(t)
 	stub := newStubServer(t)
 	cfg := testConfig(stub.server.URL, repo, root, nil)
-	server := cfg.Servers[0]
 	worktree := Worktree{Repo: repo, Root: testWorktreeRoot(root), Ref: "RUN-8"}
 	if err := worktree.Prepare(); err != nil {
 		t.Fatal(err)
@@ -417,14 +418,36 @@ func TestBrokenResumeFallsBackToFresh(t *testing.T) {
 	if err := worktree.SaveSession("claude", "gone-id", 1); err != nil {
 		t.Fatal(err) // e.g. the CLI's own retention swept the transcript
 	}
-	worker := &Worker{api: NewApi(server, cfg.Client), cfg: cfg, server: server,
-		task: testTask("RUN-8"), agent: fakeAgent{script: `echo '{"final":"fresh"}'`,
-			resumeScript: `exit 1`}, logf: func(string, ...any) {}}
-	worker.Run()
+	runTask(t, stub, cfg, testTask("RUN-8"), fakeAgent{script: `echo '{"final":"fresh"}'`,
+		resumeScript: `exit 1`})
 
 	result := stub.lastResult(t)
 	if result["status"] != "completed" || result["summary"] != "fresh" {
 		t.Fatalf("a dead session pointer must fall back to a fresh run: %v", result)
+	}
+}
+
+func TestKilledResumeDoesNotRetryFresh(t *testing.T) {
+	repo, root := initRepo(t)
+	stub := newStubServer(t)
+	stub.state = TaskState{Status: "rejected"} // task settled server-side
+	cfg := testConfig(stub.server.URL, repo, root, func(c *Config) { c.CancelPollInterval = 1 })
+	worktree := Worktree{Repo: repo, Root: testWorktreeRoot(root), Ref: "RUN-12"}
+	if err := worktree.Prepare(); err != nil {
+		t.Fatal(err)
+	}
+	if err := worktree.SaveSession("claude", "sess-x", 1); err != nil {
+		t.Fatal(err)
+	}
+	runTask(t, stub, cfg, testTask("RUN-12"), fakeAgent{script: `echo '{"final":"fresh — must not run"}'`,
+		resumeScript: `sleep 30`})
+
+	result := stub.lastResult(t)
+	if !strings.Contains(result["summary"].(string), "settled or claim moved") {
+		t.Fatalf("a killed resume is not a dead pointer — no fresh retry: %v", result)
+	}
+	if stub.resultCount() != 1 {
+		t.Fatalf("exactly one result must be reported, got %d", stub.resultCount())
 	}
 }
 
@@ -442,13 +465,8 @@ func TestRunScopedWorktreeSharesStateAcrossSteps(t *testing.T) {
 	repo, root := initRepo(t)
 	stub := newStubServer(t)
 	cfg := testConfig(stub.server.URL, repo, root, nil)
-	server := cfg.Servers[0]
 	step := func(ref, script string) {
-		task := testTask(ref)
-		task.RunRef = "SHIP-R1"
-		worker := &Worker{api: NewApi(server, cfg.Client), cfg: cfg, server: server,
-			task: task, agent: fakeAgent{script: script}, logf: func(string, ...any) {}}
-		worker.Run()
+		runStep(t, stub, cfg, "SHIP-R1", ref, 0, fakeAgent{script: script})
 	}
 	step("SHIP-1", `git config user.email t@t; git config user.name t; `+
 		`touch impl.txt; git add impl.txt; git commit -qm impl; echo '{"final":"implemented"}'`)

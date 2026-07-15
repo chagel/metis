@@ -133,14 +133,10 @@ module Api
 
       def submit_result(args)
         task = find_delegated_task(args.fetch("task_id"))
-        result = {
-          "status" => args.fetch("status"),
-          "summary" => args.fetch("summary"),
-          "detail" => args["detail"],
-          "artifacts" => args["artifacts"],
-          "agent" => args["agent"],
-          "model" => args["model"]
-        }.compact
+        # fetch: a missing required field surfaces as a KeyError tool error.
+        args.fetch("status")
+        args.fetch("summary")
+        result = args.slice(*TaskPayloads::RESULT_FIELDS, "artifacts").compact
         return dead_task_error(task) unless task.reportable_by?(current_bridge_user)
 
         task.workflow_run.complete_delegated_task!(task, result: result)

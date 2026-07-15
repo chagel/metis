@@ -13,6 +13,15 @@ class TaskTest < ActiveSupport::TestCase
     assert task.auto?
   end
 
+  test "result_detail is nil when it merely echoes the summary" do
+    task = @run.tasks.create!(position: 0,
+                              result: { "summary" => "done", "detail" => "done" })
+    assert_nil task.result_detail
+
+    task.update!(result: { "summary" => "done", "detail" => "Changed retry.rb; committed abc123." })
+    assert_equal "Changed retry.rb; committed abc123.", task.result_detail
+  end
+
   test "position is required and unique per run" do
     @run.tasks.create!(position: 0)
     assert_raises(ActiveRecord::RecordNotUnique) do

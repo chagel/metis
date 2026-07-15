@@ -117,14 +117,18 @@ var piBlocked = []string{"-p", "--print", "--mode", "--session", "--session-id",
 type piAgent struct{}
 
 func (piAgent) Command(prompt string, extraArgs []string) []string {
-	args := append([]string{"pi", "-p", "--mode", "json"}, filterArgs(extraArgs, piBlocked)...)
-	return append(args, prompt)
+	return piArgs(prompt, extraArgs)
 }
 
 // pi sessions are cwd-scoped and pi reports no id in its stream:
 // --continue in the per-run worktree is the whole resume story.
 func (piAgent) Resume(_, prompt string, extraArgs []string) []string {
-	args := append([]string{"pi", "-p", "--mode", "json", "--continue"}, filterArgs(extraArgs, piBlocked)...)
+	return piArgs(prompt, extraArgs, "--continue")
+}
+
+func piArgs(prompt string, extraArgs []string, flags ...string) []string {
+	args := append([]string{"pi", "-p", "--mode", "json"}, flags...)
+	args = append(args, filterArgs(extraArgs, piBlocked)...)
 	return append(args, prompt)
 }
 
@@ -158,13 +162,8 @@ var codexBlocked = []string{"--json", "--output-schema", "--skip-git-repo-check"
 
 type codexAgent struct{}
 
-// --skip-git-repo-check: a fresh worktree path is never in codex's
-// trusted-directory list, and exec mode has no way to answer the trust
-// prompt.
 func (codexAgent) Command(prompt string, extraArgs []string) []string {
-	args := append([]string{"codex", "exec", "--json", "--full-auto", "--skip-git-repo-check"},
-		filterArgs(extraArgs, codexBlocked)...)
-	return append(args, prompt)
+	return codexArgs([]string{"exec"}, prompt, extraArgs)
 }
 
 // codex sessions are global, not cwd-keyed — resuming without an id
@@ -173,8 +172,16 @@ func (codexAgent) Resume(session, prompt string, extraArgs []string) []string {
 	if session == "" {
 		return nil
 	}
-	args := append([]string{"codex", "exec", "resume", session, "--json", "--full-auto", "--skip-git-repo-check"},
-		filterArgs(extraArgs, codexBlocked)...)
+	return codexArgs([]string{"exec", "resume", session}, prompt, extraArgs)
+}
+
+// --skip-git-repo-check: a fresh worktree path is never in codex's
+// trusted-directory list, and exec mode has no way to answer the trust
+// prompt.
+func codexArgs(subcommand []string, prompt string, extraArgs []string) []string {
+	args := append(append([]string{"codex"}, subcommand...),
+		"--json", "--full-auto", "--skip-git-repo-check")
+	args = append(args, filterArgs(extraArgs, codexBlocked)...)
 	return append(args, prompt)
 }
 

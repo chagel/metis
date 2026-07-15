@@ -51,7 +51,10 @@ type outcome struct {
 	artifacts []Artifact
 	model     string
 	session   string
-	activity  bool
+	// exitedSilent: the agent process ended on its own without one
+	// parsed event — on a resume, the signature of a dead session
+	// pointer. Kills (watchdog, cancellation) never set it.
+	exitedSilent bool
 }
 
 func (w *Worker) Run() {
@@ -71,9 +74,9 @@ func (w *Worker) Run() {
 	// A resume that dies without a single parsed event is a broken
 	// session pointer (stale id, upgraded CLI), not a real task failure
 	// — the fresh run with the full context bundle is the floor.
-	if result != nil && resumed && result.status == "failed" && !result.activity {
+	if result != nil && resumed && result.exitedSilent {
 		w.logf("task %s: resume produced nothing — starting fresh", w.label())
-		result = w.driveAgent(worktree, w.agent.Command(w.prompt(worktree.Branch(), false, false), w.cfg.AgentArgs))
+		result = w.driveAgent(worktree, w.freshCommand(worktree))
 	}
 	if result == nil {
 		w.logf("task %s: gone — stopped", w.label())
@@ -92,25 +95,29 @@ func (w *Worker) Run() {
 
 // command picks resume when this worktree already holds a completed
 // session for the configured agent — the machine-local continuation of
-// the run's earlier steps. The prompt drops the prior-steps bundle only
-// when that session already saw the immediately prior step; a run whose
-// middle steps landed on another machine still gets the full re-brief.
+// the run's earlier steps.
 func (w *Worker) command(worktree Worktree) ([]string, bool) {
 	session, step, ok := worktree.Session(w.cfg.Agent)
 	if ok {
-		slim := step >= w.stepNumber()-1
-		if argv := w.agent.Resume(session, w.prompt(worktree.Branch(), true, slim), w.cfg.AgentArgs); argv != nil {
+		mode := briefResumed
+		if step >= w.stepNumber()-1 {
+			mode = briefResumedCurrent
+		}
+		if argv := w.agent.Resume(session, w.prompt(worktree.Branch(), mode), w.cfg.AgentArgs); argv != nil {
 			return argv, true
 		}
 	}
-	return w.agent.Command(w.prompt(worktree.Branch(), false, false), w.cfg.AgentArgs), false
+	return w.freshCommand(worktree), false
 }
 
-// stepNumber is 1-based; the claim payload omits the workflow block for
-// single-step runs.
+func (w *Worker) freshCommand(worktree Worktree) []string {
+	return w.agent.Command(w.prompt(worktree.Branch(), briefFresh), w.cfg.AgentArgs)
+}
+
+// stepNumber is 1-based; older servers omit the claim field.
 func (w *Worker) stepNumber() int {
-	if step := w.task.Context.Workflow.Step; step > 0 {
-		return step
+	if w.task.Step > 0 {
+		return w.task.Step
 	}
 	return 1
 }
@@ -184,14 +191,15 @@ func (w *Worker) driveAgent(worktree Worktree, argv []string) *outcome {
 		select {
 		case line, open := <-lines:
 			if !open {
+				var result *outcome
 				if err := cmd.Wait(); err != nil {
-					return &outcome{status: "failed", summary: w.failureSummary(finalText),
-						detail: strings.TrimSpace(finalText), model: model, session: session, activity: activity}
+					result = &outcome{status: "failed", summary: w.failureSummary(finalText),
+						detail: strings.TrimSpace(finalText), exitedSilent: !activity}
+				} else {
+					result = w.conclude(finalText)
 				}
-				result := w.conclude(finalText)
 				result.model = model
 				result.session = session
-				result.activity = activity
 				return result
 			}
 			lastActivity = time.Now()
@@ -278,11 +286,8 @@ func (w *Worker) failureSummary(finalText string) string {
 
 func (w *Worker) report(result *outcome) {
 	summary := truncate(result.summary, 2000)
-	detail := strings.TrimSpace(result.detail)
-	if detail == summary {
-		detail = "" // nothing beyond the summary — don't store it twice
-	}
-	err := w.api.Result(w.task.TaskID, result.status, summary, truncate(detail, detailCap),
+	detail := truncate(strings.TrimSpace(result.detail), detailCap)
+	err := w.api.Result(w.task.TaskID, result.status, summary, detail,
 		result.artifacts, w.cfg.Agent, result.model)
 	switch {
 	case errors.Is(err, ErrGone):
@@ -294,12 +299,21 @@ func (w *Worker) report(result *outcome) {
 	}
 }
 
-// prompt assembles the step brief. resumed adds the continuity note;
-// slim additionally drops the prior-steps bundle — the resumed session
-// already contains those steps, re-briefing them only burns context.
-func (w *Worker) prompt(branch string, resumed, slim bool) string {
+// brief is how much re-briefing the step prompt carries: a fresh run
+// gets the full prior-steps bundle; a resumed session gets the
+// continuity note, and drops the bundle only when it already saw the
+// immediately prior step — re-briefing those only burns context.
+type brief int
+
+const (
+	briefFresh          brief = iota
+	briefResumed              // resumed, but the session missed steps — keep the bundle
+	briefResumedCurrent       // resumed and current — the session saw the prior steps
+)
+
+func (w *Worker) prompt(branch string, mode brief) string {
 	sections := []string{w.task.Prompt}
-	if resumed {
+	if mode != briefFresh {
 		sections = append(sections, "## Session continuity\n"+
 			"This conversation continues the session that worked this run's earlier steps "+
 			"in this same worktree — your earlier context and decisions still apply.")
@@ -307,7 +321,7 @@ func (w *Worker) prompt(branch string, resumed, slim bool) string {
 	if input := w.task.Context.Input; input != "" {
 		sections = append(sections, "## Run subject\n"+input)
 	}
-	if !slim {
+	if mode != briefResumedCurrent {
 		for _, step := range w.task.Context.PriorSteps {
 			body := fmt.Sprintf("## Context from earlier step: %s\n%s", step.Name, step.Content)
 			urls := []string{}

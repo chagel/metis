@@ -70,7 +70,7 @@ module Api
       end
 
       def result_params
-        params.permit(:status, :summary, :detail, :agent, :model,
+        params.permit(*TaskPayloads::RESULT_FIELDS,
                       artifacts: [ :type, :url, :files_changed, :insertions, :deletions ]).to_h
       end
     end

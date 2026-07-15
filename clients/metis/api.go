@@ -29,6 +29,7 @@ type Task struct {
 	Ref     string `json:"ref"`
 	RunID   int64  `json:"run_id"`
 	RunRef  string `json:"run_ref"`
+	Step    int    `json:"step"`
 	Name    string `json:"name"`
 	Prompt  string `json:"prompt"`
 	Context struct {
@@ -38,9 +39,6 @@ type Task struct {
 			About string `json:"about"`
 		} `json:"project"`
 		PriorSteps []PriorStep `json:"prior_steps"`
-		Workflow   struct {
-			Step int `json:"step"`
-		} `json:"workflow"`
 	} `json:"context"`
 }
 

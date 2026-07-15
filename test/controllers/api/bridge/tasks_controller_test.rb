@@ -167,13 +167,14 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     assert_nil older.tasks.first.reload.claimed_by
   end
 
-  test "claim payload carries the run ref that keys the shared worktree" do
+  test "claim payload carries the run ref and step that key the shared worktree session" do
     run = dispatch_run
     get "/api/bridge/tasks/next", headers: auth
     assert_response :success
-    run_ref = JSON.parse(response.body)["run_ref"]
-    assert_equal run.ref, run_ref
-    assert_match(/\ARUN-R[0-9A-Z]+\z/, run_ref)
+    body = JSON.parse(response.body)
+    assert_equal run.ref, body["run_ref"]
+    assert_match(/\ARUN-R[0-9A-Z]+\z/, body["run_ref"])
+    assert_equal 1, body["step"]
   end
 
   test "a delegated prior step hands its full detail to the next local step" do

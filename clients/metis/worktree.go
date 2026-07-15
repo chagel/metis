@@ -13,6 +13,21 @@ import (
 
 const metaFile = ".metis-task.json"
 
+// taskMeta is the daemon's bookkeeping stamp inside a worktree: claim
+// and settle timestamps (gc eligibility), and per-agent session
+// pointers — the transcript itself stays in the agent CLI's own store.
+type taskMeta struct {
+	ClaimedAt string                   `json:"claimed_at,omitempty"`
+	SettledAt string                   `json:"settled_at,omitempty"`
+	Status    string                   `json:"status,omitempty"`
+	Sessions  map[string]sessionRecord `json:"sessions,omitempty"`
+}
+
+type sessionRecord struct {
+	ID   string `json:"id"`
+	Step int    `json:"step"`
+}
+
 // repoLocks serializes parent-checkout git mutations: parallel workers
 // (and the gc sweep) may share one configured checkout, and concurrent
 // worktree add/prune/remove race on its .git metadata.
@@ -74,10 +89,10 @@ func (w Worktree) Prepare() error {
 // the gc eligibility signal) but everything else — the session pointers
 // above all — survives the re-claim.
 func (w Worktree) claimMeta() error {
-	return w.mergeMeta(func(meta map[string]any) {
-		meta["claimed_at"] = time.Now().UTC().Format(time.RFC3339)
-		delete(meta, "settled_at")
-		delete(meta, "status")
+	return w.mergeMeta(func(meta *taskMeta) {
+		meta.ClaimedAt = time.Now().UTC().Format(time.RFC3339)
+		meta.SettledAt = ""
+		meta.Status = ""
 	})
 }
 
@@ -107,50 +122,40 @@ func (w Worktree) excludeMeta() error {
 }
 
 func (w Worktree) Settle(status string) error {
-	return w.mergeMeta(func(meta map[string]any) {
-		meta["settled_at"] = time.Now().UTC().Format(time.RFC3339)
-		meta["status"] = status
+	return w.mergeMeta(func(meta *taskMeta) {
+		meta.SettledAt = time.Now().UTC().Format(time.RFC3339)
+		meta.Status = status
 	})
 }
 
-// Session pointers are the machine-local memory across a run's steps:
-// the agent CLI keeps the transcript in its own store, the worktree meta
-// only records which session (and through which step) so the next step
-// can resume it. An empty id still marks "a completed session lives in
-// this cwd" — enough for the cwd-scoped --continue agents.
+// Session pointers are the machine-local memory across a run's steps.
+// An empty id still marks "a completed session lives in this cwd" —
+// enough for the cwd-scoped --continue agents.
 func (w Worktree) SaveSession(agent, id string, step int) error {
-	return w.mergeMeta(func(meta map[string]any) {
-		sessions, _ := meta["sessions"].(map[string]any)
-		if sessions == nil {
-			sessions = map[string]any{}
+	return w.mergeMeta(func(meta *taskMeta) {
+		if meta.Sessions == nil {
+			meta.Sessions = map[string]sessionRecord{}
 		}
-		sessions[agent] = map[string]any{"id": id, "step": step}
-		meta["sessions"] = sessions
+		meta.Sessions[agent] = sessionRecord{ID: id, Step: step}
 	})
 }
 
 func (w Worktree) Session(agent string) (id string, step int, ok bool) {
-	sessions, _ := w.readMeta()["sessions"].(map[string]any)
-	record, _ := sessions[agent].(map[string]any)
-	if record == nil {
-		return "", 0, false
-	}
-	id, _ = record["id"].(string)
-	number, _ := record["step"].(float64)
-	return id, int(number), true
+	record, ok := w.readMeta().Sessions[agent]
+	return record.ID, record.Step, ok
 }
 
-func (w Worktree) readMeta() map[string]any {
-	meta := map[string]any{}
+func (w Worktree) readMeta() taskMeta {
+	meta := taskMeta{}
 	if raw, err := os.ReadFile(filepath.Join(w.Path(), metaFile)); err == nil {
 		_ = json.Unmarshal(raw, &meta)
 	}
 	return meta
 }
 
-func (w Worktree) mergeMeta(update func(map[string]any)) error {
+func (w Worktree) mergeMeta(update func(*taskMeta)) error {
 	meta := w.readMeta()
-	update(meta)
+	update(&meta)
 	encoded, err := json.MarshalIndent(meta, "", "  ")
 	if err != nil {
 		return err
@@ -206,9 +211,7 @@ func gcStamp(path string, ttl time.Duration, entry os.DirEntry) (time.Time, time
 		}
 		return info.ModTime().UTC(), ttl * 3, true // orphan
 	}
-	var meta struct {
-		SettledAt string `json:"settled_at"`
-	}
+	var meta taskMeta
 	if json.Unmarshal(raw, &meta) != nil || meta.SettledAt == "" {
 		return time.Time{}, 0, false // still being worked
 	}

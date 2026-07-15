@@ -171,6 +171,7 @@ same effect by list-then-pick.
   "task_id": 5521,
   "run_id": 880,
   "run_ref": "CHEESE-R1G",                 // keys the daemon's per-run worktree + branch
+  "step": 3,                               // 1-based position — how far a resumed session is behind
   "name": "Implement the retry-budget cap",
   "prompt": "Implement the retry-budget cap described in the plan…",
   "context": {
