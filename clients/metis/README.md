@@ -114,8 +114,10 @@ case-insensitively, mirroring the server.
    `metis/<run-ref>` — never a checkout doing other duty. The worktree
    is keyed by *run*, so consecutive delegated steps of one workflow
    run share the branch and working tree on this machine: the prompt
-   tells each agent to commit before finishing, and the next step
-   builds on those commits. A re-claimed task whose worktree survives
+   tells each agent to commit before finishing, the daemon enforces it
+   (leftovers are committed as `metis: leftover work from step <ref>`
+   before a completed result is accepted), and the next step builds on
+   those commits. A re-claimed task whose worktree survives
    resumes in it; another machine starts fresh from the checkout's
    HEAD.
 3. The agent runs headless in its native JSON stream (`claude -p

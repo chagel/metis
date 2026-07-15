@@ -454,9 +454,12 @@ What shipped, against the spec:
   step never saw, so the implementation existed but the review step
   reviewed HEAD and the MR step had nothing to push. Consecutive steps
   claimed by one machine now share the branch and working tree; the
-  unattended prompt requires committing before finishing, so the work
-  also survives GC and reaches any step that lands elsewhere once
-  branch fetch / claim affinity exists (see open questions).
+  unattended prompt requires committing before finishing, and the
+  daemon *enforces* it — leftovers on a completed step are committed
+  by the daemon before the result is accepted (an unenforced prompt
+  instruction left the data-loss mode open), so the work survives GC
+  and reaches any step that lands elsewhere once branch fetch / claim
+  affinity exists (see open questions).
 - **Machine-local resume.** A re-claimed task whose worktree still
   exists on this machine reuses it (same branch, same partial work);
   another machine starts fresh. This replaces the server-side

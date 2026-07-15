@@ -163,6 +163,32 @@ func (w Worktree) mergeMeta(update func(*taskMeta)) error {
 	return os.WriteFile(filepath.Join(w.Path(), metaFile), encoded, 0o644)
 }
 
+// CommitLeftovers enforces the commit-before-finishing contract the
+// prompt only states: uncommitted work on a completed step would be
+// invisible to later steps and swept by gc, so the daemon commits it
+// rather than trusting the agent did. Returns whether a commit was
+// made; a clean tree is a no-op. The meta file lives in info/exclude,
+// so it never rides along.
+func (w Worktree) CommitLeftovers(message string) (bool, error) {
+	status, err := exec.Command("git", "-C", w.Path(), "status", "--porcelain").Output()
+	if err != nil {
+		return false, fmt.Errorf("git status failed in %s", w.Path())
+	}
+	if strings.TrimSpace(string(status)) == "" {
+		return false, nil
+	}
+	for _, args := range [][]string{
+		{"add", "-A"},
+		{"-c", "user.name=metis", "-c", "user.email=daemon@metis.invalid", "commit", "-m", message},
+	} {
+		out, err := exec.Command("git", append([]string{"-C", w.Path()}, args...)...).CombinedOutput()
+		if err != nil {
+			return false, fmt.Errorf("git %s failed: %s", strings.Join(args, " "), strings.TrimSpace(string(out)))
+		}
+	}
+	return true, nil
+}
+
 func (w Worktree) branchExists(branch string) bool {
 	return exec.Command("git", "-C", w.Repo, "rev-parse", "--verify", "refs/heads/"+branch).Run() == nil
 }

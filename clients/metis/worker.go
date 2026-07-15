@@ -82,6 +82,20 @@ func (w *Worker) Run() {
 		w.logf("task %s: gone — stopped", w.label())
 		return
 	}
+	// The commit contract is enforced, not trusted: leftovers an agent
+	// failed to commit are committed here so they reach later steps and
+	// survive gc; a leftover we cannot commit fails the step instead of
+	// silently completing with doomed work.
+	if result.status == "completed" {
+		committed, err := worktree.CommitLeftovers("metis: leftover work from step " + w.task.Ref)
+		switch {
+		case err != nil:
+			result = &outcome{status: "failed", summary: fmt.Sprintf(
+				"Step reported success but left work the daemon could not commit: %v", err)}
+		case committed:
+			w.logf("task %s: agent left uncommitted work — committed it as leftovers", w.label())
+		}
+	}
 	if result.status == "completed" {
 		if err := worktree.SaveSession(w.cfg.Agent, result.session, w.stepNumber()); err != nil {
 			w.logf("task %s: could not save session pointer: %v", w.label(), err)

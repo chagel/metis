@@ -451,6 +451,43 @@ func TestKilledResumeDoesNotRetryFresh(t *testing.T) {
 	}
 }
 
+func TestCompletedStepCommitsLeftovers(t *testing.T) {
+	repo, root := initRepo(t)
+	stub := newStubServer(t)
+	runWorker(t, stub, repo, root, `touch leftover.txt; echo '{"final":"done"}'`, "RUN-13", nil)
+	if result := stub.lastResult(t); result["status"] != "completed" {
+		t.Fatalf("result = %v", result)
+	}
+	worktree := filepath.Join(testWorktreeRoot(root), "RUN-13")
+	status, _ := exec.Command("git", "-C", worktree, "status", "--porcelain").Output()
+	if strings.TrimSpace(string(status)) != "" {
+		t.Fatalf("a completed step must leave a clean worktree:\n%s", status)
+	}
+	subject, _ := exec.Command("git", "-C", worktree, "log", "-1", "--format=%s").Output()
+	if !strings.Contains(string(subject), "leftover work from step RUN-13") {
+		t.Fatalf("head commit = %q, want the daemon's leftover commit", subject)
+	}
+}
+
+func TestCleanAndSelfCommittedStepsAddNoLeftoverCommit(t *testing.T) {
+	repo, root := initRepo(t)
+	stub := newStubServer(t)
+	runWorker(t, stub, repo, root, `echo '{"final":"analysis only"}'`, "RUN-14", nil)
+	count, _ := exec.Command("git", "-C", filepath.Join(testWorktreeRoot(root), "RUN-14"),
+		"rev-list", "--count", "HEAD").Output()
+	if strings.TrimSpace(string(count)) != "1" {
+		t.Fatalf("a clean step must add no commit, history = %s", count)
+	}
+
+	runWorker(t, stub, repo, root, `git config user.email t@t; git config user.name t; `+
+		`touch impl.txt; git add impl.txt; git commit -qm impl; echo '{"final":"built"}'`, "RUN-15", nil)
+	subject, _ := exec.Command("git", "-C", filepath.Join(testWorktreeRoot(root), "RUN-15"),
+		"log", "-1", "--format=%s").Output()
+	if strings.TrimSpace(string(subject)) != "impl" {
+		t.Fatalf("head = %q — an agent that committed its own work needs no leftover commit", subject)
+	}
+}
+
 func TestFailedStepSavesNoSessionPointer(t *testing.T) {
 	repo, root := initRepo(t)
 	stub := newStubServer(t)
