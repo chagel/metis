@@ -35,6 +35,7 @@ module Api
           task_id: task.id,
           ref: task.ref,
           run_id: run.id,
+          run_ref: run.ref,
           name: task.name,
           prompt: task.prompt,
           context: {
@@ -87,7 +88,7 @@ module Api
       end
 
       def step_content(task)
-        task.result_summary || task.assistant_message&.content.presence
+        task.result_detail || task.result_summary || task.assistant_message&.content.presence
       end
 
       def step_artifacts(task)

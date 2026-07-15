@@ -67,8 +67,7 @@ class Task < ApplicationRecord
   # of a bare id. Derived from the id, so it needs no column and never
   # collides; dereference accepts either form.
   def ref
-    slug = (workflow_run.workflow&.name || "RUN").parameterize.upcase.first(12)
-    "#{slug}-#{id.to_s(36).upcase}"
+    "#{workflow_run.ref_slug}-#{id.to_s(36).upcase}"
   end
 
   def self.dereference(ref_or_id)
@@ -138,14 +137,20 @@ class Task < ApplicationRecord
     "#{claimed_by_user.display_label}'s #{claimed_by.presence || "machine"}"
   end
 
-  # The result jsonb ({ "status", "summary", "artifacts" }) is read only
-  # through these.
+  # The result jsonb ({ "status", "summary", "detail", "artifacts" }) is
+  # read only through these.
   def result_failed?
     result["status"] == "failed"
   end
 
   def result_summary
     result["summary"].presence
+  end
+
+  # The agent's full closing report — what later steps read; the summary
+  # is only the timeline line.
+  def result_detail
+    result["detail"].presence
   end
 
   def result_artifact_urls

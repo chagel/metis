@@ -242,7 +242,7 @@ heartbeat), and `events`/`result` answer `410 Gone` once a task is
 cancelled or reclaimed. Metis never drives the user's machine — the local
 agent pulls. **`clients/metis/`** is the unattended client: a Go daemon
 (`metis`, stdlib-only, its own `go test` suite + CI job) that polls one or
-more deployments, runs pi / Claude Code / Codex headless in per-task git
+more deployments, runs pi / Claude Code / Codex headless in per-run git
 worktrees under `~/.metis/worktrees/` (up to `max_workers` tasks concurrently), and
 installs as a login service via `metis install`.
 

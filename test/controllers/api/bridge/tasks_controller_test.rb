@@ -167,6 +167,39 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     assert_nil older.tasks.first.reload.claimed_by
   end
 
+  test "claim payload carries the run ref that keys the shared worktree" do
+    run = dispatch_run
+    get "/api/bridge/tasks/next", headers: auth
+    assert_response :success
+    run_ref = JSON.parse(response.body)["run_ref"]
+    assert_equal run.ref, run_ref
+    assert_match(/\ARUN-R[0-9A-Z]+\z/, run_ref)
+  end
+
+  test "a delegated prior step hands its full detail to the next local step" do
+    run = WorkflowRun.start(team: @team, user: @user,
+                            project: @team.projects.create!(name: "Handoff"), steps: [
+      { "name" => "implement", "prompt" => "build it", "run" => "local" },
+      { "name" => "review", "prompt" => "review it", "run" => "local" }
+    ])
+    WorkflowAdvanceJob.perform_now(run.id)        # dispatch the first local step
+
+    get "/api/bridge/tasks/next", headers: auth
+    first_id = JSON.parse(response.body)["task_id"]
+    detail = "Implemented the cache in app/services/cache.rb; committed as abc123.\n#{"All the specifics. " * 30}"
+    post "/api/bridge/tasks/#{first_id}/result",
+         params: { status: "completed", summary: "built it", detail: detail }, headers: auth
+    assert_response :ok
+    WorkflowAdvanceJob.perform_now(run.id)        # dispatch the second local step
+
+    get "/api/bridge/tasks/next", headers: auth
+    body = JSON.parse(response.body)
+    assert_equal run.tasks.second.id, body["task_id"]
+    prior = body.dig("context", "prior_steps").first
+    assert_equal "implement", prior["name"]
+    assert_equal detail, prior["content"], "the full detail, not the one-line summary"
+  end
+
   test "tasks carry a ref, claimable and reportable by it" do
     run = dispatch_run
     task = run.tasks.first
@@ -252,12 +285,14 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     post "/api/bridge/tasks/#{task_id}/result",
          params: { status: "completed", summary: "done", agent: "claude",
                    model: "anthropic/claude-opus-4-8",
+                   detail: "Changed retry.rb and capped at 5; committed as abc123.",
                    artifacts: [ { type: "pr", url: "http://x/1" } ] },
          headers: auth
     assert_response :ok
     task = run.tasks.first.reload
     assert task.completed?
     assert_equal "done", task.result["summary"]
+    assert_equal "Changed retry.rb and capped at 5; committed as abc123.", task.result_detail
     assert_equal "claude", task.result_agent
     assert_equal "anthropic/claude-opus-4-8", task.result_model
     assert run.reload.running?   # single step → completion runs via the enqueued advance

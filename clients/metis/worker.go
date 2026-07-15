@@ -16,13 +16,14 @@ const (
 	resultMarker       = "METIS_RESULT:"
 	summaryFallbackLen = 500
 	snippetLen         = 120
+	detailCap          = 65536
 )
 
 // bridgeAPI is the slice of Api the worker needs; tests stand up a real
 // httptest server instead of mocking it.
 type bridgeAPI interface {
 	Event(id int64, text string) error
-	Result(id int64, status, summary string, artifacts []Artifact, agent, model string) error
+	Result(id int64, status, summary, detail string, artifacts []Artifact, agent, model string) error
 	TaskState(id int64) (*TaskState, error)
 }
 
@@ -46,6 +47,7 @@ func (w *Worker) label() string {
 type outcome struct {
 	status    string
 	summary   string
+	detail    string
 	artifacts []Artifact
 	model     string
 }
@@ -57,7 +59,7 @@ func (w *Worker) Run() {
 			"No checkout configured on %s for project %q.", w.cfg.Client, w.task.Context.Project.Name)})
 		return
 	}
-	worktree := Worktree{Repo: repo, Root: w.cfg.WorktreeRoot(w.server), Ref: w.task.Ref}
+	worktree := Worktree{Repo: repo, Root: w.cfg.WorktreeRoot(w.server), Ref: w.worktreeRef()}
 	if err := worktree.Prepare(); err != nil {
 		w.report(&outcome{status: "failed", summary: err.Error()})
 		return
@@ -79,8 +81,18 @@ func (w *Worker) Run() {
 // inactivity watchdog — semantic, not wall-clock: a session still
 // emitting events is never killed for running long. A nil return means
 // the task died server-side and the result must not be reported.
+// worktreeRef keys the worktree and branch by run, so consecutive
+// delegated steps of one run share repo state on this machine; the task
+// ref is the fallback for servers that predate run_ref.
+func (w *Worker) worktreeRef() string {
+	if w.task.RunRef != "" {
+		return w.task.RunRef
+	}
+	return w.task.Ref
+}
+
 func (w *Worker) driveAgent(worktree Worktree) *outcome {
-	argv := w.agent.Command(w.prompt(), w.cfg.AgentArgs)
+	argv := w.agent.Command(w.prompt(worktree.Branch()), w.cfg.AgentArgs)
 	w.logf("task %s: running %s in %s", w.label(), argv[0], worktree.Path())
 
 	cmd := exec.Command(argv[0], argv[1:]...)
@@ -132,7 +144,8 @@ func (w *Worker) driveAgent(worktree Worktree) *outcome {
 		case line, open := <-lines:
 			if !open {
 				if err := cmd.Wait(); err != nil {
-					return &outcome{status: "failed", summary: w.failureSummary(finalText), model: model}
+					return &outcome{status: "failed", summary: w.failureSummary(finalText),
+						detail: strings.TrimSpace(finalText), model: model}
 				}
 				result := w.conclude(finalText)
 				result.model = model
@@ -178,7 +191,9 @@ func (w *Worker) driveAgent(worktree Worktree) *outcome {
 }
 
 // The agent is asked to end with a METIS_RESULT: json line; honour it
-// when present, fall back to its final message otherwise.
+// when present, fall back to its final message otherwise. The final
+// message minus the marker line rides along as the detail — the full
+// report later workflow steps read.
 func (w *Worker) conclude(finalText string) *outcome {
 	lines := strings.Split(finalText, "\n")
 	for i := len(lines) - 1; i >= 0; i-- {
@@ -198,9 +213,10 @@ func (w *Worker) conclude(finalText string) *outcome {
 		if structured.Status == "failed" {
 			status = "failed"
 		}
-		return &outcome{status: status, summary: structured.Summary, artifacts: structured.Artifacts}
+		detail := strings.TrimSpace(strings.Join(lines[:i], "\n") + "\n" + strings.Join(lines[i+1:], "\n"))
+		return &outcome{status: status, summary: structured.Summary, detail: detail, artifacts: structured.Artifacts}
 	}
-	return &outcome{status: "completed", summary: fallbackSummary(finalText)}
+	return &outcome{status: "completed", summary: fallbackSummary(finalText), detail: strings.TrimSpace(finalText)}
 }
 
 func (w *Worker) failureSummary(finalText string) string {
@@ -213,7 +229,12 @@ func (w *Worker) failureSummary(finalText string) string {
 
 func (w *Worker) report(result *outcome) {
 	summary := truncate(result.summary, 2000)
-	err := w.api.Result(w.task.TaskID, result.status, summary, result.artifacts, w.cfg.Agent, result.model)
+	detail := strings.TrimSpace(result.detail)
+	if detail == summary {
+		detail = "" // nothing beyond the summary — don't store it twice
+	}
+	err := w.api.Result(w.task.TaskID, result.status, summary, truncate(detail, detailCap),
+		result.artifacts, w.cfg.Agent, result.model)
 	switch {
 	case errors.Is(err, ErrGone):
 		w.logf("task %s: result discarded (task no longer live)", w.label())
@@ -224,7 +245,7 @@ func (w *Worker) report(result *outcome) {
 	}
 }
 
-func (w *Worker) prompt() string {
+func (w *Worker) prompt(branch string) string {
 	sections := []string{w.task.Prompt}
 	if input := w.task.Context.Input; input != "" {
 		sections = append(sections, "## Run subject\n"+input)
@@ -244,12 +265,18 @@ func (w *Worker) prompt() string {
 	}
 	sections = append(sections, fmt.Sprintf(`## Unattended run rules
 You run unattended in a dedicated git worktree on a branch named
-metis/%s — work here, never switch branches of the main checkout.
+%s — work here, never switch branches of the main checkout.
+Every step of this workflow run shares that branch: earlier steps'
+commits are already on it, and later steps build on yours.
 Follow the repo's own conventions and run its tests.
-When the task is fully done, print exactly one final line:
+Commit all your work to this branch before finishing — uncommitted
+files are invisible to later steps and eventually swept away.
+When the task is fully done, print a full closing report (what you
+changed, where, and how the next step should build on it), then
+exactly one final line:
 %s {"status":"completed","summary":"<one or two sentences>","artifacts":[{"type":"pr","url":"…"}]}
 Use "status":"failed" with a precise reason when you cannot finish.`,
-		strings.ToLower(w.task.Ref), resultMarker))
+		branch, resultMarker))
 	return strings.Join(sections, "\n\n")
 }
 

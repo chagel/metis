@@ -24,11 +24,12 @@ func lockRepo(repo string) func() {
 	return mu.(*sync.Mutex).Unlock
 }
 
-// Worktree is the per-task isolation: a git worktree off the project's
-// configured checkout, on a metis/<ref> branch — the task never touches
-// a checkout doing other duty. An existing worktree for the same ref is
-// reused: that is the machine-local resume (a re-claimed task continues
-// where this machine left off; another machine starts fresh).
+// Worktree is the per-run isolation: a git worktree off the project's
+// configured checkout, on a metis/<run-ref> branch — never a checkout
+// doing other duty. Keyed by run so consecutive delegated steps share
+// repo state; an existing worktree for the same ref is reused — the
+// machine-local resume and the step-to-step handoff alike (another
+// machine starts fresh from the checkout's HEAD).
 type Worktree struct {
 	Repo string
 	Root string
@@ -37,6 +38,10 @@ type Worktree struct {
 
 func (w Worktree) Path() string {
 	return filepath.Join(w.Root, w.Ref)
+}
+
+func (w Worktree) Branch() string {
+	return "metis/" + strings.ToLower(w.Ref)
 }
 
 func (w Worktree) Prepare() error {
@@ -50,12 +55,11 @@ func (w Worktree) Prepare() error {
 	if err := w.git("worktree", "prune"); err != nil {
 		return err
 	}
-	branch := "metis/" + strings.ToLower(w.Ref)
 	var err error
-	if w.branchExists(branch) {
-		err = w.git("worktree", "add", w.Path(), branch) // re-claim after gc — same branch
+	if w.branchExists(w.Branch()) {
+		err = w.git("worktree", "add", w.Path(), w.Branch()) // re-claim after gc — same branch
 	} else {
-		err = w.git("worktree", "add", w.Path(), "-b", branch)
+		err = w.git("worktree", "add", w.Path(), "-b", w.Branch())
 	}
 	if err != nil {
 		return err

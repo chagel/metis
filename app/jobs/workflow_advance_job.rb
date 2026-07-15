@@ -106,7 +106,7 @@ class WorkflowAdvanceJob < ApplicationJob
     line = %(Step "#{task.name}" ran on the user's machine and reported: #{task.result_summary || task.result["status"]})
     urls = task.result_artifact_urls
     line += " (#{urls.join(", ")})" if urls.any?
-    line
+    [ line, task.result_detail ].compact_blank.join("\n\n")
   end
 
   # Park the run for a local machine — no turn, no ChatJob. It resumes

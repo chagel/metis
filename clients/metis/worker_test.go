@@ -195,6 +195,9 @@ func TestHappyPathStructuredResult(t *testing.T) {
 	if result["agent"] != "claude" || result["model"] != "anthropic/claude-opus-4-8" {
 		t.Fatalf("agent/model must ride with the result: %v", result)
 	}
+	if result["detail"] != "All done" {
+		t.Fatalf("the final message minus the marker must ride as detail: %v", result)
+	}
 
 	worktree := filepath.Join(testWorktreeRoot(root), "RUN-1")
 	branch, _ := exec.Command("git", "-C", worktree, "branch", "--show-current").Output()
@@ -219,6 +222,9 @@ func TestFallbackSummaryWithoutStructuredResult(t *testing.T) {
 	result := stub.lastResult(t)
 	if result["status"] != "completed" || result["summary"] != "Shipped the fix." {
 		t.Fatalf("result = %v", result)
+	}
+	if _, ok := result["detail"]; ok {
+		t.Fatalf("a detail identical to the summary must not be sent: %v", result)
 	}
 }
 
@@ -328,11 +334,42 @@ func TestPromptFoldsContextAndRules(t *testing.T) {
 	repo, root := initRepo(t)
 	cfg := testConfig("http://x", repo, root, nil)
 	worker := &Worker{cfg: cfg, task: testTask("RUN-1")}
-	prompt := worker.prompt()
+	prompt := worker.prompt("metis/ship-r1")
 	for _, want := range []string{"implement the thing", "## Run subject\nship feature 42",
-		"earlier step: spec", "the spec", "http://a/spec.md", resultMarker, "metis/run-1"} {
+		"earlier step: spec", "the spec", "http://a/spec.md", resultMarker, "metis/ship-r1",
+		"Commit all your work"} {
 		if !strings.Contains(prompt, want) {
 			t.Fatalf("prompt missing %q:\n%s", want, prompt)
 		}
+	}
+}
+
+func TestRunScopedWorktreeSharesStateAcrossSteps(t *testing.T) {
+	repo, root := initRepo(t)
+	stub := newStubServer(t)
+	cfg := testConfig(stub.server.URL, repo, root, nil)
+	server := cfg.Servers[0]
+	step := func(ref, script string) {
+		task := testTask(ref)
+		task.RunRef = "SHIP-R1"
+		worker := &Worker{api: NewApi(server, cfg.Client), cfg: cfg, server: server,
+			task: task, agent: fakeAgent{script: script}, logf: func(string, ...any) {}}
+		worker.Run()
+	}
+	step("SHIP-1", `git config user.email t@t; git config user.name t; `+
+		`touch impl.txt; git add impl.txt; git commit -qm impl; echo '{"final":"implemented"}'`)
+	step("SHIP-2", `test -f impl.txt || exit 1; echo '{"final":"reviewed"}'`)
+
+	result := stub.lastResult(t)
+	if result["status"] != "completed" || result["summary"] != "reviewed" {
+		t.Fatalf("the second step must see the first step's work: %v", result)
+	}
+	worktree := filepath.Join(testWorktreeRoot(root), "SHIP-R1")
+	branch, _ := exec.Command("git", "-C", worktree, "branch", "--show-current").Output()
+	if strings.TrimSpace(string(branch)) != "metis/ship-r1" {
+		t.Fatalf("branch = %q", branch)
+	}
+	if _, err := os.Stat(filepath.Join(testWorktreeRoot(root), "SHIP-1")); !os.IsNotExist(err) {
+		t.Fatal("no per-task worktree must be created when the server sends run_ref")
 	}
 }

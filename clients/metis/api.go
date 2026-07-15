@@ -28,6 +28,7 @@ type Task struct {
 	TaskID  int64  `json:"task_id"`
 	Ref     string `json:"ref"`
 	RunID   int64  `json:"run_id"`
+	RunRef  string `json:"run_ref"`
 	Name    string `json:"name"`
 	Prompt  string `json:"prompt"`
 	Context struct {
@@ -94,8 +95,11 @@ func (a *Api) Event(id int64, text string) error {
 		map[string]any{"kind": "log", "text": text})
 }
 
-func (a *Api) Result(id int64, status, summary string, artifacts []Artifact, agent, model string) error {
+func (a *Api) Result(id int64, status, summary, detail string, artifacts []Artifact, agent, model string) error {
 	body := map[string]any{"status": status, "summary": summary}
+	if detail != "" {
+		body["detail"] = detail
+	}
 	if len(artifacts) > 0 {
 		body["artifacts"] = artifacts
 	}

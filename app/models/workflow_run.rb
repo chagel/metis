@@ -18,6 +18,17 @@ class WorkflowRun < ApplicationRecord
     queued? || pending? || running? || awaiting_approval? || awaiting_local?
   end
 
+  # The run-level short reference ("CHEESE-R1G") — the stable key a daemon
+  # uses for the run's shared worktree and branch. The R infix keeps it
+  # apart from task refs, which carry the same slug.
+  def ref
+    "#{ref_slug}-R#{id.to_s(36).upcase}"
+  end
+
+  def ref_slug
+    (workflow&.name || "RUN").parameterize.upcase.first(12)
+  end
+
   # `input` is the run's subject — folded into the first step's prompt here;
   # later steps get it restated (engine step_prompt, bridge claim payload).
   # `visibility` is the launcher's choice from the composer: a team-visible

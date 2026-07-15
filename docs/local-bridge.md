@@ -170,6 +170,7 @@ same effect by list-then-pick.
 {
   "task_id": 5521,
   "run_id": 880,
+  "run_ref": "CHEESE-R1G",                 // keys the daemon's per-run worktree + branch
   "name": "Implement the retry-budget cap",
   "prompt": "Implement the retry-budget cap described in the plan…",
   "context": {
@@ -215,6 +216,7 @@ skill teaches both halves.
 {
   "status": "completed",            // completed | failed
   "summary": "Capped retries at 5 with jittered backoff; tests green.",
+  "detail": "Changed retry.rb and config/retry.yml; committed as abc123 on the run branch. …",
   "artifacts": [
     { "type": "pr",   "url": "https://github.com/acme/metis-api/pull/123" },
     { "type": "diff", "files_changed": 4, "insertions": 61, "deletions": 12 }
@@ -222,10 +224,14 @@ skill teaches both halves.
 }
 ```
 
-Metis records the result on the `Task`, optionally appends the timeline
-summary line, sets the task `completed` (or `awaiting_approval` if the step
-carries a review gate), flips the run back to `running`, and enqueues
-`WorkflowAdvanceJob` — the exact re-entry `approve_current_gate!` uses.
+`summary` is the one-line timeline entry; `detail` is the agent's full
+closing report — it is what later steps read (the next claim's
+`prior_steps[].content`, and the fold-in when a cloud step follows), so
+a summary-only result starves the handoff. Metis records the result on
+the `Task`, optionally appends the timeline summary line, sets the task
+`completed` (or `awaiting_approval` if the step carries a review gate),
+flips the run back to `running`, and enqueues `WorkflowAdvanceJob` —
+the exact re-entry `approve_current_gate!` uses.
 A result posted after the task died (reclaimed, cancelled) is discarded
 with `410 Gone` — the claim that holds the task wins, not the last
 writer.
@@ -436,11 +442,20 @@ stream. It is an extension point, not a redesign.
 
 What shipped, against the spec:
 
-- **Worktree-per-task.** Each task runs in `git worktree add` off the
-  project's configured checkout, on a `metis/<ref>` branch — never on a
-  checkout doing other duty. (Learned live: the first dogfood run
+- **Worktree-per-run.** Each task runs in `git worktree add` off the
+  project's configured checkout, on a `metis/<run-ref>` branch — never
+  on a checkout doing other duty. (Learned live: the first dogfood run
   switched the dev server's branch and knocked the bridge API off the
-  very server it was reporting to.)
+  very server it was reporting to.) The worktree is keyed by *run*
+  (the claim payload's `run_ref`; task ref for older servers), not by
+  task — the second live lesson: an 8-step all-delegated run under
+  per-*task* worktrees stranded each step's work in a tree the next
+  step never saw, so the implementation existed but the review step
+  reviewed HEAD and the MR step had nothing to push. Consecutive steps
+  claimed by one machine now share the branch and working tree; the
+  unattended prompt requires committing before finishing, so the work
+  also survives GC and reaches any step that lands elsewhere once
+  branch fetch / claim affinity exists (see open questions).
 - **Machine-local resume.** A re-claimed task whose worktree still
   exists on this machine reuses it (same branch, same partial work);
   another machine starts fresh. This replaces the server-side
@@ -471,12 +486,23 @@ What shipped, against the spec:
 
 ## Open questions
 
-- **Context handoff fidelity.** Settled one notch past the original
+- **Context handoff fidelity.** Settled two notches past the original
   plan: the bundle carries prior steps' *full* outputs + artifact URLs
   (the first dogfood run showed a 400-char truncation starves the
-  implementer of its spec). Still open: whether the full
-  `replayable_history` or a rendered `agents_md` ever needs to ride
-  along too.
+  implementer of its spec), and a delegated step's output is its result
+  `detail` — the agent's full closing report — not the one-line summary
+  (the second dogfood run re-created the same starvation local→local).
+  Still open: whether the full `replayable_history` or a rendered
+  `agents_md` ever needs to ride along too.
+- **Cross-machine run continuity.** The per-run worktree hands repo
+  state between steps only when one machine claims them all. When a
+  team-pooled run's steps land on different machines, the later step
+  starts from the checkout's HEAD — committed work reaches it only if
+  the repo shares a remote the daemon could push/fetch (not built).
+  Candidates, in escalation order: claim affinity (prefer the machine
+  that claimed the run's earlier steps — cheap, server-side only), then
+  an explicit push/fetch of the run branch. Wait for the friction to
+  show before building either.
 - **Result trust.** Metis records what the local agent reports
   (`pr_url`, diff stat) without verifying it. A later step can verify
   (CI, a cloud review turn), but v1 trusts the report. Worth a note in the
@@ -502,4 +528,6 @@ What shipped, against the spec:
 
 (Settled since the first draft: claim contention → `SKIP LOCKED` guard;
 mid-flight loss → the stale-claim sweeper; worktree isolation → the
-Phase 4 worktree-per-task rule. See *Reliability* and Phase 4.)
+Phase 4 worktree-per-run rule, keyed by run since the 8-step dogfood
+showed per-task trees strand each step's work. See *Reliability* and
+Phase 4.)

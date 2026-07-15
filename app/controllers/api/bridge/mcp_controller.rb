@@ -49,6 +49,9 @@ module Api
               task_id: { type: %w[integer string], description: "Task id or ref" },
               status: { type: "string", enum: %w[completed failed] },
               summary: { type: "string", description: "One or two sentences on the outcome" },
+              detail: { type: "string",
+                        description: "Your full closing report — later workflow steps read this, " \
+                                     "so include everything they need (what changed, where, how to build on it)" },
               artifacts: {
                 type: "array",
                 description: %(Links produced by the work, e.g. [{"type":"pr","url":"…"}]),
@@ -133,6 +136,7 @@ module Api
         result = {
           "status" => args.fetch("status"),
           "summary" => args.fetch("summary"),
+          "detail" => args["detail"],
           "artifacts" => args["artifacts"],
           "agent" => args["agent"],
           "model" => args["model"]

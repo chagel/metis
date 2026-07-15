@@ -77,6 +77,7 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
 
     run.complete_delegated_task!(task, result: {
       "status" => "completed", "summary" => "did it",
+      "detail" => "Implemented the cap in retry.rb; committed as abc123 on the run branch.",
       "artifacts" => [ { "type" => "pr", "url" => "http://x/1" } ]
     })
     run.reload
@@ -96,6 +97,8 @@ class WorkflowAdvanceDelegationTest < ActiveSupport::TestCase
     # prompt must carry it.
     step_prompt = run.conversation.messages.where(kind: :step_prompt).last.content
     assert_includes step_prompt, %(Step "impl" ran on the user's machine and reported: did it (http://x/1))
+    assert_includes step_prompt, "Implemented the cap in retry.rb; committed as abc123 on the run branch.",
+                    "the full detail must ride into the next cloud prompt, not just the summary line"
     assert_includes step_prompt, "next"
   end
 
