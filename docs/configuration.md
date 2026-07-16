@@ -112,6 +112,7 @@ keyed for.
 | `GROQ_API_KEY` | Groq |
 | `CEREBRAS_API_KEY` | Cerebras |
 | `MISTRAL_API_KEY` | Mistral |
+| `MOONSHOT_API_KEY` | Moonshot AI (Kimi) — both the international (`moonshotai`) and CN (`moonshotai-cn`) endpoints read this var; enable the provider matching where the key was issued |
 | `OPENROUTER_API_KEY` | OpenRouter |
 | `TOGETHER_API_KEY` | Together AI |
 | `FIREWORKS_API_KEY` | Fireworks |
