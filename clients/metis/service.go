@@ -326,10 +326,12 @@ func rebootstrapLaunchd(plist string) error {
 	var out []byte
 	var err error
 	for attempt := 0; attempt < 3; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Second)
+		}
 		if out, err = exec.Command("launchctl", "bootstrap", launchdDomain(), plist).CombinedOutput(); err == nil {
 			return nil
 		}
-		time.Sleep(time.Second)
 	}
 	return fmt.Errorf("launchctl bootstrap: %s", strings.TrimSpace(string(out)))
 }

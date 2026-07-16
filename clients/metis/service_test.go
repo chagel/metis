@@ -1,9 +1,69 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
+
+// fakeLaunchctl puts a scripted launchctl first on PATH and returns the
+// file each invocation's arguments are appended to. The script can
+// branch on $count — how many times its subcommand has run so far.
+func fakeLaunchctl(t *testing.T, script string) string {
+	t.Helper()
+	dir := t.TempDir()
+	log := filepath.Join(dir, "log")
+	body := "#!/bin/sh\n" +
+		"echo \"$1\" >> \"" + log + "\"\n" +
+		"count=$(grep -c \"^$1$\" \"" + log + "\")\n" +
+		script + "\n"
+	if err := os.WriteFile(filepath.Join(dir, "launchctl"), []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir+":"+os.Getenv("PATH"))
+	return log
+}
+
+func launchctlCalls(t *testing.T, log string) []string {
+	t.Helper()
+	raw, err := os.ReadFile(log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return strings.Fields(string(raw))
+}
+
+func TestRebootstrapWaitsOutTeardownAndRetries(t *testing.T) {
+	log := fakeLaunchctl(t, `case "$1" in
+bootout) exit 0;;
+print) [ "$count" -le 2 ] && exit 0 || exit 113;;
+bootstrap) [ "$count" -ge 2 ] || { echo "Bootstrap failed: 5: Input/output error" >&2; exit 5; };;
+esac`)
+	if err := rebootstrapLaunchd("/tmp/x.plist"); err != nil {
+		t.Fatalf("rebootstrap = %v", err)
+	}
+	calls := launchctlCalls(t, log)
+	want := []string{"bootout", "print", "print", "print", "bootstrap", "bootstrap"}
+	if strings.Join(calls, " ") != strings.Join(want, " ") {
+		t.Fatalf("calls = %v, want %v", calls, want)
+	}
+}
+
+func TestRebootstrapReportsPersistentFailure(t *testing.T) {
+	log := fakeLaunchctl(t, `case "$1" in
+print) exit 113;;
+bootstrap) echo "Bootstrap failed: 5: Input/output error" >&2; exit 5;;
+esac`)
+	err := rebootstrapLaunchd("/tmp/x.plist")
+	if err == nil || !strings.Contains(err.Error(), "Input/output error") {
+		t.Fatalf("rebootstrap = %v, want the launchctl stderr", err)
+	}
+	calls := launchctlCalls(t, log)
+	if got := strings.Count(strings.Join(calls, " "), "bootstrap"); got != 3 {
+		t.Fatalf("bootstrap attempts = %d, want 3", got)
+	}
+}
 
 func TestLaunchdPlist(t *testing.T) {
 	plist := launchdPlist("/usr/local/bin/metis", "/Users/m/.metis/daemon.log", "/opt/x/bin:/usr/bin")
