@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const launchdLabel = "com.metiser.bridge"
@@ -262,9 +263,8 @@ func restartService(logf func(string, ...any)) error {
 			logf("no login service installed — restart any running `metis run` yourself")
 			return nil
 		}
-		_ = exec.Command("launchctl", "bootout", launchdDomain()+"/"+launchdLabel).Run()
-		if out, err := exec.Command("launchctl", "bootstrap", launchdDomain(), plist).CombinedOutput(); err != nil {
-			return fmt.Errorf("launchctl bootstrap: %s", strings.TrimSpace(string(out)))
+		if err := rebootstrapLaunchd(plist); err != nil {
+			return err
 		}
 		logf("service %s restarted", launchdLabel)
 		return nil
@@ -305,12 +305,33 @@ func installLaunchd(binary, logPath string, logf func(string, ...any)) error {
 	if err := os.WriteFile(plist, []byte(launchdPlist(binary, logPath, os.Getenv("PATH"))), 0o644); err != nil {
 		return err
 	}
-	_ = exec.Command("launchctl", "bootout", launchdDomain()+"/"+launchdLabel).Run()
-	if out, err := exec.Command("launchctl", "bootstrap", launchdDomain(), plist).CombinedOutput(); err != nil {
-		return fmt.Errorf("launchctl bootstrap: %s", strings.TrimSpace(string(out)))
+	if err := rebootstrapLaunchd(plist); err != nil {
+		return err
 	}
 	logf("service %s running (logs: %s)", launchdLabel, logPath)
 	return nil
+}
+
+// launchctl bootout is asynchronous: bootstrapping the same label while
+// launchd still tears down the old instance fails with EIO. Wait for
+// the job to disappear, then retry the bootstrap for the tail of the
+// race — a failure here leaves the service stopped until next login.
+func rebootstrapLaunchd(plist string) error {
+	target := launchdDomain() + "/" + launchdLabel
+	_ = exec.Command("launchctl", "bootout", target).Run()
+	deadline := time.Now().Add(10 * time.Second)
+	for exec.Command("launchctl", "print", target).Run() == nil && time.Now().Before(deadline) {
+		time.Sleep(200 * time.Millisecond)
+	}
+	var out []byte
+	var err error
+	for attempt := 0; attempt < 3; attempt++ {
+		if out, err = exec.Command("launchctl", "bootstrap", launchdDomain(), plist).CombinedOutput(); err == nil {
+			return nil
+		}
+		time.Sleep(time.Second)
+	}
+	return fmt.Errorf("launchctl bootstrap: %s", strings.TrimSpace(string(out)))
 }
 
 func xmlEscape(s string) string {
