@@ -346,7 +346,7 @@ func TestPromptFoldsContextAndRules(t *testing.T) {
 	prompt := worker.prompt("metis/ship-r1", briefFresh)
 	for _, want := range []string{"implement the thing", "## Run subject\nship feature 42",
 		"earlier step: spec", "the spec", "http://a/spec.md", resultMarker, "metis/ship-r1",
-		"Commit all your work"} {
+		"Commit your work"} {
 		if !strings.Contains(prompt, want) {
 			t.Fatalf("prompt missing %q:\n%s", want, prompt)
 		}
@@ -365,7 +365,7 @@ func TestResumedPromptSlimsPriorStepsOnlyWhenSessionIsCurrent(t *testing.T) {
 	if strings.Contains(slim, "earlier step: spec") {
 		t.Fatalf("a current session already saw the prior steps:\n%s", slim)
 	}
-	for _, want := range []string{"Session continuity", "## Run subject", "Commit all your work"} {
+	for _, want := range []string{"Session continuity", "## Run subject", "Commit your work"} {
 		if !strings.Contains(slim, want) {
 			t.Fatalf("slim prompt missing %q:\n%s", want, slim)
 		}
@@ -464,8 +464,22 @@ func TestCompletedStepCommitsLeftovers(t *testing.T) {
 		t.Fatalf("a completed step must leave a clean worktree:\n%s", status)
 	}
 	subject, _ := exec.Command("git", "-C", worktree, "log", "-1", "--format=%s").Output()
-	if !strings.Contains(string(subject), "leftover work from step RUN-13") {
+	if !strings.Contains(string(subject), "work from step RUN-13") {
 		t.Fatalf("head commit = %q, want the daemon's leftover commit", subject)
+	}
+}
+
+func TestFailedStepStillCommitsLeftovers(t *testing.T) {
+	repo, root := initRepo(t)
+	stub := newStubServer(t)
+	runWorker(t, stub, repo, root, `touch partial.txt; echo '{"final":"broke"}'; exit 1`, "RUN-16", nil)
+	if result := stub.lastResult(t); result["status"] != "failed" {
+		t.Fatalf("result = %v", result)
+	}
+	subject, _ := exec.Command("git", "-C", filepath.Join(testWorktreeRoot(root), "RUN-16"),
+		"log", "-1", "--format=%s").Output()
+	if !strings.Contains(string(subject), "work from step RUN-16") {
+		t.Fatalf("head = %q — a failed step's partial work must be preserved", subject)
 	}
 }
 

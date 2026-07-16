@@ -83,18 +83,20 @@ func (w *Worker) Run() {
 		return
 	}
 	// The commit contract is enforced, not trusted: leftovers an agent
-	// failed to commit are committed here so they reach later steps and
-	// survive gc; a leftover we cannot commit fails the step instead of
-	// silently completing with doomed work.
-	if result.status == "completed" {
-		committed, err := worktree.CommitLeftovers("metis: leftover work from step " + w.task.Ref)
-		switch {
-		case err != nil:
-			result = &outcome{status: "failed", summary: fmt.Sprintf(
-				"Step reported success but left work the daemon could not commit: %v", err)}
-		case committed:
-			w.logf("task %s: agent left uncommitted work — committed it as leftovers", w.label())
-		}
+	// failed to commit (a sandboxed agent cannot commit at all) are
+	// committed here so they reach later steps and survive gc. On a
+	// completed step a leftover we cannot commit fails the step instead
+	// of silently completing with doomed work; on a failed step the
+	// sweep is best-effort — partial work is preserved for diagnosis.
+	committed, err := worktree.CommitLeftovers("metis: work from step " + w.task.Ref)
+	switch {
+	case err != nil && result.status == "completed":
+		result = &outcome{status: "failed", summary: fmt.Sprintf(
+			"Step reported success but left work the daemon could not commit: %v", err)}
+	case err != nil:
+		w.logf("task %s: could not commit leftover work: %v", w.label(), err)
+	case committed:
+		w.logf("task %s: agent left uncommitted work — committed it", w.label())
 	}
 	if result.status == "completed" {
 		if err := worktree.SaveSession(w.cfg.Agent, result.session, w.stepNumber()); err != nil {
@@ -356,8 +358,9 @@ You run unattended in a dedicated git worktree on a branch named
 Every step of this workflow run shares that branch: earlier steps'
 commits are already on it, and later steps build on yours.
 Follow the repo's own conventions and run its tests.
-Commit all your work to this branch before finishing — uncommitted
-files are invisible to later steps and eventually swept away.
+Commit your work to this branch as you finish. If your sandbox
+blocks git commits, that is not a failure: leave everything in the
+working tree — it is committed automatically when the step ends.
 When the task is fully done, print a full closing report (what you
 changed, where, and how the next step should build on it), then
 exactly one final line:

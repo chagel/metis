@@ -178,6 +178,10 @@ func (codexAgent) Resume(session, prompt string, extraArgs []string) []string {
 // --skip-git-repo-check: a fresh worktree path is never in codex's
 // trusted-directory list, and exec mode has no way to answer the trust
 // prompt.
+// --full-auto keeps codex's workspace-write sandbox, which makes .git
+// read-only — codex cannot commit; the daemon commits its work instead
+// (see CommitLeftovers). Loosen per-deployment via agent_args
+// (later flags win) when a step needs network or full disk access.
 func codexArgs(subcommand []string, prompt string, extraArgs []string) []string {
 	args := append(append([]string{"codex"}, subcommand...),
 		"--json", "--full-auto", "--skip-git-repo-check")
