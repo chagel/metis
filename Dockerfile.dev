@@ -18,7 +18,7 @@ ENV BUNDLE_PATH="/usr/local/bundle" \
 
 # Pin these in lockstep with bin/setup, docker/pi-runtime/Dockerfile, and
 # lib/tasks/e2b.rake. PI_VERSION mirrors PiAgent::SUPPORTED_PI_VERSION.
-ARG PI_VERSION=0.80.9
+ARG PI_VERSION=0.80.10
 ARG PI_MCP_ADAPTER_VERSION=2.7.0
 
 # Base toolchain: gem build deps + libvips/libpq for the app, plus the
