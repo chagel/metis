@@ -1131,7 +1131,7 @@ img.avatar { background:none; object-fit:cover; }
   display:flex; align-items:center; justify-content:center;
   margin-bottom:8px;
 }
-.preview-meta .shared-author { font-size:12px; }
+.preview-meta .shared-author { font-size:12px; flex-wrap:wrap; justify-content:center; }
 .preview-meta .shared-author-avatar { width:18px; height:18px; font-size:9px; }
 /* Standalone action buttons (Fullscreen, Download). Sized to match
    the segmented toggle below so the header reads as one row of
@@ -2224,6 +2224,7 @@ body.auth-shell { min-height:100vh; display:grid; place-items:center; padding:24
 .shared-author-name { font-weight:600; color:var(--ink); }
 .shared-author-dot { color:var(--ink-3); }
 .shared-author-time { color:var(--ink-3); }
+.shared-author-model { color:var(--ink-3); }
 .shared-stream .thread { display:flex; flex-direction:column; gap:14px; }
 .shared-foot {
   background:var(--card); border-top:1px solid var(--line);

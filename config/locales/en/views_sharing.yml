@@ -26,6 +26,7 @@ en:
   shared_artifacts:
     show:
       shared_ago: "Shared %{time} ago"
+      generated_with: "Generated with %{model}"
       view_mode: "View mode"
       fullscreen: "Fullscreen"
       download: "Download"

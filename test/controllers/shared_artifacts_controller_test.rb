@@ -28,6 +28,32 @@ class SharedArtifactsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".preview-meta .shared-author-time", text: /ago/
   end
 
+  test "the footer attributes the generating model and provider from the catalog" do
+    provider = LlmProvider.create!(key: "anthropic", label: "Anthropic")
+    provider.llm_models.create!(key: "claude-opus-4-8", label: "Claude Opus 4.8")
+    @message.update!(model_key: "claude-opus-4-8")
+
+    get shared_artifact_path(token: @share.token)
+
+    assert_response :success
+    assert_select ".shared-author-model", text: "Generated with Claude Opus 4.8 · Anthropic"
+  end
+
+  test "the footer falls back to the raw model key when uncatalogued" do
+    @message.update!(model_key: "gpt-6-nano")
+
+    get shared_artifact_path(token: @share.token)
+
+    assert_select ".shared-author-model", text: "Generated with gpt-6-nano"
+  end
+
+  test "the footer omits model attribution when no turn recorded one" do
+    get shared_artifact_path(token: @share.token)
+
+    assert_response :success
+    assert_select ".shared-author-model", false
+  end
+
   test "download streams the blob as an attachment" do
     get download_shared_artifact_path(token: @share.token)
 

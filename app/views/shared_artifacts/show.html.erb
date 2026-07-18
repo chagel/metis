@@ -54,6 +54,10 @@
         <span class="shared-author-name"><%= @share.created_by.display_label %></span>
         <span class="shared-author-dot" aria-hidden="true">·</span>
         <span class="shared-author-time"><%= t('.shared_ago', time: time_ago_in_words(@share.created_at)) %></span>
+        <% if (attribution = model_attribution(@model_key)).present? %>
+          <span class="shared-author-dot" aria-hidden="true">·</span>
+          <span class="shared-author-model"><%= t('.generated_with', model: attribution) %></span>
+        <% end %>
       </div>
     </div>
     <%= t('.powered_by_prefix') %> <a href="<%= root_url %>" target="_blank" rel="noopener">Metis</a>

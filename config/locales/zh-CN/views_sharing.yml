@@ -26,6 +26,7 @@
   shared_artifacts:
     show:
       shared_ago: "%{time}前分享"
+      generated_with: "由 %{model} 生成"
       view_mode: "查看模式"
       fullscreen: "全屏"
       download: "下载"

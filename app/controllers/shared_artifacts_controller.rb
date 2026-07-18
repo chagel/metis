@@ -15,6 +15,8 @@ class SharedArtifactsController < ApplicationController
 
   def show
     set_share
+    @model_key = Message.owning_artifact_blob(@blob).assistant
+                        .where.not(model_key: nil).chronological.pick(:model_key)
     @previewer = ArtifactPreviewer.for(@blob)
     @mode = @previewer.resolve_mode(params[:mode])
     @partial = (@previewer.partial_for_mode(@mode) if @mode && previewable?)

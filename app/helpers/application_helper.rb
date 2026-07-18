@@ -64,6 +64,14 @@ module ApplicationHelper
     (@model_label_map ||= LlmModel.pluck(:key, :label).to_h)[key] || key
   end
 
+  # Public attribution for a turn's model: "Claude Opus 4.7 · Anthropic"
+  # from the catalog, falling back to the raw pi key when uncatalogued.
+  def model_attribution(key)
+    return "" if key.blank?
+    labels = LlmModel.joins(:llm_provider).where(key: key).pick("llm_models.label", "llm_providers.label")
+    labels&.join(" · ") || key
+  end
+
   # The assistant footer on a public share: "model · duration". Duration (not
   # a wall-clock stamp) is the informative axis — a shared conversation is one
   # instant flow, so "3m ago" on every turn says nothing, while "1m 10s" tells
