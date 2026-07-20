@@ -57,6 +57,23 @@ agent ran — so it belongs to the `Runtime`, not to one shared mechanism.
   high as a crash-only safety net. The next turn against a deleted sandbox
   provisions fresh.
 
+- **`Runtime::Microsandbox`** — persistence follows `Docker`, not the
+  cloud sandboxes: the libkrun microVM is **disposable** — created fresh
+  each turn (`ephemeral: true`, its stored state reaped on stop) — and
+  the conversation's scope is a persistent host directory bind-mounted
+  into the guest. Nothing is paused, resumed, or evicted; the host
+  filesystem is the durable source and pi's own `--continue` resumes the
+  transcript. ([Docker workspace eviction](#docker-workspace-eviction)
+  is scoped to `docker` turns and does not reclaim microsandbox
+  workspaces yet, but the runtime carries the same evicted-workspace
+  detection, so a conversation evicted under `docker` and continued here
+  still gets the lost-files warning.) The runtime is embedded in the
+  worker process (no daemon),
+  so bind mounts resolve against the worker's own filesystem — no
+  Docker-in-Docker path-identity constraint — but the persistent
+  workspace root must still be durable storage shared by (or pinned to)
+  the workers, same as `Local` and `Docker`.
+
 `Agent::SessionArchive` is gone. The tar-to-Active-Storage path is no
 longer needed by any runtime.
 
@@ -118,8 +135,9 @@ Some workspace contents are *projections* of durable Rails state, not
 agent-produced output: user uploads, the rendered MCP connector config,
 the agent's per-turn boot identity. Each is read straight from its
 durable source at the start of every turn and **overwritten in place**
-in the persistent workspace — host filesystem for `Local` and `Docker`,
-the resumed microVM for `E2b`, the resumed sandbox for `Daytona`.
+in the persistent workspace — host filesystem for `Local`, `Docker`, and
+`Microsandbox`, the resumed microVM for `E2b`, the resumed sandbox for
+`Daytona`.
 
 | Projected input | Source |
 |---|---|

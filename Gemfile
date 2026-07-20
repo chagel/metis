@@ -49,6 +49,16 @@ gem "e2b"
 # Daytona elastic-sandbox runtime.
 gem "daytona", github: "chagel/daytona-sdk"
 
+# Microsandbox self-hosted libkrun microVMs — the :microsandbox runtime.
+# Optional group: the gem compiles a Rust native extension on install (no
+# precompiled platform gems), so only hosts that run this runtime opt in:
+#   bundle config set --local with microsandbox && bundle install
+# require: false + the runtime's lazy `require "microsandbox"` keep it off
+# the boot path everywhere else.
+group :microsandbox, optional: true do
+  gem "microsandbox-rb", "~> 0.10.0", require: false
+end
+
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
 

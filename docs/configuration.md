@@ -27,7 +27,7 @@ required is missing). In a deployment:
 
 | Variable | Purpose |
 |---|---|
-| `METIS_AGENT_RUNTIME` | `local` (default), `docker`, `e2b`, or `daytona` |
+| `METIS_AGENT_RUNTIME` | `local` (default), `docker`, `e2b`, `daytona`, or `microsandbox` |
 | `METIS_AGENT_PROVIDER` / `METIS_AGENT_MODEL` | default LLM provider/model for pi |
 | Provider API keys — `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, … | see [Providers](#providers) |
 | `SERPER_API_KEY` / `BRAVE_SEARCH_API_KEY` | web-search backend for the agent's `web_search` tool — recommended (DuckDuckGo rate-limits sandbox IPs); see [Web search](#web-search) |
@@ -39,6 +39,9 @@ required is missing). In a deployment:
 | `DAYTONA_API_KEY` / `METIS_DAYTONA_SNAPSHOT` | required by the `daytona` runtime |
 | `DAYTONA_API_URL` / `DAYTONA_TARGET` | optional Daytona API endpoint / region |
 | `METIS_DAYTONA_AUTO_STOP_MINUTES` / `_AUTO_ARCHIVE_MINUTES` / `_AUTO_DELETE_MINUTES` | Daytona idle-lifecycle intervals, minutes (default 120 / 60 / 1440). Stop is a crash-only safety net — keep it above the longest turn. |
+| `METIS_MICROSANDBOX_IMAGE` | OCI image for the `microsandbox` runtime (default `metis-pi`) — pulled from a registry, so push the `docker:image` build somewhere the worker can reach |
+| `METIS_MICROSANDBOX_REGISTRY_USERNAME` / `_PASSWORD` | optional registry credentials for that pull (an existing `docker login` is honored without them) |
+| `METIS_MICROSANDBOX_WORKSPACE_QUOTA_MIB` | optional guest-write budget on the bind-mounted conversation scope (unset = the runtime's 4 GiB default) |
 | `SMTP_ADDRESS`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, … | outbound email over SMTP — see [Email & access](#email--account-access) |
 | `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_EMAIL_API_TOKEN` | outbound email via Cloudflare Email Service — see [Email & access](#email--account-access) |
 | `METIS_MAIL_DELIVERY` | mail transport: `smtp` (production default), `cloudflare`, or `test` (development default — no real send) |
@@ -85,6 +88,23 @@ The runtime decides *where* pi runs. See `coding-runtime.md` and
   ```sh
   rake "daytona:snapshot[metis-pi]"
   ```
+- **`microsandbox`** — pi runs inside a self-hosted
+  [microsandbox](https://microsandbox.dev) libkrun microVM, driven
+  in-process by the [`microsandbox-rb`](https://rubygems.org/gems/microsandbox-rb)
+  gem — no daemon, no cloud API. VM-grade isolation (its own guest
+  kernel) on the worker's own hardware; requires Linux with KVM or macOS
+  on Apple Silicon. The gem rides an optional bundler group (it compiles
+  a Rust native extension), so opt in on the hosts that run it:
+
+  ```sh
+  bundle config set --local with microsandbox && bundle install
+  ```
+
+  The runtime boots the `docker:image` build as its guest — push it to a
+  registry the worker can pull from and point `METIS_MICROSANDBOX_IMAGE`
+  at it. Persistence follows the `docker` runtime: a disposable VM per
+  turn over a persistent host bind mount (see
+  [session-persistence](session-persistence.md)).
 
 Every runtime carries the **MCP connector bridge**
 ([`pi-mcp-adapter`](https://github.com/nicobailon/pi-mcp-adapter)):
@@ -141,8 +161,8 @@ the first configured provider, then falls through to the next only on error:
    operate the instance.
 4. **DuckDuckGo** — the keyless last resort, used when none is set. It
    rate-limits datacenter IPs (returns a 202 bot-challenge), so it routinely
-   fails inside the `docker`/`e2b`/`daytona` sandbox runtimes — configure
-   Serper or Brave for reliable search there.
+   fails inside the `docker`/`e2b`/`daytona`/`microsandbox` sandbox
+   runtimes — configure Serper or Brave for reliable search there.
 
 The keys are shared, deployment-level resources (no per-user keys), plumbed
 into the sandbox by `Agent::Runtime::Base#sandbox_env`.

@@ -59,7 +59,9 @@ pi. The Agent layer separates two concerns:
    UI from pi's wire protocol; it is not a multi-backend seam.
 2. **`Agent::Runtime`** — *where* the agent runs. `Runtime::Local` runs pi
    as a local subprocess, `Runtime::Docker` in a container, `Runtime::E2b`
-   in an isolated microVM, `Runtime::Daytona` in a Daytona elastic sandbox.
+   in an isolated microVM, `Runtime::Daytona` in a Daytona elastic sandbox,
+   `Runtime::Microsandbox` in a self-hosted libkrun microVM (in-process via
+   the optional `microsandbox-rb` gem — no daemon).
    **`Runtime::Local` is not a security boundary** — pi has shell access.
    In production the `docker` runtime runs under **gVisor** (`runsc`, set by
    `METIS_DOCKER_RUNTIME`) as Docker-in-Docker from the containerized `job`
@@ -127,6 +129,10 @@ turns is a **per-runtime concern** — see `docs/session-persistence.md`:
   community SDK is a fork (`chagel/daytona-sdk`) that adds session stdin +
   follow-logs streaming; `DaytonaTransport` drives `pi --mode rpc` over a
   Daytona session.
+- `Runtime::Microsandbox` bind-mounts a persistent host directory into a
+  disposable libkrun microVM (fresh each turn, `ephemeral`) — the Docker
+  persistence shape at VM-grade isolation, self-hosted and in-process;
+  `MicrosandboxTransport` drives `pi --mode rpc` over `exec_stream`.
 
 There is **no archive**. `Agent::SessionArchive` was removed (commits
 `349a0cb`, `c08eb79`); don't reintroduce a tar-to-Active-Storage path.

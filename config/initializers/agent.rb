@@ -13,6 +13,11 @@
 #   :daytona— pi inside a Daytona elastic sandbox. The Daytona-backed
 #             isolated runtime; requires DAYTONA_API_KEY and a snapshot
 #             with pi baked in (see the daytona:snapshot rake task).
+#   :microsandbox — pi inside a self-hosted libkrun microVM (in-process,
+#             no daemon or cloud API). VM-grade isolation on the worker's
+#             own hardware; requires Linux with KVM or macOS on Apple
+#             Silicon, the optional `microsandbox` bundler group, and an
+#             OCI image with pi baked in.
 Rails.application.config.x.agent.runtime =
   ENV.fetch("METIS_AGENT_RUNTIME", "local").to_sym
 
@@ -101,6 +106,26 @@ Rails.application.config.x.agent.daytona_auto_delete_minutes =
 # job never runs. 0 = stop as soon as the job runs (async, no warm window).
 Rails.application.config.x.agent.daytona_keep_warm_seconds =
   ENV.fetch("METIS_DAYTONA_KEEP_WARM_SECONDS", "120").to_i
+
+# OCI image used by the :microsandbox runtime — pi baked in. The docker:image
+# build satisfies the contract, but microsandbox pulls from OCI registries (it
+# cannot see a local Docker daemon's store), so push the image somewhere the
+# worker can pull it from and name it here.
+Rails.application.config.x.agent.microsandbox_image =
+  ENV["METIS_MICROSANDBOX_IMAGE"].presence || "metis-pi"
+
+# Optional registry credentials for that pull — a private registry, or lifting
+# Docker Hub's anonymous rate limit. Unset, an existing `docker login`
+# (~/.docker/config.json) is still honored.
+Rails.application.config.x.agent.microsandbox_registry_username =
+  ENV["METIS_MICROSANDBOX_REGISTRY_USERNAME"].presence
+Rails.application.config.x.agent.microsandbox_registry_password =
+  ENV["METIS_MICROSANDBOX_REGISTRY_PASSWORD"].presence
+
+# Guest-write budget (MiB) on the bind-mounted conversation scope. Unset uses
+# the runtime's default (4 GiB); raise it when working trees outgrow that.
+Rails.application.config.x.agent.microsandbox_workspace_quota_mib =
+  ENV["METIS_MICROSANDBOX_WORKSPACE_QUOTA_MIB"].presence&.to_i
 
 # pi's default provider/model — used when a conversation sets none of
 # its own (the new-chat composer normally does). See

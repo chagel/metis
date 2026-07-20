@@ -74,6 +74,16 @@ create) rather than `EvictPausedSandboxesJob`; `autoStop` is a crash-only
 net set above the longest turn. The sandbox id lives on
 `Conversation#daytona_sandbox_id`.
 
+**`Runtime::Microsandbox`** — the Docker persistence shape at the E2b
+isolation tier, self-hosted: a disposable libkrun microVM per turn
+(driven in-process by the `microsandbox-rb` gem — no daemon, no cloud
+API) over the same persistent host bind mount Docker uses. Nothing is
+paused or resumed, no sandbox id is stored, and no eviction runs — the
+VM is created `ephemeral` and stopped at end of turn; a dead worker
+takes its in-process VMs with it. Requires Linux with KVM or macOS on
+Apple Silicon, and the guest OCI image (the `docker:image` build)
+pushed to a registry the worker can pull from.
+
 **`Runtime::Local`** — unchanged. Persistence has always been pi-native
 (the scope dir lives between turns on a stable host filesystem).
 `Local` is dev-only; the v2 lifetime shape is for the sandbox runtimes.

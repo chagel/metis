@@ -354,9 +354,11 @@ module Agent
 
     def runtime_description
       case @runtime_kind
-      when "local"  then "`local` — host subprocess; not a security boundary"
-      when "docker" then "`docker` — namespace-isolated container; fresh per turn, your workspace bind-mounted in"
-      when "e2b"    then "`e2b` — microVM; same VM resumed each turn via pause/resume"
+      when "local"   then "`local` — host subprocess; not a security boundary"
+      when "docker"  then "`docker` — namespace-isolated container; fresh per turn, your workspace bind-mounted in"
+      when "e2b"     then "`e2b` — microVM; same VM resumed each turn via pause/resume"
+      when "daytona" then "`daytona` — elastic sandbox; same sandbox resumed each turn via stop/start"
+      when "microsandbox" then "`microsandbox` — microVM; fresh per turn, your workspace bind-mounted in"
       end
     end
 
