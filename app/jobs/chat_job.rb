@@ -14,9 +14,19 @@ class ChatJob < ApplicationJob
     # backend_session_id for --continue.
     Agent::ForkPreparer.prepare(conversation) if conversation.fork_pending?
     broadcaster = ChatBroadcaster.new(conversation, assistant_message)
-    adapter = Agent::Adapters.for(conversation)
+    begin
+      adapter = Agent::Adapters.for(conversation)
+      run(conversation, user_message, assistant_message, broadcaster, adapter)
+    rescue PiAgent::TimeoutError => e
+      # A cold pi boot can miss the RPC ack window. One retry on a fresh
+      # adapter, only before any agent event — re-prompting a turn that
+      # already produced output could duplicate side effects.
+      raise if @agent_responded || @boot_retried
 
-    run(conversation, user_message, assistant_message, broadcaster, adapter)
+      @boot_retried = true
+      Rails.logger.warn("ChatJob #{conversation_id} retrying after agent boot timeout: #{e.message}")
+      retry
+    end
   rescue StandardError => e
     Rails.logger.error("ChatJob #{conversation_id} failed: #{e.class}: #{e.message}")
     fail_message(assistant_message, broadcaster, "The agent run failed.")
@@ -48,6 +58,7 @@ class ChatJob < ApplicationJob
 
     adapter.stream(user_message.content,
                    images: user_message.images, files: user_message.files) do |event|
+      @agent_responded = true unless event.type == :runtime_status
       case event.type
       when :text_delta       then text << event[:delta].to_s
       when :reasoning_delta  then reasoning << event[:delta].to_s

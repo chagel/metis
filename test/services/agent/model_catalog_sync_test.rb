@@ -79,9 +79,11 @@ class Agent::ModelCatalogSyncTest < ActiveSupport::TestCase
       end
     end
 
-    assert_equal "docker", called[:bin]
-    assert_includes called[:args], Rails.application.config.x.agent.docker_image
-    assert_equal({ "OPENAI_API_KEY" => "sk-test" }, called[:env])
+    transport = called[:transport_factory].call(on_message: nil, on_stderr: nil)
+    command = transport.instance_variable_get(:@command)
+    assert_equal "docker", command.first
+    assert_includes command, Rails.application.config.x.agent.docker_image
+    assert_equal({ "OPENAI_API_KEY" => "sk-test" }, transport.instance_variable_get(:@env))
   ensure
     Rails.application.config.x.agent.api_keys = original_keys
   end

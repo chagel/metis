@@ -82,10 +82,29 @@ module Agent
           Rails.application.config.x.agent.docker_image,
           "pi", "--mode", "rpc"
         ]
-        session = PiAgent.session(bin: "docker", args: args, env: env)
+        session = PiAgent.session(transport_factory: transport_factory(args, env))
         yield session
       ensure
         session&.close
+      end
+
+      # Builds the subprocess transport ourselves so pi's stderr lands in
+      # the Rails log — a container that hangs before RPC-ready is
+      # otherwise silent (cf. DaytonaTransport#dispatch_stderr).
+      def self.transport_factory(docker_args, env)
+        lambda do |on_message:, on_stderr:|
+          PiAgent::Transport::Subprocess.new(
+            command: [ "docker", *docker_args ], env: env,
+            on_message: on_message, on_stderr: stderr_relay(on_stderr)
+          )
+        end
+      end
+
+      def self.stderr_relay(downstream)
+        lambda do |line|
+          Rails.logger.warn("[docker pi stderr] #{line}")
+          downstream&.call(line)
+        end
       end
 
       def session_dir
@@ -117,7 +136,10 @@ module Agent
         turn_started_at = Time.current.floor  # see Local#run
         env = sandbox_env
         emit_status(:starting, "Starting container")
-        session = PiAgent.session(bin: "docker", args: docker_args(pi_args, env: env), env: env, extension_ui: extension_ui)
+        session = PiAgent.session(
+          transport_factory: self.class.transport_factory(docker_args(pi_args, env: env), env),
+          extension_ui: extension_ui
+        )
         begin
           yield session
         ensure
@@ -166,7 +188,7 @@ module Agent
       #
       # Credentials in `env` are forwarded with the bare-key `--env NAME`
       # form so docker reads the value from the parent process's env
-      # (set on the spawned `docker` client via PiAgent.session(env:))
+      # (set on the spawned `docker` client by transport_factory)
       # — keeping bearer tokens out of argv where `ps` could see them.
       def docker_args(pi_args, env: {})
         [

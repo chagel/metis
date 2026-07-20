@@ -399,6 +399,87 @@ class ChatJobTest < ActiveSupport::TestCase
     assert_equal "partial.txt", @assistant_message.artifacts.first.filename.to_s
   end
 
+  # Raises PiAgent::TimeoutError on the first `boot_failures` stream calls
+  # (after yielding `pre_events`), then replays `events` normally.
+  class BootTimeoutAdapter < FakeAdapter
+    attr_reader :stream_calls
+
+    def initialize(events, boot_failures: 1, pre_events: [], **opts)
+      super(events, **opts)
+      @boot_failures = boot_failures
+      @pre_events = pre_events
+      @stream_calls = 0
+    end
+
+    def stream(input, images: [], files: [], &block)
+      @stream_calls += 1
+      if @stream_calls <= @boot_failures
+        @pre_events.each(&block)
+        raise PiAgent::TimeoutError, "Future timed out after 30s"
+      end
+      super
+    end
+  end
+
+  test "retries once when pi times out before producing any event" do
+    adapter = BootTimeoutAdapter.new([
+                                       Agent::UiEvent.new(:text_delta, data: { delta: "recovered" }),
+                                       Agent::UiEvent.new(:turn_finished)
+                                     ])
+
+    with_adapter(adapter) do
+      ChatJob.perform_now(@conversation.id, @user_message.id, @assistant_message.id)
+    end
+
+    assert_equal 2, adapter.stream_calls
+    @assistant_message.reload
+    assert @assistant_message.done?
+    assert_equal "recovered", @assistant_message.content
+  end
+
+  test "a boot timeout after only runtime_status events still retries" do
+    # Host-generated status events ("Starting container") aren't agent
+    # output — the agent never ran, so a re-prompt is safe.
+    adapter = BootTimeoutAdapter.new(
+      [ Agent::UiEvent.new(:turn_finished) ],
+      pre_events: [ Agent::UiEvent.new(:runtime_status, data: { phase: "starting", message: "Starting container" }) ]
+    )
+
+    with_adapter(adapter) do
+      ChatJob.perform_now(@conversation.id, @user_message.id, @assistant_message.id)
+    end
+
+    assert_equal 2, adapter.stream_calls
+    assert @assistant_message.reload.done?
+  end
+
+  test "does not retry a timeout once the agent has produced output" do
+    # A mid-turn stall may follow tool calls with side effects —
+    # re-prompting could run them twice.
+    adapter = BootTimeoutAdapter.new(
+      [], boot_failures: 2,
+      pre_events: [ Agent::UiEvent.new(:text_delta, data: { delta: "partial" }) ]
+    )
+
+    with_adapter(adapter) do
+      ChatJob.perform_now(@conversation.id, @user_message.id, @assistant_message.id)
+    end
+
+    assert_equal 1, adapter.stream_calls
+    assert @assistant_message.reload.errored?
+  end
+
+  test "gives up after a second consecutive boot timeout" do
+    adapter = BootTimeoutAdapter.new([ Agent::UiEvent.new(:turn_finished) ], boot_failures: 3)
+
+    with_adapter(adapter) do
+      ChatJob.perform_now(@conversation.id, @user_message.id, @assistant_message.id)
+    end
+
+    assert_equal 2, adapter.stream_calls
+    assert @assistant_message.reload.errored?
+  end
+
   test "stamps finished_at even when the turn fails" do
     raiser = Object.new
     def raiser.stream(*)
