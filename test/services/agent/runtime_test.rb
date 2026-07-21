@@ -37,4 +37,23 @@ class Agent::RuntimeTest < ActiveSupport::TestCase
       assert_raises(Agent::Error) { Agent::Runtime.for(@conversation) }
     end
   end
+
+  test "stderr_relay tags, logs, and forwards each line" do
+    logged = []
+    logger = ActiveSupport::Logger.new(nil)
+    logger.define_singleton_method(:warn) { |msg| logged << msg }
+    forwarded = []
+
+    relay = Agent::Runtime.stderr_relay("docker", ->(line) { forwarded << line })
+    original = Rails.logger
+    Rails.logger = logger
+    begin
+      relay.call("pi: boot failed")
+    ensure
+      Rails.logger = original
+    end
+
+    assert_equal [ "[docker pi stderr] pi: boot failed" ], logged
+    assert_equal [ "pi: boot failed" ], forwarded
+  end
 end

@@ -41,10 +41,14 @@ class ChatJobTest < ActiveSupport::TestCase
     Agent::Adapters.define_singleton_method(:for, original)
   end
 
-  def run_with(events, **adapter_opts)
-    with_adapter(FakeAdapter.new(events, **adapter_opts)) do
+  def perform_job(adapter)
+    with_adapter(adapter) do
       ChatJob.perform_now(@conversation.id, @user_message.id, @assistant_message.id)
     end
+  end
+
+  def run_with(events, **adapter_opts)
+    perform_job(FakeAdapter.new(events, **adapter_opts))
   end
 
   test "accumulates text deltas and marks the assistant message done" do
@@ -295,9 +299,7 @@ class ChatJobTest < ActiveSupport::TestCase
       raise "pi crashed"
     end
 
-    with_adapter(raiser) do
-      ChatJob.perform_now(@conversation.id, @user_message.id, @assistant_message.id)
-    end
+    perform_job(raiser)
     assert @assistant_message.reload.errored?
   end
 
@@ -309,9 +311,7 @@ class ChatJobTest < ActiveSupport::TestCase
       raise "pi crashed"
     end
 
-    with_adapter(adapter) do
-      ChatJob.perform_now(@conversation.id, @user_message.id, @assistant_message.id)
-    end
+    perform_job(adapter)
 
     assert_equal "docker", @conversation.reload.runtime_state["runtime"]
     assert @assistant_message.reload.errored?
@@ -389,9 +389,7 @@ class ChatJobTest < ActiveSupport::TestCase
     end
     artifacts = [ { filename: "partial.txt", io: StringIO.new("got this far"), content_type: "text/plain" } ]
 
-    with_adapter(crasher.new(artifacts)) do
-      ChatJob.perform_now(@conversation.id, @user_message.id, @assistant_message.id)
-    end
+    perform_job(crasher.new(artifacts))
 
     @assistant_message.reload
     assert @assistant_message.errored?, "still marked errored — the crash is not silenced"
@@ -399,38 +397,34 @@ class ChatJobTest < ActiveSupport::TestCase
     assert_equal "partial.txt", @assistant_message.artifacts.first.filename.to_s
   end
 
-  # Raises PiAgent::TimeoutError on the first `boot_failures` stream calls
-  # (after yielding `pre_events`), then replays `events` normally.
-  class BootTimeoutAdapter < FakeAdapter
+  # Raises `error` on the first `failures` stream calls, then replays
+  # `events` normally.
+  class FailingAdapter < FakeAdapter
     attr_reader :stream_calls
 
-    def initialize(events, boot_failures: 1, pre_events: [], error_message: "Future timed out after 30s", **opts)
-      super(events, **opts)
-      @boot_failures = boot_failures
-      @pre_events = pre_events
-      @error_message = error_message
+    def initialize(events, error:, failures: 1)
+      super(events)
+      @error = error
+      @failures = failures
       @stream_calls = 0
     end
 
     def stream(input, images: [], files: [], &block)
       @stream_calls += 1
-      if @stream_calls <= @boot_failures
-        @pre_events.each(&block)
-        raise PiAgent::TimeoutError, @error_message
-      end
+      raise @error if @stream_calls <= @failures
+
       super
     end
   end
 
-  test "retries once when pi times out before producing any event" do
-    adapter = BootTimeoutAdapter.new([
-                                       Agent::UiEvent.new(:text_delta, data: { delta: "recovered" }),
-                                       Agent::UiEvent.new(:turn_finished)
-                                     ])
+  test "retries once when the adapter reports a boot timeout" do
+    adapter = FailingAdapter.new(
+      [ Agent::UiEvent.new(:text_delta, data: { delta: "recovered" }),
+        Agent::UiEvent.new(:turn_finished) ],
+      error: Agent::Adapters::BootTimeout.new("Future timed out after 30s")
+    )
 
-    with_adapter(adapter) do
-      ChatJob.perform_now(@conversation.id, @user_message.id, @assistant_message.id)
-    end
+    perform_job(adapter)
 
     assert_equal 2, adapter.stream_calls
     @assistant_message.reload
@@ -438,63 +432,29 @@ class ChatJobTest < ActiveSupport::TestCase
     assert_equal "recovered", @assistant_message.content
   end
 
-  test "a boot timeout after only runtime_status events still retries" do
-    # Host-generated status events ("Starting container") aren't agent
-    # output — the agent never ran, so a re-prompt is safe.
-    adapter = BootTimeoutAdapter.new(
-      [ Agent::UiEvent.new(:turn_finished) ],
-      pre_events: [ Agent::UiEvent.new(:runtime_status, data: { phase: "starting", message: "Starting container" }) ]
-    )
-
-    with_adapter(adapter) do
-      ChatJob.perform_now(@conversation.id, @user_message.id, @assistant_message.id)
-    end
-
-    assert_equal 2, adapter.stream_calls
-    assert @assistant_message.reload.done?
-  end
-
-  test "does not retry a timeout once the agent has produced output" do
-    # A mid-turn stall may follow tool calls with side effects —
-    # re-prompting could run them twice.
-    adapter = BootTimeoutAdapter.new(
-      [], boot_failures: 2,
-      pre_events: [ Agent::UiEvent.new(:text_delta, data: { delta: "partial" }) ]
-    )
-
-    with_adapter(adapter) do
-      ChatJob.perform_now(@conversation.id, @user_message.id, @assistant_message.id)
-    end
-
-    assert_equal 1, adapter.stream_calls
-    assert @assistant_message.reload.errored?
-  end
-
-  test "does not retry an event-stream timeout (same class, different wait)" do
-    # pi-agent-rb raises PiAgent::TimeoutError for the 300s event-stream
-    # wait too — an acked, running turn, not a boot failure. Only the RPC
-    # ack timeout ("Future timed out") is safe to re-prompt.
-    adapter = BootTimeoutAdapter.new(
-      [ Agent::UiEvent.new(:turn_finished) ],
-      error_message: "No event received within 300s"
-    )
-
-    with_adapter(adapter) do
-      ChatJob.perform_now(@conversation.id, @user_message.id, @assistant_message.id)
-    end
-
-    assert_equal 1, adapter.stream_calls
-    assert @assistant_message.reload.errored?
-  end
-
   test "gives up after a second consecutive boot timeout" do
-    adapter = BootTimeoutAdapter.new([ Agent::UiEvent.new(:turn_finished) ], boot_failures: 3)
+    adapter = FailingAdapter.new(
+      [ Agent::UiEvent.new(:turn_finished) ],
+      error: Agent::Adapters::BootTimeout.new("Future timed out after 30s"), failures: 2
+    )
 
-    with_adapter(adapter) do
-      ChatJob.perform_now(@conversation.id, @user_message.id, @assistant_message.id)
-    end
+    perform_job(adapter)
 
     assert_equal 2, adapter.stream_calls
+    assert @assistant_message.reload.errored?
+  end
+
+  test "does not retry other agent timeouts" do
+    # Only the adapter-classified boot timeout is safe to re-prompt; a
+    # plain timeout may follow an acked, running turn.
+    adapter = FailingAdapter.new(
+      [ Agent::UiEvent.new(:turn_finished) ],
+      error: PiAgent::TimeoutError.new("No event received within 300s")
+    )
+
+    perform_job(adapter)
+
+    assert_equal 1, adapter.stream_calls
     assert @assistant_message.reload.errored?
   end
 
@@ -504,9 +464,7 @@ class ChatJobTest < ActiveSupport::TestCase
       raise "pi crashed"
     end
 
-    with_adapter(raiser) do
-      ChatJob.perform_now(@conversation.id, @user_message.id, @assistant_message.id)
-    end
+    perform_job(raiser)
     assert_not_nil @assistant_message.reload.finished_at
   end
 end

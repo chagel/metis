@@ -88,22 +88,14 @@ module Agent
         session&.close
       end
 
-      # Builds the subprocess transport ourselves so pi's stderr lands in
-      # the Rails log — a container that hangs before RPC-ready is
-      # otherwise silent (cf. DaytonaTransport#dispatch_stderr).
+      # Builds the subprocess transport ourselves so pi's stderr lands in the
+      # Rails log — a container that hangs before RPC-ready is otherwise silent.
       def self.transport_factory(docker_args, env)
         lambda do |on_message:, on_stderr:|
           PiAgent::Transport::Subprocess.new(
             command: [ "docker", *docker_args ], env: env,
-            on_message: on_message, on_stderr: stderr_relay(on_stderr)
+            on_message: on_message, on_stderr: Runtime.stderr_relay("docker", on_stderr)
           )
-        end
-      end
-
-      def self.stderr_relay(downstream)
-        lambda do |line|
-          Rails.logger.warn("[docker pi stderr] #{line}")
-          downstream&.call(line)
         end
       end
 

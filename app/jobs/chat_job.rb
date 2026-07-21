@@ -14,16 +14,16 @@ class ChatJob < ApplicationJob
     # backend_session_id for --continue.
     Agent::ForkPreparer.prepare(conversation) if conversation.fork_pending?
     broadcaster = ChatBroadcaster.new(conversation, assistant_message)
+    boot_retried = false
     begin
       adapter = Agent::Adapters.for(conversation)
       run(conversation, user_message, assistant_message, broadcaster, adapter)
-    rescue PiAgent::TimeoutError => e
-      # A cold pi boot can miss the RPC ack window. One retry on a fresh
-      # adapter, only before any agent event — re-prompting a turn that
-      # already produced output could duplicate side effects.
-      raise if @agent_responded || @boot_retried || !boot_ack_timeout?(e)
+    rescue Agent::Adapters::BootTimeout => e
+      # The agent never came up, so nothing reached the model — one retry
+      # on a fresh adapter (and container) is safe.
+      raise if boot_retried
 
-      @boot_retried = true
+      boot_retried = true
       Rails.logger.warn("ChatJob #{conversation_id} retrying after agent boot timeout: #{e.message}")
       retry
     end
@@ -40,11 +40,6 @@ class ChatJob < ApplicationJob
   end
 
   private
-
-  # pi-agent-rb raises one TimeoutError class for both the RPC ack wait
-  # ("Future timed out after Ns") and the event-stream wait ("No event
-  # received within Ns"); only the former marks a boot that never came up.
-  def boot_ack_timeout?(error) = error.message.start_with?("Future timed out")
 
   def run(conversation, user_message, assistant_message, broadcaster, adapter)
     assistant_message.update!(streaming_status: :streaming)
@@ -63,7 +58,6 @@ class ChatJob < ApplicationJob
 
     adapter.stream(user_message.content,
                    images: user_message.images, files: user_message.files) do |event|
-      @agent_responded = true unless event.type == :runtime_status
       case event.type
       when :text_delta       then text << event[:delta].to_s
       when :reasoning_delta  then reasoning << event[:delta].to_s

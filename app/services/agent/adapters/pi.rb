@@ -43,18 +43,22 @@ module Agent
         return enum_for(:stream, input, images: images, files: files) unless block
 
         @last_text_message_id = nil
+        @agent_responded = false
         @runtime.status_sink = lambda do |phase, message|
           block.call(Agent::UiEvent.new(:runtime_status, data: { phase: phase, message: message }.compact))
         end
         @runtime.run(pi_args: pi_args, extension_ui: Agent::HostBridge.handler(conversation)) do |session|
           @session = session
           session.prompt(prompt_with_files(input, files), images: pi_images(images)) do |pi_event|
+            @agent_responded = true
             ui_event = translate(pi_event)
             block.call(ui_event) if ui_event
           end
           @session_stats = capture_stats(session)
           @model_info = capture_model(session)
         end
+      rescue PiAgent::TimeoutError => e
+        raise boot_timeout?(e) ? BootTimeout.new(e.message) : e
       ensure
         @session = nil
       end
@@ -119,6 +123,12 @@ module Agent
       end
 
       private
+
+      # pi-agent-rb raises one TimeoutError for both the RPC ack wait ("Future
+      # timed out…") and the event-stream wait; only a pre-event ack timeout is a dead boot.
+      def boot_timeout?(error)
+        !@agent_responded && error.message.start_with?("Future timed out")
+      end
 
       WRITE_TOOL_NAMES = %w[write edit].freeze
       SKILL_PATH_REGEX = %r{\.pi/skills/([a-z0-9][a-z0-9\-]*)/}.freeze

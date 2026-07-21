@@ -303,6 +303,42 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
     assert_equal({ "runtime" => "fake" }, streaming_adapter(PROMPT_STUB).runtime_info)
   end
 
+  # A session whose prompt raises `error`, after yielding any raw pi
+  # `events` first.
+  def timing_out_session(error, events: [])
+    session = Object.new
+    session.define_singleton_method(:prompt) do |*, **, &block|
+      events.each { |raw| block.call(PiAgent::Event.new(raw)) }
+      raise error
+    end
+    def session.close = nil
+    session
+  end
+
+  def timing_out_adapter(error, events: [])
+    Agent::Adapters::Pi.new(conversation: Conversation.new,
+                            runtime: FakeRuntime.new(timing_out_session(error, events: events)))
+  end
+
+  test "classifies an ack timeout before any pi event as BootTimeout" do
+    adapter = timing_out_adapter(PiAgent::TimeoutError.new("Future timed out after 30s"))
+
+    assert_raises(Agent::Adapters::BootTimeout) { adapter.stream("hi") { |_e| nil } }
+  end
+
+  test "an ack timeout after pi responded stays a plain TimeoutError" do
+    adapter = timing_out_adapter(PiAgent::TimeoutError.new("Future timed out after 30s"),
+                                 events: [ { "type" => "agent_start" } ])
+
+    assert_raises(PiAgent::TimeoutError) { adapter.stream("hi") { |_e| nil } }
+  end
+
+  test "an event-stream timeout stays a plain TimeoutError" do
+    adapter = timing_out_adapter(PiAgent::TimeoutError.new("No event received within 300s"))
+
+    assert_raises(PiAgent::TimeoutError) { adapter.stream("hi") { |_e| nil } }
+  end
+
   # --- argument building ---------------------------------------------
 
   test "pi_args points at the workspace session directory" do

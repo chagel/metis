@@ -102,48 +102,24 @@ class Agent::Runtime::DockerTest < ActiveSupport::TestCase
 
   test "control_session passes the configured --runtime to its throwaway container" do
     captured = nil
-    original = PiAgent.method(:session)
-    PiAgent.define_singleton_method(:session) do |*, **kw|
-      transport = kw[:transport_factory].call(on_message: nil, on_stderr: nil)
-      captured = transport.instance_variable_get(:@command)
-      fake = Object.new
-      def fake.close = nil
-      fake
+    fake = Object.new
+    def fake.close = nil
+
+    with_stub(Agent::Runtime::Docker, :transport_factory, ->(args, _env) { captured = args; nil }) do
+      with_stub(PiAgent, :session, ->(**) { fake }) do
+        with_docker_runtime("runsc") do
+          Agent::Runtime::Docker.control_session { |_s| nil }
+        end
+      end
     end
 
-    with_docker_runtime("runsc") do
-      Agent::Runtime::Docker.control_session { |_s| nil }
-    end
-
-    assert_equal "docker", captured.first
     idx = captured.index("--runtime")
     assert idx, "expected --runtime in control_session args"
     assert_equal "runsc", captured[idx + 1]
-  ensure
-    PiAgent.define_singleton_method(:session, original)
-  end
-
-  test "transport_factory relays pi's stderr to the Rails log" do
-    logged = []
-    logger = ActiveSupport::Logger.new(nil)
-    logger.define_singleton_method(:warn) { |msg| logged << msg }
-    downstream = []
-
-    relay = Agent::Runtime::Docker.stderr_relay(->(line) { downstream << line })
-    original = Rails.logger
-    Rails.logger = logger
-    begin
-      relay.call("pi: something broke at boot")
-    ensure
-      Rails.logger = original
-    end
-
-    assert_equal [ "[docker pi stderr] pi: something broke at boot" ], logged
-    assert_equal [ "pi: something broke at boot" ], downstream
   end
 
   test "transport_factory builds a subprocess transport wrapping docker" do
-    transport = Agent::Runtime::Docker.transport_factory([ "run", "--rm" ], { "GH_TOKEN" => "t" })
+    transport = Agent::Runtime::Docker.transport_factory([ "run", "--rm" ], {})
                                       .call(on_message: nil, on_stderr: nil)
 
     assert_instance_of PiAgent::Transport::Subprocess, transport

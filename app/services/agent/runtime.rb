@@ -46,6 +46,15 @@ module Agent
       runtime_class.control_session(env: env, &block)
     end
 
+    # Tagged logger for pi's stderr, shared by every transport —
+    # pi-agent-rb's default stderr handler is a no-op, leaving it invisible.
+    def self.stderr_relay(tag, downstream = nil)
+      lambda do |line|
+        Rails.logger.warn("[#{tag} pi stderr] #{line}")
+        downstream&.call(line)
+      end
+    end
+
     # The pi extensions shipped with the app, version-controlled under
     # .pi/extensions/ (one self-contained <name>/index.ts each). pi runs
     # in a scratch workspace, so they are not on its discovery path: each

@@ -27,7 +27,7 @@ module Agent
         @cwd = cwd
         @envs = envs
         @on_message = on_message
-        @on_stderr = on_stderr
+        @stderr_relay = Agent::Runtime.stderr_relay("e2b", on_stderr)
         @write_mutex = Mutex.new
         @closed = false
         @finished = false
@@ -93,11 +93,8 @@ module Agent
         Rails.logger.warn("[e2b] non-JSON line from pi: #{e.message}: #{line.inspect}")
       end
 
-      # pi's stderr is otherwise invisible — the runtime is a remote
-      # microVM and pi-agent-rb's default stderr handler is a no-op.
       def dispatch_stderr(line)
-        Rails.logger.warn("[e2b pi stderr] #{line}")
-        @on_stderr&.call(line)
+        @stderr_relay.call(line)
       end
 
       def kill_command

@@ -31,7 +31,7 @@ module Agent
         @cwd = cwd
         @envs = envs || {}
         @on_message = on_message
-        @on_stderr = on_stderr
+        @stderr_relay = Agent::Runtime.stderr_relay("daytona", on_stderr)
         @session_id = "metis-#{SecureRandom.hex(8)}"
         @write_mutex = Mutex.new
         @closed = false
@@ -108,11 +108,8 @@ module Agent
         Rails.logger.warn("[daytona] non-JSON line from pi: #{e.message}: #{line.inspect}")
       end
 
-      # pi's stderr is otherwise invisible — the runtime is a remote sandbox
-      # and pi-agent-rb's default stderr handler is a no-op.
       def dispatch_stderr(line)
-        Rails.logger.warn("[daytona pi stderr] #{line}")
-        @on_stderr&.call(line)
+        @stderr_relay.call(line)
       end
 
       def delete_session

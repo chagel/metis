@@ -8,6 +8,10 @@ module Agent
   # the chat UI decoupled from pi's wire protocol; it is not a
   # multi-backend seam.
   module Adapters
+    # The agent process never acknowledged the prompt — nothing reached
+    # the model, so the caller may safely retry the turn.
+    class BootTimeout < Agent::Error; end
+
     def self.for(conversation, **opts)
       Pi.new(conversation: conversation, **opts)
     end

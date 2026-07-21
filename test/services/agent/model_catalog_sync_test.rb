@@ -69,21 +69,21 @@ class Agent::ModelCatalogSyncTest < ActiveSupport::TestCase
 
   test "docker runtime fetches models through the configured image" do
     fake = FakeSession.new(PAYLOAD)
-    called = nil
+    captured = nil
     original_keys = Rails.application.config.x.agent.api_keys
     Rails.application.config.x.agent.api_keys = { "openai" => "sk-test" }
 
     with_runtime_config(:docker) do
-      with_stub(PiAgent, :session, ->(**kwargs) { called = kwargs; fake }) do
-        Agent::ModelCatalogSync.call
+      with_stub(Agent::Runtime::Docker, :transport_factory, ->(args, env) { captured = [ args, env ]; nil }) do
+        with_stub(PiAgent, :session, ->(**) { fake }) do
+          Agent::ModelCatalogSync.call
+        end
       end
     end
 
-    transport = called[:transport_factory].call(on_message: nil, on_stderr: nil)
-    command = transport.instance_variable_get(:@command)
-    assert_equal "docker", command.first
-    assert_includes command, Rails.application.config.x.agent.docker_image
-    assert_equal({ "OPENAI_API_KEY" => "sk-test" }, transport.instance_variable_get(:@env))
+    args, env = captured
+    assert_includes args, Rails.application.config.x.agent.docker_image
+    assert_equal({ "OPENAI_API_KEY" => "sk-test" }, env)
   ensure
     Rails.application.config.x.agent.api_keys = original_keys
   end
