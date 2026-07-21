@@ -404,10 +404,11 @@ class ChatJobTest < ActiveSupport::TestCase
   class BootTimeoutAdapter < FakeAdapter
     attr_reader :stream_calls
 
-    def initialize(events, boot_failures: 1, pre_events: [], **opts)
+    def initialize(events, boot_failures: 1, pre_events: [], error_message: "Future timed out after 30s", **opts)
       super(events, **opts)
       @boot_failures = boot_failures
       @pre_events = pre_events
+      @error_message = error_message
       @stream_calls = 0
     end
 
@@ -415,7 +416,7 @@ class ChatJobTest < ActiveSupport::TestCase
       @stream_calls += 1
       if @stream_calls <= @boot_failures
         @pre_events.each(&block)
-        raise PiAgent::TimeoutError, "Future timed out after 30s"
+        raise PiAgent::TimeoutError, @error_message
       end
       super
     end
@@ -459,6 +460,23 @@ class ChatJobTest < ActiveSupport::TestCase
     adapter = BootTimeoutAdapter.new(
       [], boot_failures: 2,
       pre_events: [ Agent::UiEvent.new(:text_delta, data: { delta: "partial" }) ]
+    )
+
+    with_adapter(adapter) do
+      ChatJob.perform_now(@conversation.id, @user_message.id, @assistant_message.id)
+    end
+
+    assert_equal 1, adapter.stream_calls
+    assert @assistant_message.reload.errored?
+  end
+
+  test "does not retry an event-stream timeout (same class, different wait)" do
+    # pi-agent-rb raises PiAgent::TimeoutError for the 300s event-stream
+    # wait too — an acked, running turn, not a boot failure. Only the RPC
+    # ack timeout ("Future timed out") is safe to re-prompt.
+    adapter = BootTimeoutAdapter.new(
+      [ Agent::UiEvent.new(:turn_finished) ],
+      error_message: "No event received within 300s"
     )
 
     with_adapter(adapter) do

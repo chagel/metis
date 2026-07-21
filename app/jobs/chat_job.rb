@@ -21,7 +21,7 @@ class ChatJob < ApplicationJob
       # A cold pi boot can miss the RPC ack window. One retry on a fresh
       # adapter, only before any agent event — re-prompting a turn that
       # already produced output could duplicate side effects.
-      raise if @agent_responded || @boot_retried
+      raise if @agent_responded || @boot_retried || !boot_ack_timeout?(e)
 
       @boot_retried = true
       Rails.logger.warn("ChatJob #{conversation_id} retrying after agent boot timeout: #{e.message}")
@@ -40,6 +40,11 @@ class ChatJob < ApplicationJob
   end
 
   private
+
+  # pi-agent-rb raises one TimeoutError class for both the RPC ack wait
+  # ("Future timed out after Ns") and the event-stream wait ("No event
+  # received within Ns"); only the former marks a boot that never came up.
+  def boot_ack_timeout?(error) = error.message.start_with?("Future timed out")
 
   def run(conversation, user_message, assistant_message, broadcaster, adapter)
     assistant_message.update!(streaming_status: :streaming)
