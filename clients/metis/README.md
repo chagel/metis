@@ -16,7 +16,7 @@ Grab a prebuilt binary from the latest `clients/metis/v*` [release](https://gith
 
 ```sh
 curl -fsSL -o /usr/local/bin/metis \
-  https://github.com/chagel/metis/releases/download/clients%2Fmetis%2Fv0.3.0/metis-darwin-arm64
+  https://github.com/chagel/metis/releases/download/clients%2Fmetis%2Fv0.5.2/metis-darwin-arm64
 chmod +x /usr/local/bin/metis
 ```
 
@@ -136,7 +136,7 @@ merge, then tag the nested module — the tag must match the source
 version or the workflow refuses:
 
 ```sh
-git tag clients/metis/v0.4.0 && git push origin clients/metis/v0.4.0
+git tag clients/metis/v0.5.2 && git push origin clients/metis/v0.5.2
 ```
 
 The `daemon-release` workflow tests, cross-compiles, and attaches the

@@ -19,6 +19,7 @@ has_many :conversations, dependent: :destroy
 has_many :connector_credentials, dependent: :destroy
 has_many :identities, dependent: :destroy        # (provider, uid) lookup keys
 has_many :oauth_grants, dependent: :destroy      # token + scope set per provider
+has_many :artifact_shares, foreign_key: :created_by_id  # public artifact links minted
 has_one_attached :avatar
 
 after_create :create_personal_team               # team-of-one at signup
@@ -37,7 +38,7 @@ def personal_team = teams.find_by(personal: true)
 #   bridge_token_hint — last 4 chars of the token (not a secret), for the
 #     "mbt_…abcd" label in account settings.
 #   bridge_seen_at, bridge_client — presence heartbeat + self-reported
-#     machine name, stamped by every authed bridge call (touch_bridge_seen!);
+#     machine name, stamped by every authed bridge call (bridge_seen!);
 #     the board's actor rail reads both (BoardPresence#machines).
 #   auto_claim_tasks (default true) — when off, the daemon must claim
 #     delegated tasks manually instead of FIFO auto-claim.
@@ -69,6 +70,9 @@ has_many :skills, dependent: :destroy
 has_many :projects, dependent: :destroy
 has_many :workflows, dependent: :destroy
 has_many :workflow_runs, dependent: :destroy
+has_many :routines, dependent: :destroy
+has_many :webhook_events, dependent: :destroy
+has_many :artifact_shares, dependent: :delete_all
 has_many :invitations, dependent: :destroy
 
 # A `personal` boolean marks the team-of-one created at signup.
@@ -194,6 +198,9 @@ belongs_to :user, optional: true
 encrypts :credentials
 validates :user_id, uniqueness: { scope: :connector_id }
 
+# external_login — the provider-side account handle captured at connect
+# time (display only).
+
 def credential_map
   # The header bag ("Authorization" => "Bearer xyz") to merge into
   # the connector's .mcp.json entry. Token-auth stores these
@@ -270,6 +277,7 @@ has_one :inflight_message, -> { inflight }, class_name: "Message"
 before_validation :default_team, on: :create  # defaults to user.personal_team
 before_destroy :kill_paused_e2b_sandbox       # E2B doesn't auto-clean
 before_destroy :kill_daytona_sandbox          # Daytona stop/start sandbox
+after_destroy_commit :cleanup_persistent_workspace  # CleanupPersistentWorkspaceJob
 
 scope :recent,   -> { order(updated_at: :desc) }
 scope :active,   -> { where(archived_at: nil) }
@@ -299,7 +307,7 @@ scope :board_visible, ->(user, board_scope, project_ids) { … }
 #   settings       — provider/model picked in the composer (jsonb)
 #   backend_session_id — pi's --session-dir handle for --continue
 #   agent_model    — {id, name, provider} pi actually resolved
-#   runtime_state  — { "runtime" => "local|docker|e2b|daytona", … }
+#   runtime_state  — { "runtime" => "local|docker|e2b|daytona|microsandbox", … }
 #   context_usage  — { tokens, contextWindow, percent } per latest turn
 #   e2b_sandbox_id     — for Runtime::E2b resume across turns
 #   daytona_sandbox_id — for Runtime::Daytona start across turns
@@ -438,7 +446,8 @@ enum :gate,   { auto: 0, approval: 1 }   # "none" would clash with Model.none
 scope :dispatched,   -> { running.where(delegated: true) }   # waiting for a local pull
 scope :claimable_by, ->(user) { delegated_for(user).running.unclaimed }
 
-# claim_next_for(user, client:, id:) — FIFO claim across the user's teams,
+# claim_next_for(user, client:, id:, project:) — FIFO claim across the
+#   user's teams (optionally narrowed to one project),
 #   FOR UPDATE SKIP LOCKED so concurrent pollers get distinct tasks.
 #   `client` is the self-reported machine name (X-Bridge-Client header).
 # ref — Sentry-style short reference ("CHEESE-1G"), derived from the id
@@ -559,6 +568,27 @@ enum :role, { member: 0, admin: 1, owner: 2 }
 # (team, email) while unaccepted.
 ```
 
+## ArtifactShare
+
+A public link for one artifact blob. The share unit is the **blob** (its
+content), so it stores no message/conversation reference — `team_id` is
+denormalized at create time and carries ownership from then on.
+
+```ruby
+belongs_to :team
+belongs_to :blob, class_name: "ActiveStorage::Blob"   # unique index on blob_id
+belongs_to :created_by, class_name: "User"
+
+# token — the public URL handle, generated before_create.
+
+scope :minted_by,     ->(user) { where(created_by: user) }
+scope :accessible_to, ->(user) { … }  # only shares whose blob is an artifact
+                                      # of a conversation the viewer can open
+
+# share_blob!(blob:, message:, user:) — idempotent and race-safe:
+#   create_or_find_by! on the unique blob_id index.
+```
+
 ## McpOauthClient
 
 Dynamic Client Registration record per MCP issuer (the DCR spike, #36) —
@@ -568,12 +598,13 @@ tokens) and provider apps (static OAuth app config).
 
 ## Read models (no table)
 
-`Board` and `BoardPresence` live in `app/models/` but back **no table** —
-they are pure projections of `WorkflowRun` / `Task` state for the
-cross-project run board (`BoardController`), built per request for one
-viewer. Both take `(team:, user:, scope:, project_ids:)` and read from
+`Board`, `BoardPresence`, and `Sharing` live in `app/models/` but back
+**no table** — pure per-request projections that never write state.
+`Board` and `BoardPresence` project `WorkflowRun` / `Task` state for the
+cross-project run board (`BoardController`); both take
+`(team:, user:, scope:, project_ids:)` and read from
 `Conversation.board_visible`, so the grid and the actor rail share one
-visibility definition. Read-only — they never write run or task state.
+visibility definition.
 
 ### Board
 
@@ -613,3 +644,17 @@ so a machine is only online vs stale, never per-worker. The roster
 (people + machines) stays team-wide; only what each is shown *doing*
 (open gates, the delegated `Task#ref` they hold) narrows to the filters,
 and a private run's ref never leaks to a viewer who can't see it.
+
+### Sharing
+
+The Sharing page's read model: a team's public shares, scoped like the
+chats sidebar.
+
+```ruby
+Sharing.for(team:, user:, scope: :mine, kind: :all)
+# scope — :mine (what the viewer created; every card revocable) or
+#         :team (what teammates expose from conversations the viewer may open)
+# kind  — :all / :chats / :artifacts
+def items  # one stream, newest first — shared Conversations and
+           # ArtifactShares interleaved in the order they were shared
+```

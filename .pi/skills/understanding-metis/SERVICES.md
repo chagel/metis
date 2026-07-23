@@ -21,26 +21,33 @@ translates pi's native event stream into `Agent::UiEvent`s.
 
 ```ruby
 def stream(input, images: [], files: [], &block)
-  @runtime.run(pi_args: pi_args) do |session|
+  @runtime.status_sink = ->(phase, message) {   # provisioning progress →
+    block.call(UiEvent.new(:runtime_status, …)) # runtime_status events
+  }
+  @runtime.run(pi_args: pi_args, extension_ui: Agent::HostBridge.handler(conversation)) do |session|
     @session = session
     session.prompt(prompt_with_files(input, files), images: pi_images(images)) do |pi_event|
       ui_event = translate(pi_event)
       block.call(ui_event) if ui_event
     end
-    @session_stats = capture_stats(session)   # tokens, contextUsage, sessionId
-    @model_info    = capture_model(session)   # {id, name, provider}
+    @session_stats = capture_stats(session)   # tokens, contextUsage, sessionId, cost
+    @model_info    = capture_model(session)   # {id, name, provider} — from get_state
   end
+rescue PiAgent::TimeoutError => e
+  raise boot_timeout?(e) ? BootTimeout.new(e.message) : e
 ensure
   @session = nil
 end
 ```
 
-`#cost_total` and `#model_info` come from pi's `get_session_stats` RPC; `ChatJob`
-reads them to persist the turn's `cost` (USD) and `model_key` onto the `Message`
-(see Observability below).
+`#cost_total` comes from pi's `get_session_stats` RPC and `#model_info`
+from `get_state`; `ChatJob` reads them to persist the turn's `cost` (USD)
+and `model_key` onto the `Message` (see Observability below).
+`Adapters::BootTimeout` distinguishes a pi that never booted (retryable)
+from a mid-turn timeout.
 
 `#translate` collapses pi's event vocabulary onto `Agent::UiEvent`'s
-nine types and drops events the UI doesn't render (agent_start,
+ten types and drops events the UI doesn't render (agent_start,
 turn_start/end, compaction, queue updates). Tool events
 (`tool_execution_start/update/end`) map to
 `tool_call_started/progress/finished`; assistant `message_update` is
@@ -48,7 +55,10 @@ split by `assistantMessageEvent.type` into `text_delta` /
 `reasoning_delta` / `error`. `#segmented_delta` inserts `\n\n` when
 pi crosses into a new assistant message between tool calls — pi
 strips leading whitespace per message and naive concatenation
-fuses segments ("project.The").
+fuses segments ("project.The"). The turn ends at pi's
+`agent_settled` (→ `turn_finished`); `agent_end` is **not** terminal —
+pi may retry, compact-and-retry, or run a queued continuation after it
+(pi-agent-rb ≥ 0.2.0).
 
 `#pi_args` composes:
 - `--mode rpc --session-dir <runtime.session_dir>`
@@ -61,14 +71,20 @@ fuses segments ("project.The").
 
 ### `Agent::UiEvent`
 
-Frozen canonical event with nine types:
+Frozen canonical event with ten types:
 
 ```
+runtime_status
 message_started message_finished
 text_delta reasoning_delta
 tool_call_started tool_call_progress tool_call_finished
 turn_finished error
 ```
+
+`runtime_status` carries sandbox provisioning progress (phase +
+message) — emitted by remote runtimes via `Runtime::Base#emit_status`
+before pi is even up, so the UI can show "creating sandbox…" instead
+of dead air.
 
 `#native_ref` preserves the raw pi payload; backend-aware view
 helpers can reach in, but default rendering ignores it.
@@ -86,9 +102,11 @@ Agent::Runtime.extension_sources  # Dir.glob(.pi/extensions/*/index.ts).sort
 ```ruby
 def session_dir       # path for pi --session-dir
 def extension_paths   # pi extensions reachable from this runtime
-def run(pi_args:) { |session| ... }  # provision → yield → finalize
+def run(pi_args:, extension_ui: nil) { |session| ... }  # provision → yield → finalize
 def runtime_info      # { "runtime" => kind, … }
 def sandbox_env       # per-turn env: GH_TOKEN + git author/committer (sandboxed only)
+attr_accessor :status_sink  # set by the adapter; #emit_status(phase, message)
+                            # reports provisioning progress (→ runtime_status)
 ```
 
 `Base#mcp_config` renders `Agent::McpConfig.new(conversation).content`;
@@ -102,16 +120,20 @@ Pi as a host subprocess — single-operator / dev runtime. Scope under
 carries continuity; `--continue` resumes. **Not a security boundary.**
 
 ```ruby
-def run(pi_args:)
+def run(pi_args:, extension_ui: nil)
   workspace.ensure!
   workspace.stage_uploads(conversation.uploaded_files)
   workspace.stage_mcp_config(mcp_config)
   workspace.stage_identity(identity_content)
   workspace.stage_skills
-  session = PiAgent.session(args: pi_args, cwd: workspace.workspace_dir.to_s)
+  session = PiAgent.session(args: pi_args, cwd: workspace.workspace_dir.to_s,
+                            extension_ui: extension_ui)
   yield session
 ensure
+  collect_host_artifacts(…)      # agent-published files → Message#artifacts
+  ingest_team_skills(…)          # agent-edited DB skills sync back
   session.close
+  workspace.discard_mcp_config   # secrets don't linger on disk
 end
 ```
 
@@ -130,6 +152,11 @@ kernel intercepts pi's syscalls. pi's `.pi/extensions` are baked into the
 `metis-pi` image, auto-synced by a Kamal pre-deploy hook. See
 `docs/coding-runtime.md`.
 
+The persistent host root is a reclaimable hot cache:
+`EvictDockerWorkspacesJob` (recurring) warm-evicts idle scopes'
+`workspace/` while keeping `sessions/`, so pi still `--continue`s and
+`Agent::Identity` warns the next turn its files are gone.
+
 ### `Runtime::E2b`
 
 Pi inside an E2B microVM. The microVM lives across turns — first
@@ -140,7 +167,8 @@ turn creates and pauses, later turns connect+resume. Scope persists
 No bind mount — `stage_*` methods are reimplemented on the runtime
 using `sandbox.files.write(remote_path, bytes)`. Extension files are
 uploaded each turn so an extensions update reaches in-flight
-conversations.
+conversations. `E2bTransport` drives `pi --mode rpc` over the sandbox's
+command streaming.
 
 ```ruby
 SCOPE_DIR      = "/home/user/metis"
@@ -175,6 +203,29 @@ Idle sandboxes are reaped by Daytona's **own** auto-stop/archive/delete
 intervals set at create — there is **no metis cron** for Daytona (contrast
 `EvictPausedSandboxesJob` for E2b). `self.kill_sandbox(id)` is best-effort,
 called from `Conversation#before_destroy`.
+
+### `Runtime::Microsandbox`
+
+Pi inside a self-hosted **libkrun microVM**, driven in-process by the
+optional `microsandbox-rb` gem (optional bundler group, lazily
+required — it compiles a Rust native extension) — no daemon, no cloud
+API. VM-grade isolation at self-hosted cost, on Linux with KVM or
+macOS on Apple Silicon.
+
+Persistence follows **Docker, not E2b/Daytona**: the VM is disposable
+— created fresh each turn (`ephemeral: true`) — and the conversation
+scope is a persistent host path bind-mounted into the guest at
+`/metis`. Staging is host-side (`Workspace#stage_*`, projected through
+the mount); the app's pi extensions ride a second read-only bind
+mount. Nothing to pause, resume, or evict — a dead worker takes its
+VMs with it, and `reap_stale_sandboxes` clears leftover state.
+`MicrosandboxTransport` drives `pi --mode rpc` over `exec_stream`. pi
+must be in the OCI image (`config.x.agent.microsandbox_image`, pulled
+from a registry — microsandbox can't see a local Docker store).
+
+All three remote transports (`E2bTransport`, `DaytonaTransport`,
+`MicrosandboxTransport`) share the `TransportTiming` mixin for
+boot/RPC timing instrumentation.
 
 ## `Agent::Workspace`
 
@@ -526,7 +577,7 @@ current bearer, refreshing through the provider's token endpoint when
 stale (within `REFRESH_LEEWAY`) or when stored token is blank (legacy
 backfill row). `bearer_for(user:, provider:, required_scopes:)` is
 the entry point for `Runtime::Base#sandbox_env`. `CLIENTS` maps
-`github`/`google` only — Linear is not brokered here; `LinearApp::Oauth`
+`github`/`google`/`x` — Linear is not brokered here; `LinearApp::Oauth`
 owns its token dance (see Provider apps).
 
 Also the **single source of truth for the strategy/provider name
@@ -555,10 +606,11 @@ in sequence by the OmniAuth callback:
    this and only this; the grant ends up holding just the sign-in
    scopes (per `OauthBroker::SIGN_IN_SCOPES`).
 2. **When the authorize URL carried `connect=<key>`**:
-   `activate_connector(user, app, auth)` — find-or-init the
-   `Connector` and the per-member `ConnectorCredential` marker. The
-   token already lives in the grant from step 1; this row is just
-   the presence signal `McpConfig` keys off.
+   `activate_connector(user, app, auth, team:)` — find-or-init the
+   `Connector` and the per-member `ConnectorCredential` marker
+   (capturing `external_login` from the auth nickname). The token
+   already lives in the grant from step 1; this row is just the
+   presence signal `McpConfig` keys off.
 
 ## `ConnectorCatalog`
 
@@ -569,7 +621,7 @@ Each app is a template — connecting one resolves it into a team's
 placeholders from user input; `App#credential_map_for(secret)` shapes
 the user's secret into the header map a `ConnectorCredential` holds.
 
-## Provider apps (`github_app/`, `google_app/`, `linear_app/`)
+## Provider apps (`github_app/`, `google_app/`, `linear_app/`, `x_app/`)
 
 Tiny per-provider config holders:
 - `*App::Config` — client_id, client_secret, redirect URI, allowed
@@ -581,10 +633,14 @@ Tiny per-provider config holders:
   access tokens expire in 24h, so `ConnectorCredential` refreshes
   before use. Only Google rides stock OAuth2 — omniauth-google-oauth2
   for the flow, the broker's `Clients::Google` for refresh.
+- `XApp::Oauth` — hand-rolled auth-code + PKCE with HTTP Basic client
+  auth and a rotating refresh token. Connector-only like Linear (no
+  sign-in strategy; connects via `Connectors::XOauthController`), but
+  refresh IS brokered — `OauthBroker::Clients::X`.
 
-These exist because the three providers diverge in non-trivial ways
-(GitHub App vs. OAuth App, Google's offline-access dance, Linear's
-connector-only model). Keep per-provider quirks here rather than
+These exist because the providers diverge in non-trivial ways
+(GitHub App vs. OAuth App, Google's offline-access dance, Linear's and
+X's connector-only models). Keep per-provider quirks here rather than
 leaking into `OauthBroker` core.
 
 ## `EvictPausedSandboxesJob`
@@ -622,6 +678,12 @@ the REST alternative (Cloudflare Email Service, registered as
 
 ## Other jobs
 
+- `EvictDockerWorkspacesJob` — recurring; warm-evicts idle Docker /
+  Microsandbox scopes' `workspace/` (keeping `sessions/`) to bound
+  host disk (see Runtime::Docker above).
+- `CleanupPersistentWorkspaceJob` — removes a destroyed conversation's
+  whole persistent scope, enqueued from
+  `Conversation#after_destroy_commit` — never `rm_rf` inline.
 - `DaytonaStopJob` — delayed stop after the keep-warm window, so ending
   compute billing never holds the ChatJob worker; no-op if a newer turn
   reused the box (freshness token). Daytona's autoStop is the backstop.

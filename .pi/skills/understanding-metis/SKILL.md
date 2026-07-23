@@ -1,7 +1,7 @@
 ---
 name: understanding-metis
 description: Architectural knowledge of the Metis codebase (chagel/metis) — a Rails 8.1 chat UI in front of the pi agent harness. Use ONLY when working on the Metis repository.
-version: 9
+version: 10
 ---
 
 # Metis Architecture
@@ -34,7 +34,9 @@ two orthogonal axes:
    **gVisor** / `runsc`, Docker-in-Docker from the `job` worker);
    `Runtime::E2b` runs it in an E2B microVM that pauses + resumes by
    sandbox id; `Runtime::Daytona` runs it in a Daytona elastic sandbox
-   that stops + starts by sandbox id. `Runtime::Local` is **not** a
+   that stops + starts by sandbox id; `Runtime::Microsandbox` runs it
+   in a self-hosted libkrun microVM (in-process via the optional
+   `microsandbox-rb` gem — no daemon). `Runtime::Local` is **not** a
    security boundary — pi has shell access to the host.
 
 Pi's native events translate into `Agent::UiEvent` — a canonical
@@ -86,7 +88,11 @@ see [`session-persistence.md`](../../../docs/session-persistence.md):
 - `Runtime::Local` keeps the scope under `storage/agent/` and relies
   on pi's own `--continue`.
 - `Runtime::Docker` bind-mounts the host scope into a disposable
-  `--rm` container; the host filesystem is the durable source.
+  `--rm` container; the host filesystem is the durable source. That
+  host root is a reclaimable hot cache: `EvictDockerWorkspacesJob`
+  warm-evicts idle scopes' `workspace/` (keeping `sessions/`, so pi
+  still `--continue`s), and destroying a conversation removes the
+  whole scope via `CleanupPersistentWorkspaceJob`.
 - `Runtime::E2b` uses E2B's native `pause`/`resume` by sandbox id —
   first turn creates and pauses, later turns resume the same microVM.
   `EvictPausedSandboxesJob` reaps long-idle sandboxes (E2B does not
@@ -96,6 +102,11 @@ see [`session-persistence.md`](../../../docs/session-persistence.md):
   auto-stop/archive/delete intervals set at create — no metis cron. The
   community SDK is a fork (`chagel/daytona-sdk`) adding session stdin +
   follow-logs streaming; `DaytonaTransport` drives `pi --mode rpc`.
+- `Runtime::Microsandbox` bind-mounts the persistent host scope into a
+  disposable libkrun microVM (fresh each turn, `ephemeral`) — the
+  Docker persistence shape at VM-grade isolation, self-hosted and
+  in-process; `MicrosandboxTransport` drives `pi --mode rpc` over
+  `exec_stream`. Nothing to pause, resume, or evict.
 
 There is **no archive**. `Agent::SessionArchive` was removed; don't
 reintroduce a tar-to-Active-Storage path.
@@ -318,9 +329,11 @@ credentials are deployment-level ENV — never per-user.
 
 ## Critical dependency
 
-`Gemfile` pulls `pi-agent-rb` from rubygems (currently `~> 0.1.11`).
-This gem drives `pi --mode rpc` and is the only way Metis talks to
-pi. No sibling checkout required.
+`Gemfile` pulls `pi-agent-rb` from rubygems (currently 0.2.0). This
+gem drives `pi --mode rpc` and is the only way Metis talks to pi. No
+sibling checkout required. Since 0.2.0 a turn ends at pi's
+`agent_settled` event — `agent_end` is not terminal (pi may continue
+after it).
 
 ## Commands
 
