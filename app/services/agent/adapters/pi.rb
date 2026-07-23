@@ -37,6 +37,7 @@ module Agent
         @session_stats = nil
         @model_info = nil
         @last_text_message_id = nil
+        @agent_ends = 0
       end
 
       def stream(input, images: [], files: [], &block)
@@ -44,6 +45,7 @@ module Agent
 
         @last_text_message_id = nil
         @agent_responded = false
+        @agent_ends = 0
         @runtime.status_sink = lambda do |phase, message|
           block.call(Agent::UiEvent.new(:runtime_status, data: { phase: phase, message: message }.compact))
         end
@@ -80,8 +82,8 @@ module Agent
       end
 
       # Translate a PiAgent::Event into an Agent::UiEvent, or nil to drop
-      # events the chat UI does not render (agent_start, turn_start/end,
-      # compaction, queue updates, ...).
+      # events the chat UI does not render (agent_start, non-final agent_end,
+      # turn_start/end, compaction, queue updates, ...).
       def translate(event)
         case event.type
         when :message_start
@@ -107,6 +109,12 @@ module Agent
              output: content_text(event["result"]),
              is_error: event["isError"] ? true : false)
         when :agent_end
+          # Not terminal: pi may retry, compact-and-retry, or run a queued
+          # continuation after agent_end. The turn ends at agent_settled.
+          @agent_ends += 1
+          nil
+        when :agent_settled
+          Rails.logger.info("pi settled after #{@agent_ends} agent_end events (conversation #{conversation.id})") if @agent_ends > 1
           ui(:turn_finished, event)
         when :extension_error
           ui(:error, event, message: event.error_message)

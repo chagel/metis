@@ -23,6 +23,7 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
         emit({ "type" => "message_end", "message" => { "id" => "m1", "role" => "assistant", "content" => "Hi there" } })
         emit({ "type" => "turn_end" })
         emit({ "type" => "agent_end", "messages" => [] })
+        emit({ "type" => "agent_settled" })
       when "get_session_stats"
         emit({ "id" => msg["id"], "type" => "response", "command" => "get_session_stats",
                "success" => true, "data" => {
@@ -214,8 +215,12 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
     assert_equal true, ui[:is_error]
   end
 
-  test "translates agent_end to a terminal turn_finished" do
-    ui = adapter.translate(pi_event("type" => "agent_end", "messages" => []))
+  test "drops agent_end — pi may retry or continue after it" do
+    assert_nil adapter.translate(pi_event("type" => "agent_end", "messages" => []))
+  end
+
+  test "translates agent_settled to a terminal turn_finished" do
+    ui = adapter.translate(pi_event("type" => "agent_settled"))
     assert_equal :turn_finished, ui.type
     assert ui.terminal?
   end
@@ -233,7 +238,7 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
   end
 
   test "preserves the native event payload on native_ref" do
-    raw = { "type" => "agent_end", "messages" => [] }
+    raw = { "type" => "agent_settled" }
     assert_equal raw, adapter.translate(pi_event(raw)).native_ref
   end
 
@@ -247,6 +252,32 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
                  events.map(&:type)
     assert_equal "Hi", events[1][:delta]
     assert_equal " there", events[2][:delta]
+    assert events.last.terminal?
+  end
+
+  # The gem drains through agent_settled, so text pi produces in an
+  # automatic retry after the first agent_end must reach the UI stream.
+  RETRY_STUB = PROMPT_STUB.sub(<<~'BEFORE', <<~'AFTER')
+    emit({ "type" => "agent_end", "messages" => [] })
+  BEFORE
+    emit({ "type" => "agent_end", "messages" => [] })
+    emit({ "type" => "agent_start" })
+    emit({ "type" => "message_start", "message" => { "id" => "m2", "role" => "assistant" } })
+    emit({ "type" => "message_update", "message" => { "id" => "m2" },
+           "assistantMessageEvent" => { "type" => "text_delta", "delta" => "Retried tail" } })
+    emit({ "type" => "message_end", "message" => { "id" => "m2", "role" => "assistant", "content" => "Retried tail" } })
+    emit({ "type" => "turn_end" })
+    emit({ "type" => "agent_end", "messages" => [] })
+    emit({ "type" => "agent_settled" })
+  AFTER
+
+  test "stream keeps output produced after an agent_end retry" do
+    events = []
+    streaming_adapter(RETRY_STUB).stream("hi") { |event| events << event }
+
+    deltas = events.select { |e| e.type == :text_delta }.map { |e| e[:delta] }
+    assert_includes deltas.join, "Retried tail"
+    assert_equal [ :turn_finished ], events.map(&:type).select { |t| t == :turn_finished }
     assert events.last.terminal?
   end
 
