@@ -41,7 +41,7 @@ gem "csv"
 # Pagination — used for endless scrolling of the sidebar conversation list
 gem "pagy", "~> 43.5"
 
-gem "pi-agent-rb", "~> 0.1.11", require: "pi_agent"
+gem "pi-agent-rb", require: "pi_agent"
 
 # E2B secure cloud sandboxes — the isolated runtime for the agent
 gem "e2b"
