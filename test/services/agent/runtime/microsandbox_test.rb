@@ -45,12 +45,8 @@ class Agent::Runtime::MicrosandboxTest < ActiveSupport::TestCase
   end
 
   # Swap PiAgent.session so #run never opens a real transport.
-  def with_pi_session(session)
-    original = PiAgent.method(:session)
-    PiAgent.define_singleton_method(:session) { |*, **| session }
-    yield
-  ensure
-    PiAgent.define_singleton_method(:session, original)
+  def with_pi_session(session, &block)
+    with_stub(PiAgent, :session, ->(*, **) { session }, &block)
   end
 
   def fake_session
@@ -63,12 +59,10 @@ class Agent::Runtime::MicrosandboxTest < ActiveSupport::TestCase
   # Capture Sandbox.create calls and hand back `sandbox`.
   def with_sandbox_create(sandbox)
     captured = []
-    target = ::Microsandbox::Sandbox
-    original = target.method(:create)
-    target.define_singleton_method(:create) { |name, **params| captured << [ name, params ]; sandbox }
-    yield captured
-  ensure
-    target.define_singleton_method(:create, original)
+    with_stub(::Microsandbox::Sandbox, :create,
+              ->(name, **params) { captured << [ name, params ]; sandbox }) do
+      yield captured
+    end
   end
 
   def with_agent_config(**overrides)
@@ -242,26 +236,19 @@ class Agent::Runtime::MicrosandboxTest < ActiveSupport::TestCase
   end
 
   test "discards the staged mcp config even when the VM never boots" do
-    target = ::Microsandbox::Sandbox
-    original = target.method(:create)
-    target.define_singleton_method(:create) { |*, **| raise ::Microsandbox::Error, "image pull failed" }
-    begin
+    with_stub(::Microsandbox::Sandbox, :create, ->(*, **) { raise ::Microsandbox::Error, "image pull failed" }) do
       with_pi_session(fake_session) do
         assert_raises(::Microsandbox::Error) do
           @runtime.run(pi_args: [ "--mode", "rpc" ]) { nil }
         end
       end
-    ensure
-      target.define_singleton_method(:create, original)
     end
 
     refute @workspace.workspace_dir.join(Agent::McpConfig::FILENAME).exist?,
       "the staged bearer tokens must not linger when provisioning fails"
   end
 
-  FakeHandle = Struct.new(:name, :status) do
-    def running? = status == :running
-  end
+  FakeHandle = Struct.new(:name, :status)
 
   test "reaps a prior crashed turn's stale VM state before creating, sparing live ones" do
     handles = [
@@ -272,21 +259,14 @@ class Agent::Runtime::MicrosandboxTest < ActiveSupport::TestCase
       FakeHandle.new("unrelated", :stopped)
     ]
     removed = []
-    target = ::Microsandbox::Sandbox
-    original_list = target.method(:list)
-    original_remove = target.method(:remove)
-    target.define_singleton_method(:list) { handles }
-    target.define_singleton_method(:remove) { |name| removed << name }
-
-    begin
-      with_sandbox_create(FakeSandbox.new) do |_captured|
-        with_pi_session(fake_session) do
-          @runtime.run(pi_args: [ "--mode", "rpc" ]) { nil }
+    with_stub(::Microsandbox::Sandbox, :list, -> { handles }) do
+      with_stub(::Microsandbox::Sandbox, :remove, ->(name) { removed << name }) do
+        with_sandbox_create(FakeSandbox.new) do |_captured|
+          with_pi_session(fake_session) do
+            @runtime.run(pi_args: [ "--mode", "rpc" ]) { nil }
+          end
         end
       end
-    ensure
-      target.define_singleton_method(:list, original_list)
-      target.define_singleton_method(:remove, original_remove)
     end
 
     assert_equal [ "metis-c#{@conversation.id}-dead", "metis-c#{@conversation.id}-crashed" ],

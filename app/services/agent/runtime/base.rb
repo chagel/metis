@@ -82,7 +82,8 @@ module Agent
       end
 
       # The working tree was reclaimed while its transcript survived —
-      # only Runtime::Docker's warm eviction produces this; cloud
+      # Runtime::Docker's warm eviction produces this, and the host
+      # bind-mount runtimes (Docker, Microsandbox) both detect it; cloud
       # runtimes lose both and go through context_lost? instead.
       def workspace_evicted? = false
 

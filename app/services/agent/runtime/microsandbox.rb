@@ -47,6 +47,9 @@ module Agent
       # so there is no shorter cap on pi itself. Must exceed the longest turn.
       MAX_DURATION = 7200
       CONTROL_PREFIX = "metis-control-".freeze
+      # Sweep-eligible states — :starting/:running belong to a live
+      # concurrent use.
+      TERMINAL_STATES = %i[stopped crashed].freeze
 
       def self.image
         Rails.application.config.x.agent.microsandbox_image
@@ -66,10 +69,14 @@ module Agent
       end
 
       def self.create_params
-        params = { image: image, ephemeral: true }
-        auth = registry_auth
-        params[:registry_auth] = auth if auth
-        params
+        { image: image, ephemeral: true, registry_auth: registry_auth }.compact
+      end
+
+      # The gem rides an optional bundler group (it compiles a Rust native
+      # extension); loaded on first use so every other runtime boots without
+      # it. Tests stand in a minimal ::Microsandbox, which the guard honors.
+      def self.load_gem
+        require "microsandbox" unless defined?(::Microsandbox)
       end
 
       # `ephemeral` cleanup is runtime-driven, so a SIGKILLed worker leaves
@@ -81,10 +88,7 @@ module Agent
       # Logged-not-raised.
       def self.reap_stale_sandboxes(prefix)
         ::Microsandbox::Sandbox.list.each do |handle|
-          next unless handle.name.start_with?(prefix)
-          # Only terminal states — :starting/:running belong to a live
-          # concurrent use.
-          next unless %i[stopped crashed].include?(handle.status)
+          next unless handle.name.start_with?(prefix) && TERMINAL_STATES.include?(handle.status)
 
           ::Microsandbox::Sandbox.remove(handle.name)
         end
@@ -97,7 +101,7 @@ module Agent
       # VM, asked and stopped. `env` carries the deployment's provider keys
       # so pi advertises them.
       def self.control_session(env: {})
-        require "microsandbox" unless defined?(::Microsandbox)
+        load_gem
         reap_stale_sandboxes(CONTROL_PREFIX)
         sandbox = ::Microsandbox::Sandbox.create(
           "#{CONTROL_PREFIX}#{SecureRandom.hex(4)}",
@@ -146,7 +150,6 @@ module Agent
         @workspace_evicted = conversation.backend_session_id.present? && !workspace.workspace_dir.directory?
         workspace.ensure!
         turn_started_at = Time.current.floor  # see Local#run
-        sandbox = nil
         begin
           # Staging inside the begin so the ensure's mcp discard covers a
           # failure mid-staging, not just a failed boot.
@@ -162,17 +165,18 @@ module Agent
             transport_factory: transport_factory(sandbox, pi_args, sandbox_env),
             extension_ui: extension_ui
           )
-          begin
-            timed(:pi_session) { yield session }
-          ensure
+          timed(:pi_session) { yield session }
+        ensure
+          # The VM goes down first — artifact collection and skill ingest
+          # read the bind-mounted host dir and don't need it running.
+          session&.close
+          stop_sandbox(sandbox) if sandbox
+          if session
             timed(:collect_artifacts) do
               collect_host_artifacts(dir: workspace.artifacts_dir, since: turn_started_at)
             end
             timed(:ingest_team_skills) { ingest_team_skills(slugs: touched_skill_slugs) }
-            session.close
           end
-        ensure
-          stop_sandbox(sandbox) if sandbox
           # Even when the VM never booted — the staged .mcp.json carries live
           # bearer tokens and must not linger on the persistent host dir.
           workspace.discard_mcp_config
@@ -203,8 +207,11 @@ module Agent
         @workspace ||= Agent::Workspace.persistent(conversation)
       end
 
+      # The prefix is the reap boundary — sandbox_name must stay under it.
+      def sandbox_prefix = "metis-c#{conversation.id}-"
+
       def sandbox_name
-        @sandbox_name ||= "metis-c#{conversation.id}-#{SecureRandom.hex(4)}"
+        @sandbox_name ||= "#{sandbox_prefix}#{SecureRandom.hex(4)}"
       end
 
       # Attached (the default) on purpose: an attached VM dies with the
@@ -212,8 +219,8 @@ module Agent
       # microVM. Its *stored state* can still outlive the crash — see
       # #reap_stale_sandboxes.
       def create_sandbox
-        require "microsandbox" unless defined?(::Microsandbox)
-        reap_stale_sandboxes
+        self.class.load_gem
+        self.class.reap_stale_sandboxes(sandbox_prefix)
         ::Microsandbox::Sandbox.create(
           sandbox_name,
           cpus: CPUS, memory: MEMORY_MIB, workdir: WORKSPACE_DIR,
@@ -222,18 +229,13 @@ module Agent
         )
       end
 
-      def reap_stale_sandboxes
-        self.class.reap_stale_sandboxes("metis-c#{conversation.id}-")
-      end
-
       # The scope mount is the persistence boundary; everything else the VM
       # writes is overlay, gone at stop. quota_mib lifts the runtime's
       # default guest-write budget on the mount when a deployment's working
       # trees outgrow it.
       def volumes
-        scope = { bind: workspace.scope_dir.to_s }
-        quota = Rails.application.config.x.agent.microsandbox_workspace_quota_mib
-        scope[:quota_mib] = quota if quota
+        scope = { bind: workspace.scope_dir.to_s,
+                  quota_mib: Rails.application.config.x.agent.microsandbox_workspace_quota_mib }.compact
         mounts = { SCOPE_DIR => scope }
         mounts[EXTENSIONS_DIR] = { bind: EXTENSIONS_SOURCE.to_s, ro: true } if EXTENSIONS_SOURCE.directory?
         mounts

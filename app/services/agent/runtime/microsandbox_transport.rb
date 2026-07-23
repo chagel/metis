@@ -36,7 +36,9 @@ module Agent
         @cwd = cwd
         @envs = envs || {}
         @on_message = on_message
-        @on_stderr = on_stderr
+        # pi's stderr is otherwise invisible — the runtime is a microVM and
+        # pi-agent-rb's default stderr handler is a no-op.
+        @stderr_relay = Agent::Runtime.stderr_relay("microsandbox", on_stderr)
         @write_mutex = Mutex.new
         @closed = false
         @finished = false
@@ -108,11 +110,11 @@ module Agent
           if event.stdout?
             out_framer.feed(event.data.to_s) { |line| dispatch_message(line) }
           elsif event.stderr?
-            err_framer.feed(event.data.to_s) { |line| dispatch_stderr(line) }
+            err_framer.feed(event.data.to_s) { |line| @stderr_relay.call(line) }
           elsif event.failed? || event.stdin_error?
-            dispatch_stderr("microsandbox exec failed: #{event.text || event.code}")
+            @stderr_relay.call("microsandbox exec failed: #{event.text || event.code}")
           elsif event.exited? && event.code.to_i.nonzero?
-            dispatch_stderr("pi exited with code #{event.code}")
+            @stderr_relay.call("pi exited with code #{event.code}")
           end
         end
       rescue StandardError => e
@@ -129,13 +131,6 @@ module Agent
         @on_message&.call(JSON.parse(line))
       rescue JSON::ParserError => e
         Rails.logger.warn("[microsandbox] non-JSON line from pi: #{e.message}: #{line.inspect}")
-      end
-
-      # pi's stderr is otherwise invisible — the runtime is a microVM and
-      # pi-agent-rb's default stderr handler is a no-op.
-      def dispatch_stderr(line)
-        Rails.logger.warn("[microsandbox pi stderr] #{line}")
-        @on_stderr&.call(line)
       end
 
       def close_stdin
