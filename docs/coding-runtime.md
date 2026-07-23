@@ -1,11 +1,12 @@
 # Coding runtime (v2)
 
-> **Status — shipped (Docker and E2b).** Both sandbox runtimes use the
-> v2 lifetime shape. The shapes differ — Docker keeps an ephemeral
-> container with a persistent host bind mount; E2b keeps the same
-> microVM resumed via `pause`/`resume` — but in both cases the
-> conversation's working tree, transcript, and installed dependencies
-> survive between turns. `Agent::SessionArchive` is gone.
+> **Status — shipped.** All sandbox runtimes (Docker, E2b, Daytona,
+> Microsandbox) use the v2 lifetime shape. The shapes differ — Docker
+> and Microsandbox keep an ephemeral container/microVM over a
+> persistent host bind mount; E2b and Daytona resume the same sandbox
+> by id — but in every case the conversation's working tree,
+> transcript, and installed dependencies survive between turns.
+> `Agent::SessionArchive` is gone.
 >
 > **Production (since 2026-06):** the `docker` runtime under **gVisor**
 > (`runsc`), driven from the containerized `job` worker via a mounted
@@ -48,10 +49,14 @@ The sandbox should live for the conversation.
 
 ## Decision: per-conversation sandbox lifetime
 
-The sandbox is provisioned once at the conversation's first turn and
-persists between turns; idle conversations are reaped after an
-eviction window. A conversation whose state has been evicted provisions
-fresh on its next turn — same path as the very first turn.
+The conversation's working state is provisioned at the first turn and
+persists between turns. Whether the *sandbox itself* persists is a
+per-runtime choice: E2b and Daytona resume the same sandbox by id,
+while Docker and Microsandbox dispose of the container/VM each turn
+and keep the state on a host bind mount. Idle state is reaped after an
+eviction window where one applies; a conversation whose state has been
+evicted provisions fresh on its next turn — same path as the very
+first turn.
 
 Worker fungibility is preserved because the persistent state lives in
 **addressable remote storage** (E2B's snapshot store, or the host
@@ -80,7 +85,9 @@ isolation tier, self-hosted: a disposable libkrun microVM per turn
 API) over the same persistent host bind mount Docker uses. Nothing is
 paused or resumed, no sandbox id is stored, and no eviction runs — the
 VM is created `ephemeral` and stopped at end of turn; a dead worker
-takes its in-process VMs with it. Requires Linux with KVM or macOS on
+takes its in-process VMs with it, and any VM state a SIGKILLed worker
+leaves behind is swept before the conversation's next create
+(self-healing, no reaper cron). Requires Linux with KVM or macOS on
 Apple Silicon, and the guest OCI image (the `docker:image` build)
 pushed to a registry the worker can pull from.
 
@@ -299,14 +306,18 @@ be GC'd later out-of-band.
 - **E2b paused-storage pricing.** Not published by E2B; the 24h
   default eviction window is a conservative guess. Worth measuring
   once we have meaningful usage, then tuning `METIS_E2B_EVICTION_HOURS`.
-- **Docker multi-worker.** The current production setup is a single
-  host, which is fine. A multi-worker deployment needs the persistent
-  workspace root (`/srv/metis/agent`) on shared FS (NFS or equivalent)
-  or per-conversation host pinning, and `metis-pi` + gVisor provisioned
-  on every job host. Same constraint `Local` has always had; worth
+- **Docker/Microsandbox multi-worker.** The current production setup
+  is a single host, which is fine. A multi-worker deployment needs the
+  persistent workspace root (`/srv/metis/agent`) on shared FS (NFS or
+  equivalent) or per-conversation host pinning, and the runtime's
+  prerequisites provisioned on every job host (`metis-pi` + gVisor for
+  `docker`; KVM + the microsandbox bundler group + a pullable image
+  for `microsandbox`). Same constraint `Local` has always had; worth
   deciding before the second host appears, not after.
 - **Rootless dockerd.** Deferred — see [Security
   posture](#security-posture-rootful-daemon-accepted-rootless-deferred).
 - **Workspace size cap.** Per-conversation disk budget — a runaway
   `git clone` of a huge monorepo should fail predictably, not
-  consume host disk (Docker) or E2B quota.
+  consume host disk (Docker) or E2B quota. The `microsandbox` runtime
+  already has one: the scope mount's guest-write quota (4 GiB default,
+  `METIS_MICROSANDBOX_WORKSPACE_QUOTA_MIB`); the others remain open.
