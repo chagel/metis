@@ -60,11 +60,6 @@ a fast, open agent harness. The lessons come along; the lock-in does not.
 > pi runs on your laptop. Metis runs pi for everyone you work with — in a
 > sandbox, on your stack, with your provider.
 
-- **[`VISION.md`](VISION.md)** — what Metis is, the rules we hold to, what we won't build.
-- **[`docs/architecture.md`](docs/architecture.md)** — how a turn flows; the Agent service layer.
-- **[`docs/configuration.md`](docs/configuration.md)** — runtimes, providers, and environment.
-- **[`docs/deployment.md`](docs/deployment.md)** — production deploys with Kamal, step by step.
-
 ## Stack
 
 - **Rails 8.1**, Ruby 4.0.5, PostgreSQL
@@ -72,6 +67,38 @@ a fast, open agent harness. The lessons come along; the lock-in does not.
 - **Any LLM provider [pi supports](https://pi.dev/docs/latest/providers)**, chosen per conversation
 - **Hotwire** (Turbo + Stimulus, importmap) and **Tailwind** for the live chat UI
 - **Devise** for auth; **Solid Queue / Cache / Cable** for jobs, cache, and Action Cable
+
+### Runtimes
+
+Where the agent runs is a deployment choice (`METIS_AGENT_RUNTIME`), not
+a code change — same agent, pick the isolation tier:
+
+- **local** — pi as a host subprocess. Dev only; not a security boundary.
+- **docker** — a disposable container over a persistent workspace; runs
+  under gVisor in production.
+- **e2b** / **daytona** — cloud microVM sandboxes, paused or stopped
+  between turns and resumed by id.
+- **microsandbox** — self-hosted libkrun microVMs: VM-grade isolation
+  without a cloud vendor.
+
+See [`docs/coding-runtime.md`](docs/coding-runtime.md) and
+[`docs/session-persistence.md`](docs/session-persistence.md).
+
+### Local bridge
+
+Workflow steps marked `run: local` are delegated to your own machine: a
+stdlib-only Go daemon ([`clients/metis/`](clients/metis/)) polls the
+deployment, claims the step, runs pi, Claude Code, or Codex headless in
+a git worktree, and reports the result back. Metis never drives your
+machine — the daemon pulls. See
+[`docs/local-bridge.md`](docs/local-bridge.md).
+
+### Learn more
+
+- **[`VISION.md`](VISION.md)** — what Metis is, the rules we hold to, what we won't build.
+- **[`docs/architecture.md`](docs/architecture.md)** — how a turn flows; the Agent service layer.
+- **[`docs/configuration.md`](docs/configuration.md)** — runtimes, providers, and environment.
+- **[`docs/deployment.md`](docs/deployment.md)** — production deploys with Kamal, step by step.
 
 ## Quickstart
 
