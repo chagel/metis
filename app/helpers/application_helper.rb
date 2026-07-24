@@ -161,14 +161,15 @@ module ApplicationHelper
   # hasn't picked a timezone yet — keeping the conditional in Ruby
   # avoids embedding ERB inside the `<body>` opening tag, which leaves
   # stray whitespace before the closing `>`.
-  # Sections that open collapsed (icon rail) by default — the board and
-  # sharing pages are full-width grids the panel only crowds. Server-
-  # rendered to avoid a flash; the controller still honors a sticky
-  # per-section override.
-  NAV_DEFAULT_COLLAPSED = %w[board sharing].freeze
+  # Rail-only sections — the board and sharing pages are full-width grids
+  # the panel only crowds, and the expanded panel body (the project list)
+  # is irrelevant to them, so on desktop the sidebar is pinned to the icon
+  # rail: no expand affordance, no sticky override. Server-rendered to
+  # avoid a flash; the mobile drawer is unaffected.
+  NAV_RAIL_ONLY = %w[board sharing].freeze
 
-  def nav_default_collapsed?
-    NAV_DEFAULT_COLLAPSED.include?(controller_name)
+  def nav_rail_only?
+    NAV_RAIL_ONLY.include?(controller_name)
   end
 
   # The team's projects, most recently active first. A project's own

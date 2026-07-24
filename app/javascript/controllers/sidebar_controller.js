@@ -8,11 +8,12 @@ import { Controller } from "@hotwired/stimulus"
 //    On wide viewports these are visual no-ops (CSS).
 //
 // 2. Desktop collapse (wide viewports): the sidebar shrinks to an icon
-//    rail. The default is per-section (the server renders the board
-//    collapsed; see nav_default_collapsed?). A manual toggle is remembered
-//    per section under `sidebarCollapsed:<section>`, so flipping the board
-//    open doesn't also collapse chats. Absent an override the server
-//    default stands. Restored on connect without animating (sidebar-no-anim).
+//    rail. A manual toggle is remembered per section under
+//    `sidebarCollapsed:<section>`, so flipping projects open doesn't also
+//    collapse chats. Absent an override the server default stands.
+//    Restored on connect without animating (sidebar-no-anim). Rail-only
+//    sections (see nav_rail_only?) are pinned collapsed: no expand, no
+//    override — only the mobile drawer behaviours apply.
 //
 // Keyboard shortcuts (⌘ on mac, Ctrl elsewhere): B toggles collapse,
 // F focuses search (expanding first if collapsed), N starts a new chat.
@@ -20,7 +21,7 @@ const STORE_KEY = "sidebarCollapsed"
 
 export default class extends Controller {
   static targets = ["newChat"]
-  static values = { section: String }
+  static values = { section: String, railOnly: Boolean }
 
   storeKey() {
     return `${STORE_KEY}:${this.sectionValue || ""}`
@@ -39,8 +40,9 @@ export default class extends Controller {
     if (!this.collapsible) return
 
     // Reconcile the server-rendered default with a sticky per-section
-    // override, correcting without animating.
-    const override = localStorage.getItem(this.storeKey())
+    // override, correcting without animating. Rail-only sections ignore
+    // overrides — the server-rendered collapsed state is final.
+    const override = this.railOnlyValue ? null : localStorage.getItem(this.storeKey())
     if (override !== null) {
       this.element.classList.add("sidebar-no-anim")
       this.element.classList.toggle("sidebar-collapsed", override === "1")
@@ -110,10 +112,12 @@ export default class extends Controller {
 
   // ── desktop collapse ──
   toggleCollapse() {
+    if (this.railOnlyValue) return
     const collapsed = this.element.classList.toggle("sidebar-collapsed")
     localStorage.setItem(this.storeKey(), collapsed ? "1" : "0")
   }
   expand() {
+    if (this.railOnlyValue) return
     this.element.classList.remove("sidebar-collapsed")
     localStorage.setItem(this.storeKey(), "0")
   }

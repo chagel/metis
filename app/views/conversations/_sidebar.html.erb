@@ -1,8 +1,8 @@
 <%# The persistent shell sidebar: brand, primary nav, a section-contextual
     body (conversations on chat, a project list on projects/board), and the
     user menu. Rendered by the "chat" layout on every top-level page. The
-    body collapses to the icon rail (.sidebar-rail) — the board opens
-    collapsed by default (full-width grid); see nav_default_collapsed?. %>
+    body collapses to the icon rail (.sidebar-rail) — board and sharing are
+    pinned to the rail on desktop; see nav_rail_only?. %>
 <aside id="sidebar" class="sidebar" data-controller="conversation-search"
        data-conversation-search-url-value="<%= search_conversations_path %>"
        data-conversation-search-min-length-value="<%= ConversationsController::SEARCH_MIN_LENGTH %>">
@@ -169,7 +169,11 @@
       vertical icons, so a collapsed section (e.g. the board) can still
       navigate. The logo/avatar expand the panel. %>
   <nav class="sidebar-rail" aria-label="<%= t('.rail') %>">
-    <span class="sidebar-rail-logo" data-action="click->sidebar#expand" title="<%= t('.expand') %>">M</span>
+    <% if nav_rail_only? %>
+      <span class="sidebar-rail-logo">M</span>
+    <% else %>
+      <span class="sidebar-rail-logo" data-action="click->sidebar#expand" title="<%= t('.expand') %>">M</span>
+    <% end %>
     <%= link_to conversations_path, class: "rail-dest#{' on' if controller_name == 'conversations'}" do %>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
         <path d="M2 3.5h12v8H6.5l-3 2.5V11.5H2z" stroke-linejoin="round"/>
@@ -211,20 +215,26 @@
       </svg>
       <span class="rail-label"><%= t('.settings') %></span>
     <% end %>
-    <button type="button" class="sidebar-rail-avatar" title="<%= t('.expand') %>"
-            aria-label="<%= t('.expand') %>" data-action="click->sidebar#expand">
-      <%= avatar_for current_user, size: 32 %>
-    </button>
+    <% if nav_rail_only? %>
+      <span class="sidebar-rail-avatar"><%= avatar_for current_user, size: 32 %></span>
+    <% else %>
+      <button type="button" class="sidebar-rail-avatar" title="<%= t('.expand') %>"
+              aria-label="<%= t('.expand') %>" data-action="click->sidebar#expand">
+        <%= avatar_for current_user, size: 32 %>
+      </button>
+    <% end %>
   </nav>
 
   <%# The collapse handle lives on the seam between sidebar and main. %>
-  <div class="sidebar-seam">
-    <button type="button" class="sidebar-collapse"
-            data-action="click->sidebar#toggleCollapse"
-            aria-label="<%= t('.collapse') %>" title="<%= t('.collapse') %> ⌘B">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <path d="M10 3L5 8l5 5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </button>
-  </div>
+  <% unless nav_rail_only? %>
+    <div class="sidebar-seam">
+      <button type="button" class="sidebar-collapse"
+              data-action="click->sidebar#toggleCollapse"
+              aria-label="<%= t('.collapse') %>" title="<%= t('.collapse') %> ⌘B">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M10 3L5 8l5 5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  <% end %>
 </aside>
