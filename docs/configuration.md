@@ -34,14 +34,14 @@ required is missing). In a deployment:
 | `SEARXNG_URL` | keyless web-search alternative — base URL of a self-hosted SearXNG with the JSON format enabled; see [Web search](#web-search) |
 | `METIS_DOCKER_IMAGE` | image for the `docker` runtime (default `metis-pi`) |
 | `METIS_DOCKER_RUNTIME` | OCI runtime for `docker`-runtime containers — unset = daemon default (`runc`); `runsc` for gVisor (see [coding runtime](coding-runtime.md)) |
-| `METIS_DOCKER_WORKSPACE_EVICTION_HOURS` | idle hours before a Docker conversation's persistent `workspace/` is warm-evicted (default 72, invalid fails boot) — see [session persistence](session-persistence.md) |
+| `METIS_DOCKER_WORKSPACE_EVICTION_HOURS` | idle hours before a host-bind-mount conversation's persistent `workspace/` is warm-evicted — applies to the `docker` **and** `microsandbox` runtimes despite the Docker-era name (default 72, invalid fails boot) — see [session persistence](session-persistence.md) |
 | `E2B_API_KEY` / `METIS_E2B_TEMPLATE` | required by the `e2b` runtime |
 | `DAYTONA_API_KEY` / `METIS_DAYTONA_SNAPSHOT` | required by the `daytona` runtime |
 | `DAYTONA_API_URL` / `DAYTONA_TARGET` | optional Daytona API endpoint / region |
 | `METIS_DAYTONA_AUTO_STOP_MINUTES` / `_AUTO_ARCHIVE_MINUTES` / `_AUTO_DELETE_MINUTES` | Daytona idle-lifecycle intervals, minutes (default 120 / 60 / 1440). Stop is a crash-only safety net — keep it above the longest turn. |
 | `METIS_MICROSANDBOX_IMAGE` | OCI image for the `microsandbox` runtime (default `metis-pi`) — pulled from a registry, so push the `docker:image` build somewhere the worker can reach |
 | `METIS_MICROSANDBOX_REGISTRY_USERNAME` / `_PASSWORD` | optional registry credentials for that pull (an existing `docker login` is honored without them) |
-| `METIS_MICROSANDBOX_WORKSPACE_QUOTA_MIB` | optional guest-write budget on the bind-mounted conversation scope (unset = the runtime's 4 GiB default) |
+| `METIS_MICROSANDBOX_WORKSPACE_QUOTA_MIB` | optional guest-write budget, MiB, on the bind-mounted conversation scope (unset = the runtime's 4 GiB default; non-numeric or non-positive fails boot) |
 | `SMTP_ADDRESS`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, … | outbound email over SMTP — see [Email & access](#email--account-access) |
 | `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_EMAIL_API_TOKEN` | outbound email via Cloudflare Email Service — see [Email & access](#email--account-access) |
 | `METIS_MAIL_DELIVERY` | mail transport: `smtp` (production default), `cloudflare`, or `test` (development default — no real send) |

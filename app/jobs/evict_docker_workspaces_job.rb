@@ -1,9 +1,10 @@
-# Warm-evicts idle Docker-runtime workspaces so the persistent host
-# root behaves like a hot cache, not permanent storage
+# Warm-evicts idle host-backed workspaces — the runtimes that bind-mount
+# a persistent host directory (docker, microsandbox) — so that root
+# behaves like a hot cache, not permanent storage
 # (docs/session-persistence.md): workspace/ is deleted, sessions/ stays,
 # so pi still resumes with --continue and no DB history replay. No
-# marker is written — Runtime::Docker detects the missing workspace at
-# the next turn and warns the agent.
+# marker is written — both runtimes detect the missing workspace at the
+# next turn and warn the agent.
 #
 # Eligibility is re-checked under the conversation row lock — the same
 # lock ConversationTurn.start takes — so an eviction can never race a
@@ -14,7 +15,7 @@ class EvictDockerWorkspacesJob < ApplicationJob
 
   def perform
     cutoff = Time.current - Rails.application.config.x.agent.docker_workspace_eviction_window
-    Conversation.docker_workspace_evictable(cutoff).select(:id, :user_id).find_each do |conversation|
+    Conversation.host_workspace_evictable(cutoff).select(:id, :user_id).find_each do |conversation|
       evict(conversation, cutoff)
     end
   end

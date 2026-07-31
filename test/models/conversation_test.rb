@@ -469,15 +469,18 @@ class ConversationTest < ActiveSupport::TestCase
     assert_equal [ "do it", "done" ], @conversation.replayable_history.map(&:content)
   end
 
-  test "docker_workspace_evictable spans only idle docker conversations" do
+  test "host_workspace_evictable spans only idle host-bind-mount conversations" do
     cutoff = 1.week.ago
 
     idle = @user.conversations.create!(runtime_state: { "runtime" => "docker" })
     idle.update_columns(updated_at: 2.weeks.ago)
+    idle_microsandbox = @user.conversations.create!(runtime_state: { "runtime" => "microsandbox" })
+    idle_microsandbox.update_columns(updated_at: 2.weeks.ago)
     fresh = @user.conversations.create!(runtime_state: { "runtime" => "docker" })
     local = @user.conversations.create!(runtime_state: { "runtime" => "local" })
     local.update_columns(updated_at: 2.weeks.ago)
 
-    assert_equal [ idle ], Conversation.docker_workspace_evictable(cutoff).to_a
+    assert_equal [ idle, idle_microsandbox ].sort_by(&:id),
+      Conversation.host_workspace_evictable(cutoff).sort_by(&:id)
   end
 end

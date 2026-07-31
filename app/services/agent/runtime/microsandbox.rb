@@ -50,6 +50,12 @@ module Agent
       # Sweep-eligible states — :starting/:running belong to a live
       # concurrent use.
       TERMINAL_STATES = %i[stopped crashed].freeze
+      # Stamped on every VM so the sweep's listing filters server-side.
+      LABELS = { "app" => "metis" }.freeze
+      # Pathological backstop only — a server handing out endless *unique*
+      # cursors. It is not a coverage bound: a healthy traversal runs to
+      # last_page? and a repeated cursor breaks out long before this.
+      REAP_PAGE_BACKSTOP = 1000
 
       def self.image
         Rails.application.config.x.agent.microsandbox_image
@@ -69,15 +75,34 @@ module Agent
       end
 
       def self.create_params
-        { image: image, ephemeral: true, registry_auth: registry_auth }.compact
+        { image: image, ephemeral: true, labels: LABELS,
+          registry_auth: registry_auth }.compact
       end
 
       # The gem rides an optional bundler group (it compiles a Rust native
       # extension); loaded on first use so every other runtime boots without
       # it. Tests stand in a minimal ::Microsandbox, which the guard honors.
+      #
+      # LoadError is a ScriptError, not a StandardError, so a deployment that
+      # selected this runtime without installing the group would sail past
+      # ChatJob's rescue and strand the turn's assistant message in
+      # `streaming` until the stale-turn sweep. Translate it.
       def self.load_gem
-        require "microsandbox" unless defined?(::Microsandbox)
+        return if gem_loaded?
+
+        require_gem
+      rescue LoadError => e
+        raise Agent::Error,
+          "the :microsandbox runtime needs the optional microsandbox-rb gem — run " \
+          "`bundle config set --local with microsandbox && bundle install` on this " \
+          "host, or pick another METIS_AGENT_RUNTIME (#{e.message})"
       end
+
+      # Seams: the test stand-in defines ::Microsandbox for the whole process,
+      # so the require path is only reachable with these two stubbed.
+      def self.gem_loaded? = !!defined?(::Microsandbox)
+
+      def self.require_gem = require("microsandbox")
 
       # `ephemeral` cleanup is runtime-driven, so a SIGKILLed worker leaves
       # the dead VM's stored state (its overlay upper dir) on disk with
@@ -86,12 +111,32 @@ module Agent
       # known prefix, so anything not running is a leftover; sweeping before
       # each create makes the next use self-healing without a reaper cron.
       # Logged-not-raised.
+      #
+      # The listing is cursor-paginated (gem 0.11+ / runtime v0.6.8) and yields
+      # one page at a time, so a single `list` would silently under-reap on a
+      # busy host. LABELS narrows the pages to metis's own VMs server-side;
+      # `prefix` stays the local reap boundary. Removals are held until the
+      # walk finishes — mutating the set mid-walk can invalidate the cursor.
+      #
+      # The walk runs to last_page? so coverage is never truncated; a cursor
+      # that repeats means the server is looping us and ends the walk.
       def self.reap_stale_sandboxes(prefix)
-        ::Microsandbox::Sandbox.list.each do |handle|
-          next unless handle.name.start_with?(prefix) && TERMINAL_STATES.include?(handle.status)
+        stale = []
+        cursor = nil
+        seen_cursors = Set.new
+        REAP_PAGE_BACKSTOP.times do
+          page = ::Microsandbox::Sandbox.list_with(labels: LABELS, limit: 100, cursor: cursor)
+          page.each do |handle|
+            next unless handle.name.start_with?(prefix) && TERMINAL_STATES.include?(handle.status)
 
-          ::Microsandbox::Sandbox.remove(handle.name)
+            stale << handle.name
+          end
+          break if page.last_page?
+
+          cursor = page.next_cursor
+          break unless seen_cursors.add?(cursor)
         end
+        stale.each { |name| ::Microsandbox::Sandbox.remove(name) }
       rescue ::Microsandbox::Error => e
         Rails.logger.warn("microsandbox stale-state sweep failed (#{prefix}*): #{e.message}")
       end
@@ -99,13 +144,16 @@ module Agent
       # Control-plane session (Agent::Runtime.control_session): the image's
       # pi answers, so no bind mounts or workspace — an ephemeral throwaway
       # VM, asked and stopped. `env` carries the deployment's provider keys
-      # so pi advertises them.
+      # so pi advertises them. Its writable layer is RAM-backed (tmpfs, half
+      # the VM's memory by default), so a SIGKILLed worker leaves no overlay
+      # upper dir behind for the sweep to find in the first place.
       def self.control_session(env: {})
         load_gem
         reap_stale_sandboxes(CONTROL_PREFIX)
         sandbox = ::Microsandbox::Sandbox.create(
           "#{CONTROL_PREFIX}#{SecureRandom.hex(4)}",
-          cpus: 1, memory: 512, max_duration: 600, **create_params
+          cpus: 1, memory: 512, max_duration: 600,
+          root_disk: ::Microsandbox::RootDisk.tmpfs, **create_params
         )
         factory = lambda do |on_message:, on_stderr:|
           MicrosandboxTransport.new(
@@ -117,10 +165,22 @@ module Agent
         yield session
       ensure
         session&.close
+        stop_or_kill(sandbox, context: "control_session") if sandbox
+      end
+
+      # A failed `stop` leaves the VM running — holding its full CPU/memory
+      # reservation until MAX_DURATION, and invisible to the sweep, which
+      # only reaps terminal states — so escalate to SIGKILL instead of just
+      # logging. Logged-not-raised throughout: teardown must not crash a turn
+      # the user already saw stream.
+      def self.stop_or_kill(sandbox, context:)
+        sandbox.stop
+      rescue ::Microsandbox::Error => e
+        Rails.logger.warn("microsandbox stop failed (#{context}): #{e.message} — force-killing")
         begin
-          sandbox&.stop
-        rescue ::Microsandbox::Error => e
-          Rails.logger.warn("microsandbox control_session cleanup failed: #{e.message}")
+          sandbox.kill
+        rescue ::Microsandbox::Error => kill_error
+          Rails.logger.warn("microsandbox kill failed (#{context}): #{kill_error.message}")
         end
       end
 
@@ -242,13 +302,9 @@ module Agent
       end
 
       # `stop` escalates SIGTERM → SIGKILL itself, and `ephemeral: true`
-      # reaps the stored state once stopped. Logged-not-raised: a stop
-      # failure must not crash a turn the user already saw stream, and a
-      # leaked in-process VM dies with the worker anyway.
+      # reaps the stored state once stopped.
       def stop_sandbox(sandbox)
-        sandbox.stop
-      rescue ::Microsandbox::Error => e
-        Rails.logger.warn("microsandbox stop failed for conversation #{conversation.id}: #{e.message}")
+        self.class.stop_or_kill(sandbox, context: "conversation #{conversation.id}")
       end
 
       def transport_factory(sandbox, pi_args, envs)

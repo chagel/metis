@@ -93,6 +93,35 @@ class Agent::WorkspaceTest < ActiveSupport::TestCase
     assert_equal "code", File.read(workspace.workspace_dir.join("keep.rb")), "existing content kept"
   end
 
+  test "ensure! replaces a symlinked workspace directory without following it" do
+    workspace = Agent::Workspace.scratch(@conversation)
+    victim = workspace.scope_dir.join("victim")
+    FileUtils.mkdir_p(victim)
+    File.write(victim.join("keep.txt"), "keep")
+    File.symlink(victim, workspace.workspace_dir)
+
+    workspace.ensure!
+
+    refute File.symlink?(workspace.workspace_dir)
+    assert workspace.workspace_dir.directory?
+    assert_equal "keep", File.read(victim.join("keep.txt"))
+  end
+
+  test "ensure! replaces a symlinked uploads directory without following it" do
+    workspace = Agent::Workspace.scratch(@conversation).ensure!
+    victim = workspace.scope_dir.join("victim")
+    FileUtils.mkdir_p(victim)
+    File.write(victim.join("keep.txt"), "keep")
+    FileUtils.rm_r(workspace.uploads_dir)
+    File.symlink(victim, workspace.uploads_dir)
+
+    workspace.ensure!
+
+    refute File.symlink?(workspace.uploads_dir)
+    assert workspace.uploads_dir.directory?
+    assert_equal "keep", File.read(victim.join("keep.txt"))
+  end
+
   # An upload double whose filename is hostile — Active Storage already
   # sanitizes path separators, so a crafted name has to be injected here.
   class CraftedUpload
@@ -118,6 +147,31 @@ class Agent::WorkspaceTest < ActiveSupport::TestCase
     refute File.exist?(workspace.scope_dir.join("escape.txt")), "the crafted name did not escape"
   end
 
+  test "stage_uploads removes stale atomic temp files before staging" do
+    workspace = Agent::Workspace.scratch(@conversation).ensure!
+    stale = workspace.uploads_dir.join(".data.txt-abandoned.tmp")
+    File.write(stale, "partial upload")
+
+    workspace.stage_uploads([])
+
+    refute stale.exist?
+  end
+
+  test "stage_uploads replaces a symlink without writing through it" do
+    workspace = Agent::Workspace.scratch(@conversation)
+    workspace.ensure!
+    victim = workspace.scope_dir.join("victim.txt")
+    destination = workspace.uploads_dir.join("data.txt")
+    File.write(victim, "keep")
+    File.symlink(victim, destination)
+
+    workspace.stage_uploads([ CraftedUpload.new("data.txt", "new upload") ])
+
+    assert_equal "keep", File.read(victim)
+    refute File.symlink?(destination)
+    assert_equal "new upload", File.read(destination)
+  end
+
   test "stage_mcp_config writes .mcp.json into the workspace root" do
     workspace = Agent::Workspace.scratch(@conversation)
     workspace.ensure!
@@ -137,6 +191,32 @@ class Agent::WorkspaceTest < ActiveSupport::TestCase
     assert_equal 0o600, mode
   end
 
+  test "stage_mcp_config replaces a symlink without writing through it" do
+    workspace = Agent::Workspace.scratch(@conversation)
+    workspace.ensure!
+    victim = workspace.scope_dir.join("victim.json")
+    destination = workspace.workspace_dir.join(".mcp.json")
+    File.write(victim, "keep")
+    File.symlink(victim, destination)
+
+    workspace.stage_mcp_config(%({"mcpServers":{}}))
+
+    assert_equal "keep", File.read(victim)
+    refute File.symlink?(destination)
+    assert_equal %({"mcpServers":{}}), File.read(destination)
+    assert_equal 0o600, File.stat(destination).mode & 0o777
+  end
+
+  test "stage_mcp_config removes stale token-bearing temp files before staging" do
+    workspace = Agent::Workspace.scratch(@conversation).ensure!
+    stale = workspace.workspace_dir.join("..mcp.json-abandoned.tmp")
+    File.write(stale, "old bearer token")
+
+    workspace.stage_mcp_config(%({"mcpServers":{}}))
+
+    refute stale.exist?
+  end
+
   test "discard_mcp_config removes the token-bearing .mcp.json" do
     workspace = Agent::Workspace.scratch(@conversation)
     workspace.ensure!
@@ -154,6 +234,21 @@ class Agent::WorkspaceTest < ActiveSupport::TestCase
     workspace.stage_identity("# Hello, pi")
 
     assert_equal "# Hello, pi", File.read(workspace.workspace_dir.join("AGENTS.md"))
+  end
+
+  test "stage_identity replaces a symlink without writing through it" do
+    workspace = Agent::Workspace.scratch(@conversation)
+    workspace.ensure!
+    victim = workspace.scope_dir.join("victim.md")
+    destination = workspace.workspace_dir.join("AGENTS.md")
+    File.write(victim, "keep")
+    File.symlink(victim, destination)
+
+    workspace.stage_identity("# Hello, pi")
+
+    assert_equal "keep", File.read(victim)
+    refute File.symlink?(destination)
+    assert_equal "# Hello, pi", File.read(destination)
   end
 
   test "stage_skills copies the repo's .pi/skills tree into workspace/.pi/skills" do
@@ -239,6 +334,30 @@ class Agent::WorkspaceTest < ActiveSupport::TestCase
     end
   end
 
+  test "stage_skills does not trust a symlinked signature marker" do
+    workspace = Agent::Workspace.scratch(@conversation)
+    workspace.ensure!
+
+    with_skills_source do |source|
+      FileUtils.mkdir_p(source.join("alpha"))
+      File.write(source.join("alpha/SKILL.md"), "v1")
+      workspace.stage_skills
+
+      staged = workspace.skills_dir.join("alpha/SKILL.md")
+      marker = workspace.skills_dir.join(Agent::Workspace::SKILLS_MARKER)
+      forged_marker = workspace.scope_dir.join("forged.sig")
+      File.write(staged, "tampered")
+      File.write(forged_marker, File.read(marker))
+      File.unlink(marker)
+      File.symlink(forged_marker, marker)
+
+      workspace.stage_skills
+
+      assert_equal "v1", File.read(staged)
+      refute File.symlink?(marker)
+    end
+  end
+
   test "stage_skills re-stages when the repo source changes" do
     workspace = Agent::Workspace.scratch(@conversation)
     workspace.ensure!
@@ -314,6 +433,71 @@ class Agent::WorkspaceTest < ActiveSupport::TestCase
     assert_equal @user, skill.created_by
   end
 
+  test "ingest_team_skills skips symlinked supporting files" do
+    workspace = Agent::Workspace.scratch(@conversation)
+    workspace.ensure!
+    write_skill_dir(workspace, "safe-skill", <<~MD)
+      ---
+      name: safe-skill
+      description: A safe skill.
+      ---
+
+      # Body
+    MD
+    secret = workspace.scope_dir.join("secret.txt")
+    File.write(secret, "host secret")
+    File.symlink(secret, workspace.skills_dir.join("safe-skill/secret.txt"))
+
+    workspace.ingest_team_skills(slugs: Set["safe-skill"], by: @user)
+
+    skill = @conversation.team.skills.find_by!(slug: "safe-skill")
+    assert_equal [ "SKILL.md" ], skill.file_list
+  end
+
+  test "ingest_team_skills does not traverse a symlinked supporting directory" do
+    workspace = Agent::Workspace.scratch(@conversation)
+    workspace.ensure!
+    write_skill_dir(workspace, "safe-skill", <<~MD)
+      ---
+      name: safe-skill
+      description: A safe skill.
+      ---
+
+      # Body
+    MD
+    host_dir = workspace.scope_dir.join("host-files")
+    FileUtils.mkdir_p(host_dir)
+    File.write(host_dir.join("secret.txt"), "host secret")
+    File.symlink(host_dir, workspace.skills_dir.join("safe-skill/references"))
+
+    workspace.ingest_team_skills(slugs: Set["safe-skill"], by: @user)
+
+    skill = @conversation.team.skills.find_by!(slug: "safe-skill")
+    assert_equal [ "SKILL.md" ], skill.file_list
+  end
+
+  test "ingest_team_skills refuses a symlinked skills root" do
+    workspace = Agent::Workspace.scratch(@conversation)
+    workspace.ensure!
+    host_skills = workspace.scope_dir.join("host-skills")
+    host_skill = host_skills.join("escaped")
+    FileUtils.mkdir_p(host_skill)
+    File.write(host_skill.join("SKILL.md"), <<~MD)
+      ---
+      name: escaped
+      description: Host-side skill.
+      ---
+    MD
+    FileUtils.mkdir_p(workspace.skills_dir.dirname)
+    File.symlink(host_skills, workspace.skills_dir)
+
+    assert_no_difference -> { @conversation.team.skills.count } do
+      workspace.ingest_team_skills(slugs: Set["escaped"], by: @user)
+    end
+
+    refute File.symlink?(workspace.skills_dir)
+  end
+
   test "queue_skill_imports enqueues ImportSkillJob for each URL in the sentinel" do
     workspace = Agent::Workspace.scratch(@conversation)
     workspace.ensure!
@@ -332,6 +516,30 @@ class Agent::WorkspaceTest < ActiveSupport::TestCase
 
     enqueued = ActiveJob::Base.queue_adapter.enqueued_jobs.last(2).map { |j| j[:args].first["url"] }
     assert_equal [ "anthropics/skills/skills/pdf", "anthropics/skills/skills/xlsx" ], enqueued
+  end
+
+  test "queue_skill_imports refuses a symlinked sentinel" do
+    workspace = Agent::Workspace.scratch(@conversation)
+    workspace.ensure!
+    FileUtils.mkdir_p(workspace.skills_dir)
+    source = workspace.scope_dir.join("imports.txt")
+    File.write(source, "anthropics/skills/skills/pdf\n")
+    File.symlink(source, workspace.skills_dir.join(".imports"))
+
+    assert_no_enqueued_jobs only: ImportSkillJob do
+      workspace.queue_skill_imports(by: @user)
+    end
+  end
+
+  test "queue_skill_imports refuses an oversized sentinel" do
+    workspace = Agent::Workspace.scratch(@conversation)
+    workspace.ensure!
+    FileUtils.mkdir_p(workspace.skills_dir)
+    File.write(workspace.skills_dir.join(".imports"), "a" * (64.kilobytes + 1))
+
+    assert_no_enqueued_jobs only: ImportSkillJob do
+      workspace.queue_skill_imports(by: @user)
+    end
   end
 
   test "queue_skill_imports is a no-op when the sentinel file is absent" do

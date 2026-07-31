@@ -70,12 +70,12 @@ class Agent::Runtime::MicrosandboxTransportTest < ActiveSupport::TestCase
     end
   end
 
-  def build_transport(events, on_message: nil, on_stderr: nil)
+  def build_transport(events, on_message: nil, on_stderr: nil, **opts)
     handle = FakeHandle.new(events)
     sandbox = FakeSandbox.new(handle)
     transport = Agent::Runtime::MicrosandboxTransport.new(
       sandbox: sandbox, command: "pi", args: [ "--mode", "rpc" ],
-      cwd: "/metis/workspace", on_message: on_message, on_stderr: on_stderr
+      cwd: "/metis/workspace", on_message: on_message, on_stderr: on_stderr, **opts
     )
     [ transport, handle, sandbox ]
   end
@@ -155,6 +155,17 @@ class Agent::Runtime::MicrosandboxTransportTest < ActiveSupport::TestCase
     assert_equal "boom", received.pop(timeout: 2)
   ensure
     transport&.close
+  end
+
+  test "a stdin write the guest never accepts is killed at the watchdog deadline" do
+    transport, handle, = build_transport([], write_timeout: 0.2)
+    # A wedged guest: the native write parks forever.
+    def (handle.stdin).write(_data) = Queue.new.pop
+    transport.start
+
+    assert_raises(PiAgent::ProtocolError) { transport.write({ "x" => 1 }) }
+    assert handle.killed?, "the watchdog must tear the stream down to unblock the parked write"
+    refute transport.alive?, "a watchdog-killed transport must report dead"
   end
 
   test "close sends EOF, kills the command, and rejects further writes" do

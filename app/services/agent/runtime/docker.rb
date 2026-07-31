@@ -135,11 +135,18 @@ module Agent
         begin
           yield session
         ensure
-          collect_host_artifacts(dir: workspace.artifacts_dir, since: turn_started_at)
-          ingest_team_skills(slugs: touched_skill_slugs)
-          session.close
-          remove_container
-          workspace.discard_mcp_config
+          begin
+            begin
+              # Stop all guest writers before host-side reads of the bind mount.
+              session.close
+            ensure
+              remove_container
+              collect_host_artifacts(dir: workspace.artifacts_dir, since: turn_started_at)
+              ingest_team_skills(slugs: touched_skill_slugs)
+            end
+          ensure
+            workspace.discard_mcp_config
+          end
         end
       end
 

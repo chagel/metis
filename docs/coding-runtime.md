@@ -83,13 +83,43 @@ net set above the longest turn. The sandbox id lives on
 isolation tier, self-hosted: a disposable libkrun microVM per turn
 (driven in-process by the `microsandbox-rb` gem — no daemon, no cloud
 API) over the same persistent host bind mount Docker uses. Nothing is
-paused or resumed, no sandbox id is stored, and no eviction runs — the
+paused or resumed and no sandbox id is stored — the
 VM is created `ephemeral` and stopped at end of turn; a dead worker
 takes its in-process VMs with it, and any VM state a SIGKILLed worker
 leaves behind is swept before the conversation's next create
-(self-healing, no reaper cron). Requires Linux with KVM or macOS on
+(self-healing, no reaper cron). Because the workspace shape is Docker's,
+it is on the same eviction cycle: `EvictDockerWorkspacesJob` scans
+`Conversation.host_workspace_evictable`, which covers `docker` and
+`microsandbox` alike. Requires Linux with KVM or macOS on
 Apple Silicon, and the guest OCI image (the `docker:image` build)
 pushed to a registry the worker can pull from.
+
+A `stop` that fails escalates to `kill` rather than only logging: an
+unstopped VM holds its 2 CPU / 2 GiB reservation until `MAX_DURATION`
+(7200s) and is invisible to the sweep, which only reaps terminal
+states. Both steps stay logged-not-raised.
+
+The sweep lists with `Sandbox.list_with(labels: { "app" => "metis" })`
+and walks `next_cursor` all the way to `last_page?`, collecting stale
+names across every page before removing any: sandbox
+listing is cursor-paginated as of microsandbox-rb 0.11 (runtime
+`v0.6.8`) and returns one page at a time, so a single unpaginated
+`list` would silently under-reap on a busy host. Every VM is stamped
+with the `app=metis` label at create so that filter works; `prefix`
+(`metis-c<id>-` / `metis-control-`) stays the local reap boundary. The
+walk is never capped by page count — truncating it would reintroduce the
+under-reap it exists to fix — so the only guards are a repeated cursor
+(the server looping us) and `REAP_PAGE_BACKSTOP`, a pathological stop
+for endless *unique* cursors.
+
+One more 0.11+ behavior change to know about: **bind-mount roots refuse
+symlinked roots by default** (runtime `v0.6.7`). If `$METIS_PERSISTENT_ROOT`
+(or `storage/agent`) or the repo's `.pi/extensions` resolves through a
+symlink — a data-volume link, a Capistrano-style `current`, `/tmp` on
+macOS — `Sandbox.create` fails. The escape hatch is
+`follow_root_symlinks: true` on that mount spec; it is deliberately not
+set by default, since it opts out of the protection. Verify on the
+actual host before reaching for it.
 
 **`Runtime::Local`** — unchanged. Persistence has always been pi-native
 (the scope dir lives between turns on a stable host filesystem).

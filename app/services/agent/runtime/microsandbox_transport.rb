@@ -17,6 +17,10 @@ module Agent
       include TransportTiming
 
       CLOSE_TIMEOUT = 5
+      # Watchdog on the blocking native stdin write (see #write). Generous —
+      # well past pi's own 30s RPC ack timeout, so it only fires on a truly
+      # wedged guest, converting an unbounded worker hang into a failed turn.
+      WRITE_TIMEOUT = 60
       # microsandbox's guest agent protocol rejects frames over 4 MiB, and one
       # stdin write becomes one frame. The rejection is not a clean typed
       # error at the write site, so pre-check here — the offending write
@@ -29,12 +33,14 @@ module Agent
       # handlers. `envs` is per-turn projected credentials (see
       # Runtime::Base#sandbox_env) — passed per-exec so nothing lands in the
       # sandbox's stored config.
-      def initialize(sandbox:, command:, args: [], cwd: nil, envs: {}, on_message: nil, on_stderr: nil)
+      def initialize(sandbox:, command:, args: [], cwd: nil, envs: {}, on_message: nil, on_stderr: nil,
+                     write_timeout: WRITE_TIMEOUT)
         @sandbox = sandbox
         @command = command
         @args = args
         @cwd = cwd
         @envs = envs || {}
+        @write_timeout = write_timeout
         @on_message = on_message
         # pi's stderr is otherwise invisible — the runtime is a microVM and
         # pi-agent-rb's default stderr handler is a no-op.
@@ -56,11 +62,14 @@ module Agent
         self
       end
 
-      # The native write BLOCKS until the guest accepts the frame; a wedged
-      # guest parks the calling thread here, and only #close's kill_command
-      # tears the stream down and unblocks it (Thread#kill can't interrupt a
-      # native call). The mutex serializes concurrent writers so JSONL lines
-      # can't interleave — #close must never need it (see below).
+      # The native write BLOCKS until the guest accepts the frame, and
+      # Thread#kill can't interrupt a native call — so the write runs on a
+      # helper thread the caller joins with a deadline. A wedged guest now
+      # parks only the disposable helper: on deadline the stream is killed
+      # (the one thing that unblocks a parked native write) and the caller
+      # fails loudly instead of pinning a worker until the VM's max_duration.
+      # The mutex serializes concurrent writers so JSONL lines can't
+      # interleave — #close must never need it (see below).
       def write(obj)
         payload = "#{JSON.generate(obj)}\n"
         if payload.bytesize > MAX_STDIN_FRAME_BYTES
@@ -72,16 +81,26 @@ module Agent
         @write_mutex.synchronize do
           raise PiAgent::ProtocolError, "microsandbox transport closed" if @closed
 
-          @stdin.write(payload)
+          writer = Thread.new do
+            Thread.current.report_on_exception = false
+            @stdin.write(payload)
+          end
+          next if writer.join(@write_timeout)
+
+          @closed = true
+          kill_command
+          raise PiAgent::ProtocolError,
+            "stdin write not accepted within #{@write_timeout}s — guest wedged, stream killed"
         end
       end
 
-      # Kill FIRST, without taking @write_mutex: a writer parked in the
-      # blocking native write holds that mutex, and the kill is the only
-      # thing that unblocks it — acquiring the mutex before the kill would
-      # deadlock the teardown behind the very hang it exists to break. A
-      # racing write that slipped past the @closed flag fails loudly against
-      # the killed stream instead of hanging.
+      # Kill FIRST, without taking @write_mutex: a write caller can hold that
+      # mutex for up to @write_timeout while its helper is parked in the
+      # blocking native write, and the kill is the only thing that unblocks
+      # the helper — acquiring the mutex before the kill would deadlock the
+      # teardown behind the very hang it exists to break. A racing write that
+      # slipped past the @closed flag fails loudly against the killed stream
+      # instead of hanging.
       def close(timeout: CLOSE_TIMEOUT)
         return if @closed
 

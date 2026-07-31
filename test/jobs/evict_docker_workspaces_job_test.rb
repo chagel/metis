@@ -38,7 +38,16 @@ class EvictDockerWorkspacesJobTest < ActiveSupport::TestCase
     assert Dir.exist?(workspace_dir(conversation))
   end
 
-  test "only docker-runtime conversations are candidates" do
+  test "evicts an idle microsandbox workspace too — same host bind mount" do
+    conversation = docker_conversation(runtime: "microsandbox")
+
+    EvictDockerWorkspacesJob.perform_now
+
+    refute Dir.exist?(workspace_dir(conversation))
+    assert File.exist?(Agent::Workspace.persistent(conversation).session_dir.join("s.jsonl"))
+  end
+
+  test "only host-bind-mount runtimes are candidates" do
     conversation = docker_conversation(runtime: "local")
 
     EvictDockerWorkspacesJob.perform_now
