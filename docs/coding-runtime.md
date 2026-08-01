@@ -89,7 +89,9 @@ takes its in-process VMs with it, and any VM state a SIGKILLed worker
 leaves behind is swept before the conversation's next create
 (self-healing, no reaper cron). Requires Linux with KVM or macOS on
 Apple Silicon, and the guest OCI image (the `docker:image` build)
-pushed to a registry the worker can pull from.
+pushed to a registry the worker can pull from — built for the *worker's*
+architecture, since `docker:image` builds for whichever daemon it runs
+against.
 
 **`Runtime::Local`** — unchanged. Persistence has always been pi-native
 (the scope dir lives between turns on a stable host filesystem).

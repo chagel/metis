@@ -70,6 +70,12 @@ The runtime decides *where* pi runs. See `coding-runtime.md` and
   ```sh
   rake "docker:image[metis-pi]"
   ```
+
+  That builds for the local daemon — right for a dev box. For a server
+  of a different architecture use `rake docker:sync_pi_image`, which
+  builds on the host itself; a cross-arch image fails only at turn time,
+  as a 30s `BootTimeout`
+  ([deployment.md](deployment.md#architecture-build-where-you-run)).
 - **`e2b`** — pi runs inside an isolated [E2B](https://e2b.dev) microVM.
   Build the sandbox template once:
 

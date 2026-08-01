@@ -89,7 +89,14 @@ identifiers.
 
 - **registry** — point `server`/`username` at yours (Docker Hub, GHCR,
   …) and add `KAMAL_REGISTRY_PASSWORD` to `.kamal/secrets`.
-- **builder.arch** — `arm64` or `amd64`, matching your hosts.
+- **builder.arch / builder.remote** — `arch` is the *hosts'* CPU
+  architecture, not your laptop's. When they differ, also set `remote:
+  ssh://user@host` so the build runs on a machine of that architecture;
+  `arch` alone makes Kamal cross-build under QEMU, where compiling
+  native gems (pg, vips, nokogiri) is slow and apt to fail. Point
+  `remote` at any reachable host of the target arch — one of your
+  servers, or a dedicated builder. See
+  [Architecture: build where you run](#architecture-build-where-you-run).
 - **proxy** — the committed config sets `ssl: false` (TLS terminated
   upstream). Serving the internet directly: `ssl: true` and kamal-proxy
   gets Let's Encrypt certificates itself.
@@ -137,6 +144,47 @@ first account may sign up freely — that's you. Then:
 - Invite your team from **Settings → Team** — the invitation email is a
   good end-to-end test of your mail transport.
 - Wire up connectors: [connectors.md](connectors.md).
+
+## Architecture: build where you run
+
+Two images ship to the hosts, and both must be built for the hosts' CPU
+architecture: the **app image** (Kamal) and **`metis-pi`**, the sandbox
+image the `docker` runtime launches pi from. If you develop and deploy
+from a machine of the same architecture, this is invisible. If you don't
+— an `amd64` workstation deploying to `arm64` servers, or the reverse —
+each has a failure mode, and neither says so plainly:
+
+| Image | Wrong-arch symptom |
+|---|---|
+| App image | The QEMU cross-build itself fails or crawls, usually while compiling native gems |
+| `metis-pi` | Deploy succeeds, then **every turn** times out — pi exits `exec format error` inside the sandbox, which the app reports as `Agent::Adapters::BootTimeout` after 30s |
+
+Both are handled by building on a host of the target architecture rather
+than on the deployer:
+
+- **App image** — `builder: remote: ssh://user@host` in `deploy.yml`,
+  alongside `arch`.
+- **`metis-pi`** — `rake docker:sync_pi_image` builds over
+  `DOCKER_HOST=ssh://` on the job host. The kamal pre-deploy hook runs
+  it on every deploy, but it only rebuilds when the image's fingerprint
+  (pi version, Dockerfile, `.pi/extensions`, **target arch**) drifts, so
+  it is normally a sub-second no-op.
+
+This costs the host some CPU and disk during a build. That is bounded —
+builds are infrequent, and `metis-pi` in particular only rebuilds on
+drift — but on a small single-host deployment a build competes with the
+running app. To keep builds off your servers entirely, point both at a
+separate builder of the target arch: `builder.remote` and the `host`
+argument to `docker:sync_pi_image`. The trade is a machine to maintain.
+
+Kamal's local registry (`registry: server: localhost:5555`) works with a
+remote builder — Kamal forwards the registry port to the builder over
+SSH, and requires the `remote` URL to use the `ssh://` scheme. Nothing
+changes for multi-host deployments: the image is built once on the
+builder, pushed to the registry, and every host pulls from there, so
+adding web hosts costs nothing extra. Hosts of *mixed* architecture are
+the exception — one image cannot serve both, and Metis does not build
+multi-arch manifests. Keep the fleet on one architecture.
 
 ## Day 2
 
