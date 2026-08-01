@@ -56,7 +56,7 @@ namespace :docker do
     puts "                    export METIS_AGENT_RUNTIME=docker"
   end
 
-  desc "Build metis-pi on the host iff its fingerprint changed. Usage: rake docker:sync_pi_image[host,name]"
+  desc "Build metis-pi on a job host iff its fingerprint changed. Usage: rake docker:sync_pi_image[host,name]"
   # No :environment prerequisite on purpose — this runs from the kamal
   # pre-deploy hook, where booting Rails would decrypt credentials with the
   # deploy shell's RAILS_MASTER_KEY and fail. We only need PiAgent (loaded by
@@ -68,6 +68,10 @@ namespace :docker do
   # an arm64 server — and a cross-arch metis-pi is a silent failure (see
   # pi_image_fingerprint). Building where the image will run makes the arch
   # right by construction, and drops the save|gzip|ssh|load upload entirely.
+  #
+  # host must therefore be a job host, not a build box: Runtime::Docker
+  # launches sandboxes with --pull never, so the image has to exist in that
+  # daemon and nothing transfers it there. One run per job host.
   task :sync_pi_image, [ :host, :name ] do |_task, args|
     require "dotenv"
     Dotenv.load(".env.deploy") if File.exist?(".env.deploy")

@@ -170,21 +170,28 @@ than on the deployer:
   (pi version, Dockerfile, `.pi/extensions`, **target arch**) drifts, so
   it is normally a sub-second no-op.
 
-This costs the host some CPU and disk during a build. That is bounded —
-builds are infrequent, and `metis-pi` in particular only rebuilds on
-drift — but on a small single-host deployment a build competes with the
-running app. To keep builds off your servers entirely, point both at a
-separate builder of the target arch: `builder.remote` and the `host`
-argument to `docker:sync_pi_image`. The trade is a machine to maintain.
+This costs the host some CPU and disk during a build. On a small
+single-host deployment that competes with the running app — the app
+image is the expensive half, since it rebuilds on every deploy, while
+`metis-pi` only rebuilds on drift. `builder.remote` may point at **any**
+reachable host of the target arch, so moving the app build to a
+dedicated builder keeps it off your servers entirely; Kamal pushes the
+result to the registry and the hosts pull it.
+
+`docker:sync_pi_image` is not interchangeable that way: its `host`
+argument names the daemon the image is *built into*, and `Runtime::Docker`
+launches sandboxes with `--pull never`, so `metis-pi` has to exist in
+each job host's own daemon. Point it at a job host, never at a separate
+builder — there is no transfer step, and an image built elsewhere simply
+never arrives. With more than one job host, run it once per host.
 
 Kamal's local registry (`registry: server: localhost:5555`) works with a
 remote builder — Kamal forwards the registry port to the builder over
-SSH, and requires the `remote` URL to use the `ssh://` scheme. Nothing
-changes for multi-host deployments: the image is built once on the
-builder, pushed to the registry, and every host pulls from there, so
-adding web hosts costs nothing extra. Hosts of *mixed* architecture are
-the exception — one image cannot serve both, and Metis does not build
-multi-arch manifests. Keep the fleet on one architecture.
+SSH, and requires the `remote` URL to use the `ssh://` scheme. Adding
+**web** hosts costs nothing at build time: the app image is built once
+and every host pulls it from the registry. Hosts of *mixed* architecture
+are the exception — one image cannot serve both, and Metis does not
+build multi-arch manifests. Keep the fleet on one architecture.
 
 ## Day 2
 
