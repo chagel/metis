@@ -164,11 +164,15 @@ or `--rootless` for rootless-dockerd guidance. What it does, step by step:
    `systemctl reload docker` — a SIGHUP live-reloads the runtimes list
    **without restarting containers**, so co-tenant apps keep running.
    Verify: `docker info | grep -iA2 runtimes` shows `runsc`.
-2. **The pi image + agent dir.** Build `metis-pi` on the host daemon
-   (`rake "docker:image[metis-pi]"` from a checkout, or build on the
-   deploy machine and `docker save | ssh | docker load`) — `--pull never`
-   needs it local. Also `mkdir -p /srv/metis/agent && chown 1000:1000
-   /srv/metis/agent` (the container's `rails` uid writes the bind mount).
+2. **The pi image + agent dir.** `rake docker:sync_pi_image` builds
+   `metis-pi` on the host's own daemon over `DOCKER_HOST=ssh://` —
+   `--pull never` needs it local, and building where it runs keeps its
+   arch right when the deployer is a different one (a `linux/amd64`
+   workstation deploying to an arm64 server ships an image whose pi dies
+   with `exec format error`, surfacing only as `BootTimeout`). The kamal
+   pre-deploy hook runs it on every deploy. Also `mkdir -p
+   /srv/metis/agent && chown 1000:1000 /srv/metis/agent` (the container's
+   `rails` uid writes the bind mount).
 
 The matching deploy.yml wiring (job role only): the docker socket and
 `/srv/metis/agent` bind-mounted at an identical path, `group-add` for the

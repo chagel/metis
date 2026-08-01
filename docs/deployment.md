@@ -110,9 +110,9 @@ sudo ./docker/provision-job-host.sh
 ```
 
 Idempotent: installs gVisor (`runsc`), creates `/srv/metis/agent`, and
-verifies a container runs under gVisor. Also build the sandbox image on
-the host daemon (`rake "docker:image[metis-pi]"` from a checkout, or
-pass `--build-image`), and check `getent group docker` matches the
+verifies a container runs under gVisor. The sandbox image is built on the
+host daemon by `rake docker:sync_pi_image` (the kamal pre-deploy hook), or
+pass `--build-image`. Check `getent group docker` matches the
 `group-add` gid in `deploy.yml`. Deep dive:
 [coding-runtime.md](coding-runtime.md).
 
