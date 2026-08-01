@@ -52,9 +52,9 @@ module Agent
       TERMINAL_STATES = %i[stopped crashed].freeze
       # Stamped on every VM so the sweep's listing filters server-side.
       LABELS = { "app" => "metis" }.freeze
-      # Pathological backstop only — a server handing out endless *unique*
-      # cursors. It is not a coverage bound: a healthy traversal runs to
-      # last_page? and a repeated cursor breaks out long before this.
+      # Pathological backstop only — a server that never reports a last
+      # page (looping or endless cursors). It is not a coverage bound: a
+      # healthy traversal runs to last_page? long before this.
       REAP_PAGE_BACKSTOP = 1000
 
       def self.image
@@ -118,12 +118,11 @@ module Agent
       # `prefix` stays the local reap boundary. Removals are held until the
       # walk finishes — mutating the set mid-walk can invalidate the cursor.
       #
-      # The walk runs to last_page? so coverage is never truncated; a cursor
-      # that repeats means the server is looping us and ends the walk.
+      # The walk runs to last_page? so coverage is never truncated;
+      # REAP_PAGE_BACKSTOP only bounds a server that never reports one.
       def self.reap_stale_sandboxes(prefix)
         stale = []
         cursor = nil
-        seen_cursors = Set.new
         REAP_PAGE_BACKSTOP.times do
           page = ::Microsandbox::Sandbox.list_with(labels: LABELS, limit: 100, cursor: cursor)
           page.each do |handle|
@@ -134,9 +133,8 @@ module Agent
           break if page.last_page?
 
           cursor = page.next_cursor
-          break unless seen_cursors.add?(cursor)
         end
-        stale.each { |name| ::Microsandbox::Sandbox.remove(name) }
+        stale.uniq.each { |name| ::Microsandbox::Sandbox.remove(name) }
       rescue ::Microsandbox::Error => e
         Rails.logger.warn("microsandbox stale-state sweep failed (#{prefix}*): #{e.message}")
       end

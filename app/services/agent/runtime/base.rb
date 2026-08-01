@@ -235,7 +235,6 @@ module Agent
       # mtime-windowed so cleanup of artifacts/ stays the runtime's
       # job — old turns' files fall outside the window.
       def collect_host_artifacts(dir:, since:)
-        dir = Pathname.new(dir)
         return unless Agent::Workspace.prepare_artifacts_directory(dir)
 
         Agent::Workspace.each_regular_file(dir) do |path, relative, stat|

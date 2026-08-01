@@ -107,10 +107,9 @@ listing is cursor-paginated as of microsandbox-rb 0.11 (runtime
 `list` would silently under-reap on a busy host. Every VM is stamped
 with the `app=metis` label at create so that filter works; `prefix`
 (`metis-c<id>-` / `metis-control-`) stays the local reap boundary. The
-walk is never capped by page count — truncating it would reintroduce the
-under-reap it exists to fix — so the only guards are a repeated cursor
-(the server looping us) and `REAP_PAGE_BACKSTOP`, a pathological stop
-for endless *unique* cursors.
+walk is never truncated by design — that would reintroduce the
+under-reap it exists to fix — its only guard is `REAP_PAGE_BACKSTOP`, a
+pathological stop for a server that never reports a last page.
 
 One more 0.11+ behavior change to know about: **bind-mount roots refuse
 symlinked roots by default** (runtime `v0.6.7`). If `$METIS_PERSISTENT_ROOT`

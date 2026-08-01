@@ -1,4 +1,5 @@
 require "fileutils"
+require "find"
 require "tempfile"
 
 module Agent
@@ -80,29 +81,29 @@ module Agent
       repair_directory_chain(path, within: path.dirname.dirname, create: false)
     end
 
+    # Depth-first walk yielding [path, relative, lstat] for every regular
+    # file, with lstat/no-follow semantics throughout: Find never descends
+    # a symlinked directory, and a symlinked file fails stat.file? — a
+    # guest-planted link cannot pull host files into the walk.
     def self.each_regular_file(root)
       root = Pathname.new(root)
-      return enum_for(__method__, root) unless block_given?
       return unless File.lstat(root).directory?
 
-      stack = Dir.children(root).sort.reverse.map { |name| [ root.join(name), Pathname.new(name) ] }
-      until stack.empty?
-        path, relative = stack.pop
-        begin
-          stat = File.lstat(path)
-          if stat.directory?
-            Dir.children(path).sort.reverse_each do |name|
-              stack << [ path.join(name), relative.join(name) ]
-            end
-          elsif stat.file?
-            yield path, relative, stat
-          end
-        rescue Errno::ENOENT
-          next
-        end
+      Find.find(root.to_s) do |entry|
+        stat = File.lstat(entry)
+        yield Pathname.new(entry), Pathname.new(entry).relative_path_from(root), stat if stat.file?
+      rescue Errno::ENOENT
+        next
       end
     rescue Errno::ENOENT
       nil
+    end
+
+    # A regular file at lstat — a guest-planted symlink is not trusted.
+    def self.regular_file?(path)
+      File.lstat(path).file?
+    rescue Errno::ENOENT
+      false
     end
 
     # The conversation's whole scope.
@@ -144,12 +145,10 @@ module Agent
     def stage_uploads(attachments)
       repair_directory_chain(uploads_dir)
       FileUtils.rm_f(uploads_dir.glob(".*.tmp"))
-      uploads = attachments.filter_map do |attachment|
+      attachments.each do |attachment|
         name = safe_upload_name(attachment)
-        [ attachment, name ] if name
-      end
+        next unless name
 
-      uploads.each do |attachment, name|
         attachment.open do |io|
           atomic_replace(uploads_dir.join(name)) { |file| IO.copy_stream(io, file) }
         end
@@ -190,13 +189,7 @@ module Agent
       signature = staged_skills_signature
       marker = dest.join(SKILLS_MARKER)
 
-      marker_matches =
-        begin
-          File.lstat(marker).file? && marker.read == signature
-        rescue Errno::ENOENT
-          false
-        end
-      return if marker_matches
+      return if self.class.regular_file?(marker) && marker.read == signature
 
       FileUtils.rm_rf(dest)
 
@@ -262,7 +255,7 @@ module Agent
       return unless repair_directory_chain(skills_dir, create: false)
 
       file = skills_dir.join(SKILL_IMPORTS_FILE)
-      return unless File.lstat(file).file?
+      return unless self.class.regular_file?(file)
 
       body = File.binread(file, MAX_SKILL_IMPORT_BYTES + 1)
       if body.bytesize > MAX_SKILL_IMPORT_BYTES

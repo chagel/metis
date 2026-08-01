@@ -416,26 +416,7 @@ class Agent::Runtime::MicrosandboxTest < ActiveSupport::TestCase
     assert_equal 120, calls.size
   end
 
-  test "the sweep breaks out when the server repeats a cursor" do
-    pages = 0
-    looping = lambda do |labels: {}, limit: nil, cursor: nil|
-      pages += 1
-      ::Microsandbox::SandboxPage.new([], "always-the-same")
-    end
-
-    with_stub(::Microsandbox::Sandbox, :list_with, looping) do
-      with_sandbox_create(FakeSandbox.new) do |_captured|
-        with_pi_session(fake_session) do
-          @runtime.run(pi_args: [ "--mode", "rpc" ]) { nil }
-        end
-      end
-    end
-
-    assert_equal 2, pages,
-      "a repeated cursor must end the walk, not run to the backstop"
-  end
-
-  test "endless unique cursors still terminate at the pathological backstop" do
+  test "a server that never reports a last page terminates at the backstop" do
     pages = 0
     endless = lambda do |labels: {}, limit: nil, cursor: nil|
       pages += 1

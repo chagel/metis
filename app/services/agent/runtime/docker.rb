@@ -135,18 +135,7 @@ module Agent
         begin
           yield session
         ensure
-          begin
-            begin
-              # Stop all guest writers before host-side reads of the bind mount.
-              session.close
-            ensure
-              remove_container
-              collect_host_artifacts(dir: workspace.artifacts_dir, since: turn_started_at)
-              ingest_team_skills(slugs: touched_skill_slugs)
-            end
-          ensure
-            workspace.discard_mcp_config
-          end
+          teardown(session, turn_started_at)
         end
       end
 
@@ -166,6 +155,22 @@ module Agent
       end
 
       private
+
+      # Stop all guest writers (session close tears the container's pi
+      # down) before the container is removed and the bind mount is read
+      # host-side; the token-bearing .mcp.json is discarded no matter
+      # what failed before it.
+      def teardown(session, turn_started_at)
+        session.close
+      ensure
+        begin
+          remove_container
+          collect_host_artifacts(dir: workspace.artifacts_dir, since: turn_started_at)
+          ingest_team_skills(slugs: touched_skill_slugs)
+        ensure
+          workspace.discard_mcp_config
+        end
+      end
 
       def workspace
         @workspace ||= Agent::Workspace.persistent(conversation)
