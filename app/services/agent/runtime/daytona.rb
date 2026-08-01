@@ -115,10 +115,10 @@ module Agent
           timeout: SANDBOX_TIMEOUT
         )
         command = Shellwords.join(%w[pi --mode rpc])
-        factory = lambda do |on_message:, on_stderr:|
+        factory = lambda do |on_message:, on_stderr:, on_close:|
           DaytonaTransport.new(
             sandbox: sandbox, pi_command: command, envs: env,
-            on_message: on_message, on_stderr: on_stderr
+            on_message: on_message, on_stderr: on_stderr, on_close: on_close
           )
         end
         session = PiAgent.session(transport_factory: factory)
@@ -538,10 +538,10 @@ module Agent
 
       def transport_factory(sandbox, pi_args, envs)
         command = Shellwords.join([ "pi", *pi_args ])
-        lambda do |on_message:, on_stderr:|
+        lambda do |on_message:, on_stderr:, on_close:|
           DaytonaTransport.new(
             sandbox: sandbox, pi_command: command, cwd: WORKSPACE_DIR, envs: envs,
-            on_message: on_message, on_stderr: on_stderr
+            on_message: on_message, on_stderr: on_stderr, on_close: on_close
           )
         end
       end

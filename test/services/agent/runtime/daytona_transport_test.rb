@@ -49,11 +49,27 @@ class Agent::Runtime::DaytonaTransportTest < ActiveSupport::TestCase
     end
   end
 
-  def build_transport(stdout: [], stderr: [], on_message: nil, on_stderr: nil)
+  # Follows logs until the session is deleted — the shape of a live
+  # stream, so close-path tests can order close before the stream ends.
+  class BlockingProcess < FakeProcess
+    def initialize
+      super
+      @stream = Queue.new
+    end
+
+    def get_session_command_logs_async(*, **) = @stream.pop
+
+    def delete_session(session_id)
+      super
+      @stream << :eof
+    end
+  end
+
+  def build_transport(stdout: [], stderr: [], on_message: nil, on_stderr: nil, on_close: nil)
     process = FakeProcess.new(stdout: stdout, stderr: stderr)
     transport = Agent::Runtime::DaytonaTransport.new(
       sandbox: FakeSandbox.new(process), pi_command: "pi --mode rpc", cwd: "/root/metis/workspace",
-      on_message: on_message, on_stderr: on_stderr
+      on_message: on_message, on_stderr: on_stderr, on_close: on_close
     )
     [ transport, process ]
   end
@@ -126,5 +142,27 @@ class Agent::Runtime::DaytonaTransportTest < ActiveSupport::TestCase
 
     assert_equal 1, process.deleted_sessions.size
     assert_raises(PiAgent::ProtocolError) { transport.write({ "x" => 1 }) }
+  end
+
+  test "reports the log stream ending on its own via on_close" do
+    reasons = Queue.new
+    transport, = build_transport(on_close: ->(reason) { reasons << reason })
+    transport.start
+
+    assert_equal "pi stdout stream ended", reasons.pop(timeout: 2)
+  ensure
+    transport&.close
+  end
+
+  test "an owner-initiated close is not reported as a death" do
+    reasons = Queue.new
+    transport = Agent::Runtime::DaytonaTransport.new(
+      sandbox: FakeSandbox.new(BlockingProcess.new), pi_command: "pi --mode rpc",
+      on_close: ->(reason) { reasons << reason }
+    )
+    transport.start
+    transport.close
+
+    assert_nil reasons.pop(timeout: 0.3)
   end
 end

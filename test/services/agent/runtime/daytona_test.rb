@@ -584,4 +584,12 @@ class Agent::Runtime::DaytonaTest < ActiveSupport::TestCase
     end
     assert_empty client.got_ids, "no client call for a blank id"
   end
+
+  # pi-agent-rb 0.3.0 passes its on_close death handler only to factories
+  # that declare the keyword — this pins the shape that activates it.
+  test "the transport factory takes pi-agent-rb's on_close handler" do
+    factory = @runtime.send(:transport_factory, Object.new, [ "--mode", "rpc" ], {})
+    transport = factory.call(on_message: ->(msg) { }, on_stderr: ->(line) { }, on_close: ->(reason) { })
+    assert_kind_of Agent::Runtime::DaytonaTransport, transport
+  end
 end

@@ -29,12 +29,14 @@ module Agent
       MAX_STDIN_FRAME_BYTES = 4 * 1024 * 1024 - 64 * 1024
 
       # `command`/`args` are pi's argv (exec_stream takes them separately — no
-      # shell, no escaping). `on_message`/`on_stderr` are pi-agent-rb's
-      # handlers. `envs` is per-turn projected credentials (see
+      # shell, no escaping). `on_message`/`on_stderr`/`on_close` are
+      # pi-agent-rb's handlers — `on_close` is the 0.3.0 death notification,
+      # fired once when the stream ends without `#close` being called (see
+      # read_loop). `envs` is per-turn projected credentials (see
       # Runtime::Base#sandbox_env) — passed per-exec so nothing lands in the
       # sandbox's stored config.
       def initialize(sandbox:, command:, args: [], cwd: nil, envs: {}, on_message: nil, on_stderr: nil,
-                     write_timeout: WRITE_TIMEOUT)
+                     on_close: nil, write_timeout: WRITE_TIMEOUT)
         @sandbox = sandbox
         @command = command
         @args = args
@@ -42,6 +44,7 @@ module Agent
         @envs = envs || {}
         @write_timeout = write_timeout
         @on_message = on_message
+        @on_close = on_close
         # pi's stderr is otherwise invisible — the runtime is a microVM and
         # pi-agent-rb's default stderr handler is a no-op.
         @stderr_relay = Agent::Runtime.stderr_relay("microsandbox", on_stderr)
@@ -89,8 +92,13 @@ module Agent
 
           @closed = true
           kill_command
-          raise PiAgent::ProtocolError,
-            "stdin write not accepted within #{@write_timeout}s — guest wedged, stream killed"
+          # A watchdog kill is a transport-side death, not an owner #close:
+          # report it so pending RPCs and event streams fail now. @closed is
+          # already set, so the reader's own notification stays silent —
+          # exactly-once holds.
+          reason = "stdin write not accepted within #{@write_timeout}s — guest wedged, stream killed"
+          @on_close&.call(reason)
+          raise PiAgent::ProtocolError, reason
         end
       end
 
@@ -120,9 +128,13 @@ module Agent
       # interrupt; #kill_command ending the guest process is what unblocks it.
       # Non-stdio events are pi's death certificate — a missing binary
       # (`:failed`, e.g. an image without pi on PATH) or an OOM kill
-      # (`:exited` 137) would otherwise surface only as a later generic RPC
-      # timeout with nothing in the logs.
+      # (`:exited` 137) — and become the on_close reason, so the client fails
+      # pending RPCs and event streams immediately instead of waiting out its
+      # generic timeouts. The stream ending is terminal either way: buffered
+      # stdout has been dispatched by then, and a close the owner initiated
+      # (@closed) is expected, not a death.
       def read_loop
+        reason = "pi stdout stream ended"
         out_framer = PiAgent::Framer.new
         err_framer = PiAgent::Framer.new
         @handle.each do |event|
@@ -131,18 +143,21 @@ module Agent
           elsif event.stderr?
             err_framer.feed(event.data.to_s) { |line| @stderr_relay.call(line) }
           elsif event.failed? || event.stdin_error?
-            @stderr_relay.call("microsandbox exec failed: #{event.text || event.code}")
-          elsif event.exited? && event.code.to_i.nonzero?
-            @stderr_relay.call("pi exited with code #{event.code}")
+            reason = "microsandbox exec failed: #{event.text || event.code}"
+            @stderr_relay.call(reason)
+          elsif event.exited?
+            reason = "pi exited with code #{event.code}"
+            @stderr_relay.call(reason) if event.code.to_i.nonzero?
           end
         end
       rescue StandardError => e
-        # Once the reader stops, pi's responses can no longer arrive and every
-        # pending RPC will hang to its timeout. Log loudly rather than dying
-        # as a silent thread death.
-        Rails.logger.error("[microsandbox] pi stdout reader stopped: #{e.class}: #{e.message}")
+        # Once the reader stops, pi's responses can no longer arrive. Log
+        # loudly rather than dying as a silent thread death.
+        reason = "pi stdout reader stopped: #{e.class}: #{e.message}"
+        Rails.logger.error("[microsandbox] #{reason}")
       ensure
         @finished = true
+        @on_close&.call(reason) unless @closed
       end
 
       def dispatch_message(line)

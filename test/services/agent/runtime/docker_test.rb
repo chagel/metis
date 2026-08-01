@@ -118,9 +118,11 @@ class Agent::Runtime::DockerTest < ActiveSupport::TestCase
     assert_equal "runsc", captured[idx + 1]
   end
 
-  test "transport_factory builds a subprocess transport wrapping docker" do
+  # pi-agent-rb 0.3.0 passes its on_close death handler only to factories
+  # that declare the keyword — this pins the shape that activates it.
+  test "transport_factory builds a subprocess transport wrapping docker, taking on_close" do
     transport = Agent::Runtime::Docker.transport_factory([ "run", "--rm" ], {})
-                                      .call(on_message: nil, on_stderr: nil)
+                                      .call(on_message: nil, on_stderr: nil, on_close: ->(reason) { })
 
     assert_instance_of PiAgent::Transport::Subprocess, transport
     assert_equal [ "docker", "run", "--rm" ], transport.instance_variable_get(:@command)

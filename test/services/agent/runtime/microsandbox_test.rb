@@ -433,4 +433,12 @@ class Agent::Runtime::MicrosandboxTest < ActiveSupport::TestCase
 
     assert_equal Agent::Runtime::Microsandbox::REAP_PAGE_BACKSTOP, pages
   end
+
+  # pi-agent-rb 0.3.0 passes its on_close death handler only to factories
+  # that declare the keyword — this pins the shape that activates it.
+  test "the transport factory takes pi-agent-rb's on_close handler" do
+    factory = @runtime.send(:transport_factory, Object.new, [ "--mode", "rpc" ], {})
+    transport = factory.call(on_message: ->(msg) { }, on_stderr: ->(line) { }, on_close: ->(reason) { })
+    assert_kind_of Agent::Runtime::MicrosandboxTransport, transport
+  end
 end
