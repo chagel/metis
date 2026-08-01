@@ -70,6 +70,27 @@ class Agent::Runtime::MicrosandboxTransportTest < ActiveSupport::TestCase
     end
   end
 
+  # Blocks in #each until killed — the shape of a live stream, so
+  # close-path tests can order close before the stream ends.
+  class BlockingHandle
+    attr_reader :stdin
+
+    def initialize
+      @stdin = FakeStdin.new
+      @stream = Queue.new
+      @killed = false
+    end
+
+    def each = @stream.pop
+
+    def kill
+      @killed = true
+      @stream << :eof
+    end
+
+    def killed? = @killed
+  end
+
   def build_transport(events, on_message: nil, on_stderr: nil, **opts)
     handle = FakeHandle.new(events)
     sandbox = FakeSandbox.new(handle)
@@ -158,14 +179,24 @@ class Agent::Runtime::MicrosandboxTransportTest < ActiveSupport::TestCase
   end
 
   test "a stdin write the guest never accepts is killed at the watchdog deadline" do
-    transport, handle, = build_transport([], write_timeout: 0.2)
-    # A wedged guest: the native write parks forever.
+    reasons = Queue.new
+    # A live stream (BlockingHandle) whose guest wedges: the native write
+    # parks forever.
+    handle = BlockingHandle.new
+    transport = Agent::Runtime::MicrosandboxTransport.new(
+      sandbox: FakeSandbox.new(handle), command: "pi",
+      write_timeout: 0.2, on_close: ->(reason) { reasons << reason }
+    )
     def (handle.stdin).write(_data) = Queue.new.pop
     transport.start
 
     assert_raises(PiAgent::ProtocolError) { transport.write({ "x" => 1 }) }
     assert handle.killed?, "the watchdog must tear the stream down to unblock the parked write"
     refute transport.alive?, "a watchdog-killed transport must report dead"
+    # A watchdog kill is a transport-side death, not an owner close — it is
+    # reported, exactly once, so streams beyond the failed write end promptly.
+    assert_match(/guest wedged/, reasons.pop(timeout: 2))
+    assert_nil reasons.pop(timeout: 0.3)
   end
 
   test "close sends EOF, kills the command, and rejects further writes" do
@@ -211,5 +242,30 @@ class Agent::Runtime::MicrosandboxTransportTest < ActiveSupport::TestCase
     assert_empty clean
   ensure
     transport&.close
+  end
+
+  test "reports the stream ending on its own via on_close, with the exit reason" do
+    reasons = Queue.new
+    transport, = build_transport(
+      [ FakeEvent.new(type: :exited, code: 137) ],
+      on_close: ->(reason) { reasons << reason }
+    )
+    transport.start
+
+    assert_match(/pi exited with code 137/, reasons.pop(timeout: 2))
+    transport.close
+    assert_nil reasons.pop(timeout: 0.3), "a close after the death adds nothing"
+  end
+
+  test "an owner-initiated close is not reported as a death" do
+    reasons = Queue.new
+    transport = Agent::Runtime::MicrosandboxTransport.new(
+      sandbox: FakeSandbox.new(BlockingHandle.new), command: "pi",
+      on_close: ->(reason) { reasons << reason }
+    )
+    transport.start
+    transport.close
+
+    assert_nil reasons.pop(timeout: 0.3)
   end
 end

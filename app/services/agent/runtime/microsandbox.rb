@@ -156,10 +156,10 @@ module Agent
           cpus: 1, memory: 512, max_duration: 600,
           root_disk: ::Microsandbox::RootDisk.tmpfs, **create_params
         )
-        factory = lambda do |on_message:, on_stderr:|
+        factory = lambda do |on_message:, on_stderr:, on_close:|
           MicrosandboxTransport.new(
             sandbox: sandbox, command: "pi", args: %w[--mode rpc], envs: env,
-            on_message: on_message, on_stderr: on_stderr
+            on_message: on_message, on_stderr: on_stderr, on_close: on_close
           )
         end
         session = PiAgent.session(transport_factory: factory)
@@ -309,10 +309,10 @@ module Agent
       end
 
       def transport_factory(sandbox, pi_args, envs)
-        lambda do |on_message:, on_stderr:|
+        lambda do |on_message:, on_stderr:, on_close:|
           MicrosandboxTransport.new(
             sandbox: sandbox, command: "pi", args: pi_args, cwd: WORKSPACE_DIR,
-            envs: envs, on_message: on_message, on_stderr: on_stderr
+            envs: envs, on_message: on_message, on_stderr: on_stderr, on_close: on_close
           )
         end
       end

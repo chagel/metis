@@ -24,13 +24,17 @@ module Agent
 
       # `pi_command` is the pi command line as a String (Shellwords-joined);
       # cwd/envs are folded into the shell command because a Daytona session
-      # command takes neither. `on_message`/`on_stderr` are pi-agent-rb's handlers.
-      def initialize(sandbox:, pi_command:, cwd: nil, envs: {}, on_message: nil, on_stderr: nil)
+      # command takes neither. `on_message`/`on_stderr`/`on_close` are
+      # pi-agent-rb's handlers — `on_close` is the 0.3.0 death notification,
+      # fired once when the stream ends without `#close` being called (see
+      # read_loop).
+      def initialize(sandbox:, pi_command:, cwd: nil, envs: {}, on_message: nil, on_stderr: nil, on_close: nil)
         @sandbox = sandbox
         @pi_command = pi_command
         @cwd = cwd
         @envs = envs || {}
         @on_message = on_message
+        @on_close = on_close
         @stderr_relay = Agent::Runtime.stderr_relay("daytona", on_stderr)
         @session_id = "metis-#{SecureRandom.hex(8)}"
         @write_mutex = Mutex.new
@@ -84,7 +88,13 @@ module Agent
         @cwd ? "cd #{Shellwords.escape(@cwd.to_s)} && #{run}" : run
       end
 
+      # The log stream ending on its own is pi's death (or the sandbox's):
+      # all buffered stdout has been dispatched by then, so report it via
+      # on_close and the client fails pending RPCs and event streams
+      # immediately instead of waiting out its generic timeouts. A close the
+      # owner initiated (@closed) is expected, not a death.
       def read_loop
+        reason = "pi stdout stream ended"
         out_framer = PiAgent::Framer.new
         err_framer = PiAgent::Framer.new
         @sandbox.process.get_session_command_logs_async(
@@ -93,12 +103,13 @@ module Agent
           on_stderr: ->(chunk) { err_framer.feed(chunk) { |line| dispatch_stderr(line) } }
         )
       rescue StandardError => e
-        # Once the reader stops, pi's responses can no longer arrive and every
-        # pending RPC will hang to its timeout. Log loudly rather than dying as
-        # a silent thread death.
-        Rails.logger.error("[daytona] pi stdout reader stopped: #{e.class}: #{e.message}")
+        # Once the reader stops, pi's responses can no longer arrive. Log
+        # loudly rather than dying as a silent thread death.
+        reason = "pi stdout reader stopped: #{e.class}: #{e.message}"
+        Rails.logger.error("[daytona] #{reason}")
       ensure
         @finished = true
+        @on_close&.call(reason) unless @closed
       end
 
       def dispatch_message(line)

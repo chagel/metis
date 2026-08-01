@@ -91,10 +91,11 @@ module Agent
       # Builds the subprocess transport ourselves so pi's stderr lands in the
       # Rails log — a container that hangs before RPC-ready is otherwise silent.
       def self.transport_factory(docker_args, env)
-        lambda do |on_message:, on_stderr:|
+        lambda do |on_message:, on_stderr:, on_close:|
           PiAgent::Transport::Subprocess.new(
             command: [ "docker", *docker_args ], env: env,
-            on_message: on_message, on_stderr: Runtime.stderr_relay("docker", on_stderr)
+            on_message: on_message, on_stderr: Runtime.stderr_relay("docker", on_stderr),
+            on_close: on_close
           )
         end
       end

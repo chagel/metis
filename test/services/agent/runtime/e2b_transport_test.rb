@@ -49,11 +49,25 @@ class Agent::Runtime::E2bTransportTest < ActiveSupport::TestCase
     end
   end
 
-  def build_transport(chunks, on_message: nil, on_stderr: nil)
+  # Blocks in #each until killed — the shape of a live stream, so
+  # close-path tests can order close before the stream ends.
+  class BlockingHandle
+    def initialize
+      @stream = Queue.new
+    end
+
+    def each = @stream.pop
+
+    def send_stdin(_data) = nil
+
+    def kill = (@stream << :eof)
+  end
+
+  def build_transport(chunks, on_message: nil, on_stderr: nil, on_close: nil)
     handle = FakeHandle.new(chunks)
     transport = Agent::Runtime::E2bTransport.new(
       sandbox: FakeSandbox.new(handle), command: "pi --mode rpc",
-      on_message: on_message, on_stderr: on_stderr
+      on_message: on_message, on_stderr: on_stderr, on_close: on_close
     )
     [ transport, handle ]
   end
@@ -115,5 +129,27 @@ class Agent::Runtime::E2bTransportTest < ActiveSupport::TestCase
 
     assert handle.killed?
     assert_raises(PiAgent::ProtocolError) { transport.write({ "x" => 1 }) }
+  end
+
+  test "reports the stream ending on its own via on_close" do
+    reasons = Queue.new
+    transport, = build_transport([], on_close: ->(reason) { reasons << reason })
+    transport.start
+
+    assert_equal "pi stdout stream ended", reasons.pop(timeout: 2)
+  ensure
+    transport&.close
+  end
+
+  test "an owner-initiated close is not reported as a death" do
+    reasons = Queue.new
+    transport = Agent::Runtime::E2bTransport.new(
+      sandbox: FakeSandbox.new(BlockingHandle.new), command: "pi --mode rpc",
+      on_close: ->(reason) { reasons << reason }
+    )
+    transport.start
+    transport.close
+
+    assert_nil reasons.pop(timeout: 0.3)
   end
 end

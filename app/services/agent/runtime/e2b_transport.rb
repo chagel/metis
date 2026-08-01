@@ -19,14 +19,17 @@ module Agent
       COMMAND_TIMEOUT = 3600
 
       # `command` is the full pi command line (a String — E2B runs it via
-      # bash -lc). `on_message`/`on_stderr` are pi-agent-rb's handlers.
+      # bash -lc). `on_message`/`on_stderr`/`on_close` are pi-agent-rb's
+      # handlers — `on_close` is the 0.3.0 death notification, fired once
+      # when the stream ends without `#close` being called (see read_loop).
       # `envs` is per-turn projected credentials (see Runtime::Base#sandbox_env).
-      def initialize(sandbox:, command:, cwd: nil, envs: {}, on_message: nil, on_stderr: nil)
+      def initialize(sandbox:, command:, cwd: nil, envs: {}, on_message: nil, on_stderr: nil, on_close: nil)
         @sandbox = sandbox
         @command = command
         @cwd = cwd
         @envs = envs
         @on_message = on_message
+        @on_close = on_close
         @stderr_relay = Agent::Runtime.stderr_relay("e2b", on_stderr)
         @write_mutex = Mutex.new
         @closed = false
@@ -70,7 +73,13 @@ module Agent
 
       private
 
+      # The stream ending on its own is pi's death (or the sandbox's): all
+      # buffered stdout has been dispatched by then, so report it via
+      # on_close and the client fails pending RPCs and event streams
+      # immediately instead of waiting out its generic timeouts. A close the
+      # owner initiated (@closed) is expected, not a death.
       def read_loop
+        reason = "pi stdout stream ended"
         out_framer = PiAgent::Framer.new
         err_framer = PiAgent::Framer.new
         @handle.each do |stdout, stderr, _pty|
@@ -78,12 +87,13 @@ module Agent
           err_framer.feed(stderr) { |line| dispatch_stderr(line) } if stderr
         end
       rescue StandardError => e
-        # Once the reader stops, pi's responses can no longer arrive and
-        # every pending RPC will hang to its timeout. Log loudly rather
-        # than dying as a silent thread death.
-        Rails.logger.error("[e2b] pi stdout reader stopped: #{e.class}: #{e.message}")
+        # Once the reader stops, pi's responses can no longer arrive. Log
+        # loudly rather than dying as a silent thread death.
+        reason = "pi stdout reader stopped: #{e.class}: #{e.message}"
+        Rails.logger.error("[e2b] #{reason}")
       ensure
         @finished = true
+        @on_close&.call(reason) unless @closed
       end
 
       def dispatch_message(line)
