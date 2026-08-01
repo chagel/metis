@@ -149,6 +149,19 @@ class Agent::Runtime::LocalTest < ActiveSupport::TestCase
     assert_equal "a,b\n1,2\n", artifact[:io].read
   end
 
+  test "skips symlinked artifacts" do
+    with_pi_session(fake_session) do
+      @runtime.run(pi_args: [ "--mode", "rpc" ]) do |_s|
+        FileUtils.mkdir_p(@workspace.artifacts_dir)
+        secret = @workspace.workspace_dir.join("secret.txt")
+        File.write(secret, "host secret")
+        File.symlink(secret, @workspace.artifacts_dir.join("secret.txt"))
+      end
+    end
+
+    assert_empty @runtime.artifacts
+  end
+
   test "preserves the subdirectory in the filename so siblings don't collide" do
     with_pi_session(fake_session) do
       @runtime.run(pi_args: [ "--mode", "rpc" ]) do |_s|

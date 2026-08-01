@@ -235,20 +235,18 @@ module Agent
       # mtime-windowed so cleanup of artifacts/ stays the runtime's
       # job — old turns' files fall outside the window.
       def collect_host_artifacts(dir:, since:)
-        return unless dir.directory?
+        return unless Agent::Workspace.prepare_artifacts_directory(dir)
 
-        Dir.glob(dir.join("**/*"), File::FNM_DOTMATCH).each do |path|
-          next if File.directory?(path)
-          next unless File.mtime(path) >= since
+        Agent::Workspace.each_regular_file(dir) do |path, relative, stat|
+          next unless stat.mtime >= since
 
-          size = File.size(path)
+          size = stat.size
           if size > MAX_ARTIFACT_BYTES
             Rails.logger.warn("Skipping oversized artifact #{path} (#{size} bytes)")
             next
           end
 
-          rel = Pathname.new(path).relative_path_from(dir).to_s
-          @artifacts << { filename: rel, io: File.open(path, "rb") }
+          @artifacts << { filename: relative.to_s, io: File.open(path, "rb") }
         end
       rescue StandardError => e
         Rails.logger.warn("Artifact collection failed for conversation #{conversation.id}: #{e.message}")

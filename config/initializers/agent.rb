@@ -49,11 +49,12 @@ Rails.application.config.x.agent.docker_image =
 Rails.application.config.x.agent.docker_runtime =
   ENV["METIS_DOCKER_RUNTIME"].presence
 
-# Idle window after which EvictDockerWorkspacesJob warm-evicts a Docker
-# conversation's persistent workspace/ (sessions/ kept — pi still resumes
-# with --continue; see docs/session-persistence.md). In-flight turns and
-# active workflow runs are never evicted. Garbage or a non-positive value
-# fails boot: a silently defaulted cleanup window is dangerous.
+# Idle window after which EvictDockerWorkspacesJob warm-evicts a
+# host-bind-mount conversation's persistent workspace/ — both runtimes that
+# keep the scope on the host (docker, microsandbox); sessions/ is kept, so pi
+# still resumes with --continue (see docs/session-persistence.md). In-flight
+# turns and active workflow runs are never evicted. Garbage or a non-positive
+# value fails boot: a silently defaulted cleanup window is dangerous.
 docker_eviction_hours = Integer(ENV.fetch("METIS_DOCKER_WORKSPACE_EVICTION_HOURS", "72"))
 raise "METIS_DOCKER_WORKSPACE_EVICTION_HOURS must be positive" unless docker_eviction_hours.positive?
 Rails.application.config.x.agent.docker_workspace_eviction_window = docker_eviction_hours.hours
@@ -124,8 +125,14 @@ Rails.application.config.x.agent.microsandbox_registry_password =
 
 # Guest-write budget (MiB) on the bind-mounted conversation scope. Unset uses
 # the runtime's default (4 GiB); raise it when working trees outgrow that.
-Rails.application.config.x.agent.microsandbox_workspace_quota_mib =
-  ENV["METIS_MICROSANDBOX_WORKSPACE_QUOTA_MIB"].presence&.to_i
+# Parsed strictly and failed at boot rather than coerced: `to_i` turns garbage
+# into 0, which reaches the mount spec as a zero-byte write budget.
+microsandbox_quota_mib = ENV["METIS_MICROSANDBOX_WORKSPACE_QUOTA_MIB"].presence
+if microsandbox_quota_mib
+  microsandbox_quota_mib = Integer(microsandbox_quota_mib)
+  raise "METIS_MICROSANDBOX_WORKSPACE_QUOTA_MIB must be positive" unless microsandbox_quota_mib.positive?
+end
+Rails.application.config.x.agent.microsandbox_workspace_quota_mib = microsandbox_quota_mib
 
 # pi's default provider/model — used when a conversation sets none of
 # its own (the new-chat composer normally does). See

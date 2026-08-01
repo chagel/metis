@@ -1,4 +1,6 @@
 require "fileutils"
+require "find"
+require "tempfile"
 
 module Agent
   # Resolves the on-disk scope for a conversation's agent run and stages
@@ -28,6 +30,7 @@ module Agent
     # Agent-written sentinel — one GitHub source per line, drained by
     # the runtime into ImportSkillJob enqueues at turn end.
     SKILL_IMPORTS_FILE = ".imports".freeze
+    MAX_SKILL_IMPORT_BYTES = 64.kilobytes
     ARTIFACTS_SUBPATH = "artifacts".freeze
 
     def self.scratch(conversation)
@@ -50,6 +53,59 @@ module Agent
       root.join("u#{Integer(user_id)}", "c#{Integer(conversation_id)}")
     end
 
+    def self.repair_directory_chain(path, within:, create: true)
+      root = Pathname.new(within)
+      return false unless File.lstat(root).directory?
+
+      current = root
+      Pathname.new(path).relative_path_from(root).each_filename do |name|
+        current = current.join(name)
+        begin
+          next if File.lstat(current).directory?
+
+          FileUtils.rm_rf(current)
+          FileUtils.mkdir_p(current)
+        rescue Errno::ENOENT
+          return false unless create
+
+          FileUtils.mkdir_p(current)
+        end
+      end
+      true
+    rescue Errno::ENOENT
+      false
+    end
+
+    def self.prepare_artifacts_directory(path)
+      path = Pathname.new(path)
+      repair_directory_chain(path, within: path.dirname.dirname, create: false)
+    end
+
+    # Depth-first walk yielding [path, relative, lstat] for every regular
+    # file, with lstat/no-follow semantics throughout: Find never descends
+    # a symlinked directory, and a symlinked file fails stat.file? — a
+    # guest-planted link cannot pull host files into the walk.
+    def self.each_regular_file(root)
+      root = Pathname.new(root)
+      return unless File.lstat(root).directory?
+
+      Find.find(root.to_s) do |entry|
+        stat = File.lstat(entry)
+        yield Pathname.new(entry), Pathname.new(entry).relative_path_from(root), stat if stat.file?
+      rescue Errno::ENOENT
+        next
+      end
+    rescue Errno::ENOENT
+      nil
+    end
+
+    # A regular file at lstat — a guest-planted symlink is not trusted.
+    def self.regular_file?(path)
+      File.lstat(path).file?
+    rescue Errno::ENOENT
+      false
+    end
+
     # The conversation's whole scope.
     def scope_dir
       self.class.scope_dir_for(@root, @conversation.user_id, @conversation.id)
@@ -61,9 +117,11 @@ module Agent
     def artifacts_dir = workspace_dir.join(ARTIFACTS_SUBPATH)
     def skills_dir = workspace_dir.join(SKILLS_SUBPATH)
 
-    # Create the scope directories if absent, leaving existing content.
+    # scope_dir is the mount root: the guest can replace its children, but
+    # cannot replace this host-side entry through the mount.
     def ensure!
-      [ session_dir, workspace_dir, uploads_dir ].each { |dir| FileUtils.mkdir_p(dir) }
+      FileUtils.mkdir_p(scope_dir)
+      [ session_dir, workspace_dir, uploads_dir ].each { |dir| repair_directory_chain(dir) }
       self
     end
 
@@ -85,12 +143,15 @@ module Agent
     # Project uploaded file attachments into uploads/. Filenames are
     # basenamed so a crafted name cannot escape the workspace.
     def stage_uploads(attachments)
-      FileUtils.mkdir_p(uploads_dir)
+      repair_directory_chain(uploads_dir)
+      FileUtils.rm_f(uploads_dir.glob(".*.tmp"))
       attachments.each do |attachment|
-        name = File.basename(attachment.filename.to_s)
-        next if name.blank? || [ ".", ".." ].include?(name)
+        name = safe_upload_name(attachment)
+        next unless name
 
-        attachment.open { |io| IO.copy_stream(io, uploads_dir.join(name)) }
+        attachment.open do |io|
+          atomic_replace(uploads_dir.join(name)) { |file| IO.copy_stream(io, file) }
+        end
       end
     end
 
@@ -101,14 +162,16 @@ module Agent
     # (#discard_mcp_config) — the rendered token must not linger on disk.
     def stage_mcp_config(content)
       path = workspace_dir.join(McpConfig::FILENAME)
-      File.write(path, content)
-      File.chmod(0o600, path)
+      sweep_atomic_temps(path)
+      atomic_replace(path, mode: 0o600) { |file| file.write(content) }
     end
 
-    # Remove the token-bearing .mcp.json so rendered bearer tokens do not
-    # outlive the turn on disk. Re-staged next turn. Best-effort.
+    # Remove the token file and abandoned atomic temps so bearer tokens do not
+    # outlive the turn. Re-staged next turn; best-effort.
     def discard_mcp_config
-      FileUtils.rm_f(workspace_dir.join(McpConfig::FILENAME))
+      path = workspace_dir.join(McpConfig::FILENAME)
+      FileUtils.rm_f(path)
+      sweep_atomic_temps(path)
     end
 
     # Write the rendered AGENTS.md into the workspace root. pi auto-loads
@@ -116,16 +179,17 @@ module Agent
     # this every turn. Per-turn projected input like .mcp.json: rendered
     # fresh each turn, never archived. See Agent::Identity.
     def stage_identity(content)
-      File.write(workspace_dir.join(Identity::FILENAME), content)
+      atomic_replace(workspace_dir.join(Identity::FILENAME)) { |file| file.write(content) }
     end
 
     # Mirrors Runtime::E2b#stage_team_skills — skips when the marker matches.
     def stage_skills
       dest = skills_dir
+      repair_directory_chain(dest, create: false)
       signature = staged_skills_signature
       marker = dest.join(SKILLS_MARKER)
 
-      return if marker.file? && marker.read == signature
+      return if self.class.regular_file?(marker) && marker.read == signature
 
       FileUtils.rm_rf(dest)
 
@@ -174,7 +238,7 @@ module Agent
     # — operator UI owns that.
     def ingest_team_skills(slugs:, by:)
       return if slugs.empty?
-      return unless skills_dir.directory?
+      return unless repair_directory_chain(skills_dir, create: false)
 
       repo_slugs = self.class.repo_slugs
       slugs.each do |slug|
@@ -188,10 +252,20 @@ module Agent
     # Drain the agent-written .imports sentinel from disk; Runtime::E2b
     # reads from the sandbox and calls .enqueue_imports directly.
     def queue_skill_imports(by:)
-      file = skills_dir.join(SKILL_IMPORTS_FILE)
-      return unless file.file?
+      return unless repair_directory_chain(skills_dir, create: false)
 
-      self.class.enqueue_imports(body: file.read, team_id: @conversation.team_id, by_user_id: by.id)
+      file = skills_dir.join(SKILL_IMPORTS_FILE)
+      return unless self.class.regular_file?(file)
+
+      body = File.binread(file, MAX_SKILL_IMPORT_BYTES + 1)
+      if body.bytesize > MAX_SKILL_IMPORT_BYTES
+        Rails.logger.warn("queue_skill_imports: #{SKILL_IMPORTS_FILE} over #{MAX_SKILL_IMPORT_BYTES} bytes for conversation #{@conversation.id} — ignored")
+        return
+      end
+
+      self.class.enqueue_imports(body: body, team_id: @conversation.team_id, by_user_id: by.id)
+    rescue Errno::ENOENT
+      nil
     rescue StandardError => e
       Rails.logger.warn("queue_skill_imports failed for conversation #{@conversation.id}: #{e.message}")
     end
@@ -230,16 +304,42 @@ module Agent
 
     private
 
-    def ingest_one_skill_from_disk(skill_dir, by:)
-      return unless skill_dir.directory?
+    def repair_directory_chain(path, create: true)
+      self.class.repair_directory_chain(path, within: scope_dir, create: create)
+    end
 
-      files = skill_dir.glob("**/*").reject(&:directory?).each_with_object({}) do |path, h|
-        rel = path.relative_path_from(skill_dir).to_s
-        h[rel] = path.binread
+    def safe_upload_name(attachment)
+      name = File.basename(attachment.filename.to_s)
+      name unless name.blank? || [ ".", ".." ].include?(name)
+    end
+
+    def sweep_atomic_temps(path)
+      FileUtils.rm_f(path.dirname.glob(".#{path.basename}*.tmp"))
+    end
+
+    # Rename replaces a guest-planted destination symlink instead of following it.
+    def atomic_replace(path, mode: nil)
+      Tempfile.create([ ".#{path.basename}", ".tmp" ], path.dirname.to_s) do |temp|
+        temp.binmode
+        yield temp
+        temp.flush
+        File.chmod(mode, temp.path) if mode
+        File.rename(temp.path, path)
+      end
+    end
+
+    def ingest_one_skill_from_disk(skill_dir, by:)
+      return unless File.lstat(skill_dir).directory?
+
+      files = {}
+      self.class.each_regular_file(skill_dir) do |path, relative, _stat|
+        files[relative.to_s] = path.binread
       end
       return if files.empty?
 
       ingest_team_skill_from_files(slug: skill_dir.basename.to_s, files: files, by: by)
+    rescue Errno::ENOENT
+      nil
     end
   end
 end

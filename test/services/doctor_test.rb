@@ -35,6 +35,51 @@ class DoctorTest < ActiveSupport::TestCase
     assert_equal :fail, check(doctor({ "METIS_AGENT_RUNTIME" => "podman" }), "Agent", "runtime").status
   end
 
+  test "microsandbox runtime passes when the gem loads, fails when absent" do
+    env = { "METIS_AGENT_RUNTIME" => "microsandbox" }
+
+    with_stub(Agent::Runtime::Microsandbox, :load_gem, -> { }) do
+      ok = check(doctor(env), "Agent", "runtime")
+      assert_equal :ok, ok.status
+      assert_includes ok.detail, "metis-pi"
+    end
+
+    with_stub(Agent::Runtime::Microsandbox, :load_gem, -> { raise LoadError, "no gem" }) do
+      failing = check(doctor(env), "Agent", "runtime")
+      assert_equal :fail, failing.status
+      assert_includes failing.detail, "bundle install"
+    end
+
+    # load_gem's own translation of that LoadError.
+    with_stub(Agent::Runtime::Microsandbox, :load_gem, -> { raise Agent::Error, "not installed" }) do
+      assert_equal :fail, check(doctor(env), "Agent", "runtime").status
+    end
+  end
+
+  test "an unrelated microsandbox failure is not mislabelled as a missing gem" do
+    env = { "METIS_AGENT_RUNTIME" => "microsandbox" }
+
+    with_stub(Agent::Runtime::Microsandbox, :load_gem, -> { raise "native ext segfaulted" }) do
+      assert_raises(RuntimeError) { check(doctor(env), "Agent", "runtime") }
+    end
+  end
+
+  test "the microsandbox workspace quota shows in the runtime detail when set" do
+    env = { "METIS_AGENT_RUNTIME" => "microsandbox" }
+    config = Rails.configuration.x.agent
+    original = config.microsandbox_workspace_quota_mib
+
+    with_stub(Agent::Runtime::Microsandbox, :load_gem, -> { }) do
+      config.microsandbox_workspace_quota_mib = 16_384
+      assert_includes check(doctor(env), "Agent", "runtime").detail, "16384 MiB"
+
+      config.microsandbox_workspace_quota_mib = nil
+      refute_includes check(doctor(env), "Agent", "runtime").detail, "quota"
+    end
+  ensure
+    config.microsandbox_workspace_quota_mib = original
+  end
+
   test "cloudflare transport reports missing credentials" do
     failing = check(doctor(delivery_method: :cloudflare), "Email", "transport")
     assert_equal :fail, failing.status

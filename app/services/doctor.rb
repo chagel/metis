@@ -148,9 +148,30 @@ class Doctor
       key_check("runtime", "E2B_API_KEY", ok: "e2b — template #{@env.fetch("METIS_E2B_TEMPLATE", "base")}")
     when "daytona"
       key_check("runtime", "DAYTONA_API_KEY", ok: "daytona — snapshot #{@env.fetch("METIS_DAYTONA_SNAPSHOT", "metis-pi")}")
+    when "microsandbox"
+      microsandbox_check
     else
-      Check.new(:fail, "runtime", "unknown METIS_AGENT_RUNTIME #{runtime.inspect} (local, docker, e2b, daytona)")
+      Check.new(:fail, "runtime", "unknown METIS_AGENT_RUNTIME #{runtime.inspect} (local, docker, e2b, daytona, microsandbox)")
     end
+  end
+
+  # The gem rides an optional bundler group — the one misconfiguration this
+  # runtime uniquely invites is selecting it on a host that never opted in.
+  # Only the two errors that actually mean "absent" are caught (Agent::Error
+  # is load_gem's translation of LoadError); anything else is a real failure
+  # and must not be mislabelled as a missing gem.
+  def microsandbox_check
+    Agent::Runtime::Microsandbox.load_gem
+    Check.new(:ok, "runtime", "microsandbox — #{microsandbox_detail}")
+  rescue LoadError, Agent::Error
+    Check.new(:fail, "runtime",
+      "microsandbox — gem not installed (bundle config set --local with microsandbox && bundle install)")
+  end
+
+  def microsandbox_detail
+    detail = "image #{@env.fetch("METIS_MICROSANDBOX_IMAGE", "metis-pi")}"
+    quota = Rails.configuration.x.agent.microsandbox_workspace_quota_mib
+    quota ? "#{detail}, workspace quota #{quota} MiB" : detail
   end
 
   def providers_check

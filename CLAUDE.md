@@ -117,7 +117,8 @@ turns is a **per-runtime concern** — see `docs/session-persistence.md`:
   disposable `--rm` container; the host filesystem is the durable source.
   That host root is a reclaimable hot cache: `EvictDockerWorkspacesJob`
   warm-evicts idle scopes' `workspace/` (keeping `sessions/`, so pi still
-  `--continue`s) and `Agent::Identity` warns the next turn its files are
+  `--continue`s — for both bind-mount runtimes, see `Runtime::Microsandbox`
+  below) and `Agent::Identity` warns the next turn its files are
   gone; destroying a conversation removes the whole scope via
   `CleanupPersistentWorkspaceJob`.
 - `Runtime::E2b` uses E2B's native `pause`/`resume` by sandbox id —
@@ -132,7 +133,10 @@ turns is a **per-runtime concern** — see `docs/session-persistence.md`:
 - `Runtime::Microsandbox` bind-mounts a persistent host directory into a
   disposable libkrun microVM (fresh each turn, `ephemeral`) — the Docker
   persistence shape at VM-grade isolation, self-hosted and in-process;
-  `MicrosandboxTransport` drives `pi --mode rpc` over `exec_stream`.
+  `MicrosandboxTransport` drives `pi --mode rpc` over `exec_stream`. Same
+  host root, so the same hot-cache eviction applies —
+  `EvictDockerWorkspacesJob` scans `Conversation.host_workspace_evictable`,
+  which spans both bind-mount runtimes.
 
 There is **no archive**. `Agent::SessionArchive` was removed (commits
 `349a0cb`, `c08eb79`); don't reintroduce a tar-to-Active-Storage path.

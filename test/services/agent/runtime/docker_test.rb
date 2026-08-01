@@ -245,6 +245,58 @@ class Agent::Runtime::DockerTest < ActiveSupport::TestCase
     assert session.closed?, "session closed by the runtime"
   end
 
+  test "run removes the container before reading the host workspace" do
+    calls = []
+    session = Object.new
+    session.define_singleton_method(:close) { calls << :session_closed }
+    @runtime.define_singleton_method(:remove_container) { calls << :container_removed }
+    @runtime.define_singleton_method(:collect_host_artifacts) { |**| calls << :artifacts_collected }
+    @runtime.define_singleton_method(:ingest_team_skills) { |**| calls << :skills_ingested }
+
+    with_pi_session(session) do
+      @runtime.run(pi_args: [ "--mode", "rpc" ]) { }
+    end
+
+    assert_equal %i[session_closed container_removed artifacts_collected skills_ingested], calls
+  end
+
+  test "run still removes the container and MCP config when session close fails" do
+    calls = []
+    session = Object.new
+    session.define_singleton_method(:close) do
+      calls << :session_closed
+      raise "close failed"
+    end
+    @runtime.define_singleton_method(:remove_container) { calls << :container_removed }
+    @runtime.define_singleton_method(:collect_host_artifacts) { |**| calls << :artifacts_collected }
+    @runtime.define_singleton_method(:ingest_team_skills) { |**| calls << :skills_ingested }
+
+    with_pi_session(session) do
+      assert_raises(RuntimeError) { @runtime.run(pi_args: [ "--mode", "rpc" ]) { } }
+    end
+
+    assert_equal %i[session_closed container_removed artifacts_collected skills_ingested], calls
+    refute @workspace.workspace_dir.join(Agent::McpConfig::FILENAME).exist?
+  end
+
+  test "run still removes the MCP config when container removal fails" do
+    calls = []
+    session = Object.new
+    session.define_singleton_method(:close) { calls << :session_closed }
+    @runtime.define_singleton_method(:remove_container) do
+      calls << :container_removed
+      raise "remove failed"
+    end
+    @runtime.define_singleton_method(:collect_host_artifacts) { |**| calls << :artifacts_collected }
+
+    with_pi_session(session) do
+      assert_raises(RuntimeError) { @runtime.run(pi_args: [ "--mode", "rpc" ]) { } }
+    end
+
+    assert_equal %i[session_closed container_removed], calls
+    refute @workspace.workspace_dir.join(Agent::McpConfig::FILENAME).exist?
+  end
+
   test "collects artifacts from the bind-mounted host workspace post-turn" do
     with_pi_session(fake_session) do
       @runtime.run(pi_args: [ "--mode", "rpc" ]) do |_s|
@@ -254,6 +306,33 @@ class Agent::Runtime::DockerTest < ActiveSupport::TestCase
     end
 
     assert_equal [ "chart.png" ], @runtime.artifacts.map { |a| a[:filename] }
+  end
+
+  test "does not collect artifacts through a symlinked directory" do
+    with_pi_session(fake_session) do
+      @runtime.run(pi_args: [ "--mode", "rpc" ]) do |_s|
+        host_dir = @workspace.scope_dir.join("host-files")
+        FileUtils.mkdir_p(host_dir)
+        File.write(host_dir.join("secret.txt"), "host secret")
+        FileUtils.mkdir_p(@workspace.artifacts_dir)
+        File.symlink(host_dir, @workspace.artifacts_dir.join("linked"))
+      end
+    end
+
+    assert_empty @runtime.artifacts
+  end
+
+  test "does not collect artifacts from a symlinked artifacts root" do
+    with_pi_session(fake_session) do
+      @runtime.run(pi_args: [ "--mode", "rpc" ]) do |_s|
+        host_dir = @workspace.scope_dir.join("host-files")
+        FileUtils.mkdir_p(host_dir)
+        File.write(host_dir.join("secret.txt"), "host secret")
+        File.symlink(host_dir, @workspace.artifacts_dir)
+      end
+    end
+
+    assert_empty @runtime.artifacts
   end
 
   test "files the agent writes survive into the next turn via the persistent bind mount" do

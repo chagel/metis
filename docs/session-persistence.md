@@ -61,13 +61,13 @@ agent ran — so it belongs to the `Runtime`, not to one shared mechanism.
   cloud sandboxes: the libkrun microVM is **disposable** — created fresh
   each turn (`ephemeral: true`, its stored state reaped on stop) — and
   the conversation's scope is a persistent host directory bind-mounted
-  into the guest. Nothing is paused, resumed, or evicted; the host
-  filesystem is the durable source and pi's own `--continue` resumes the
-  transcript. ([Docker workspace eviction](#docker-workspace-eviction)
-  is scoped to `docker` turns and does not reclaim microsandbox
-  workspaces yet, but the runtime carries the same evicted-workspace
-  detection, so a conversation evicted under `docker` and continued here
-  still gets the lost-files warning.) The runtime is embedded in the
+  into the guest. Nothing is paused or resumed; the host filesystem is
+  the durable source and pi's own `--continue` resumes the transcript.
+  Its workspace *is* reclaimed —
+  [workspace eviction](#docker-workspace-eviction) covers both
+  host-bind-mount runtimes, and the runtime carries the same
+  evicted-workspace detection, so a conversation evicted under either
+  runtime and continued here gets the lost-files warning. The runtime is embedded in the
   worker process (no daemon),
   so bind mounts resolve against the worker's own filesystem — no
   Docker-in-Docker path-identity constraint — but the persistent
@@ -79,20 +79,26 @@ longer needed by any runtime.
 
 ## Docker workspace eviction
 
-Without a bound, every Docker conversation leaves its clone, dependency
-installs, and build output on the host forever. Two jobs keep the
-persistent root finite; durable state (`Message` rows, attachments,
+Without a bound, every host-bind-mount conversation leaves its clone,
+dependency installs, and build output on the host forever. Two jobs keep
+the persistent root finite; durable state (`Message` rows, attachments,
 projected inputs) is never touched.
 
 - **Warm eviction** — `EvictDockerWorkspacesJob` (hourly,
-  `config/recurring.yml`) deletes `workspace/` for Docker conversations
-  idle past `METIS_DOCKER_WORKSPACE_EVICTION_HOURS` (default 72; messages
-  touch the conversation, so `updated_at` is the idle clock). `sessions/`
+  `config/recurring.yml`) deletes `workspace/` for conversations idle
+  past `METIS_DOCKER_WORKSPACE_EVICTION_HOURS` (default 72; messages
+  touch the conversation, so `updated_at` is the idle clock). Its
+  candidate scope is `Conversation.host_workspace_evictable`, which
+  spans **both** runtimes that keep the scope on a persistent host bind
+  mount — `docker` and `microsandbox` — since they share the layout, the
+  quota, and the eviction semantics. (The job keeps its Docker-era name;
+  renaming the class would churn `config/recurring.yml` and the
+  `METIS_DOCKER_*` env var for no behavioral gain.) `sessions/`
   stays, so pi still resumes with `--continue` and no DB history replay.
   In-flight turns and active workflow runs are never evicted; eligibility
   is re-checked under the conversation row lock — the same lock
   `ConversationTurn.start` takes — so an eviction can't race a turn being
-  born. No marker column: `Runtime::Docker#workspace_evicted?` derives
+  born. No marker column: `#workspace_evicted?` on either runtime derives
   the state from disk (a prior turn ran but `workspace/` is missing) and
   `Agent::Identity` warns that turn its files are gone.
 - **Scope destruction** — destroying a `Conversation` enqueues

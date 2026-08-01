@@ -45,12 +45,13 @@ class Conversation < ApplicationRecord
   scope :workflows, -> { where.associated(:workflow_run) }
   scope :routines, -> { where.not(routine_id: nil) }
   scope :for_team, ->(team) { where(team: team) }
-  # Coarse candidate scan for EvictDockerWorkspacesJob — Docker runtime,
+  # Coarse candidate scan for EvictDockerWorkspacesJob — the two runtimes
+  # whose scope lives on a persistent host bind mount (docker, microsandbox),
   # quiet past the cutoff (messages touch the conversation, so updated_at
   # tracks turn activity). Precise eligibility (in-flight turn, active
   # workflow, workspace still on disk) is re-checked per row under the lock.
-  scope :docker_workspace_evictable, ->(cutoff) {
-    where("conversations.runtime_state->>'runtime' = ?", "docker")
+  scope :host_workspace_evictable, ->(cutoff) {
+    where("conversations.runtime_state->>'runtime' IN (?)", %w[docker microsandbox])
       .where(updated_at: ..cutoff)
   }
   # The visibility rule, in one place: the launcher always, teammates
