@@ -113,7 +113,7 @@ if [ -n "$BUILD_IMAGE_DIR" ]; then
     log "Building $IMAGE_NAME via the rake task (canonical pi version)"
     ( cd "$BUILD_IMAGE_DIR" && bin/rails "docker:image[$IMAGE_NAME]" )
   else
-    die "bin/rails not runnable in $BUILD_IMAGE_DIR — build on the dev machine and push to your registry instead (rake \"docker:image[$IMAGE_NAME]\")"
+    die "bin/rails not runnable in $BUILD_IMAGE_DIR — run 'rake docker:sync_pi_image' from your checkout instead; it builds on this host, so the image matches its architecture"
   fi
   ok "image $IMAGE_NAME built"
 fi

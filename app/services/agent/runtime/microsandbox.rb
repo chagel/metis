@@ -27,7 +27,10 @@ module Agent
     # pi must be present in the OCI image (config.x.agent.microsandbox_image).
     # The docker:image build satisfies the contract, but microsandbox pulls
     # from OCI registries — it cannot see a local Docker daemon's store — so
-    # push the image somewhere the worker can pull it from.
+    # push the image somewhere the worker can pull it from. Build it for the
+    # *worker's* arch: libkrun boots the guest on the host CPU, so unlike the
+    # hosted runtimes (which build on the provider's fleet) a mismatch here
+    # fails the same way Runtime::Docker's does.
     #
     # The gem rides an optional bundler group (see Gemfile) because it
     # compiles a Rust native extension; it is lazily required here so every

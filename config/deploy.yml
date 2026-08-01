@@ -126,6 +126,11 @@ volumes:
 
 asset_path: /rails/public/assets
 
+# Built on the host's own arm64 daemon, not the deployer's. A linux/amd64
+# workstation would otherwise cross-build under QEMU — slow, and native gem
+# compilation (pg, vips, nokogiri) is the part that breaks. The pi runtime
+# image builds remotely for the same reason (lib/tasks/docker.rake).
 builder:
   arch: arm64
+  remote: ssh://ubuntu@<%= ENV.fetch("KAMAL_JOB_IP") %>
   context: .

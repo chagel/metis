@@ -1,24 +1,30 @@
+require_relative "support/pi_image_fingerprint"
+
 namespace :docker do
-  # Content fingerprint of everything baked into metis-pi: the pinned pi
-  # version, the Dockerfile (which carries the pinned pi-mcp-adapter / gws /
-  # toolchain), and the .pi/extensions tree. Stamped as a label so a host can
-  # be asked "do you already have this exact image?" — drives docker:sync_pi_image
-  # and the kamal pre-deploy hook. Bump any input → new fingerprint → rebuild.
-  def self.pi_image_fingerprint
-    require "digest"
-    root = Rails.root
-    parts = [ PiAgent::SUPPORTED_PI_VERSION, File.read(root.join("docker/pi-runtime/Dockerfile")) ]
-    Dir.glob(root.join(".pi/extensions/**/*")).sort.each do |path|
-      next unless File.file?(path)
-      parts << path.delete_prefix(root.to_s) << File.read(path)
-    end
-    Digest::SHA256.hexdigest(parts.join("\x00"))
+  def self.pi_image_fingerprint(arch:)
+    PiImageFingerprint.call(
+      pi_version: PiAgent::SUPPORTED_PI_VERSION, arch: arch, root: Rails.root
+    )
   end
 
-  def self.build_pi_image(name, fingerprint: pi_image_fingerprint)
+  # Go-style arch ("arm64", "amd64") of the daemon a build would land on —
+  # the local one, or the remote when docker_host is set. Matches the value
+  # `docker image inspect --format {{.Architecture}}` reports.
+  def self.daemon_arch(docker_host: nil)
+    env = docker_host ? { "DOCKER_HOST" => docker_host } : {}
+    arch = IO.popen(env, [ "docker", "version", "--format", "{{.Server.Arch}}" ], err: File::NULL, &:read).to_s.strip
+    abort "[docker] could not reach the docker daemon#{" at #{docker_host}" if docker_host}" if arch.empty?
+    arch
+  end
+
+  def self.build_pi_image(name, fingerprint:, docker_host: nil)
     # Context is the repo root (not docker/pi-runtime) so the Dockerfile can
     # COPY .pi/extensions into the image; .dockerignore keeps storage/ etc. out.
+    # With docker_host set the CLI ships that context to the remote daemon and
+    # builds there, natively — no emulation, and no image to upload afterwards.
+    env = docker_host ? { "DOCKER_HOST" => docker_host } : {}
     ok = system(
+      env,
       "docker", "build",
       "--build-arg", "PI_VERSION=#{PiAgent::SUPPORTED_PI_VERSION}",
       "--label", "metis.fingerprint=#{fingerprint}",
@@ -29,11 +35,20 @@ namespace :docker do
     abort "docker build failed" unless ok
   end
 
+  def self.remote_pi_fingerprint(name, docker_host:)
+    IO.popen(
+      { "DOCKER_HOST" => docker_host },
+      [ "docker", "image", "inspect", name, "--format", '{{index .Config.Labels "metis.fingerprint"}}' ],
+      err: File::NULL, &:read
+    ).to_s.strip
+  end
+
   desc "Build the pi runtime image for Agent::Runtime::Docker. Usage: rake docker:image[name]"
   task :image, [ :name ] => :environment do |_task, args|
     name = args.fetch(:name, "metis-pi")
-    puts "Building Docker image '#{name}' with pi #{PiAgent::SUPPORTED_PI_VERSION}..."
-    build_pi_image(name)
+    arch = daemon_arch
+    puts "Building Docker image '#{name}' with pi #{PiAgent::SUPPORTED_PI_VERSION} for #{arch}..."
+    build_pi_image(name, fingerprint: pi_image_fingerprint(arch: arch))
 
     puts
     puts "Built Docker image '#{name}'."
@@ -41,12 +56,22 @@ namespace :docker do
     puts "                    export METIS_AGENT_RUNTIME=docker"
   end
 
-  desc "Build + load metis-pi on the host iff its fingerprint changed. Usage: rake docker:sync_pi_image[host,name]"
+  desc "Build metis-pi on a job host iff its fingerprint changed. Usage: rake docker:sync_pi_image[host,name]"
   # No :environment prerequisite on purpose — this runs from the kamal
   # pre-deploy hook, where booting Rails would decrypt credentials with the
   # deploy shell's RAILS_MASTER_KEY and fail. We only need PiAgent (loaded by
   # Bundler.require) and Rails.root (set when config/application loads), neither
   # of which needs initializers to run.
+  #
+  # The build runs on the host's own daemon over DOCKER_HOST=ssh://. The
+  # deployer's arch is not the host's — a linux/amd64 workstation deploying to
+  # an arm64 server — and a cross-arch metis-pi is a silent failure (see
+  # pi_image_fingerprint). Building where the image will run makes the arch
+  # right by construction, and drops the save|gzip|ssh|load upload entirely.
+  #
+  # host must therefore be a job host, not a build box: Runtime::Docker
+  # launches sandboxes with --pull never, so the image has to exist in that
+  # daemon and nothing transfers it there. One run per job host.
   task :sync_pi_image, [ :host, :name ] do |_task, args|
     require "dotenv"
     Dotenv.load(".env.deploy") if File.exist?(".env.deploy")
@@ -55,23 +80,20 @@ namespace :docker do
     abort "[sync_pi_image] no host: pass rake \"docker:sync_pi_image[HOST]\" or set KAMAL_JOB_IP" unless host
     ssh_user = ENV["KAMAL_SSH_USER"].presence || "ubuntu"
     name = args[:name].presence || ENV["METIS_DOCKER_IMAGE"].presence || "metis-pi"
-    target = "#{ssh_user}@#{host}"
-    fingerprint = pi_image_fingerprint
+    docker_host = "ssh://#{ssh_user}@#{host}"
 
-    remote = `ssh -o BatchMode=yes #{target} "docker image inspect #{name} --format '{{index .Config.Labels \\"metis.fingerprint\\"}}' 2>/dev/null"`.strip
+    arch = daemon_arch(docker_host: docker_host)
+    fingerprint = pi_image_fingerprint(arch: arch)
+
+    remote = remote_pi_fingerprint(name, docker_host: docker_host)
     if remote == fingerprint
-      puts "[sync_pi_image] #{name} up to date on #{host} (#{fingerprint[0, 12]}) — skipping."
+      puts "[sync_pi_image] #{name} up to date on #{host} (#{arch}, #{fingerprint[0, 12]}) — skipping."
       next
     end
 
-    puts "[sync_pi_image] drift on #{host} (have #{remote.presence&.first(12) || 'none'}, want #{fingerprint[0, 12]}) — rebuilding…"
-    build_pi_image(name, fingerprint: fingerprint)
-
-    puts "[sync_pi_image] uploading #{name} to #{host}…"
-    loaded = system("bash", "-c",
-      "set -o pipefail; docker save #{name} | gzip | ssh -o BatchMode=yes #{target} 'gunzip | docker load'")
-    abort "[sync_pi_image] upload failed" unless loaded
-    puts "[sync_pi_image] synced #{name} to #{host} (#{fingerprint[0, 12]})."
+    puts "[sync_pi_image] drift on #{host} (have #{remote.presence&.first(12) || 'none'}, want #{fingerprint[0, 12]}) — building on #{host} for #{arch}…"
+    build_pi_image(name, fingerprint: fingerprint, docker_host: docker_host)
+    puts "[sync_pi_image] synced #{name} on #{host} (#{arch}, #{fingerprint[0, 12]})."
   end
 
   desc "Time a file-IO-heavy workload under runc vs runsc (gVisor). Usage: rake docker:bench_runtime[name]"
