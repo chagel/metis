@@ -97,8 +97,8 @@ module Agent
       # `pi_args`, yield it to the caller, then finalize (persist state,
       # tear down). The session is closed by the runtime, not the caller.
       #
-      # The runtime also projects the conversation's uploaded files
-      # (Conversation#uploaded_files) into pi's workspace/uploads/ — a
+      # The runtime also projects the conversation's uploads
+      # (Conversation#uploaded_attachments) into pi's workspace/uploads/ — a
       # filesystem operation each runtime does its own way.
       #
       # `extension_ui` is the optional pi Extension UI handler (Agent::HostBridge)

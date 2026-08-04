@@ -512,16 +512,17 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
     assert_equal "image/png", images.first.mime_type
   end
 
-  test "prompt_with_files appends a note naming the staged files" do
-    files = [ Upload.new("data.csv", "text/csv", ""), Upload.new("notes.txt", "text/plain", "") ]
-    text = adapter.send(:prompt_with_files, "summarize these", files)
+  test "prompt_with_attachments appends a note naming staged images and files" do
+    images = [ Upload.new("diagram.png", "image/png", "") ]
+    files = [ Upload.new("data.csv", "text/csv", "") ]
+    text = adapter.send(:prompt_with_attachments, "summarize these", images, files)
 
     assert_includes text, "summarize these"
+    assert_includes text, "diagram.png"
     assert_includes text, "data.csv"
-    assert_includes text, "notes.txt"
   end
 
-  test "prompt_with_files returns the input unchanged when there are no files" do
-    assert_equal "just text", adapter.send(:prompt_with_files, "just text", [])
+  test "prompt_with_attachments returns the input unchanged without attachments" do
+    assert_equal "just text", adapter.send(:prompt_with_attachments, "just text", [], [])
   end
 end

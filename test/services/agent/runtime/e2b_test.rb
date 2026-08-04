@@ -424,17 +424,19 @@ class Agent::Runtime::E2bTest < ActiveSupport::TestCase
     assert_nil @conversation.team.skills.find_by(slug: "decoy")
   end
 
-  test "projects the conversation's uploaded files into the sandbox uploads dir" do
+  test "projects the conversation's uploaded images and files into the sandbox uploads dir" do
     sandbox = FakeSandbox.new
     message = @conversation.messages.create!(role: :user, content: "hi", streaming_status: :done)
+    message.images.attach(io: StringIO.new("image bytes"), filename: "chart.png", content_type: "image/png")
     message.files.attach(io: StringIO.new("file contents"), filename: "notes.txt", content_type: "text/plain")
 
     with_e2b(create: sandbox) do
       @runtime.run(pi_args: [ "--mode", "rpc" ]) { |_s| nil }
     end
 
-    staged = "#{Agent::Runtime::E2b::WORKSPACE_DIR}/uploads/notes.txt"
-    assert_equal "file contents", sandbox.files.writes[staged]
+    uploads = "#{Agent::Runtime::E2b::WORKSPACE_DIR}/uploads"
+    assert_equal "image bytes", sandbox.files.writes["#{uploads}/chart.png"]
+    assert_equal "file contents", sandbox.files.writes["#{uploads}/notes.txt"]
   end
 
   test "runtime_info reports the runtime name and the sandbox id" do

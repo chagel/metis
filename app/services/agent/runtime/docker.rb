@@ -122,7 +122,7 @@ module Agent
         # Detect a warm-evicted workspace before ensure! recreates the dir.
         @workspace_evicted = conversation.backend_session_id.present? && !workspace.workspace_dir.directory?
         workspace.ensure!
-        workspace.stage_uploads(conversation.uploaded_files)
+        workspace.stage_uploads(conversation.uploaded_attachments)
         workspace.stage_mcp_config(mcp_config)
         workspace.stage_identity(identity_content)
         workspace.stage_skills
