@@ -99,9 +99,7 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
       attachments: [ fixture_file_upload("sample.png", "image/png") ]
     }
 
-    run = WorkflowRun.order(:id).last
-    assert_equal %w[sample.png], run.uploads.map { |u| u.filename.to_s }
-    assert_equal %w[sample.png], run.conversation.uploaded_attachments.map { |a| a.filename.to_s }
+    assert_equal %w[sample.png], WorkflowRun.order(:id).last.uploads.map { |u| u.filename.to_s }
   end
 
   test "an unsupported attachment fails the launch instead of being dropped" do

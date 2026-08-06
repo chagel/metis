@@ -328,9 +328,8 @@ def request_cancel!  # stamps cancel_requested_at; ChatJob polls every 15 events
 
 def uploaded_attachments
   # Every image and file attached across the conversation, plus a workflow
-  # run's own seed uploads — projected into workspace/uploads/ each turn
-  # (durable input, not session state). A run's steps post no attachments,
-  # so WorkflowRun#uploads is the only way files reach a run's workspace.
+  # run's own seed uploads (its steps post none) — projected into
+  # workspace/uploads/ each turn (durable input, not session state).
   posted = messages.with_attached_images.with_attached_files.flat_map do |message|
     message.images.attachments + message.files.attachments
   end

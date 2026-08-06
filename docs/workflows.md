@@ -241,21 +241,14 @@ Why this is safe without new infra:
 A run's steps are engine-authored messages and carry no attachments, so
 `Conversation#uploaded_attachments` would be empty for a run's whole life —
 whatever the operator uploaded lives on a *different* conversation, in a
-different workspace. `WorkflowRun#uploads` is the seam: attachments held on
-the run itself, projected into `workspace/uploads/` on **every** step, so
-step 5 opens the same bytes step 1 did (and still can after a sandbox reap).
+different workspace. **`WorkflowRun#uploads`** is the seam: attachments held
+on the run itself, projected into `workspace/uploads/` on every step. Two
+sources fill it — the launch composer's `attachments[]`, and a chat handoff
+re-attaching the chat's upload *blobs* (no byte copy). Agent-written
+`artifacts` stay download links in the run input instead.
 
-Two sources fill it:
-
-- **The launcher** — the workflow composer is the chat composer retargeted,
-  so its `attachments[]` ride along to `WorkflowRunsController#create`.
-- **A chat handoff** — `WorkflowHandoff` re-attaches the chat's upload
-  *blobs* to the run (no byte copy). Agent-written `artifacts` stay download
-  links in the run input: the agent produced them, they can be large, and a
-  run usually needs few.
-
-Uploads are attached inside `WorkflowRun.start`'s transaction — the engine
-job is enqueued on commit and step 0 stages `uploads/` as soon as it runs.
+They are attached inside `WorkflowRun.start`'s transaction: the engine job is
+enqueued on commit and step 0 stages `uploads/` as soon as it runs.
 
 ## Lifecycle of the conversation
 

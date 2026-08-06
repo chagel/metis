@@ -70,23 +70,15 @@ class Agent::WorkflowHandoffTest < ActiveSupport::TestCase
     handoff("workflow" => "ship")
 
     run = WorkflowRun.last
-    assert_equal %w[data.csv mock.png], run.uploads.map { |u| u.filename.to_s }.sort
-    assert_equal [ msg.images.first.blob, msg.files.first.blob ].map(&:id).sort,
-                 run.uploads.map { |u| u.blob_id }.sort, "reuses the blobs — no byte copy"
+    assert_equal [ msg.images.first.blob_id, msg.files.first.blob_id ].sort,
+                 run.uploads.map(&:blob_id).sort, "reuses the blobs — no byte copy"
+    assert_equal %w[data.csv mock.png],
+                 run.conversation.uploaded_attachments.map { |a| a.filename.to_s }.sort,
+                 "so every step stages them"
     # They ride into the sandbox, so the input names the path, not a URL.
     assert_includes run.input, "./uploads/"
     assert_includes run.input, "mock.png"
     assert_not_includes run.input, "/files/blobs/redirect/"
-  end
-
-  test "the run's uploads reach every step's workspace" do
-    msg = @conversation.messages.create!(role: :user, content: "look at this", streaming_status: :done)
-    msg.images.attach(io: StringIO.new("png bytes"), filename: "mock.png", content_type: "image/png")
-
-    handoff("workflow" => "ship")
-
-    staged = WorkflowRun.last.conversation.uploaded_attachments.map { |a| a.filename.to_s }
-    assert_equal %w[mock.png], staged
   end
 
   test "the queued run is not advanced until launched" do

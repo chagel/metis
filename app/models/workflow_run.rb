@@ -5,10 +5,9 @@ class WorkflowRun < ApplicationRecord
   belongs_to :conversation
   has_many :tasks, -> { order(:position) }, dependent: :destroy
 
-  # The run's seed files — the launcher's composer uploads, or the blobs a
-  # chat handoff carries over. Projected into every step's workspace/uploads/
-  # via Conversation#uploaded_attachments; steps post no attachments of their
-  # own, so without these a run's workspace has no uploads at all.
+  # The run's seed files, projected into every step's workspace/uploads/ via
+  # Conversation#uploaded_attachments. Steps post no attachments of their own,
+  # so without these a run's workspace has no uploads at all.
   has_many_attached :uploads
 
   enum :status, { pending: 0, running: 1, awaiting_approval: 2,

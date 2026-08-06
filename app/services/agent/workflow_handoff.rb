@@ -88,9 +88,7 @@ module Agent
       [ preamble, arg(:note).presence, uploads_block, artifacts_block ].compact.join("\n\n").presence
     end
 
-    # The operator's uploads ride along as blobs on the run (attaching an
-    # existing blob copies no bytes), so they land in the run's own uploads/
-    # on every step.
+    # The uploads themselves ride along on the run, so name the path, not a URL.
     def uploads_block
       names = chat_uploads.map { |attachment| attachment.filename.to_s }
       return if names.empty?
@@ -98,38 +96,33 @@ module Agent
       "The operator's uploads from that chat are in `./uploads/`: #{names.join(', ')}"
     end
 
-    # Artifacts stay links: the agent wrote them, they can be large, and a run
-    # usually needs few of them. Every attachment has a durable public download
-    # URL (the same link the chat's artifact cards use) — references in the
-    # transcript like `artifacts/spec.md` are dead paths from another sandbox;
-    # these links are not.
+    # Artifacts stay links — the agent wrote them, they can be large, and a run
+    # usually needs few. References in the transcript like `artifacts/spec.md`
+    # are dead paths from another sandbox; these download URLs are not.
     def artifacts_block
-      links = chat_attachments[:artifacts].map { |attachment| "- #{attachment.filename}: #{blob_url(attachment)}" }
+      links = chat_artifacts.map { |attachment| "- #{attachment.filename}: #{blob_url(attachment)}" }
       return if links.empty?
 
       "Files the chat produced (download them before relying on them — they are " \
         "not in this run's workspace):\n#{links.join("\n")}"
     end
 
-    def chat_uploads = chat_attachments[:uploads]
+    def chat_uploads
+      @chat_uploads ||= latest_per_name { |message| message.images.attachments + message.files.attachments }
+    end
 
-    # The latest attachment per filename across the chat, split by origin:
-    # what the operator uploaded vs. what the agent published.
-    def chat_attachments
-      @chat_attachments ||= begin
-        uploads, artifacts = {}, {}
-        messages = @conversation.messages.chronological
-          .with_attached_images.with_attached_files.with_attached_artifacts
-        messages.each do |message|
-          (message.images.attachments + message.files.attachments).each do |attachment|
-            uploads[attachment.filename.to_s] = attachment
-          end
-          message.artifacts.attachments.each do |attachment|
-            artifacts[attachment.filename.to_s] = attachment
-          end
-        end
-        { uploads: uploads.values, artifacts: artifacts.values }
-      end
+    def chat_artifacts
+      @chat_artifacts ||= latest_per_name { |message| message.artifacts.attachments }
+    end
+
+    # One attachment per filename — a later turn's `report.csv` supersedes an
+    # earlier one.
+    def latest_per_name
+      @chat_messages ||= @conversation.messages.chronological
+        .with_attached_images.with_attached_files.with_attached_artifacts.to_a
+      by_name = {}
+      @chat_messages.each { |message| yield(message).each { |a| by_name[a.filename.to_s] = a } }
+      by_name.values
     end
 
     def blob_url(attachment)
