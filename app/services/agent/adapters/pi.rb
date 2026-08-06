@@ -175,7 +175,7 @@ module Agent
       # The runtime projects every upload into ./uploads/; name this turn's
       # attachments in the prompt so pi knows it can reopen images as files.
       def prompt_with_attachments(input, images, files)
-        names = (images.to_a + files.to_a).map { |attachment| attachment.filename.to_s }
+        names = [ *images, *files ].map { |attachment| attachment.filename.to_s }
         return input if names.empty?
 
         note = "[Attachments, available in ./uploads/: #{names.join(', ')}]"

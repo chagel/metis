@@ -232,6 +232,18 @@ module Agent
         nil
       end
 
+      # Yields each conversation upload as [name, bytes] for the sandbox
+      # runtimes to write into uploads/. Filenames are basenamed so a
+      # crafted name cannot escape the uploads dir.
+      def each_upload
+        conversation.uploaded_attachments.each do |attachment|
+          name = File.basename(attachment.filename.to_s)
+          next if name.blank? || [ ".", ".." ].include?(name)
+
+          yield name, attachment.download
+        end
+      end
+
       # mtime-windowed so cleanup of artifacts/ stays the runtime's
       # job — old turns' files fall outside the window.
       def collect_host_artifacts(dir:, since:)

@@ -185,7 +185,7 @@ class ConversationTest < ActiveSupport::TestCase
     second.files.attach(io: StringIO.new("notes"), filename: "notes.txt", content_type: "text/plain")
 
     filenames = @conversation.uploaded_attachments.map { |attachment| attachment.filename.to_s }
-    assert_equal %w[diagram.png notes.txt], filenames
+    assert_equal %w[diagram.png notes.txt], filenames.sort
   end
 
   test "destroying a conversation kills its paused E2B sandbox" do

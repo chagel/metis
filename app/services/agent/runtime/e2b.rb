@@ -286,16 +286,11 @@ module Agent
         @workspace ||= Agent::Workspace.persistent(conversation)
       end
 
-      # Project the conversation's uploads into uploads/. Re-staged each
-      # turn (the canonical source is the Message
-      # attachment, not the sandbox copy). Filenames are basenamed so a
-      # crafted name cannot escape the uploads dir.
+      # Re-staged each turn — the canonical source is the Message
+      # attachment, not the sandbox copy.
       def stage_uploads(sandbox)
-        conversation.uploaded_attachments.each do |attachment|
-          name = File.basename(attachment.filename.to_s)
-          next if name.blank? || [ ".", ".." ].include?(name)
-
-          sandbox.files.write("#{WORKSPACE_DIR}/uploads/#{name}", attachment.download)
+        each_upload do |name, bytes|
+          sandbox.files.write("#{WORKSPACE_DIR}/uploads/#{name}", bytes)
         end
       end
 
