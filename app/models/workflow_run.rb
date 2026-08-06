@@ -5,6 +5,12 @@ class WorkflowRun < ApplicationRecord
   belongs_to :conversation
   has_many :tasks, -> { order(:position) }, dependent: :destroy
 
+  # The run's seed files — the launcher's composer uploads, or the blobs a
+  # chat handoff carries over. Projected into every step's workspace/uploads/
+  # via Conversation#uploaded_attachments; steps post no attachments of their
+  # own, so without these a run's workspace has no uploads at all.
+  has_many_attached :uploads
+
   enum :status, { pending: 0, running: 1, awaiting_approval: 2,
                   completed: 3, failed: 4, cancelled: 5, awaiting_local: 6,
                   queued: 7 }, default: :pending
@@ -41,7 +47,8 @@ class WorkflowRun < ApplicationRecord
   # launcher starts immediately.
   def self.start(team:, user:, project:, workflow: nil, steps: nil,
                  input: nil, settings: {}, visibility: :personal,
-                 trigger_summary: "Started by you", autostart: true, title: nil)
+                 trigger_summary: "Started by you", autostart: true, title: nil,
+                 uploads: [])
     raise ArgumentError, "every workflow run needs a project" if project.nil?
 
     steps ||= workflow&.steps || []
@@ -57,6 +64,9 @@ class WorkflowRun < ApplicationRecord
         trigger_summary: trigger_summary, input: input,
         status: (autostart ? :pending : :queued)
       )
+      # Inside the txn: the engine job is enqueued once it commits, and step 0
+      # stages uploads/ the moment it runs.
+      run.uploads.attach(uploads) if uploads.present?
       steps.each_with_index do |step, i|
         prompt = step["prompt"] || step[:prompt]
         prompt = [ input, prompt ].compact_blank.join("\n\n") if i.zero? && input.present?

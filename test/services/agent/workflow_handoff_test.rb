@@ -62,6 +62,33 @@ class Agent::WorkflowHandoffTest < ActiveSupport::TestCase
     assert_includes input, "download", "tells the run to fetch them, tool-agnostic"
   end
 
+  test "carries the chat's uploads onto the run as blobs, not links" do
+    msg = @conversation.messages.create!(role: :user, content: "look at this", streaming_status: :done)
+    msg.images.attach(io: StringIO.new("png bytes"), filename: "mock.png", content_type: "image/png")
+    msg.files.attach(io: StringIO.new("a,b"), filename: "data.csv", content_type: "text/csv")
+
+    handoff("workflow" => "ship")
+
+    run = WorkflowRun.last
+    assert_equal %w[data.csv mock.png], run.uploads.map { |u| u.filename.to_s }.sort
+    assert_equal [ msg.images.first.blob, msg.files.first.blob ].map(&:id).sort,
+                 run.uploads.map { |u| u.blob_id }.sort, "reuses the blobs — no byte copy"
+    # They ride into the sandbox, so the input names the path, not a URL.
+    assert_includes run.input, "./uploads/"
+    assert_includes run.input, "mock.png"
+    assert_not_includes run.input, "/files/blobs/redirect/"
+  end
+
+  test "the run's uploads reach every step's workspace" do
+    msg = @conversation.messages.create!(role: :user, content: "look at this", streaming_status: :done)
+    msg.images.attach(io: StringIO.new("png bytes"), filename: "mock.png", content_type: "image/png")
+
+    handoff("workflow" => "ship")
+
+    staged = WorkflowRun.last.conversation.uploaded_attachments.map { |a| a.filename.to_s }
+    assert_equal %w[mock.png], staged
+  end
+
   test "the queued run is not advanced until launched" do
     assert_no_enqueued_jobs(only: WorkflowAdvanceJob) do
       handoff("workflow" => "ship")

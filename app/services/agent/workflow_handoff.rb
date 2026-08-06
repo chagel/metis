@@ -39,7 +39,7 @@ module Agent
         workflow: workflow, project: project, input: build_input,
         settings: settings, visibility: @conversation.visibility,
         trigger_summary: "Spun off from a chat", autostart: false,
-        title: handoff_title(workflow)
+        title: handoff_title(workflow), uploads: chat_uploads.map(&:blob)
       )
       {
         ok: true, queued: true, workflow: workflow.name, project: project.name,
@@ -85,32 +85,51 @@ module Agent
     def build_input
       transcript = TranscriptDigest.new(@conversation).to_s
       preamble = "Context from the chat that started this run:\n\n#{transcript}" if transcript.present?
-      [ preamble, arg(:note).presence, files_block ].compact.join("\n\n").presence
+      [ preamble, arg(:note).presence, uploads_block, artifacts_block ].compact.join("\n\n").presence
     end
 
-    # The run starts in a fresh sandbox without the chat's files, but every
-    # attachment already has a durable public download URL (the same link the
-    # chat's artifact cards use). List them so the run can fetch what it needs —
-    # references in the transcript like `artifacts/spec.md` are dead paths
-    # from another sandbox; these links are not.
-    def files_block
-      links = chat_attachments.map { |attachment| "- #{attachment.filename}: #{blob_url(attachment)}" }
+    # The operator's uploads ride along as blobs on the run (attaching an
+    # existing blob copies no bytes), so they land in the run's own uploads/
+    # on every step.
+    def uploads_block
+      names = chat_uploads.map { |attachment| attachment.filename.to_s }
+      return if names.empty?
+
+      "The operator's uploads from that chat are in `./uploads/`: #{names.join(', ')}"
+    end
+
+    # Artifacts stay links: the agent wrote them, they can be large, and a run
+    # usually needs few of them. Every attachment has a durable public download
+    # URL (the same link the chat's artifact cards use) — references in the
+    # transcript like `artifacts/spec.md` are dead paths from another sandbox;
+    # these links are not.
+    def artifacts_block
+      links = chat_attachments[:artifacts].map { |attachment| "- #{attachment.filename}: #{blob_url(attachment)}" }
       return if links.empty?
 
-      "Files from the chat (download them before relying on them — they are not " \
-        "in this run's workspace yet):\n#{links.join("\n")}"
+      "Files the chat produced (download them before relying on them — they are " \
+        "not in this run's workspace):\n#{links.join("\n")}"
     end
 
-    # The latest attachment per filename across the chat — artifacts the agent
-    # wrote and files the operator uploaded.
+    def chat_uploads = chat_attachments[:uploads]
+
+    # The latest attachment per filename across the chat, split by origin:
+    # what the operator uploaded vs. what the agent published.
     def chat_attachments
-      by_name = {}
-      @conversation.messages.chronological.with_attached_artifacts.with_attached_files.each do |message|
-        (message.artifacts.attachments + message.files.attachments).each do |attachment|
-          by_name[attachment.filename.to_s] = attachment
+      @chat_attachments ||= begin
+        uploads, artifacts = {}, {}
+        messages = @conversation.messages.chronological
+          .with_attached_images.with_attached_files.with_attached_artifacts
+        messages.each do |message|
+          (message.images.attachments + message.files.attachments).each do |attachment|
+            uploads[attachment.filename.to_s] = attachment
+          end
+          message.artifacts.attachments.each do |attachment|
+            artifacts[attachment.filename.to_s] = attachment
+          end
         end
+        { uploads: uploads.values, artifacts: artifacts.values }
       end
-      by_name.values
     end
 
     def blob_url(attachment)

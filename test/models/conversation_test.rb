@@ -188,6 +188,17 @@ class ConversationTest < ActiveSupport::TestCase
     assert_equal %w[diagram.png notes.txt], filenames.sort
   end
 
+  test "uploaded_attachments includes a workflow run's own uploads" do
+    project = @conversation.team.projects.create!(name: "Metis")
+    run = WorkflowRun.start(
+      team: @conversation.team, user: @conversation.user, project: project,
+      steps: [ { "name" => "build", "prompt" => "work" } ], autostart: false,
+      title: "Run", uploads: [ { io: StringIO.new("png"), filename: "seed.png", content_type: "image/png" } ]
+    )
+
+    assert_equal %w[seed.png], run.conversation.uploaded_attachments.map { |a| a.filename.to_s }
+  end
+
   test "destroying a conversation kills its paused E2B sandbox" do
     # E2B keeps paused sandboxes indefinitely — without the destroy hook
     # every deleted conversation would leave a sandbox on E2B's servers

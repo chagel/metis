@@ -251,10 +251,13 @@ class Conversation < ApplicationRecord
   # Every upload across the conversation, as Active Storage attachments.
   # Runtimes project these into pi's workspace each turn — they are durable
   # input, not archived session state (see docs/session-persistence.md).
+  # A workflow run's own uploads come first: they seed the run and predate
+  # every step's message, which is where the rest of these come from.
   def uploaded_attachments
-    messages.with_attached_images.with_attached_files.flat_map do |message|
+    posted = messages.with_attached_images.with_attached_files.flat_map do |message|
       message.images.attachments + message.files.attachments
     end
+    workflow_run&.uploads&.attachments.to_a + posted
   end
 
   # Prior user/assistant turns, for replaying context into a fresh sandbox

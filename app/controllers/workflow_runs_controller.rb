@@ -11,11 +11,15 @@ class WorkflowRunsController < ApplicationController
     if project.nil?
       return render_composer_error(nil, t("flash.composer.pick_project"))
     end
+    uploads = composed_uploads
+    if (error = upload_error(uploads))
+      return render_composer_error(nil, error)
+    end
     run = WorkflowRun.start(
       team: current_team, user: current_user, workflow: @workflow,
       project: project, input: params[:input].presence || params[:content],
       settings: chat_settings, visibility: composed_visibility,
-      title: @workflow.run_title
+      title: @workflow.run_title, uploads: uploads
     )
     redirect_to run.conversation
   end
