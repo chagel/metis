@@ -7,11 +7,14 @@
 # `--pull never`, and Kamal does not manage that image (only the app image).
 # Without this, a pi-version or .pi/extensions change would ship in the app
 # while the host still ran the stale runtime image. docker:sync_pi_image
-# fingerprints the image inputs and only rebuilds + uploads on drift, so this
-# is a cheap no-op when nothing changed.
+# fingerprints the image inputs and only rebuilds on drift, so this is a
+# cheap no-op when nothing changed. The rebuild runs on the job host's own
+# daemon over DOCKER_HOST=ssh:// — the host's arch is not the deployer's, and
+# building where the image will run means nothing has to be uploaded.
 #
-# Runs on the deployer (needs Docker, as the app build already does). Skips
-# rollbacks and any deploy whose target isn't the docker runtime.
+# Runs from the deployer, which needs the docker CLI and ssh to the job host,
+# not a local daemon. Skips rollbacks and any deploy whose target isn't the
+# docker runtime.
 set -euo pipefail
 
 [ "${KAMAL_COMMAND:-}" = "rollback" ] && exit 0
