@@ -35,14 +35,16 @@ module Agent
         @session = nil
         @session_stats = nil
         @model_info = nil
-        @last_text_message_id = nil
+        @new_text_segment = false
+        @text_started = false
         @agent_ends = 0
       end
 
       def stream(input, images: [], files: [], &block)
         return enum_for(:stream, input, images: images, files: files) unless block
 
-        @last_text_message_id = nil
+        @new_text_segment = false
+        @text_started = false
         @agent_responded = false
         @agent_ends = 0
         @runtime.status_sink = lambda do |phase, message|
@@ -86,14 +88,15 @@ module Agent
       def translate(event)
         case event.type
         when :message_start
-          ui(:message_started, event, id: message_id(event), role: message_role(event))
+          @new_text_segment = true if message_role(event) == "assistant"
+          ui(:message_started, event, role: message_role(event))
         when :message_update
           translate_update(event)
         when :message_end
           # pi emits message_end for every message in the agent loop — the user
           # prompt and tool-result messages too. Only the assistant's carries
           # reply text; the others must not leak into the message body.
-          message_role(event) == "assistant" ? ui(:message_finished, event, id: message_id(event), content: message_content(event)) : nil
+          message_role(event) == "assistant" ? ui(:message_finished, event, content: message_content(event)) : nil
         when :tool_execution_start
           note_skill_touched(event)
           ui(:tool_call_started, event,
@@ -228,8 +231,8 @@ module Agent
 
       def translate_update(event)
         case event.raw.dig("assistantMessageEvent", "type")
-        when "text_delta"     then ui(:text_delta, event, id: message_id(event), delta: segmented_delta(event))
-        when "thinking_delta" then ui(:reasoning_delta, event, id: message_id(event), delta: event.delta)
+        when "text_delta"     then ui(:text_delta, event, delta: segmented_delta(event))
+        when "thinking_delta" then ui(:reasoning_delta, event, delta: event.delta)
         when "error"          then ui(:error, event, message: event.error_message)
         end
       end
@@ -239,22 +242,23 @@ module Agent
       # message carries no leading whitespace. Concatenated naively that
       # fuses the segments ("project.The"); insert a paragraph break
       # whenever the text stream crosses into a new pi message.
+      #
+      # Keyed off the assistant message_start boundary: pi's wire messages
+      # carry no id (0.84 keys them content/role/timestamp), so there is
+      # nothing to compare. Only ChatJob's fallback buffer reads these
+      # deltas raw — the finalized path joins message_end segments itself.
       def segmented_delta(event)
         delta = event.delta.to_s
         return delta if delta.empty?
 
-        id = message_id(event)
-        delta = "\n\n#{delta}" if @last_text_message_id && id && id != @last_text_message_id
-        @last_text_message_id = id if id
+        delta = "\n\n#{delta}" if @new_text_segment && @text_started
+        @new_text_segment = false
+        @text_started = true
         delta
       end
 
       def ui(type, pi_event, **data)
         Agent::UiEvent.new(type, data: data.compact, native_ref: pi_event.raw)
-      end
-
-      def message_id(event)
-        event.raw.dig("message", "id")
       end
 
       def message_role(event)
