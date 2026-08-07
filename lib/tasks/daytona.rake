@@ -1,5 +1,39 @@
 namespace :daytona do
-  desc "Build the Daytona snapshot with pi baked in (needs DAYTONA_API_KEY). Usage: rake daytona:snapshot[name]"
+  # Daytona snapshots are immutable and unique by name, and the API has no
+  # replace — so a pi bump can only reuse the configured name by deleting
+  # first. Opt-in (REPLACE=1) because it is a destructive call against a
+  # shared org: existing sandboxes keep running, but none can be created
+  # until the new snapshot finishes building.
+  def self.replace_snapshot(client, name)
+    existing = begin
+      client.snapshot.get(name)
+    rescue StandardError
+      nil
+    end
+    return puts "No existing snapshot '#{name}' to replace." if existing.nil?
+
+    id = existing["id"] || existing[:id]
+    puts "Deleting snapshot '#{name}' (id: #{id}, state: #{existing["state"] || existing[:state]})..."
+    client.snapshot.delete(id)
+    wait_for_deletion(client, name)
+  end
+
+  # Deletion is asynchronous — the name stays taken for a few seconds after
+  # the call returns, and creating into it fails with "already exists".
+  def self.wait_for_deletion(client, name, attempts: 30, interval: 2)
+    attempts.times do
+      begin
+        client.snapshot.get(name)
+      rescue Daytona::NotFoundError
+        return puts "Deleted."
+      end
+      sleep interval
+    end
+    abort "[daytona] snapshot '#{name}' still exists #{attempts * interval}s after delete"
+  end
+
+  desc "Build the Daytona snapshot with pi baked in (needs DAYTONA_API_KEY). " \
+       "Usage: rake daytona:snapshot[name] — REPLACE=1 to rebuild over an existing one"
   task :snapshot, [ :name ] => :environment do |_task, args|
     name = args.fetch(:name, "metis-pi")
     pi_package = "@earendil-works/pi-coding-agent@#{PiAgent::SUPPORTED_PI_VERSION}"
@@ -41,6 +75,7 @@ namespace :daytona do
                             )
 
     client = Agent::Runtime::Daytona.client
+    replace_snapshot(client, name) if ENV["REPLACE"].present?
     response = client.snapshot.create(image, name: name, on_logs: ->(line) { puts line })
 
     puts

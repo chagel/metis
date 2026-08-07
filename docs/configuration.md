@@ -89,11 +89,17 @@ The runtime decides *where* pi runs. See `coding-runtime.md` and
   *archived* one (cheaper, slower to resume) less. So metis stops the
   sandbox each turn to end compute billing, and Daytona's native
   auto-archive/auto-delete intervals manage the residual storage cost of
-  idle conversations (no metis eviction cron). Build the snapshot once:
+  idle conversations (no metis eviction cron). Build the snapshot:
 
   ```sh
-  rake "daytona:snapshot[metis-pi]"
+  foreman run bin/rails "daytona:snapshot[metis-pi]"          # first build
+  REPLACE=1 foreman run bin/rails "daytona:snapshot[metis-pi]"  # after a pi bump
   ```
+
+  `foreman run` is what loads `.env`, where `DAYTONA_API_KEY` lives — a bare
+  `rake` sees no credentials. Snapshots are immutable and unique by name, so
+  rebuilding onto the same name deletes the old one first; that is `REPLACE=1`,
+  opt-in because it is destructive against a shared org.
 - **`microsandbox`** — pi runs inside a self-hosted
   [microsandbox](https://microsandbox.dev) libkrun microVM, driven
   in-process by the [`microsandbox-rb`](https://rubygems.org/gems/microsandbox-rb)
