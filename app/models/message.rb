@@ -12,9 +12,8 @@ class Message < ApplicationRecord
   # assistant rows, engine prompts, and rows predating the column.
   belongs_to :sender, class_name: "User", optional: true
 
-  # Composer uploads. Images are sent to the agent inline (pi's vision
-  # protocol); other files are staged into the agent's workspace so it
-  # can open them with its file tools. See Agent::Adapters::Pi.
+  # Composer uploads. Images also go inline via pi's vision protocol; every
+  # upload is staged into workspace/uploads/ (see Agent::Adapters::Pi).
   has_many_attached :images
   has_many_attached :files
 

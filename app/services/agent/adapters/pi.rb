@@ -26,9 +26,8 @@ module Agent
     # (the default). See https://pi.dev/docs/latest/usage#project-trust.
     #
     # Attachments: images are sent inline via pi's vision protocol
-    # (prompt images:); other files are projected into pi's
-    # workspace/uploads/ by the runtime, and a note in the prompt tells
-    # pi this turn's uploads are there.
+    # (prompt images:), and every attachment is projected into pi's
+    # workspace/uploads/ by the runtime for access in later turns.
     class Pi < Base
       def initialize(conversation:, runtime: nil, **opts)
         super(conversation: conversation, **opts)
@@ -51,7 +50,7 @@ module Agent
         end
         @runtime.run(pi_args: pi_args, extension_ui: Agent::HostBridge.handler(conversation)) do |session|
           @session = session
-          session.prompt(prompt_with_files(input, files), images: pi_images(images)) do |pi_event|
+          session.prompt(prompt_with_attachments(input, images, files), images: pi_images(images)) do |pi_event|
             @agent_responded = true
             ui_event = translate(pi_event)
             block.call(ui_event) if ui_event
@@ -173,13 +172,13 @@ module Agent
         images.map { |image| PiAgent::Image.from_bytes(image.download, mime_type: image.content_type) }
       end
 
-      # The runtime projects uploaded files into ./uploads/; name this
-      # turn's uploads in the prompt so pi knows to open them there.
-      def prompt_with_files(input, files)
-        names = files.map { |file| file.filename.to_s }
+      # The runtime projects every upload into ./uploads/; name this turn's
+      # attachments in the prompt so pi knows it can reopen images as files.
+      def prompt_with_attachments(input, images, files)
+        names = [ *images, *files ].map { |attachment| attachment.filename.to_s }
         return input if names.empty?
 
-        note = "[Attached files, available in ./uploads/: #{names.join(', ')}]"
+        note = "[Attachments, available in ./uploads/: #{names.join(', ')}]"
         input.present? ? "#{input}\n\n#{note}" : note
       end
 

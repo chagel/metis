@@ -334,14 +334,9 @@ module Agent
         @workspace ||= Agent::Workspace.persistent(conversation)
       end
 
-      # Project the conversation's uploaded files into uploads/. Filenames are
-      # basenamed so a crafted name cannot escape the uploads dir.
       def stage_uploads(sandbox)
-        conversation.uploaded_files.each do |attachment|
-          name = File.basename(attachment.filename.to_s)
-          next if name.blank? || [ ".", ".." ].include?(name)
-
-          put_file(sandbox, "#{WORKSPACE_DIR}/uploads/#{name}", attachment.download)
+        each_upload do |name, bytes|
+          put_file(sandbox, "#{WORKSPACE_DIR}/uploads/#{name}", bytes)
         end
       end
 

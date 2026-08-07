@@ -178,6 +178,16 @@ class ConversationTest < ActiveSupport::TestCase
     assert_not_nil @conversation.reload.cancel_requested_at
   end
 
+  test "uploaded_attachments includes images and files from every message" do
+    first = @conversation.messages.create!(role: :user, content: "first", streaming_status: :done)
+    first.images.attach(io: StringIO.new("image"), filename: "diagram.png", content_type: "image/png")
+    second = @conversation.messages.create!(role: :user, content: "second", streaming_status: :done)
+    second.files.attach(io: StringIO.new("notes"), filename: "notes.txt", content_type: "text/plain")
+
+    filenames = @conversation.uploaded_attachments.map { |attachment| attachment.filename.to_s }
+    assert_equal %w[diagram.png notes.txt], filenames.sort
+  end
+
   test "destroying a conversation kills its paused E2B sandbox" do
     # E2B keeps paused sandboxes indefinitely — without the destroy hook
     # every deleted conversation would leave a sandbox on E2B's servers

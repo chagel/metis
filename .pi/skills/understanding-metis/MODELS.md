@@ -326,10 +326,12 @@ def turn_in_progress?
   # backed by a partial unique index that catches the TOCTOU race).
 def request_cancel!  # stamps cancel_requested_at; ChatJob polls every 15 events
 
-def uploaded_files
-  # Every file attached across the conversation — projected into
-  # workspace/uploads/ each turn (durable input, not session state).
-  messages.with_attached_files.flat_map { |m| m.files.attachments }
+def uploaded_attachments
+  # Every image and file attached across the conversation — projected
+  # into workspace/uploads/ each turn (durable input, not session state).
+  messages.with_attached_images.with_attached_files.flat_map do |message|
+    message.images.attachments + message.files.attachments
+  end
 end
 
 def replayable_history
@@ -351,7 +353,7 @@ enum :kind,             { chat: 0, step_prompt: 1, local_report: 2, review: 3, h
 
 belongs_to :conversation, touch: true
 belongs_to :sender, class_name: "User", optional: true  # who sent a user message
-has_many_attached :images     # sent inline via pi's vision protocol
+has_many_attached :images     # sent inline via pi vision and staged into uploads/
 has_many_attached :files      # staged into workspace/uploads/
 has_many_attached :artifacts  # agent-published files, populated by ChatJob
 

@@ -152,6 +152,10 @@ in the persistent workspace — host filesystem for `Local`, `Docker`, and
 | `workspace/AGENTS.md` | `Conversation` + `Team` + runtime (see [`agent-identity.md`](agent-identity.md)) |
 | `workspace/.pi/skills/*` | The repo's `.pi/skills/` tree + the team's enabled `Skill` rows — see [`skills.md`](skills.md) |
 
+Images use both attachment paths: the current turn sends them inline through
+pi's vision protocol, while every image in the conversation is also projected
+into `workspace/uploads/` so later turns can reopen the original bytes.
+
 The projection writes overwrite the previous turn's copy in place
 on every runtime — durable Rails state is read once per turn at its
 canonical source, regardless of how the workspace itself persists.

@@ -97,8 +97,8 @@ module Agent
       # `pi_args`, yield it to the caller, then finalize (persist state,
       # tear down). The session is closed by the runtime, not the caller.
       #
-      # The runtime also projects the conversation's uploaded files
-      # (Conversation#uploaded_files) into pi's workspace/uploads/ — a
+      # The runtime also projects the conversation's uploads
+      # (Conversation#uploaded_attachments) into pi's workspace/uploads/ — a
       # filesystem operation each runtime does its own way.
       #
       # `extension_ui` is the optional pi Extension UI handler (Agent::HostBridge)
@@ -230,6 +230,18 @@ module Agent
           "provider=#{provider}: #{error.message} — omitting credential"
         )
         nil
+      end
+
+      # Yields each conversation upload as [name, bytes] for the sandbox
+      # runtimes to write into uploads/. Filenames are basenamed so a
+      # crafted name cannot escape the uploads dir.
+      def each_upload
+        conversation.uploaded_attachments.each do |attachment|
+          name = File.basename(attachment.filename.to_s)
+          next if name.blank? || [ ".", ".." ].include?(name)
+
+          yield name, attachment.download
+        end
       end
 
       # mtime-windowed so cleanup of artifacts/ stays the runtime's

@@ -109,18 +109,20 @@ class Agent::Runtime::LocalTest < ActiveSupport::TestCase
     assert seen_on_turn2, "turn 1's workspace files are still there on turn 2 (pi-native persistence)"
   end
 
-  test "run projects the conversation's uploaded files into uploads/" do
+  test "run projects the conversation's uploaded images and files into uploads/" do
     message = @conversation.messages.create!(role: :user, content: "hi", streaming_status: :done)
+    message.images.attach(io: StringIO.new("image bytes"), filename: "chart.png", content_type: "image/png")
     message.files.attach(io: StringIO.new("a,b\n1,2\n"), filename: "data.csv", content_type: "text/csv")
-    staged = @workspace.uploads_dir.join("data.csv")
 
     with_pi_session(fake_session) do
       @runtime.run(pi_args: [ "--mode", "rpc" ]) do |_s|
-        assert File.exist?(staged), "upload projected before the run"
+        assert File.exist?(@workspace.uploads_dir.join("chart.png")), "image projected before the run"
+        assert File.exist?(@workspace.uploads_dir.join("data.csv")), "file projected before the run"
       end
     end
 
-    assert_equal "a,b\n1,2\n", File.read(staged)
+    assert_equal "image bytes", File.binread(@workspace.uploads_dir.join("chart.png"))
+    assert_equal "a,b\n1,2\n", File.read(@workspace.uploads_dir.join("data.csv"))
   end
 
   test "run closes the session even when the block raises" do

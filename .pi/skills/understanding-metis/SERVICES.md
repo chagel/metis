@@ -122,7 +122,7 @@ carries continuity; `--continue` resumes. **Not a security boundary.**
 ```ruby
 def run(pi_args:, extension_ui: nil)
   workspace.ensure!
-  workspace.stage_uploads(conversation.uploaded_files)
+  workspace.stage_uploads(conversation.uploaded_attachments)
   workspace.stage_mcp_config(mcp_config)
   workspace.stage_identity(identity_content)
   workspace.stage_skills

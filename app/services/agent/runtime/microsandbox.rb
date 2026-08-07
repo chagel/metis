@@ -215,7 +215,7 @@ module Agent
           # Staging inside the begin so the ensure's mcp discard covers a
           # failure mid-staging, not just a failed boot.
           timed(:staging) do
-            workspace.stage_uploads(conversation.uploaded_files)
+            workspace.stage_uploads(conversation.uploaded_attachments)
             workspace.stage_mcp_config(mcp_config)
             workspace.stage_identity(identity_content)
             workspace.stage_skills
