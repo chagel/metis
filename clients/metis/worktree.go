@@ -6,18 +6,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"strings"
 	"sync"
 	"time"
 )
 
-const (
-	metaFile = ".metis-task.json"
-	// Where the run's attachments are staged — the same relative path a
-	// cloud step's runtime uses, so the run subject can name one path.
-	uploadsDir = "uploads"
-)
+const metaFile = ".metis-task.json"
 
 // taskMeta is the daemon's bookkeeping stamp inside a worktree: claim
 // and settle timestamps (gc eligibility), and per-agent session
@@ -67,9 +61,6 @@ func (w Worktree) Branch() string {
 
 func (w Worktree) Prepare() error {
 	if info, err := os.Stat(w.Path()); err == nil && info.IsDir() {
-		if err := w.excludeInternals(); err != nil {
-			return err
-		}
 		return w.claimMeta()
 	}
 	if err := os.MkdirAll(w.Root, 0o755); err != nil {
@@ -88,7 +79,7 @@ func (w Worktree) Prepare() error {
 	if err != nil {
 		return err
 	}
-	if err := w.excludeInternals(); err != nil {
+	if err := w.excludeMeta(); err != nil {
 		return err
 	}
 	return w.claimMeta()
@@ -105,13 +96,11 @@ func (w Worktree) claimMeta() error {
 	})
 }
 
-// excludeInternals keeps the daemon's own files out of the agent's commits:
-// the unattended prompt says "commit your work", agents git add -A, and the
-// meta file and staged uploads would ride into real branches. The worktree's
-// private exclude (gitdir/info/exclude) hides them without touching the
-// repo's .gitignore. Idempotent, and run on re-claim too — a worktree can
-// outlive the daemon version that created it.
-func (w Worktree) excludeInternals() error {
+// excludeMeta keeps the bookkeeping file out of the agent's commits: the
+// unattended prompt says "commit your work", agents git add -A, and the
+// meta would ride into real branches. The worktree's private exclude
+// (gitdir/info/exclude) hides it without touching the repo's .gitignore.
+func (w Worktree) excludeMeta() error {
 	out, err := exec.Command("git", "-C", w.Path(), "rev-parse", "--git-path", "info/exclude").Output()
 	if err != nil {
 		return fmt.Errorf("git rev-parse --git-path failed: %w", err)
@@ -123,26 +112,12 @@ func (w Worktree) excludeInternals() error {
 	if err := os.MkdirAll(filepath.Dir(exclude), 0o755); err != nil {
 		return err
 	}
-	current, err := os.ReadFile(exclude)
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-	lines := strings.Split(string(current), "\n")
-	missing := []string{}
-	for _, entry := range []string{metaFile, uploadsDir + "/"} {
-		if !slices.Contains(lines, entry) {
-			missing = append(missing, entry)
-		}
-	}
-	if len(missing) == 0 {
-		return nil
-	}
 	file, err := os.OpenFile(exclude, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	_, err = file.WriteString(strings.Join(missing, "\n") + "\n")
+	_, err = file.WriteString(metaFile + "\n")
 	return err
 }
 

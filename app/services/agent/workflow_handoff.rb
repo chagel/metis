@@ -85,15 +85,7 @@ module Agent
     def build_input
       transcript = TranscriptDigest.new(@conversation).to_s
       preamble = "Context from the chat that started this run:\n\n#{transcript}" if transcript.present?
-      [ preamble, arg(:note).presence, uploads_block, artifacts_block ].compact.join("\n\n").presence
-    end
-
-    # The uploads themselves ride along on the run, so name the path, not a URL.
-    def uploads_block
-      names = chat_uploads.map { |attachment| attachment.filename.to_s }
-      return if names.empty?
-
-      "The operator's uploads from that chat are in `./uploads/`: #{names.join(', ')}"
+      [ preamble, arg(:note).presence, artifacts_block ].compact.join("\n\n").presence
     end
 
     # Artifacts stay links — the agent wrote them, they can be large, and a run

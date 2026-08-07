@@ -111,57 +111,19 @@ func TestSessionPointerSurvivesReclaimAndSettle(t *testing.T) {
 	}
 }
 
-func TestDaemonInternalsAreInvisibleToGit(t *testing.T) {
+func TestMetaFileIsInvisibleToGit(t *testing.T) {
 	repo, root := initRepo(t)
 	worktree := Worktree{Repo: repo, Root: root, Ref: "RUN-5"}
 	if err := worktree.Prepare(); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(filepath.Join(worktree.Path(), uploadsDir), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(worktree.Path(), uploadsDir, "chart.png"), []byte("png"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	// Unattended agents run git add -A; neither the daemon's bookkeeping
-	// nor the operator's uploads may ride into their commits.
+	// Unattended agents run git add -A; the daemon's bookkeeping must
+	// never ride into their commits.
 	out, err := exec.Command("git", "-C", worktree.Path(), "status", "--porcelain").Output()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(out), metaFile) || strings.Contains(string(out), uploadsDir) {
-		t.Fatalf("daemon internals visible to git:\n%s", out)
-	}
-}
-
-// A worktree can outlive the daemon version that made it: re-claiming one
-// whose exclude predates uploads/ must add the entry, and not duplicate the
-// entries already there.
-func TestReclaimBackfillsExcludeWithoutDuplicating(t *testing.T) {
-	repo, root := initRepo(t)
-	worktree := Worktree{Repo: repo, Root: root, Ref: "RUN-6"}
-	if err := worktree.Prepare(); err != nil {
-		t.Fatal(err)
-	}
-	out, err := exec.Command("git", "-C", worktree.Path(), "rev-parse", "--path-format=absolute", "--git-path", "info/exclude").Output()
-	if err != nil {
-		t.Fatal(err)
-	}
-	exclude := strings.TrimSpace(string(out))
-	if err := os.WriteFile(exclude, []byte(metaFile+"\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := worktree.Prepare(); err != nil { // re-claim
-		t.Fatal(err)
-	}
-	raw, err := os.ReadFile(exclude)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := strings.Count(string(raw), metaFile); got != 1 {
-		t.Fatalf("meta entry written %d times:\n%s", got, raw)
-	}
-	if !strings.Contains(string(raw), uploadsDir+"/") {
-		t.Fatalf("uploads entry not backfilled:\n%s", raw)
+	if strings.Contains(string(out), metaFile) {
+		t.Fatalf("meta file visible to git:\n%s", out)
 	}
 }

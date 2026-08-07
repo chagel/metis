@@ -67,9 +67,6 @@ func newStubServer(t *testing.T) *stubServer {
 		stub.results = append(stub.results, result)
 		w.WriteHeader(http.StatusOK)
 	})
-	mux.HandleFunc("GET /files/blobs/{name}", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte("bytes of " + r.PathValue("name")))
-	})
 	mux.HandleFunc("GET /api/bridge/tasks/{id}", func(w http.ResponseWriter, r *http.Request) {
 		stub.mu.Lock()
 		defer stub.mu.Unlock()
@@ -540,47 +537,31 @@ func TestRunScopedWorktreeSharesStateAcrossSteps(t *testing.T) {
 	}
 }
 
-func TestRunUploadsAreStagedIntoTheWorktree(t *testing.T) {
-	repo, root := initRepo(t)
-	stub := newStubServer(t)
+func TestRunUploadsReachThePromptAsLinks(t *testing.T) {
 	task := testTask("RUN-9")
 	task.Context.Uploads = []Upload{
-		{Name: "chart.png", URL: stub.server.URL + "/files/blobs/chart.png"},
-		// A crafted name must not escape uploads/.
-		{Name: "../../escape.txt", URL: stub.server.URL + "/files/blobs/escape.txt"},
-		// Another host is not this deployment's blob store.
-		{Name: "evil.txt", URL: "http://elsewhere.invalid/files/blobs/evil.txt"},
+		{Name: "chart.png", URL: "http://metis.test/files/blobs/chart.png"},
+		{Name: "no-url.txt"},
 	}
-	cfg := testConfig(stub.server.URL, repo, root, nil)
-	// The agent leaves a change, so the daemon's commit sweep runs.
-	runTask(t, stub, cfg, task, fakeAgent{script: `echo hi > newfile.txt; printf '{"final":"done"}\n'`})
+	worker := &Worker{cfg: testConfig("http://metis.test", "", "", nil), task: task}
 
-	worktree := filepath.Join(testWorktreeRoot(root), "RUN-9")
-	staged, err := os.ReadFile(filepath.Join(worktree, uploadsDir, "chart.png"))
-	if err != nil {
-		t.Fatalf("upload not staged: %v", err)
+	prompt := worker.prompt("metis/run-9", briefFresh)
+	if !strings.Contains(prompt, "- chart.png: http://metis.test/files/blobs/chart.png") {
+		t.Fatalf("upload link missing from the prompt:\n%s", prompt)
 	}
-	if string(staged) != "bytes of chart.png" {
-		t.Fatalf("staged bytes = %q", staged)
+	if strings.Contains(prompt, "no-url.txt") {
+		t.Fatal("an upload without a URL is not worth naming")
 	}
-	if _, err := os.Stat(filepath.Join(worktree, uploadsDir, "escape.txt")); err != nil {
-		t.Fatalf("crafted name should land basenamed inside uploads/: %v", err)
+	// A resumed session skips the prior-step re-brief; the attachments are
+	// cheap and stay, so a later step is never told less about them.
+	if !strings.Contains(worker.prompt("metis/run-9", briefResumedCurrent), "chart.png") {
+		t.Fatal("uploads dropped on a resumed session")
 	}
-	if _, err := os.Stat(filepath.Join(root, "escape.txt")); err == nil {
-		t.Fatal("upload escaped the worktree")
-	}
-	if _, err := os.Stat(filepath.Join(worktree, uploadsDir, "evil.txt")); err == nil {
-		t.Fatal("fetched a URL off this deployment")
-	}
-	// Staged uploads are the server's copy — they must not reach the branch.
-	tracked, err := exec.Command("git", "-C", worktree, "ls-files").Output()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(tracked), "newfile.txt") {
-		t.Fatalf("the agent's work was not committed:\n%s", tracked)
-	}
-	if strings.Contains(string(tracked), uploadsDir) {
-		t.Fatalf("uploads rode into the branch:\n%s", tracked)
+}
+
+func TestPromptOmitsTheUploadsSectionWithoutAttachments(t *testing.T) {
+	worker := &Worker{cfg: testConfig("http://metis.test", "", "", nil), task: testTask("RUN-9")}
+	if strings.Contains(worker.prompt("metis/run-9", briefFresh), "attached to this run") {
+		t.Fatal("empty uploads section rendered")
 	}
 }

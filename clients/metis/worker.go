@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -26,7 +25,6 @@ type bridgeAPI interface {
 	Event(id int64, text string) error
 	Result(id int64, status, summary, detail string, artifacts []Artifact, agent, model string) error
 	TaskState(id int64) (*TaskState, error)
-	Fetch(url, dest string) error
 }
 
 // Worker runs one claimed task end to end: worktree, agent subprocess,
@@ -71,7 +69,6 @@ func (w *Worker) Run() {
 		w.report(&outcome{status: "failed", summary: err.Error()})
 		return
 	}
-	w.stageUploads(worktree)
 	argv, resumed := w.command(worktree)
 	result := w.driveAgent(worktree, argv)
 	// A resume that dies without a single parsed event is a broken
@@ -110,33 +107,6 @@ func (w *Worker) Run() {
 		w.logf("task %s: could not write meta: %v", w.label(), err)
 	}
 	w.report(result)
-}
-
-// stageUploads puts the run's attachments under ./uploads/ in the worktree,
-// where the run subject says they are — the local counterpart of the runtime
-// staging a cloud step gets. Re-staged every step, like the cloud does, since
-// the canonical copy is the server's. A file that won't download is logged,
-// not fatal: the step may not need it, and the agent reports better than a
-// dead task does.
-func (w *Worker) stageUploads(worktree Worktree) {
-	uploads := w.task.Context.Uploads
-	if len(uploads) == 0 {
-		return
-	}
-	dir := filepath.Join(worktree.Path(), uploadsDir)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		w.logf("task %s: could not create %s: %v", w.label(), dir, err)
-		return
-	}
-	for _, upload := range uploads {
-		name := filepath.Base(upload.Name)
-		if name == "." || name == ".." || name == string(filepath.Separator) {
-			continue
-		}
-		if err := w.api.Fetch(upload.URL, filepath.Join(dir, name)); err != nil {
-			w.logf("task %s: could not download upload %s: %v", w.label(), name, err)
-		}
-	}
 }
 
 // command picks resume when this worktree already holds a completed
@@ -367,6 +337,10 @@ func (w *Worker) prompt(branch string, mode brief) string {
 	if input := w.task.Context.Input; input != "" {
 		sections = append(sections, "## Run subject\n"+input)
 	}
+	if urls := uploadLines(w.task.Context.Uploads); urls != "" {
+		sections = append(sections, "## Files the operator attached to this run\n"+
+			"Download any you need — they are not in this worktree:\n"+urls)
+	}
 	if mode != briefResumedCurrent {
 		for _, step := range w.task.Context.PriorSteps {
 			body := fmt.Sprintf("## Context from earlier step: %s\n%s", step.Name, step.Content)
@@ -402,6 +376,20 @@ Use "status":"failed" with a precise reason when you cannot finish.`,
 
 // kill terminates the agent's whole process group (an agent may spawn
 // children) and drains the line reader so its goroutine can finish.
+// uploadLines lists the run's attachments as name + URL, the same way prior
+// steps' artifacts reach the agent. Unlike a cloud step, a local one has no
+// runtime staging them — but it does have the network and the operator's own
+// machine, so a link is enough.
+func uploadLines(uploads []Upload) string {
+	lines := []string{}
+	for _, upload := range uploads {
+		if upload.URL != "" {
+			lines = append(lines, "- "+upload.Name+": "+upload.URL)
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
 func (w *Worker) kill(cmd *exec.Cmd, lines chan string) {
 	go func() {
 		for range lines {

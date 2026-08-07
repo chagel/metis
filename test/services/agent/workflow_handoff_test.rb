@@ -75,10 +75,9 @@ class Agent::WorkflowHandoffTest < ActiveSupport::TestCase
     assert_equal %w[data.csv mock.png],
                  run.conversation.uploaded_attachments.map { |a| a.filename.to_s }.sort,
                  "so every step stages them"
-    # They ride into the sandbox, so the input names the path, not a URL.
-    assert_includes run.input, "./uploads/"
-    assert_includes run.input, "mock.png"
-    assert_not_includes run.input, "/files/blobs/redirect/"
+    # Cloud steps open them in uploads/ (AGENTS.md says so), delegated ones
+    # get links in the claim payload — neither needs the input to say it.
+    assert_not_includes run.input.to_s, "mock.png"
   end
 
   test "the queued run is not advanced until launched" do

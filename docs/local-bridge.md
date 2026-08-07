@@ -177,7 +177,7 @@ same effect by list-then-pick.
   "context": {
     "input":    "review pr 75",            // the run's subject; omitted when blank
     "project":  { "name": "metis-api", "about": "Rails 8 API; conventions in…" },
-    "uploads": [                           // the run's attachments; omitted when none
+    "uploads": [                           // what the operator attached to the run; omitted when none
       { "name": "chart.png", "url": "https://…/files/blobs/…signed…" }
     ],
     "prior_steps": [                       // the cloud steps so far, in full
@@ -194,12 +194,12 @@ same effect by list-then-pick.
 
 `context.uploads` is what the operator attached to the run
 (`WorkflowRun#uploads`). A cloud step gets these staged into
-`workspace/uploads/` by its runtime; a delegated step has no runtime, so the
-daemon downloads them into `uploads/` in the task worktree — same relative
-path either way, which is the path the run subject names. The daemon fetches
-only URLs on the server it claimed from, and keeps `uploads/` in the
-worktree's private git exclude so the operator's files never ride into a
-branch.
+`workspace/uploads/` by its runtime; a delegated step has no runtime, so it
+gets them the way it gets a prior step's artifacts — as links the daemon
+renders into the prompt, for the agent to fetch if the step needs them. It
+is a separate field, not a synthetic entry in `prior_steps`: uploads are the
+run's seed rather than a step's output, and the prior-step bundle is skipped
+for a resumed session that already saw it.
 
 The `context` bundle is how prior cloud steps reach the local agent — full
 step outputs plus signed URLs for any files they published, but **not a

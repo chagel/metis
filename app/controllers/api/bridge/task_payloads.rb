@@ -55,9 +55,8 @@ module Api
       end
 
       # A cloud step gets these staged into workspace/uploads/ by its runtime;
-      # a delegated step has no runtime, so the daemon downloads them into the
-      # task worktree instead. Same files, same `./uploads/` path either way —
-      # the run input names it.
+      # a delegated step has no runtime, so it gets the same download links a
+      # prior step's artifacts get and fetches what it needs.
       def run_uploads(run)
         uploads = run.uploads.map do |upload|
           { name: upload.filename.to_s, url: rails_blob_url(upload, host: request.base_url) }

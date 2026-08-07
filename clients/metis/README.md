@@ -157,11 +157,10 @@ binaries + checksums to a GitHub release; `metis upgrade` and
    those commits. A re-claimed task whose worktree survives
    resumes in it; another machine starts fresh from the checkout's
    HEAD.
-3. Any files the operator attached to the run are downloaded into
-   `uploads/` in the worktree — the same relative path a cloud step's
-   sandbox gets, which is where the run subject says they are. They are
-   re-fetched each step (the server holds the canonical copy) and sit in
-   the worktree's private git exclude, so they never reach the branch.
+3. Files the operator attached to the run reach the prompt as download
+   links, like prior steps' artifacts — the agent fetches the ones it
+   needs. (A cloud step gets them staged into its sandbox instead; a
+   local one has the network and your own machine.)
 4. The agent runs headless in its native JSON stream (`claude -p
    --output-format stream-json`, `pi -p --mode json`, `codex exec
    --json`), with the user's own credentials and subscription, in its
