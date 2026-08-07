@@ -68,7 +68,7 @@ The runtime decides *where* pi runs. See `coding-runtime.md` and
   Self-hosted, needs a Docker daemon. Build the image once:
 
   ```sh
-  rake "docker:image[metis-pi]"
+  foreman run bin/rails runtime:image
   ```
 
   That builds for the local daemon — right for a dev box. For a server
@@ -80,7 +80,7 @@ The runtime decides *where* pi runs. See `coding-runtime.md` and
   Build the sandbox template once:
 
   ```sh
-  rake "e2b:template[metis-pi]"
+  foreman run bin/rails runtime:image
   ```
 - **`daytona`** — pi runs inside an isolated
   [Daytona](https://www.daytona.io) elastic sandbox. The Daytona analog
@@ -96,8 +96,8 @@ The runtime decides *where* pi runs. See `coding-runtime.md` and
   REPLACE=1 foreman run bin/rails runtime:image  # after a pi bump
   ```
 
-  `runtime:image` dispatches to the configured runtime's build task
-  (`daytona:snapshot` here), so refreshing pi is one command whatever the
+  `runtime:image` dispatches to the configured runtime's own build task
+  (`docker:image`, `e2b:image`, `daytona:image`) — one command whatever the
   deployment runs. `foreman run` is what loads `.env`, where `DAYTONA_API_KEY`
   lives — a bare `rake` sees no credentials. Daytona snapshots are immutable
   and unique by name, so rebuilding onto the same name deletes the old one

@@ -27,7 +27,7 @@ module Agent
     # remote storage, not in a worker process).
     #
     # pi must be present in the snapshot image (config.x.agent.daytona_snapshot
-    # — a snapshot with pi baked in; see the daytona:snapshot rake task).
+    # — a snapshot with pi baked in; see the daytona:image rake task).
     class Daytona < Base
       def self.image_ref = Rails.application.config.x.agent.daytona_snapshot
 
@@ -39,7 +39,7 @@ module Agent
       # app, restaged each turn rather than relied on to persist via stop/start
       # (so a pi-extensions update reaches an existing conversation next turn).
       EXTENSIONS_DIR = "/root/pi-extensions".freeze
-      # Repo .pi/skills/ baked into the snapshot image by the daytona:snapshot
+      # Repo .pi/skills/ baked into the snapshot image by the daytona:image
       # rake task. #stage_skills copies this into the workspace on fresh
       # sandboxes, dodging the per-file upload that .pi/skills/'s 300+ files
       # would cost over the wire.

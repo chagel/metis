@@ -12,7 +12,7 @@
 #             requires E2B_API_KEY and a template with pi baked in.
 #   :daytona— pi inside a Daytona elastic sandbox. The Daytona-backed
 #             isolated runtime; requires DAYTONA_API_KEY and a snapshot
-#             with pi baked in (see the daytona:snapshot rake task).
+#             with pi baked in (see the daytona:image rake task).
 #   :microsandbox — pi inside a self-hosted libkrun microVM (in-process,
 #             no daemon or cloud API). VM-grade isolation on the worker's
 #             own hardware; requires Linux with KVM or macOS on Apple
@@ -22,7 +22,7 @@ Rails.application.config.x.agent.runtime =
   ENV.fetch("METIS_AGENT_RUNTIME", "local").to_sym
 
 # E2B template (image) used by the :e2b runtime — should have pi
-# installed. See the e2b:template rake task for the build definition.
+# installed. See the e2b:image rake task for the build definition.
 Rails.application.config.x.agent.e2b_template =
   ENV.fetch("METIS_E2B_TEMPLATE", "base")
 
@@ -68,7 +68,7 @@ Rails.application.config.x.agent.daytona_api_url = ENV["DAYTONA_API_URL"].presen
 Rails.application.config.x.agent.daytona_target  = ENV["DAYTONA_TARGET"].presence
 
 # Daytona snapshot (image) used by the :daytona runtime — should have pi
-# installed. See the daytona:snapshot rake task for the build definition.
+# installed. See the daytona:image rake task for the build definition.
 Rails.application.config.x.agent.daytona_snapshot =
   ENV.fetch("METIS_DAYTONA_SNAPSHOT", "metis-pi")
 
