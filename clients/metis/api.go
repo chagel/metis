@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -38,8 +40,17 @@ type Task struct {
 			Name  string `json:"name"`
 			About string `json:"about"`
 		} `json:"project"`
+		Uploads    []Upload    `json:"uploads"`
 		PriorSteps []PriorStep `json:"prior_steps"`
 	} `json:"context"`
+}
+
+// Upload is a file the operator attached to the run. Every step gets them
+// under ./uploads/ — staged by the runtime in the cloud, downloaded into the
+// worktree here.
+type Upload struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
 }
 
 type TaskState struct {
@@ -111,6 +122,30 @@ func (a *Api) Result(id int64, status, summary, detail string, artifacts []Artif
 		body["model"] = model
 	}
 	return a.post(fmt.Sprintf("/api/bridge/tasks/%d/result", id), body)
+}
+
+// Fetch streams an absolute URL from this server into dest. Blob URLs are
+// signed and self-authorizing, but they are this deployment's URLs — a
+// payload naming another host is not something the daemon will fetch.
+func (a *Api) Fetch(rawURL, dest string) error {
+	if !strings.HasPrefix(rawURL, a.server.Server+"/") {
+		return fmt.Errorf("refusing to fetch %s: not on %s", rawURL, a.server.Server)
+	}
+	resp, err := a.http.Get(rawURL)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return statusError(resp)
+	}
+	file, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = io.Copy(file, resp.Body)
+	return err
 }
 
 func (a *Api) post(path string, body map[string]any) error {

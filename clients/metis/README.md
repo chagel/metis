@@ -157,7 +157,12 @@ binaries + checksums to a GitHub release; `metis upgrade` and
    those commits. A re-claimed task whose worktree survives
    resumes in it; another machine starts fresh from the checkout's
    HEAD.
-3. The agent runs headless in its native JSON stream (`claude -p
+3. Any files the operator attached to the run are downloaded into
+   `uploads/` in the worktree — the same relative path a cloud step's
+   sandbox gets, which is where the run subject says they are. They are
+   re-fetched each step (the server holds the canonical copy) and sit in
+   the worktree's private git exclude, so they never reach the branch.
+4. The agent runs headless in its native JSON stream (`claude -p
    --output-format stream-json`, `pi -p --mode json`, `codex exec
    --json`), with the user's own credentials and subscription, in its
    own process group. When the worktree already holds a completed
@@ -174,12 +179,12 @@ binaries + checksums to a GitHub release; `metis upgrade` and
    deployment wants less. The inner agent is isolated from your own MCP
    servers (`--strict-mcp-config`): a delegated task must not discover
    your other tools.
-4. Three clocks watch the stream: a heartbeat posts progress (the
+5. Three clocks watch the stream: a heartbeat posts progress (the
    server-side liveness signal), a poll of `GET /api/bridge/tasks/:id`
    kills the agent if the task settles or the claim moves, and the
    inactivity watchdog kills it after sustained *silence* — never for
    merely running long.
-5. The agent's final `METIS_RESULT: {…}` line (taught in the prompt)
+6. The agent's final `METIS_RESULT: {…}` line (taught in the prompt)
    becomes the structured result; its last message is the fallback and
    also rides along as the result *detail* — the full report later
    workflow steps read. The run resumes in Metis.

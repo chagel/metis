@@ -49,6 +49,23 @@ class Api::Bridge::TasksControllerTest < ActionDispatch::IntegrationTest
     assert_match %r{^http.+/files/blobs/}, prior["artifacts"].first["url"]
   end
 
+  test "claim payload carries the run's uploads so a delegated step can fetch them" do
+    run = dispatch_run
+    run.uploads.attach(io: StringIO.new("png"), filename: "chart.png", content_type: "image/png")
+
+    get "/api/bridge/tasks/next", headers: auth
+    assert_response :success
+    upload = JSON.parse(response.body).dig("context", "uploads").first
+    assert_equal "chart.png", upload["name"]
+    assert_match %r{^http.+/files/blobs/}, upload["url"]
+  end
+
+  test "claim payload omits uploads when the run has none" do
+    dispatch_run
+    get "/api/bridge/tasks/next", headers: auth
+    assert_not_includes JSON.parse(response.body)["context"].keys, "uploads"
+  end
+
   test "claim payload carries the workflow orientation block" do
     workflow = @team.workflows.create!(name: "ship", steps: [])
     run = WorkflowRun.start(team: @team, user: @user, workflow: workflow,

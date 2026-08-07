@@ -17,7 +17,7 @@ module Api
       def claim_queue
         Task.claimable_by(current_bridge_user)
             .order(:dispatched_at)
-            .includes(workflow_run: [ :workflow, { conversation: :project } ])
+            .includes(workflow_run: [ :workflow, { uploads_attachments: :blob }, { conversation: :project } ])
       end
 
       def index_entry(task)
@@ -47,10 +47,22 @@ module Api
           context: {
             input: run.input.presence,
             project: project_context(run),
+            uploads: run_uploads(run),
             prior_steps: prior_step_summaries(run, task),
             workflow: workflow_context(task)
           }.compact
         }
+      end
+
+      # A cloud step gets these staged into workspace/uploads/ by its runtime;
+      # a delegated step has no runtime, so the daemon downloads them into the
+      # task worktree instead. Same files, same `./uploads/` path either way —
+      # the run input names it.
+      def run_uploads(run)
+        uploads = run.uploads.map do |upload|
+          { name: upload.filename.to_s, url: rails_blob_url(upload, host: request.base_url) }
+        end
+        uploads.presence
       end
 
       # The same step-outline framing the cloud header carries, as a
