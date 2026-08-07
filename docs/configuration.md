@@ -92,14 +92,18 @@ The runtime decides *where* pi runs. See `coding-runtime.md` and
   idle conversations (no metis eviction cron). Build the snapshot:
 
   ```sh
-  foreman run bin/rails "daytona:snapshot[metis-pi]"          # first build
-  REPLACE=1 foreman run bin/rails "daytona:snapshot[metis-pi]"  # after a pi bump
+  foreman run bin/rails runtime:image             # first build
+  REPLACE=1 foreman run bin/rails runtime:image  # after a pi bump
   ```
 
-  `foreman run` is what loads `.env`, where `DAYTONA_API_KEY` lives — a bare
-  `rake` sees no credentials. Snapshots are immutable and unique by name, so
-  rebuilding onto the same name deletes the old one first; that is `REPLACE=1`,
-  opt-in because it is destructive against a shared org.
+  `runtime:image` dispatches to the configured runtime's build task
+  (`daytona:snapshot` here), so refreshing pi is one command whatever the
+  deployment runs. `foreman run` is what loads `.env`, where `DAYTONA_API_KEY`
+  lives — a bare `rake` sees no credentials. Daytona snapshots are immutable
+  and unique by name, so rebuilding onto the same name deletes the old one
+  first; that is `REPLACE=1`, opt-in because it is destructive against a
+  shared org. `bin/rails metis:doctor` reports the pinned pi version and the
+  image it belongs in.
 - **`microsandbox`** — pi runs inside a self-hosted
   [microsandbox](https://microsandbox.dev) libkrun microVM, driven
   in-process by the [`microsandbox-rb`](https://rubygems.org/gems/microsandbox-rb)

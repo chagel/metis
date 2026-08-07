@@ -25,6 +25,8 @@ module Agent
     # pi must be present in the sandbox image (config.x.agent.e2b_template
     # — a template with pi baked in; see the e2b:template rake task).
     class E2b < Base
+      def self.image_ref = Rails.application.config.x.agent.e2b_template
+
       SCOPE_DIR = "/home/user/metis".freeze
       SESSION_DIR = "#{SCOPE_DIR}/sessions".freeze
       WORKSPACE_DIR = "#{SCOPE_DIR}/workspace".freeze

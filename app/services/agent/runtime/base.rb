@@ -89,6 +89,12 @@ module Agent
 
       # The runtime's short name (`local`, `docker`, `e2b`) — used in
       # the agent identity file and the runtime_info trace.
+      # The provider-side artifact pi is baked into — a docker image, an E2B
+      # template, a Daytona snapshot. One name for four nouns, so callers
+      # (doctor, the image task) stop branching per provider. nil where
+      # there is none: Local runs whatever pi is on the host's PATH.
+      def self.image_ref = nil
+
       def kind
         self.class.name.demodulize.underscore
       end

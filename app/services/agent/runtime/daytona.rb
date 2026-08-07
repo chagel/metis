@@ -29,6 +29,8 @@ module Agent
     # pi must be present in the snapshot image (config.x.agent.daytona_snapshot
     # — a snapshot with pi baked in; see the daytona:snapshot rake task).
     class Daytona < Base
+      def self.image_ref = Rails.application.config.x.agent.daytona_snapshot
+
       SCOPE_DIR = "/root/metis".freeze
       SESSION_DIR = "#{SCOPE_DIR}/sessions".freeze
       WORKSPACE_DIR = "#{SCOPE_DIR}/workspace".freeze

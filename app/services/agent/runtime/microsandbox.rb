@@ -36,6 +36,8 @@ module Agent
     # compiles a Rust native extension; it is lazily required here so every
     # other runtime boots without it.
     class Microsandbox < Base
+      def self.image_ref = Rails.application.config.x.agent.microsandbox_image
+
       # The conversation scope, bind-mounted from the host Workspace.
       SCOPE_DIR = "/metis".freeze
       SESSION_DIR = "#{SCOPE_DIR}/sessions".freeze

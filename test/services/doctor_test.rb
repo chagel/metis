@@ -1,8 +1,8 @@
 require "test_helper"
 
 class DoctorTest < ActiveSupport::TestCase
-  def doctor(env = {}, delivery_method: :test)
-    Doctor.new(env: env, delivery_method: delivery_method)
+  def doctor(env = {}, delivery_method: :test, pi_version: PiAgent::SUPPORTED_PI_VERSION)
+    Doctor.new(env: env, delivery_method: delivery_method, pi_version: -> { pi_version })
   end
 
   def check(doctor, section, name)
@@ -29,6 +29,23 @@ class DoctorTest < ActiveSupport::TestCase
     env = { "METIS_AGENT_RUNTIME" => "e2b" }
     assert_equal :fail, check(doctor(env), "Agent", "runtime").status
     assert_equal :ok, check(doctor(env.merge("E2B_API_KEY" => "k")), "Agent", "runtime").status
+  end
+
+  test "pi fails when the local runtime has no binary, warns when it drifts from the pin" do
+    absent = doctor(pi_version: nil)
+    assert_equal :fail, check(absent, "Agent", "pi").status
+    assert_includes check(absent, "Agent", "pi").detail, PiAgent::SUPPORTED_PI_VERSION
+
+    assert_equal :warn, check(doctor(pi_version: "0.1.0"), "Agent", "pi").status
+    assert_equal :ok, check(doctor, "Agent", "pi").status
+  end
+
+  test "pi on a remote runtime reports the pin and the image it is baked into" do
+    detail = check(doctor({ "METIS_AGENT_RUNTIME" => "docker" }), "Agent", "pi").detail
+
+    assert_includes detail, PiAgent::SUPPORTED_PI_VERSION
+    assert_includes detail, Agent::Runtime::Docker.image_ref, "names the image to rebuild"
+    assert_includes detail, "runtime:image"
   end
 
   test "unknown runtime fails" do

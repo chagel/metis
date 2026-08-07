@@ -2,14 +2,27 @@
 # subsystem as configured, missing, or defaulted — with the exact env
 # var names — so a deployer doesn't have to read initializers to learn
 # what the app expects. Never prints secret values, only presence.
+require "open3"
+
 class Doctor
   Check = Data.define(:status, :name, :detail) # status: :ok, :warn, :fail, :off
 
   SYMBOLS = { ok: "✓", warn: "!", fail: "✗", off: "-" }.freeze
 
-  def initialize(env: ENV, delivery_method: ActionMailer::Base.delivery_method)
+  # pi_version is injected like env and delivery_method: reading it shells
+  # out to the binary, which tests must not do 16 times over.
+  def initialize(env: ENV, delivery_method: ActionMailer::Base.delivery_method,
+                 pi_version: -> { Doctor.local_pi_version })
     @env = env
     @delivery_method = delivery_method
+    @pi_version = pi_version
+  end
+
+  def self.local_pi_version
+    out, status = Open3.capture2("pi", "--version")
+    status.success? ? out.strip.presence : nil
+  rescue Errno::ENOENT
+    nil
   end
 
   def sections
@@ -131,8 +144,38 @@ class Doctor
   end
 
   def agent_checks
-    [ runtime_check, providers_check, default_model_check, web_search_check ]
+    [ runtime_check, pi_check, providers_check, default_model_check, web_search_check ]
   end
+
+  # pi itself, which runtime_check does not cover: it reports how the agent is
+  # isolated, not whether the agent is there. A local runtime with no pi on
+  # PATH read as fully configured until every turn failed on BinaryNotFound.
+  def pi_check
+    pinned = PiAgent::SUPPORTED_PI_VERSION
+    return remote_pi_check(pinned) unless runtime == "local"
+
+    version = @pi_version.call
+    if version.nil?
+      Check.new(:fail, "pi", "not on PATH — npm i -g @earendil-works/pi-coding-agent@#{pinned}")
+    elsif version == pinned
+      Check.new(:ok, "pi", "#{version} on PATH")
+    else
+      Check.new(:warn, "pi", "#{version} on PATH, but pi-agent-rb pins #{pinned}")
+    end
+  end
+
+  # A remote runtime's pi is baked in at build time, so it cannot be read
+  # without launching a sandbox. Report the pin and how to refresh it — the
+  # drift this catches is an image left behind by a gem bump.
+  def remote_pi_check(pinned)
+    image = Agent::Runtime.runtime_class(runtime).image_ref
+    Check.new(:ok, "pi", "#{pinned} baked into #{image} at build time — " \
+                         "bin/rails runtime:image after a bump")
+  rescue Agent::Error
+    Check.new(:off, "pi", "unknown runtime — see the runtime check")
+  end
+
+
 
   def runtime = @env.fetch("METIS_AGENT_RUNTIME", "local")
 
