@@ -337,6 +337,10 @@ func (w *Worker) prompt(branch string, mode brief) string {
 	if input := w.task.Context.Input; input != "" {
 		sections = append(sections, "## Run subject\n"+input)
 	}
+	if urls := uploadLines(w.task.Context.Uploads); urls != "" {
+		sections = append(sections, "## Files the operator attached to this run\n"+
+			"Download any you need — they are not in this worktree:\n"+urls)
+	}
 	if mode != briefResumedCurrent {
 		for _, step := range w.task.Context.PriorSteps {
 			body := fmt.Sprintf("## Context from earlier step: %s\n%s", step.Name, step.Content)
@@ -372,6 +376,20 @@ Use "status":"failed" with a precise reason when you cannot finish.`,
 
 // kill terminates the agent's whole process group (an agent may spawn
 // children) and drains the line reader so its goroutine can finish.
+// uploadLines lists the run's attachments as name + URL, the same way prior
+// steps' artifacts reach the agent. Unlike a cloud step, a local one has no
+// runtime staging them — but it does have the network and the operator's own
+// machine, so a link is enough.
+func uploadLines(uploads []Upload) string {
+	lines := []string{}
+	for _, upload := range uploads {
+		if upload.URL != "" {
+			lines = append(lines, "- "+upload.Name+": "+upload.URL)
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
 func (w *Worker) kill(cmd *exec.Cmd, lines chan string) {
 	go func() {
 		for range lines {

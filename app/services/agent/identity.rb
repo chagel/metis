@@ -57,8 +57,9 @@ module Agent
         - **Runtime** — #{runtime_description}#{model_section}
         - **Workspace** — files you write here persist between turns.
           Anything outside (system installs, `$HOME`) doesn't.
-        - **Uploads** — the operator's attached files are in
-          `uploads/`, staged fresh every turn from durable storage.
+        - **Uploads** — everything the operator attached, files and
+          images alike, is in `uploads/`, staged fresh every turn from
+          durable storage.
         - **Artifacts** — `artifacts/` is the channel back to the
           operator. Anything you write there this turn is attached to
           your reply for download or preview. **Default to writing

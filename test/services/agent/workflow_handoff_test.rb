@@ -62,6 +62,24 @@ class Agent::WorkflowHandoffTest < ActiveSupport::TestCase
     assert_includes input, "download", "tells the run to fetch them, tool-agnostic"
   end
 
+  test "carries the chat's uploads onto the run as blobs, not links" do
+    msg = @conversation.messages.create!(role: :user, content: "look at this", streaming_status: :done)
+    msg.images.attach(io: StringIO.new("png bytes"), filename: "mock.png", content_type: "image/png")
+    msg.files.attach(io: StringIO.new("a,b"), filename: "data.csv", content_type: "text/csv")
+
+    handoff("workflow" => "ship")
+
+    run = WorkflowRun.last
+    assert_equal [ msg.images.first.blob_id, msg.files.first.blob_id ].sort,
+                 run.uploads.map(&:blob_id).sort, "reuses the blobs — no byte copy"
+    assert_equal %w[data.csv mock.png],
+                 run.conversation.uploaded_attachments.map { |a| a.filename.to_s }.sort,
+                 "so every step stages them"
+    # Cloud steps open them in uploads/ (AGENTS.md says so), delegated ones
+    # get links in the claim payload — neither needs the input to say it.
+    assert_not_includes run.input.to_s, "mock.png"
+  end
+
   test "the queued run is not advanced until launched" do
     assert_no_enqueued_jobs(only: WorkflowAdvanceJob) do
       handoff("workflow" => "ship")

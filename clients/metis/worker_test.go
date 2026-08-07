@@ -536,3 +536,32 @@ func TestRunScopedWorktreeSharesStateAcrossSteps(t *testing.T) {
 		t.Fatal("no per-task worktree must be created when the server sends run_ref")
 	}
 }
+
+func TestRunUploadsReachThePromptAsLinks(t *testing.T) {
+	task := testTask("RUN-9")
+	task.Context.Uploads = []Upload{
+		{Name: "chart.png", URL: "http://metis.test/files/blobs/chart.png"},
+		{Name: "no-url.txt"},
+	}
+	worker := &Worker{cfg: testConfig("http://metis.test", "", "", nil), task: task}
+
+	prompt := worker.prompt("metis/run-9", briefFresh)
+	if !strings.Contains(prompt, "- chart.png: http://metis.test/files/blobs/chart.png") {
+		t.Fatalf("upload link missing from the prompt:\n%s", prompt)
+	}
+	if strings.Contains(prompt, "no-url.txt") {
+		t.Fatal("an upload without a URL is not worth naming")
+	}
+	// A resumed session skips the prior-step re-brief; the attachments are
+	// cheap and stay, so a later step is never told less about them.
+	if !strings.Contains(worker.prompt("metis/run-9", briefResumedCurrent), "chart.png") {
+		t.Fatal("uploads dropped on a resumed session")
+	}
+}
+
+func TestPromptOmitsTheUploadsSectionWithoutAttachments(t *testing.T) {
+	worker := &Worker{cfg: testConfig("http://metis.test", "", "", nil), task: testTask("RUN-9")}
+	if strings.Contains(worker.prompt("metis/run-9", briefFresh), "attached to this run") {
+		t.Fatal("empty uploads section rendered")
+	}
+}

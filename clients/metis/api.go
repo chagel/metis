@@ -38,8 +38,17 @@ type Task struct {
 			Name  string `json:"name"`
 			About string `json:"about"`
 		} `json:"project"`
+		Uploads    []Upload    `json:"uploads"`
 		PriorSteps []PriorStep `json:"prior_steps"`
 	} `json:"context"`
+}
+
+// Upload is a file the operator attached to the run — a download link, like
+// a prior step's artifacts. A cloud step gets these staged into its sandbox
+// by the runtime; a local one has the network and fetches what it needs.
+type Upload struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
 }
 
 type TaskState struct {

@@ -66,6 +66,23 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  test "refuses to post into a conversation an active workflow run owns" do
+    team = @user.personal_team
+    run = team.workflow_runs.create!(conversation: @conversation, status: :queued)
+
+    assert_no_difference -> { @conversation.messages.count } do
+      post conversation_messages_path(@conversation),
+           params: { content: "sneak in" }, as: :turbo_stream
+    end
+    assert_response :conflict
+
+    # Once the run is done the conversation is an ordinary chat again.
+    run.completed!
+    post conversation_messages_path(@conversation),
+         params: { content: "carry on" }, as: :turbo_stream
+    assert_response :success
+  end
+
   test "attaches an uploaded file to the user message" do
     assert_difference -> { @conversation.messages.count }, 2 do
       assert_enqueued_with(job: ChatJob) do

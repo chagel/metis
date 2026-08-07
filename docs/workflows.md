@@ -236,12 +236,28 @@ Why this is safe without new infra:
 - **Stalled turns**: `ReapStalledTurnsJob` only touches in-progress
   turns; during a gate there is none, so it leaves the run alone.
 
+### Files a run can open
+
+A run's steps are engine-authored messages and carry no attachments, so
+`Conversation#uploaded_attachments` would be empty for a run's whole life —
+whatever the operator uploaded lives on a *different* conversation, in a
+different workspace. **`WorkflowRun#uploads`** is the seam: attachments held
+on the run itself, projected into `workspace/uploads/` on every step. Two
+sources fill it — the launch composer's `attachments[]`, and a chat handoff
+re-attaching the chat's upload *blobs* (no byte copy). Agent-written
+`artifacts` stay download links in the run input instead.
+
+They are attached inside `WorkflowRun.start`'s transaction: the engine job is
+enqueued on commit and step 0 stages `uploads/` as soon as it runs.
+
 ## Lifecycle of the conversation
 
 1. **Born** — created untitled with the run, in the chosen project; the
    LLM auto-titler names it from the first turn.
 2. **Workflow-driven** — while `active?`, turns are engine-driven; the
-   composer is replaced by the run-status note / gate card.
+   composer is replaced by the run-status note / gate card, and
+   `MessagesController` refuses a posted turn (a stray one would settle
+   through the engine and advance the run).
 3. **Free** — on `completed`/`cancelled`/`failed`, the run-status slot shows
    a one-line summary (steps + cost) and the composer returns on reload.
    It's an ordinary conversation now: keep chatting, fork, share.

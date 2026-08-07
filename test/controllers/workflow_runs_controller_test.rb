@@ -90,6 +90,31 @@ class WorkflowRunsControllerTest < ActionDispatch::IntegrationTest
     assert WorkflowRun.order(:id).last.conversation.visibility_team?
   end
 
+  test "composer attachments seed the run's uploads" do
+    project = @team.projects.create!(name: "R&D")
+    workflow = @team.workflows.create!(name: "W", default_project: project,
+                                       steps: [ { "name" => "a", "prompt" => "a" } ])
+    post workflow_runs_path, params: {
+      workflow_id: workflow.id, content: "go",
+      attachments: [ fixture_file_upload("sample.png", "image/png") ]
+    }
+
+    assert_equal %w[sample.png], WorkflowRun.order(:id).last.uploads.map { |u| u.filename.to_s }
+  end
+
+  test "an unsupported attachment fails the launch instead of being dropped" do
+    project = @team.projects.create!(name: "R&D")
+    workflow = @team.workflows.create!(name: "W", default_project: project,
+                                       steps: [ { "name" => "a", "prompt" => "a" } ])
+
+    assert_no_difference -> { WorkflowRun.count } do
+      post workflow_runs_path, params: {
+        workflow_id: workflow.id, content: "go",
+        attachments: [ fixture_file_upload("sample.txt", "application/x-msdownload") ]
+      }
+    end
+  end
+
   test "a launcher run is titled from the workflow up front" do
     project = @team.projects.create!(name: "R&D")
     workflow = @team.workflows.create!(name: "Triage", default_project: project,

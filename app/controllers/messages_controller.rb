@@ -8,6 +8,10 @@ class MessagesController < ApplicationController
     uploads = composed_uploads
     return head(:unprocessable_entity) if content.blank? && uploads.empty?
     return head(:conflict) if @conversation.turn_in_progress?
+    # The engine owns an active run's conversation — the view hides the
+    # composer, but a stray post would settle as a turn and advance the run
+    # (starting a queued one outright, past the human "go").
+    return head(:conflict) if @conversation.workflow_run&.active?
 
     if (error = upload_error(uploads))
       return render_composer_error(@conversation, error)
