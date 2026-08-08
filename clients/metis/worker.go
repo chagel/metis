@@ -374,8 +374,6 @@ Use "status":"failed" with a precise reason when you cannot finish.`,
 	return strings.Join(sections, "\n\n")
 }
 
-// kill terminates the agent's whole process group (an agent may spawn
-// children) and drains the line reader so its goroutine can finish.
 // uploadLines lists the run's attachments as name + URL, the same way prior
 // steps' artifacts reach the agent. Unlike a cloud step, a local one has no
 // runtime staging them — but it does have the network and the operator's own
@@ -390,6 +388,8 @@ func uploadLines(uploads []Upload) string {
 	return strings.Join(lines, "\n")
 }
 
+// kill terminates the agent's whole process group (an agent may spawn
+// children) and drains the line reader so its goroutine can finish.
 func (w *Worker) kill(cmd *exec.Cmd, lines chan string) {
 	go func() {
 		for range lines {

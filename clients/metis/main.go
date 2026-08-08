@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 )
 
-const version = "0.5.2"
+const version = "0.5.3"
 
 func main() {
 	command := "help"
