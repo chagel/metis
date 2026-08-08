@@ -1,8 +1,8 @@
-# Local bridge (design + build plan)
+# Local bridge
 
-> Status: **shipped through Phase 4** (token + presence, delegation core,
-> hosted MCP facade, delegation reliability, the `metis` daemon);
-> Phase 5 (notifications) is design. Companion to
+> Status: **shipped** — token + presence, the delegation core, the hosted
+> MCP facade, delegation reliability, and the `metis` daemon are all built;
+> push notifications and live progress streaming are not. Companion to
 > [`workflows.md`](workflows.md) — the bridge is how a workflow's
 > *implementation step* runs on the user's own machine instead of a
 > Metis-operated sandbox.
@@ -100,8 +100,8 @@ conversation" the design calls for.
   off a discrete step* (vs. driving a live chat turn), agent-pull is the
   natural fit, and it keeps Metis from having to drive anything.
 - **[ACP](https://agentclientprotocol.com)** (Agent Client Protocol) —
-  demoted twice: first to a daemon-internal detail, then (Phase 4, built)
-  to a **future adapter** behind the daemon's `Agents` seam. pi, Claude
+  demoted twice: first to a daemon-internal detail, then, once the daemon
+  shipped, to a **future adapter** behind the daemon's `Agents` seam. pi, Claude
   Code, and Codex all have native headless JSON streams, so the daemon
   drives those directly; one generic ACP adapter joins the registry the
   first time an agent without a native stream is needed. In the lightest
@@ -115,7 +115,7 @@ laptop makes outbound GETs, so NAT is a non-issue, no persistent
 connection is held, no worker blocks, and a laptop offline for hours costs
 Metis zero state. A push-notification (the existing email / in-app "needs
 you" path, or an optional SSE *tickle*) is a later latency optimization —
-the **data path stays pull**. A true bidirectional WebSocket is a Phase-N
+the **data path stays pull**. A true bidirectional WebSocket is a later
 upgrade only if live progress streaming is ever wanted.
 
 **Layering (the v1 decision):** build only the REST surface. The **MCP
@@ -132,7 +132,7 @@ server** and the **daemon** are both thin clients of it, added later:
                               ▲                         ▲
         ── pulls (outbound) ──┤                         ├── pulls (outbound) ──
                               │                         │
-        Phase 2: MCP server   │                         │  Phase 4: the metis daemon
+        the MCP server        │                         │  the metis daemon
         (user's Claude Code   │                         │  (polls, spawns the agent
          self-pulls via       │                         │   headless, reports — unattended)
          .mcp.json tools)     │                         │
@@ -325,7 +325,7 @@ into noise or auto-retries judgment calls.
 **Cancellation propagates on contact.** When a run is cancelled or a
 step rejected while a client holds the task, the client's next `events`
 or `result` post returns `410 Gone` and it stops. The attended loop
-learns this from the served skill; the Phase 4 daemon upgrades it to
+learns this from the served skill; the daemon upgrades it to
 active status polling and terminates the agent process. v1 accepts the
 window between cancellation and the next post — bounded by the progress
 cadence, not by the turn.
@@ -338,182 +338,8 @@ hands off a task and records a result — it never drives the agent.** There
 is no second adapter, no second streaming path, no Metis-operated agent
 process. The local agent is the **user's own tool on the user's own
 machine**, reached through a task API that looks like any other connector.
-v1 needs no ACP at all (the user's Claude Code self-pulls); ACP only
-appears inside an optional daemon in Phase 4, behind one normalized stdio
-protocol — argued there, not assumed here.
-
-## Build phases
-
-### Phase 0 — Token + presence (no delegation yet) ✅
-- **Migration**: `users.bridge_token_digest` (unique index) +
-  `users.bridge_seen_at`. No devices table.
-- **`User`**: `generate_bridge_token!` (plaintext shown once),
-  `.authenticate_bridge_token`, `bridge_seen!`.
-- **`/settings/account` → Local bridge card**: generate/regenerate +
-  copy, last-connected hint.
-- **Tests:** token mint/rotate/verify; account action auth.
-
-### Phase 1 — Delegation core (REST + engine lifecycle) ✅
-- `WorkflowRun#status += awaiting_local`; `Task` delegation columns +
-  `delegated?`.
-- `Api::Bridge::TasksController` — `next` (claim), `events`, `result` —
-  bearer-authed by the user's bridge token.
-- `WorkflowAdvanceJob` delegated-step branch;
-  `WorkflowRun#complete_delegated_task!`.
-- Run-view delegated-step card; optional timeline summary line.
-- **Tests:** a delegated workflow dispatches → `awaiting_local`; a posted
-  result advances the run; a `failed` result fails the step; an
-  approval-gated delegated step routes to `awaiting_approval`; token auth
-  scoping (a token can't reach another team's task).
-
-### Phase 2 — hosted MCP facade (lightest local surface) ✅ (demoted)
-
-> Since the Phase 4 daemon shipped, **the daemon is the supported
-> client**: account settings teaches only `metis install`, and the
-> served skill became the daemon's setup/ops guide. The MCP facade
-> below still works and stays as a protocol surface (it shares all its
-> models with the REST core), but it is no longer advertised — remove
-> it outright if it hasn't earned its keep by the time Phase 5 lands.
-
-- `POST /api/bridge/mcp` — a stateless streamable-HTTP MCP server in
-  Rails, exposing `list_tasks` / `get_next_task` / `report_progress` /
-  `submit_result` over the same models as the REST surface (same bearer
-  auth, same team scoping). Nothing to install on the laptop; a coding
-  agent needs one URL and the token:
-
-  ```bash
-  claude mcp add --transport http metis-bridge \
-    https://your-metis-host/api/bridge/mcp \
-    --header "Authorization: Bearer mbt_…"   # from /settings/account
-  ```
-
-  Serving our own task API over MCP does not breach VISION's "no
-  Rails-side MCP client" line — Rails answers here, it never consumes
-  an MCP server (that stays pi's job). The intended loop: the agent
-  calls `list_tasks`, picks the task whose project matches its checkout
-  (or asks), claims it by id, works, then `submit_result` — the run
-  resumes in Metis.
-- `GET /api/bridge/skill` — the client-side skill (SKILL.md, served
-  unauthenticated with the deployment URL baked in) that teaches a local
-  agent that loop: MCP setup, list-before-claim, submit-once etiquette,
-  failure reporting. One install:
-
-  ```bash
-  curl -fsSL --create-dirs https://your-metis-host/api/bridge/skill \
-    -o ~/.claude/skills/metis-bridge/SKILL.md
-  ```
-
-### Phase 3 — Delegation reliability ✅
-- Migration: `tasks.last_reported_at` + `tasks.reclaims_count`; stamped
-  on claim and events.
-- `ReclaimSilentBridgeTasksJob` (recurring, every 5 minutes): silent
-  claims past `METIS_BRIDGE_CLAIM_TTL_MINUTES` (default 15) return to
-  the unclaimed pool; at `METIS_BRIDGE_RECLAIM_CAP` (default 3) the
-  task fails and the run surfaces it.
-- `410 Gone` from `events` / `result` when the task is no longer live;
-  the served skill teaches stop-on-410 and a progress cadence.
-- `?project=` claim filter on `next`.
-- **Tests:** a silent claim is reclaimed and re-claimable; the reclaim
-  cap fails the step; a result after reclaim is discarded with 410; a
-  cancelled run 410s the next progress post; reclaim never fires while
-  events keep arriving.
-
-### Phase 4 — Daemon (unattended) ✅
-
-[`clients/metis`](../clients/metis/) — a stdlib-only
-**Go** daemon, single static binary (`init` / `once` / `run` / `gc`).
-It polls the REST surface per configured project, runs the agent
-headless in a per-task worktree, heartbeats progress, and submits the
-result. It is **multi-server**: one daemon polls any number of Metis
-deployments (dev and prod), each with its own token, projects, and
-worktree namespace — one unreachable server never blocks the others.
-It is **parallel per server**: each server's `max_workers` (default 1)
-sets how many claimed tasks run concurrently, every worker in its own
-worktree and process group; a long task on one server never starves
-another, and parent-checkout git operations are serialized per repo.
-`metis install` registers it as a login service (launchd /
-systemd --user) with the user's PATH baked in, since agent CLIs live in
-version-manager shims a bare service PATH can't see.
-The v1 was Ruby (same repo, same Minitest suite — cheapest path
-to *workable*, dogfooded live); the Go port followed immediately, taking
-the exit ramp the Ruby section had pre-committed to: a static binary
-with no runtime-presence assumption, the agent subprocess in its own
-**process group** (the Ruby dogfood orphaned a claude when the daemon
-died), and `go test` + vet in CI. The REST contract made the port a
-drop-in — the server never noticed the language change, which was the
-point of keeping the contract primary. Tests stand up an `httptest`
-bridge server, real temp git repos, and fake agent subprocesses.
-
-**ACP deferred behind the adapter seam.** pi, Claude Code, and Codex
-all expose native headless JSON streams (`pi -p --mode json`,
-`claude -p --output-format stream-json`, `codex exec --json`), so v1
-drives those directly — each agent is a ~20-line adapter (`command` +
-`parse` + blocklist) in the daemon's `Agents` module. ACP earns its
-place as *one more adapter* — a single generic one covering every
-ACP-capable agent — the first time we need an agent without a native
-stream. It is an extension point, not a redesign.
-
-What shipped, against the spec:
-
-- **Worktree-per-run.** Each task runs in `git worktree add` off the
-  project's configured checkout, on a `metis/<run-ref>` branch — never
-  on a checkout doing other duty. (Learned live: the first dogfood run
-  switched the dev server's branch and knocked the bridge API off the
-  very server it was reporting to.) The worktree is keyed by *run*
-  (the claim payload's `run_ref`; task ref for older servers), not by
-  task — the second live lesson: an 8-step all-delegated run under
-  per-*task* worktrees stranded each step's work in a tree the next
-  step never saw, so the implementation existed but the review step
-  reviewed HEAD and the MR step had nothing to push. Consecutive steps
-  claimed by one machine now share the branch and working tree; the
-  unattended prompt requires committing before finishing, and the
-  daemon *enforces* it — leftovers on a completed step are committed
-  by the daemon before the result is accepted (an unenforced prompt
-  instruction left the data-loss mode open), so the work survives GC
-  and reaches any step that lands elsewhere once branch fetch / claim
-  affinity exists (see open questions).
-- **Machine-local resume.** A re-claimed task whose worktree still
-  exists on this machine reuses it (same branch, same partial work);
-  another machine starts fresh. This replaces the server-side
-  `(client, work_dir, session_id)` pointer from the original spec —
-  the machine's own disk is the resume pointer, no server state needed.
-- **Agent-session continuity.** In the cloud every step of a run shares
-  one conversation; delegated steps used to start amnesiac each time,
-  with the context bundle as a lossy re-brief. Now the agent CLIs' own
-  cwd transcripts close the gap: when a step completes, the worktree
-  meta records a session pointer (`sessions: {agent: {id, step}}` —
-  the transcript itself stays in the agent's store), and the next step
-  on this machine resumes it (`claude --resume <id>`, pi `--continue`
-  — cwd-scoped, so the per-run worktree *is* the session key — and
-  `codex exec resume <id>`, captured from `thread.started` since codex
-  sessions are global). A resumed prompt drops the prior-steps bundle
-  only when the session already saw the immediately prior step; a
-  resume that dies without emitting a single event is treated as a
-  stale pointer (CLI upgraded, transcript reaped by the agent's own
-  retention) and falls back to a fresh run with the full bundle — the
-  bundle stays the guaranteed floor, and failed steps never become the
-  session a retry resumes. Nothing crosses machines and no server
-  state is added.
-- **Semantic-inactivity watchdog, no wall clock.** A session still
-  emitting events is never killed for running long; N minutes of
-  *silence* (default 10) kills the agent and reports a failed result,
-  so the server-side reclaim path stays a backstop.
-- **Active cancellation.** `GET /api/bridge/tasks/:id` polled between
-  agent events; the agent process is terminated when the task settles
-  or the claim moves — the unattended upgrade of stop-on-410 (which the
-  daemon also honors on every heartbeat post).
-- **Argument hygiene.** Commands are exec arrays (never a shell), and
-  per-CLI blocklists strip user-supplied `agent_args` that would break
-  the stream protocol or leak into another session.
-- **Workdir GC.** Hourly + on demand: settled-task worktrees removed
-  past a TTL (default 24h), orphan dirs (daemon crash mid-prepare) past
-  3× that. Artifact-only cleanup for still-open tasks stays future work.
-
-### Phase 5 — Notifications + live progress
-- Push-notify dispatched tasks (in-app, email, Slack); optional SSE tickle
-  to cut poll latency; optional progress streaming into the run card. The
-  data path stays pull — a tickle only wakes the poller early, it never
-  carries the work.
+v1 needs no ACP at all (the user's Claude Code self-pulls); ACP appears
+only inside the optional daemon, behind one normalized stdio protocol.
 
 ## Open questions
 
@@ -548,7 +374,7 @@ What shipped, against the spec:
   steps becomes friction, add an `assignee` (a person, defaulting to
   the launcher) folded into `claimable_by` — never a machine pin; which
   of their machines serves it stays their daemon's business.
-- **Attended-claim ergonomics — deferred until the Phase 4 daemon.**
+- **Attended-claim ergonomics — deferred until the daemon.**
   Two known frictions in stop-and-go attended work, parked on purpose:
   a result against a *running-but-unclaimed* task 410s even when no one
   else wants the claim (it should atomically re-claim and be accepted),
@@ -559,6 +385,5 @@ What shipped, against the spec:
 
 (Settled since the first draft: claim contention → `SKIP LOCKED` guard;
 mid-flight loss → the stale-claim sweeper; worktree isolation → the
-Phase 4 worktree-per-run rule, keyed by run since the 8-step dogfood
-showed per-task trees strand each step's work. See *Reliability* and
-Phase 4.)
+daemon's worktree-per-run rule, keyed by run since the 8-step dogfood
+showed per-task trees strand each step's work. See *Reliability*.)
