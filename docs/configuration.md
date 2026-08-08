@@ -119,9 +119,17 @@ The runtime decides *where* pi runs. See `coding-runtime.md` and
   bundle config set --local with microsandbox && bundle install
   ```
 
-  The runtime boots the `docker:image` build as its guest — push it to a
-  registry the worker can pull from and point `METIS_MICROSANDBOX_IMAGE`
-  at it. Persistence follows the `docker` runtime: a disposable VM per
+  The runtime boots the `docker:image` build as its guest, but pulls it
+  from an OCI registry rather than a local daemon — so point
+  `METIS_MICROSANDBOX_IMAGE` at a pushable ref
+  (`ghcr.io/<owner>/metis-pi:<tag>`, not a bare `metis-pi`) and the one
+  command builds *and* pushes it:
+
+  ```sh
+  foreman run bin/rails runtime:image
+  ```
+
+  Persistence follows the `docker` runtime: a disposable VM per
   turn over a persistent host bind mount (see
   [session-persistence](session-persistence.md)).
 
