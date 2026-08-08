@@ -38,6 +38,24 @@ class Agent::RuntimeTest < ActiveSupport::TestCase
     end
   end
 
+  # One name for four provider nouns — docker image, E2B template, Daytona
+  # snapshot, microsandbox OCI image — so callers stop branching per provider.
+  test "image_ref reports each runtime's configured artifact, nil where there is none" do
+    agent = Rails.application.config.x.agent
+
+    assert_equal agent.docker_image, Agent::Runtime::Docker.image_ref
+    assert_equal agent.e2b_template, Agent::Runtime::E2b.image_ref
+    assert_equal agent.daytona_snapshot, Agent::Runtime::Daytona.image_ref
+    assert_equal agent.microsandbox_image, Agent::Runtime::Microsandbox.image_ref
+    assert_nil Agent::Runtime::Local.image_ref, "local runs whatever pi is on PATH"
+  end
+
+  test "image_ref follows the configured runtime" do
+    with_runtime_config(:daytona) do
+      assert_equal Agent::Runtime::Daytona.image_ref, Agent::Runtime.image_ref
+    end
+  end
+
   test "stderr_relay tags, logs, and forwards each line" do
     logged = []
     logger = ActiveSupport::Logger.new(nil)

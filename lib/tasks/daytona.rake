@@ -2,8 +2,8 @@ require_relative "support/daytona_snapshot"
 
 namespace :daytona do
   desc "Build the Daytona snapshot with pi baked in (needs DAYTONA_API_KEY). " \
-       "Usage: rake daytona:snapshot[name] — REPLACE=1 to rebuild over an existing one"
-  task :snapshot, [ :name ] => :environment do |_task, args|
+       "Usage: rake daytona:image[name] — REPLACE=1 to rebuild over an existing one"
+  task :image, [ :name ] => :environment do |_task, args|
     name = args.fetch(:name, "metis-pi")
     pi_package = "@earendil-works/pi-coding-agent@#{PiAgent::SUPPORTED_PI_VERSION}"
 

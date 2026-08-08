@@ -1,6 +1,6 @@
 namespace :e2b do
-  desc "Build the E2B template with pi baked in (needs E2B_API_KEY). Usage: rake e2b:template[name]"
-  task :template, [ :name ] => :environment do |_task, args|
+  desc "Build the E2B template with pi baked in (needs E2B_API_KEY). Usage: rake e2b:image[name]"
+  task :image, [ :name ] => :environment do |_task, args|
     name = args.fetch(:name, "metis-pi")
     pi_package = "@earendil-works/pi-coding-agent@#{PiAgent::SUPPORTED_PI_VERSION}"
 

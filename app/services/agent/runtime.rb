@@ -48,6 +48,10 @@ module Agent
       runtime_class.control_session(env: env, &block)
     end
 
+    # The configured runtime's image/template/snapshot name, or nil for a
+    # runtime that has none (Local).
+    def self.image_ref = runtime_class.image_ref
+
     # Tagged logger for pi's stderr, shared by every transport —
     # pi-agent-rb's default stderr handler is a no-op, leaving it invisible.
     def self.stderr_relay(tag, downstream = nil)

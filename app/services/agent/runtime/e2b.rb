@@ -23,8 +23,10 @@ module Agent
     # turn provisions a fresh one and the working tree is gone.
     #
     # pi must be present in the sandbox image (config.x.agent.e2b_template
-    # — a template with pi baked in; see the e2b:template rake task).
+    # — a template with pi baked in; see the e2b:image rake task).
     class E2b < Base
+      def self.image_ref = Rails.application.config.x.agent.e2b_template
+
       SCOPE_DIR = "/home/user/metis".freeze
       SESSION_DIR = "#{SCOPE_DIR}/sessions".freeze
       WORKSPACE_DIR = "#{SCOPE_DIR}/workspace".freeze
@@ -34,7 +36,7 @@ module Agent
       # via pause/resume (so a pi-extensions update reaches an existing
       # conversation on the next turn).
       EXTENSIONS_DIR = "/home/user/pi-extensions".freeze
-      # Repo .pi/skills/ baked into the template image by the e2b:template
+      # Repo .pi/skills/ baked into the template image by the e2b:image
       # rake task. #provision copies this into the workspace on fresh
       # sandboxes, dodging the per-file upload that .pi/skills/'s 300+
       # files used to cost (~60s over the wire).
@@ -67,7 +69,7 @@ module Agent
       # template's pi answers. There is no persistent sandbox for a control
       # query, so spin an ephemeral microVM, ask, and kill it — heavier
       # than Local/Docker (the catalog is baked into the template, so
-      # capturing it at e2b:template build time is the optimization if this
+      # capturing it at e2b:image build time is the optimization if this
       # refresh cost ever matters). `env` carries the deployment's provider
       # keys so pi advertises them.
       def self.control_session(env: {})

@@ -37,6 +37,8 @@ module Agent
     # shared access to the persistent workspace root (NFS or equivalent) or
     # per-conversation host pinning — same shared-state constraint Local has.
     class Docker < Base
+      def self.image_ref = Rails.application.config.x.agent.docker_image
+
       # The conversation scope, bind-mounted from the host Workspace.
       SCOPE_DIR = "/metis".freeze
       SESSION_DIR = "#{SCOPE_DIR}/sessions".freeze

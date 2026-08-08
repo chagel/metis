@@ -68,7 +68,7 @@ The runtime decides *where* pi runs. See `coding-runtime.md` and
   Self-hosted, needs a Docker daemon. Build the image once:
 
   ```sh
-  rake "docker:image[metis-pi]"
+  foreman run bin/rails runtime:image
   ```
 
   That builds for the local daemon — right for a dev box. For a server
@@ -80,7 +80,7 @@ The runtime decides *where* pi runs. See `coding-runtime.md` and
   Build the sandbox template once:
 
   ```sh
-  rake "e2b:template[metis-pi]"
+  foreman run bin/rails runtime:image
   ```
 - **`daytona`** — pi runs inside an isolated
   [Daytona](https://www.daytona.io) elastic sandbox. The Daytona analog
@@ -92,14 +92,21 @@ The runtime decides *where* pi runs. See `coding-runtime.md` and
   idle conversations (no metis eviction cron). Build the snapshot:
 
   ```sh
-  foreman run bin/rails "daytona:snapshot[metis-pi]"          # first build
-  REPLACE=1 foreman run bin/rails "daytona:snapshot[metis-pi]"  # after a pi bump
+  foreman run bin/rails runtime:image             # first build
+  REPLACE=1 foreman run bin/rails runtime:image  # after a pi bump
   ```
 
-  `foreman run` is what loads `.env`, where `DAYTONA_API_KEY` lives — a bare
-  `rake` sees no credentials. Snapshots are immutable and unique by name, so
-  rebuilding onto the same name deletes the old one first; that is `REPLACE=1`,
-  opt-in because it is destructive against a shared org.
+  `runtime:image` dispatches to the configured runtime's own build task
+  (`docker:image`, `e2b:image`, `daytona:image`) — one command whatever the
+  deployment runs. `foreman run` is what loads `.env`, where `DAYTONA_API_KEY`
+  lives — a bare `rake` sees no credentials. Daytona snapshots are immutable
+  and unique by name, so rebuilding onto the same name deletes the old one
+  first; that is `REPLACE=1`, opt-in because it is destructive against a
+  shared org. `bin/rails metis:doctor` reports the pinned pi version against
+  the artifact: for `docker` it reads the image's fingerprint label and says
+  whether the image on this daemon was built from the current tree, and for
+  the hosted providers — whose artifacts cannot be read without launching a
+  sandbox — it reports the pin as unverified rather than passing it.
 - **`microsandbox`** — pi runs inside a self-hosted
   [microsandbox](https://microsandbox.dev) libkrun microVM, driven
   in-process by the [`microsandbox-rb`](https://rubygems.org/gems/microsandbox-rb)
@@ -112,9 +119,17 @@ The runtime decides *where* pi runs. See `coding-runtime.md` and
   bundle config set --local with microsandbox && bundle install
   ```
 
-  The runtime boots the `docker:image` build as its guest — push it to a
-  registry the worker can pull from and point `METIS_MICROSANDBOX_IMAGE`
-  at it. Persistence follows the `docker` runtime: a disposable VM per
+  The runtime boots the `docker:image` build as its guest, but pulls it
+  from an OCI registry rather than a local daemon — so point
+  `METIS_MICROSANDBOX_IMAGE` at a pushable ref
+  (`ghcr.io/<owner>/metis-pi:<tag>`, not a bare `metis-pi`) and the one
+  command builds *and* pushes it:
+
+  ```sh
+  foreman run bin/rails runtime:image
+  ```
+
+  Persistence follows the `docker` runtime: a disposable VM per
   turn over a persistent host bind mount (see
   [session-persistence](session-persistence.md)).
 
