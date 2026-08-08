@@ -102,8 +102,11 @@ The runtime decides *where* pi runs. See `coding-runtime.md` and
   lives — a bare `rake` sees no credentials. Daytona snapshots are immutable
   and unique by name, so rebuilding onto the same name deletes the old one
   first; that is `REPLACE=1`, opt-in because it is destructive against a
-  shared org. `bin/rails metis:doctor` reports the pinned pi version and the
-  image it belongs in.
+  shared org. `bin/rails metis:doctor` reports the pinned pi version against
+  the artifact: for `docker` it reads the image's fingerprint label and says
+  whether the image on this daemon was built from the current tree, and for
+  the hosted providers — whose artifacts cannot be read without launching a
+  sandbox — it reports the pin as unverified rather than passing it.
 - **`microsandbox`** — pi runs inside a self-hosted
   [microsandbox](https://microsandbox.dev) libkrun microVM, driven
   in-process by the [`microsandbox-rb`](https://rubygems.org/gems/microsandbox-rb)

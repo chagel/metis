@@ -3,23 +3,56 @@
 # var names — so a deployer doesn't have to read initializers to learn
 # what the app expects. Never prints secret values, only presence.
 require "open3"
+require Rails.root.join("lib/tasks/support/pi_image_fingerprint")
 
 class Doctor
   Check = Data.define(:status, :name, :detail) # status: :ok, :warn, :fail, :off
 
   SYMBOLS = { ok: "✓", warn: "!", fail: "✗", off: "-" }.freeze
+  ARTIFACT_NOUNS = { "e2b" => "template", "daytona" => "snapshot" }.freeze
 
   # pi_version is injected like env and delivery_method: reading it shells
   # out to the binary, which tests must not do 16 times over.
   def initialize(env: ENV, delivery_method: ActionMailer::Base.delivery_method,
-                 pi_version: -> { Doctor.local_pi_version })
+                 pi_version: -> { Doctor.local_pi_version },
+                 docker_image: ->(name) { Doctor.docker_image_metadata(name) })
     @env = env
     @delivery_method = delivery_method
     @pi_version = pi_version
+    @docker_image = docker_image
   end
 
   def self.local_pi_version
     out, status = Open3.capture2("pi", "--version")
+    status.success? ? out.strip.presence : nil
+  rescue Errno::ENOENT
+    nil
+  end
+
+  # nil when there is no daemon to ask (the doctor also runs on hosts that
+  # have no docker); present: false when the daemon answers and has no such
+  # image. The two must not collapse: one is unverifiable, the other is broken.
+  #
+  # daemon_arch is what the image is compared against, not the image's own
+  # architecture — a cross-arch metis-pi inspects as internally consistent and
+  # fails only at turn time, as a 30s BootTimeout (see PiImageFingerprint).
+  def self.docker_image_metadata(name)
+    arch = docker_daemon_arch
+    return nil if arch.nil?
+
+    out, _err, status = Open3.capture3(
+      "docker", "image", "inspect", name,
+      "--format", '{{index .Config.Labels "metis.fingerprint"}}'
+    )
+    return { present: false, daemon_arch: arch } unless status.success?
+
+    { present: true, daemon_arch: arch, fingerprint: out.strip }
+  rescue Errno::ENOENT
+    nil
+  end
+
+  def self.docker_daemon_arch
+    out, _err, status = Open3.capture3("docker", "version", "--format", "{{.Server.Arch}}")
     status.success? ? out.strip.presence : nil
   rescue Errno::ENOENT
     nil
@@ -164,15 +197,42 @@ class Doctor
     end
   end
 
-  # A remote runtime's pi is baked in at build time, so it cannot be read
-  # without launching a sandbox. Report the pin and how to refresh it — the
-  # drift this catches is an image left behind by a gem bump.
+  # A remote runtime's pi is baked into a provider artifact at build time, so
+  # the pin alone says nothing about what the artifact holds — a stale image
+  # left by a gem bump is exactly the drift worth catching, and asserting the
+  # pin is "baked in" would report it green. Docker's artifact carries the
+  # build's content fingerprint as a label and is read here; the hosted
+  # providers' cannot be read without launching a sandbox, so they are
+  # reported unverified rather than passed.
   def remote_pi_check(pinned)
     image = Agent::Runtime.runtime_class(runtime).image_ref
-    Check.new(:ok, "pi", "#{pinned} baked into #{image} at build time — " \
-                         "bin/rails runtime:image after a bump")
+    return docker_pi_check(pinned, image) if runtime == "docker"
+
+    Check.new(:off, "pi", "#{pinned} pinned — what the #{runtime} #{artifact_noun} #{image} actually " \
+                          "holds is unverifiable from here; bin/rails runtime:image after a bump")
   rescue Agent::Error
     Check.new(:off, "pi", "unknown runtime — see the runtime check")
+  end
+
+  def artifact_noun = ARTIFACT_NOUNS.fetch(runtime, "image")
+
+  def docker_pi_check(pinned, image)
+    meta = @docker_image.call(image)
+    if meta.nil?
+      return Check.new(:off, "pi", "#{pinned} pinned into #{image} — no docker daemon here to verify it against")
+    end
+    unless meta[:present]
+      return Check.new(:fail, "pi", "#{image} is not on this docker daemon — bin/rails runtime:image")
+    end
+
+    want = PiImageFingerprint.call(pi_version: pinned, arch: meta[:daemon_arch], root: Rails.root)
+    if meta[:fingerprint] == want
+      Check.new(:ok, "pi", "#{pinned} verified in #{image} (#{meta[:daemon_arch]}, #{want.first(12)})")
+    else
+      have = meta[:fingerprint].presence&.first(12) || "unlabelled"
+      Check.new(:warn, "pi", "#{image} was built from other sources (#{have}, want #{want.first(12)}) — " \
+                             "bin/rails runtime:image")
+    end
   end
 
 

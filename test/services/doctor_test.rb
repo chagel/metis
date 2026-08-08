@@ -1,8 +1,17 @@
 require "test_helper"
 
 class DoctorTest < ActiveSupport::TestCase
-  def doctor(env = {}, delivery_method: :test, pi_version: PiAgent::SUPPORTED_PI_VERSION)
-    Doctor.new(env: env, delivery_method: delivery_method, pi_version: -> { pi_version })
+  def doctor(env = {}, delivery_method: :test, pi_version: PiAgent::SUPPORTED_PI_VERSION,
+             docker_image: ->(_name) { nil })
+    Doctor.new(env: env, delivery_method: delivery_method, pi_version: -> { pi_version },
+      docker_image: docker_image)
+  end
+
+  # What docker:image stamps on the image it builds, as the doctor reads it
+  # back: the label, plus the arch of the daemon it is sitting on.
+  def image_metadata(built_for: "arm64", daemon_arch: "arm64", pi_version: PiAgent::SUPPORTED_PI_VERSION)
+    { present: true, daemon_arch: daemon_arch,
+      fingerprint: PiImageFingerprint.call(pi_version: pi_version, arch: built_for, root: Rails.root) }
   end
 
   def check(doctor, section, name)
@@ -40,12 +49,52 @@ class DoctorTest < ActiveSupport::TestCase
     assert_equal :ok, check(doctor, "Agent", "pi").status
   end
 
-  test "pi on a remote runtime reports the pin and the image it is baked into" do
-    detail = check(doctor({ "METIS_AGENT_RUNTIME" => "docker" }), "Agent", "pi").detail
+  test "pi passes on docker only when the image on the daemon matches the current tree" do
+    env = { "METIS_AGENT_RUNTIME" => "docker" }
 
-    assert_includes detail, PiAgent::SUPPORTED_PI_VERSION
-    assert_includes detail, Agent::Runtime::Docker.image_ref, "names the image to rebuild"
-    assert_includes detail, "runtime:image"
+    current = check(doctor(env, docker_image: ->(_) { image_metadata }), "Agent", "pi")
+    assert_equal :ok, current.status
+    assert_includes current.detail, PiAgent::SUPPORTED_PI_VERSION
+    assert_includes current.detail, Agent::Runtime::Docker.image_ref
+  end
+
+  test "pi warns when the docker image was built from an older pin — the drift a gem bump leaves" do
+    env = { "METIS_AGENT_RUNTIME" => "docker" }
+    stale = ->(_) { image_metadata(pi_version: "0.83.0") }
+
+    drifted = check(doctor(env, docker_image: stale), "Agent", "pi")
+    assert_equal :warn, drifted.status
+    assert_includes drifted.detail, "runtime:image"
+
+    # A cross-arch image is the same defect: built, labelled, and wrong.
+    cross = check(doctor(env, docker_image: ->(_) { image_metadata(built_for: "amd64") }), "Agent", "pi")
+    assert_equal :warn, cross.status
+
+    unlabelled = ->(_) { { present: true, daemon_arch: "arm64", fingerprint: "" } }
+    assert_includes check(doctor(env, docker_image: unlabelled), "Agent", "pi").detail, "unlabelled"
+  end
+
+  test "pi fails when the docker daemon has no such image, and is unverified without a daemon" do
+    env = { "METIS_AGENT_RUNTIME" => "docker" }
+
+    missing = check(doctor(env, docker_image: ->(_) { { present: false, daemon_arch: "arm64" } }), "Agent", "pi")
+    assert_equal :fail, missing.status
+    assert_includes missing.detail, "runtime:image"
+
+    # nil is "no daemon here to ask" — unverifiable is not a failure.
+    assert_equal :off, check(doctor(env, docker_image: ->(_) { nil }), "Agent", "pi").status
+  end
+
+  test "pi on a hosted runtime reports the pin as unverified, never as baked in" do
+    { "e2b" => "template", "daytona" => "snapshot", "microsandbox" => "image" }.each do |kind, noun|
+      pi = check(doctor({ "METIS_AGENT_RUNTIME" => kind }), "Agent", "pi")
+
+      assert_equal :off, pi.status, "#{kind} cannot read its artifact, so it must not report :ok"
+      assert_includes pi.detail, PiAgent::SUPPORTED_PI_VERSION
+      assert_includes pi.detail, noun
+      assert_includes pi.detail, "unverifiable"
+      assert_includes pi.detail, "runtime:image"
+    end
   end
 
   test "unknown runtime fails" do
