@@ -162,6 +162,26 @@ class Agent::Runtime::DaytonaTest < ActiveSupport::TestCase
     end
   end
 
+  test "a blank DAYTONA_API_URL does not defeat the SDK default" do
+    Agent::Runtime::Daytona.instance_variable_set(:@client, nil)
+    # .env.example ships the key blank and foreman exports it as "", which
+    # beats the SDK's own ENV.fetch default and yields a relative URI.
+    with_env("DAYTONA_API_URL" => "", "DAYTONA_API_KEY" => "dtn_test") do
+      assert_equal ::Daytona::Configuration::DEFAULT_API_URL,
+                   Agent::Runtime::Daytona.client.config.api_url
+    end
+  ensure
+    Agent::Runtime::Daytona.instance_variable_set(:@client, nil)
+  end
+
+  def with_env(vars)
+    saved = vars.keys.index_with { |key| ENV[key] }
+    vars.each { |key, value| ENV[key] = value }
+    yield
+  ensure
+    saved.each { |key, value| ENV[key] = value }
+  end
+
   test "session_dir is the in-sandbox session path" do
     assert_equal Agent::Runtime::Daytona::SESSION_DIR, @runtime.session_dir.to_s
   end

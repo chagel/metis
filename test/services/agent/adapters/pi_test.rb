@@ -15,12 +15,12 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
       when "prompt"
         emit({ "id" => msg["id"], "type" => "response", "command" => "prompt", "success" => true })
         emit({ "type" => "agent_start" })
-        emit({ "type" => "message_start", "message" => { "id" => "m1", "role" => "assistant" } })
-        emit({ "type" => "message_update", "message" => { "id" => "m1" },
+        emit({ "type" => "message_start", "message" => { "role" => "assistant" } })
+        emit({ "type" => "message_update",
                "assistantMessageEvent" => { "type" => "text_delta", "delta" => "Hi" } })
-        emit({ "type" => "message_update", "message" => { "id" => "m1" },
+        emit({ "type" => "message_update",
                "assistantMessageEvent" => { "type" => "text_delta", "delta" => " there" } })
-        emit({ "type" => "message_end", "message" => { "id" => "m1", "role" => "assistant", "content" => "Hi there" } })
+        emit({ "type" => "message_end", "message" => { "role" => "assistant", "content" => "Hi there" } })
         emit({ "type" => "turn_end" })
         emit({ "type" => "agent_end", "messages" => [] })
         emit({ "type" => "agent_settled" })
@@ -113,31 +113,51 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
 
   test "translates message_start" do
     ui = adapter.translate(pi_event("type" => "message_start",
-                                    "message" => { "id" => "m1", "role" => "assistant" }))
+                                    "message" => { "role" => "assistant" }))
     assert_equal :message_started, ui.type
-    assert_equal "m1", ui[:id]
     assert_equal "assistant", ui[:role]
   end
 
   test "translates a text_delta message_update" do
-    ui = adapter.translate(pi_event("type" => "message_update", "message" => { "id" => "m1" },
+    ui = adapter.translate(pi_event("type" => "message_update",
                                     "assistantMessageEvent" => { "type" => "text_delta", "delta" => "hello" }))
     assert_equal :text_delta, ui.type
     assert_equal "hello", ui[:delta]
   end
 
+  # pi 0.84 strips the cumulative `message` from message_update and its wire
+  # messages carry no id at all, so the only segment signal is message_start.
   test "text_delta inserts a paragraph break when pi text crosses into a new message" do
     pi = adapter
-    delta = lambda do |id, text|
-      pi.translate(pi_event("type" => "message_update", "message" => { "id" => id },
+    starts = lambda do
+      pi.translate(pi_event("type" => "message_start", "message" => { "role" => "assistant" }))
+    end
+    delta = lambda do |text|
+      pi.translate(pi_event("type" => "message_update",
                             "assistantMessageEvent" => { "type" => "text_delta", "delta" => text }))[:delta]
     end
 
     # First segment is not prefixed; deltas within a message are verbatim;
-    # a new message id gets a leading paragraph break.
-    assert_equal "Checking tools.",        delta.call("m1", "Checking tools.")
-    assert_equal " Found them.",           delta.call("m1", " Found them.")
-    assert_equal "\n\nHere is the answer.", delta.call("m2", "Here is the answer.")
+    # a new message gets a leading paragraph break.
+    starts.call
+    assert_equal "Checking tools.",        delta.call("Checking tools.")
+    assert_equal " Found them.",           delta.call(" Found them.")
+    starts.call
+    assert_equal "\n\nHere is the answer.", delta.call("Here is the answer.")
+  end
+
+  test "a tool-result message between segments does not break the assistant's text" do
+    pi = adapter
+    pi.translate(pi_event("type" => "message_start", "message" => { "role" => "assistant" }))
+    delta = lambda do |text|
+      pi.translate(pi_event("type" => "message_update",
+                            "assistantMessageEvent" => { "type" => "text_delta", "delta" => text }))[:delta]
+    end
+    assert_equal "Looking.", delta.call("Looking.")
+    # pi emits message_start for tool/user messages too — only assistant
+    # messages start a new text segment.
+    pi.translate(pi_event("type" => "message_start", "message" => { "role" => "toolResult" }))
+    assert_equal " Still me.", delta.call(" Still me.")
   end
 
   test "translates a thinking_delta message_update to reasoning_delta" do
@@ -157,7 +177,7 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
 
   test "translates message_end with array content" do
     ui = adapter.translate(pi_event("type" => "message_end",
-                                    "message" => { "id" => "m1", "role" => "assistant",
+                                    "message" => { "role" => "assistant",
                                                    "content" => [ { "type" => "text", "text" => "final answer" } ] }))
     assert_equal :message_finished, ui.type
     assert_equal "final answer", ui[:content]
@@ -168,7 +188,7 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
     # their text must never reach the assistant body.
     %w[user tool].each do |role|
       ui = adapter.translate(pi_event("type" => "message_end",
-                                      "message" => { "id" => "u1", "role" => role,
+                                      "message" => { "role" => role,
                                                      "content" => [ { "type" => "text", "text" => "not the reply" } ] }))
       assert_nil ui, "message_end for role=#{role} should be dropped"
     end
@@ -262,10 +282,10 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
   BEFORE
     emit({ "type" => "agent_end", "messages" => [] })
     emit({ "type" => "agent_start" })
-    emit({ "type" => "message_start", "message" => { "id" => "m2", "role" => "assistant" } })
-    emit({ "type" => "message_update", "message" => { "id" => "m2" },
+    emit({ "type" => "message_start", "message" => { "role" => "assistant" } })
+    emit({ "type" => "message_update",
            "assistantMessageEvent" => { "type" => "text_delta", "delta" => "Retried tail" } })
-    emit({ "type" => "message_end", "message" => { "id" => "m2", "role" => "assistant", "content" => "Retried tail" } })
+    emit({ "type" => "message_end", "message" => { "role" => "assistant", "content" => "Retried tail" } })
     emit({ "type" => "turn_end" })
     emit({ "type" => "agent_end", "messages" => [] })
     emit({ "type" => "agent_settled" })

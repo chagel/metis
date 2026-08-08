@@ -48,11 +48,16 @@ module Agent
       SANDBOX_TIMEOUT = 600
 
       # Shared client — auth is a deployment-level resource.
+      # api_url is resolved here, not left to the SDK: it reads
+      # ENV["DAYTONA_API_URL"] itself, and .env.example ships that key blank,
+      # so a present-but-empty var beats its default and every request builds
+      # a relative URI. Same trap as Delivery::SmtpSettings.
       def self.client
         @client ||= ::Daytona::Client.new(
           ::Daytona::Configuration.new(
             api_key: Rails.application.config.x.agent.daytona_api_key,
-            api_url: Rails.application.config.x.agent.daytona_api_url,
+            api_url: Rails.application.config.x.agent.daytona_api_url ||
+                     ::Daytona::Configuration::DEFAULT_API_URL,
             target: Rails.application.config.x.agent.daytona_target
           )
         )

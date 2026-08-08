@@ -1,5 +1,8 @@
+require_relative "support/daytona_snapshot"
+
 namespace :daytona do
-  desc "Build the Daytona snapshot with pi baked in (needs DAYTONA_API_KEY). Usage: rake daytona:snapshot[name]"
+  desc "Build the Daytona snapshot with pi baked in (needs DAYTONA_API_KEY). " \
+       "Usage: rake daytona:snapshot[name] — REPLACE=1 to rebuild over an existing one"
   task :snapshot, [ :name ] => :environment do |_task, args|
     name = args.fetch(:name, "metis-pi")
     pi_package = "@earendil-works/pi-coding-agent@#{PiAgent::SUPPORTED_PI_VERSION}"
@@ -41,6 +44,14 @@ namespace :daytona do
                             )
 
     client = Agent::Runtime::Daytona.client
+    # Only a timeout is aborted on — every Daytona error propagates with its
+    # class and backtrace intact, so a failed lookup is never mistaken for a
+    # snapshot that was successfully replaced.
+    begin
+      DaytonaSnapshot.replace(client, name) if ENV["REPLACE"].present?
+    rescue DaytonaSnapshot::DeletionTimeout => e
+      abort "[daytona] #{e.message}"
+    end
     response = client.snapshot.create(image, name: name, on_logs: ->(line) { puts line })
 
     puts
