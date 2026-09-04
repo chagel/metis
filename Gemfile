@@ -56,7 +56,7 @@ gem "daytona", github: "chagel/daytona-sdk"
 # require: false + the runtime's lazy `require "microsandbox"` keep it off
 # the boot path everywhere else.
 group :microsandbox, optional: true do
-  gem "microsandbox-rb", "~> 0.12.0", require: false
+  gem "microsandbox-rb", "~> 0.15.0", require: false
 end
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
