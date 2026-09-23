@@ -268,7 +268,7 @@ GEM
       net-smtp
     marcel (1.2.1)
     matrix (0.4.3)
-    microsandbox-rb (0.15.0)
+    microsandbox-rb (0.17.0)
       rb_sys (~> 0.9.91)
     mini_mime (1.1.5)
     minitest (6.0.6)
@@ -610,7 +610,7 @@ DEPENDENCIES
   importmap-rails
   json (< 3)
   kamal
-  microsandbox-rb (~> 0.15.0)
+  microsandbox-rb (~> 0.17.0)
   omniauth-github
   omniauth-google-oauth2
   omniauth-rails_csrf_protection
@@ -735,7 +735,7 @@ CHECKSUMS
   mail (2.9.1) sha256=06574eca475253d6c18145dd70af80d0eb970182d55053497c5f4d797ea160e8
   marcel (1.2.1) sha256=1678e9360e32f9eafa917c80029e2f6d10b2715c66a4b87b6d0da9b9cd1f859f
   matrix (0.4.3) sha256=a0d5ab7ddcc1973ff690ab361b67f359acbb16958d1dc072b8b956a286564c5b
-  microsandbox-rb (0.15.0) sha256=56c92d62728ae484ca23a6e13be36c9ea7f0f1615322a7b8ce7c86ec8fabb7e6
+  microsandbox-rb (0.17.0) sha256=7c7a5783ac6026a58d39770c9e726a3dc24ca602f3361df62760592b022d1fcd
   mini_mime (1.1.5) sha256=8681b7e2e4215f2a159f9400b5816d85e9d8c6c6b491e96a12797e798f8bccef
   minitest (6.0.6) sha256=153ea36d1d987a62942382b61075745042a2b3123b1cd48f4c3675af9cc7d6f1
   msgpack (1.8.5) sha256=97419eaa7b35dfe3e462c0e6c1a3dfdcbfc8756605c09e46e4c6daef127517ba
