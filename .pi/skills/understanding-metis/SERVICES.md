@@ -544,8 +544,11 @@ the agent hands back.
 
 OAuth client for remote MCP servers per the MCP authorization spec —
 protected-resource + auth-server metadata discovery, Dynamic Client
-Registration (stored in `McpOauthClient`), OAuth 2.1 auth-code + PKCE,
-RFC 8707 resource indicators. Connects any DCR-capable MCP server with
+`client_id` = Metis's Client ID Metadata Document URL
+(`/oauth/mcp-client.json`) where the server supports CIMD, else a Dynamic
+Client Registration cached per issuer in `McpOauthClient` (checked and
+replaced if revoked), OAuth 2.1 auth-code + PKCE, RFC 8707 resource
+indicators. Connects any CIMD- or DCR-capable MCP server with
 no pre-registered provider app. Distinct from `OauthBroker` (the
 sign-in/connector providers with static apps).
 

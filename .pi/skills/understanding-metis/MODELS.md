@@ -595,7 +595,8 @@ scope :accessible_to, ->(user) { … }  # only shares whose blob is an artifact
 
 ## McpOauthClient
 
-Dynamic Client Registration record per MCP issuer (the DCR spike, #36) —
+Dynamic Client Registration record per MCP issuer — the fallback for servers
+without Client ID Metadata Document support (the DCR spike, #36) —
 one row per `issuer`, holding the registered `client_id` / `client_secret`
 and the raw `registration` response. Distinct from `OauthGrant` (per-user
 tokens) and provider apps (static OAuth app config).

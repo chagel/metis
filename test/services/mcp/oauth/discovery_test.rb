@@ -28,6 +28,16 @@ class Mcp::Oauth::DiscoveryTest < ActiveSupport::TestCase
       assert_equal "https://auth.example.com/register", md.registration_endpoint
       assert_includes md.code_challenge_methods, "S256"
       assert_equal [ "read" ], md.scopes_supported
+      assert_not md.client_id_metadata_document_supported
+    end
+  end
+
+  test "reads client_id_metadata_document_supported from the authorization-server metadata" do
+    key = "https://auth.example.com/.well-known/oauth-authorization-server/mcp"
+    routes = ROUTES.merge(key => ROUTES[key].merge("client_id_metadata_document_supported" => true))
+
+    with_routes(routes) do
+      assert Mcp::Oauth::Discovery.call("https://mcp.example.com/mcp").client_id_metadata_document_supported
     end
   end
 

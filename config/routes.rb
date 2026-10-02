@@ -3,6 +3,7 @@ Rails.application.routes.draw do
   get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   get "configurations/ios_v1" => "hotwire/path_configurations#ios", as: :hotwire_ios_path_configuration
+  get "oauth/mcp-client.json" => "mcp/client_metadata#show", as: :mcp_client_metadata, format: false
 
   devise_for :users, controllers: {
     omniauth_callbacks: "users/omniauth_callbacks",

@@ -19,12 +19,14 @@ module Connectors
                            alert: t("flash.connectors.oauth.start.invalid_url", name: app.name)
       end
 
-      provider = Mcp::Oauth::Provider.for(resource, redirect_uri: connector_oauth_callback_url)
+      provider = Mcp::Oauth::Provider.connect(resource, redirect_uri: connector_oauth_callback_url,
+                                                        client_metadata_url: mcp_client_metadata_url)
       pkce = Mcp::Oauth::Pkce.new
       state = SecureRandom.urlsafe_base64(24)
       session[:mcp_oauth] = {
         "state" => state, "verifier" => pkce.verifier,
-        "catalog_key" => app.key, "team_id" => current_team.id, "resource" => resource
+        "catalog_key" => app.key, "team_id" => current_team.id, "resource" => resource,
+        "client_id" => provider.client_id
       }
 
       redirect_to provider.authorize_url(redirect_uri: connector_oauth_callback_url, state: state, pkce: pkce),
@@ -41,7 +43,7 @@ module Connectors
       app = ConnectorCatalog.find(flow["catalog_key"])
       team = current_user.teams.find_by(id: flow["team_id"]) || current_user.personal_team
       resource = flow["resource"]
-      provider = Mcp::Oauth::Provider.for(resource, redirect_uri: connector_oauth_callback_url)
+      provider = Mcp::Oauth::Provider.resume(resource, client_id: flow["client_id"])
       tokens = provider.exchange(code: params[:code], code_verifier: flow["verifier"],
                                  redirect_uri: connector_oauth_callback_url)
 
@@ -54,7 +56,7 @@ module Connectors
     private
 
     def valid_state?(flow)
-      flow["state"].present? &&
+      flow["state"].present? && flow["client_id"].present? &&
         ActiveSupport::SecurityUtils.secure_compare(flow["state"], params[:state].to_s)
     end
 

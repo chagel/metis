@@ -1,9 +1,37 @@
-# MCP OAuth connectors (Dynamic Client Registration)
+# MCP OAuth connectors (CIMD, DCR fallback)
 
 How Metis can connect to the long tail of remote MCP servers — Notion,
 Linear, Stripe, … — **without a pre-registered per-provider OAuth app**.
 The lever is the MCP authorization spec: a server advertises its OAuth
-endpoints, and a client **registers itself dynamically** at connect time.
+endpoints, and a client identifies itself without human setup.
+
+## Client registration (current)
+
+`Mcp::Oauth::Provider.connect` follows the spec's priority order
+([client registration](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/client-registration)):
+
+1. **Client ID Metadata Document (CIMD)** when the authorization server
+   advertises `client_id_metadata_document_supported`. Metis serves its
+   document at `/oauth/mcp-client.json` (`Mcp::ClientMetadataController`,
+   public) and that URL *is* the `client_id`; the server fetches it to
+   validate the redirect URI. Nothing is registered or cached, so nothing
+   can be revoked. Needs a publicly reachable https deployment — over plain
+   http (local dev) Metis falls back to DCR. Linear, Notion, and Sentry
+   support it (checked 2026-10-01).
+2. **Dynamic Client Registration (RFC 7591)** otherwise — deprecated by the
+   spec, kept for servers without CIMD (monday, Stripe, Close, Asana,
+   PayPal). One client per issuer in `mcp_oauth_clients`, bound by
+   `issuer` as the spec requires, registered with `application_type`
+   (`web`, or `native` for a localhost redirect). A server can revoke it
+   silently — its consent page just says "Invalid client_id" — so each
+   connect first redeems a throwaway code with the cached client: a token
+   endpoint answers `invalid_client` for a client it doesn't know (RFC 6749
+   §5.2), and that answer replaces the cached client before the browser
+   sees it. Any other answer keeps it (Stripe doesn't distinguish, so it
+   behaves as before).
+
+The chosen `client_id` rides the session to the callback and is then
+stored on the member's `ConnectorCredential`, which refresh uses.
 
 This turns the marginal cost of a connector from *days* (register an app,
 add an omniauth strategy, wire `OauthBroker`) into *one catalog row*.
@@ -42,7 +70,7 @@ secret to store. That is the proof: any deployment can self-register.
 connector.definition.url  (the MCP resource, e.g. https://mcp.notion.com/mcp)
   1. GET  /.well-known/oauth-protected-resource{/path}   → authorization_servers[0]   (RFC 9728)
   2. GET  /.well-known/oauth-authorization-server{/path} → authorize/token/register   (RFC 8414)
-  3. POST {registration_endpoint}                        → client_id   (DCR / RFC 7591, cached per server)
+  3. client_id: Metis's CIMD URL, else POST {registration_endpoint} (DCR, cached per issuer)
   4. redirect browser → {authorization_endpoint}         → code        (auth-code + PKCE S256 + resource=<url>)
   5. POST {token_endpoint}                               → access + refresh token   (audience-bound, RFC 8707)
   6. McpConfig injects  Authorization: Bearer <token>    → pi talks to the server
@@ -67,7 +95,8 @@ Most of this already exists — it generalizes what `github` does.
   `Pkce`, plus `authorize_url` / `exchange_code`. *(Scaffolded in this
   branch; see below.)*
 - A cache of DCR clients per authorization server (one `client_id` reused
-  deployment-wide) — a small `mcp_oauth_clients` table.
+  deployment-wide) — a small `mcp_oauth_clients` table. (CIMD has since
+  made it a fallback — see "Client registration" above.)
 - A **single generic callback** route (`/connectors/oauth/callback`); the
   `state` encodes connector + team + PKCE verifier.
 - A new catalog `auth: mcp_oauth` type. A connector entry then collapses to:
@@ -98,7 +127,7 @@ transport; no Rails-side MCP runtime).
    over-scoped.
 3. **Per-server client lifecycle.** DCR returns a `client_id` (sometimes a
    secret) per authorization server — cache and reuse deployment-wide;
-   re-register on a 401-at-token (registration expired).
+   re-register once the token endpoint disowns it (`invalid_client`).
 4. **Public vs confidential.** Notion/Linear issue public clients (PKCE,
    no secret — nothing to store). Handle the confidential case (encrypt
    the secret) for servers that issue one.

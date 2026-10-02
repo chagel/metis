@@ -27,6 +27,18 @@ class Mcp::Oauth::RegistrationTest < ActiveSupport::TestCase
     assert_includes captured[:payload][:redirect_uris], "https://metis.test/connectors/oauth/callback"
     assert_equal "none", captured[:payload][:token_endpoint_auth_method]
     assert_includes captured[:payload][:grant_types], "refresh_token"
+    assert_equal "web", captured[:payload][:application_type]
+  end
+
+  test "registers a localhost redirect as a native application, as the MCP spec requires" do
+    captured = {}
+    stub = ->(_url, payload) { captured[:payload] = payload; { "client_id" => "abc123" } }
+
+    with_stub(Mcp::Oauth::Http, :post_json, stub) do
+      Mcp::Oauth::Registration.call(metadata, redirect_uri: "http://localhost:3000/settings/connectors/oauth/callback")
+    end
+
+    assert_equal "native", captured[:payload][:application_type]
   end
 
   test "raises when the server has no registration endpoint" do

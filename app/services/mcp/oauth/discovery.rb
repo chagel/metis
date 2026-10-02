@@ -13,8 +13,11 @@ module Mcp
     class Discovery
       Metadata = Data.define(
         :issuer, :authorization_endpoint, :token_endpoint,
-        :registration_endpoint, :code_challenge_methods, :scopes_supported
-      )
+        :registration_endpoint, :code_challenge_methods, :scopes_supported,
+        :client_id_metadata_document_supported
+      ) do
+        def initialize(client_id_metadata_document_supported: false, **) = super
+      end
 
       def self.call(resource_url)
         new(resource_url).call
@@ -44,7 +47,8 @@ module Mcp
           token_endpoint: require_field(md, "token_endpoint", as),
           registration_endpoint: md["registration_endpoint"],
           code_challenge_methods: Array(md["code_challenge_methods_supported"]),
-          scopes_supported: Array(prm["scopes_supported"]).presence || Array(md["scopes_supported"])
+          scopes_supported: Array(prm["scopes_supported"]).presence || Array(md["scopes_supported"]),
+          client_id_metadata_document_supported: md["client_id_metadata_document_supported"] == true
         )
       end
 
