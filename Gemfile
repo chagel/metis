@@ -45,7 +45,7 @@ gem "pi-agent-rb", require: "pi_agent"
 
 # json 3.0 dropped JSON.parse's positional options hash, which Rails 8.1's
 # ActiveSupport::JSON.decode still passes. Drop this pin once Rails adapts.
-gem "json", "< 3"
+gem "json", "< 4"
 
 # E2B secure cloud sandboxes — the isolated runtime for the agent
 gem "e2b"
