@@ -51,7 +51,7 @@ class Mcp::OauthTest < ActiveSupport::TestCase
 
   test "a token call answered invalid_client drops the revoked registration and re-raises" do
     McpOauthClient.create!(issuer: "https://auth.example.com", client_id: "revoked")
-    McpOauthClient.create!(issuer: "https://other.example.com", client_id: "live")
+    McpOauthClient.create!(issuer: "https://other.example.com", client_id: "revoked")
     stub = ->(_url, _payload) { raise Mcp::Oauth::InvalidClient, "token -> 401: invalid_client" }
 
     with_stub(Mcp::Oauth::Http, :post_form, stub) do
@@ -61,7 +61,7 @@ class Mcp::OauthTest < ActiveSupport::TestCase
       end
     end
 
-    assert_equal [ "live" ], McpOauthClient.pluck(:client_id)
+    assert_equal [ "https://other.example.com" ], McpOauthClient.pluck(:issuer)
   end
 
   test "any other token error keeps the registration" do

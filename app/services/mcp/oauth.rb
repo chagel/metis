@@ -63,8 +63,15 @@ module Mcp
     def post_token(token_endpoint, client_id, payload)
       Http.post_form(token_endpoint, payload.merge(client_id: client_id))
     rescue InvalidClient
-      McpOauthClient.where(client_id: client_id).delete_all
+      forget_client(token_endpoint, client_id)
       raise
+    end
+
+    # client_id is only unique per issuer, and a refresh knows just the token
+    # endpoint — so match the issuer by host. A cross-host issuer is kept.
+    def forget_client(token_endpoint, client_id)
+      host = URI(token_endpoint).host
+      McpOauthClient.where(client_id: client_id).select { |client| URI(client.issuer).host == host }.each(&:destroy!)
     end
   end
 end
