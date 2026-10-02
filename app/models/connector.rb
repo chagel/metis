@@ -36,6 +36,7 @@ class Connector < ApplicationRecord
                     uniqueness: { scope: :team_id }
   validates :transport, presence: true
   validate :definition_matches_transport
+  validate :name_unique_as_mcp_server
 
   def bot_enabled?
     ActiveModel::Type::Boolean.new.cast(bot_enabled)
@@ -57,6 +58,16 @@ class Connector < ApplicationRecord
 
   # A stdio server entry needs a command; an http one needs a url; a
   # cli one has no MCP server entry at all (definition is unused).
+  # pi treats server names differing only in `-` / `_` as one server and
+  # rejects the second, so `foo-bar` and `foo_bar` can't coexist in mcp.json.
+  def name_unique_as_mcp_server
+    return if name.blank? || errors.include?(:name)
+
+    clash = Connector.where(team_id: team_id).where.not(id: id)
+                     .where("REPLACE(name, '-', '_') = ?", name.tr("-", "_"))
+    errors.add(:name, :taken) if clash.exists?
+  end
+
   def definition_matches_transport
     return unless transport
     return if cli?
