@@ -48,4 +48,47 @@ class Mcp::OauthTest < ActiveSupport::TestCase
     assert_equal "ver", captured[:payload][:code_verifier]
     assert_equal "https://mcp.example.com/mcp", captured[:payload][:resource]
   end
+
+  test "a token call answered invalid_client drops the revoked registration and re-raises" do
+    McpOauthClient.create!(issuer: "https://auth.example.com", client_id: "revoked")
+    McpOauthClient.create!(issuer: "https://other.example.com", client_id: "live")
+    stub = ->(_url, _payload) { raise Mcp::Oauth::InvalidClient, "token -> 401: invalid_client" }
+
+    with_stub(Mcp::Oauth::Http, :post_form, stub) do
+      assert_raises(Mcp::Oauth::InvalidClient) do
+        Mcp::Oauth.refresh(token_endpoint: "https://auth.example.com/token", client_id: "revoked",
+                           refresh_token: "rt", resource: "https://mcp.example.com/mcp")
+      end
+    end
+
+    assert_equal [ "live" ], McpOauthClient.pluck(:client_id)
+  end
+
+  test "any other token error keeps the registration" do
+    McpOauthClient.create!(issuer: "https://auth.example.com", client_id: "cid")
+    stub = ->(_url, _payload) { raise Mcp::Oauth::Error, "token -> 400: invalid_grant" }
+
+    with_stub(Mcp::Oauth::Http, :post_form, stub) do
+      assert_raises(Mcp::Oauth::Error) do
+        Mcp::Oauth.exchange_code(metadata, client_id: "cid", code: "c", code_verifier: "v",
+                                 redirect_uri: "https://metis.test/cb", resource: "https://mcp.example.com/mcp")
+      end
+    end
+
+    assert McpOauthClient.exists?(client_id: "cid")
+  end
+
+  test "Http raises InvalidClient only for an invalid_client error body" do
+    response = ->(code, body) { Struct.new(:code, :body).new(code, body) }
+
+    assert_raises(Mcp::Oauth::InvalidClient) do
+      Mcp::Oauth::Http.parse_or_raise(response.("401", %({"error":"invalid_client"})), "t")
+    end
+    error = assert_raises(Mcp::Oauth::Error) do
+      Mcp::Oauth::Http.parse_or_raise(response.("400", %({"error":"invalid_grant"})), "t")
+    end
+    refute_kind_of Mcp::Oauth::InvalidClient, error
+    error = assert_raises(Mcp::Oauth::Error) { Mcp::Oauth::Http.parse_or_raise(response.("502", "<html>"), "t") }
+    refute_kind_of Mcp::Oauth::InvalidClient, error
+  end
 end

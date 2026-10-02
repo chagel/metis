@@ -50,6 +50,10 @@ connector.definition.url  (the MCP resource, e.g. https://mcp.notion.com/mcp)
 
 Steps 1–3 are **per server** (deployment-wide); 4–6 are **per member**.
 
+A server can revoke a registered client (Linear has). Any token call answered
+`invalid_client` deletes the cached `McpOauthClient`, so the member's next
+connect re-registers instead of looping on a dead `client_id`.
+
 ## Mapping onto Metis
 
 Most of this already exists — it generalizes what `github` does.
