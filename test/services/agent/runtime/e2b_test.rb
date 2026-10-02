@@ -153,8 +153,8 @@ class Agent::Runtime::E2bTest < ActiveSupport::TestCase
     assert_includes sandbox.commands.runs, "mkdir -p #{Agent::Runtime::E2b::WORKSPACE_DIR}/.pi"
   end
 
-  test "discards .pi/mcp.json before pausing so the snapshot holds no bearer tokens" do
-    mcp_path = "#{Agent::Runtime::E2b::WORKSPACE_DIR}/#{Agent::McpConfig::FILENAME}"
+  test "discards .pi/mcp.json and the legacy .mcp.json before pausing so the snapshot holds no bearer tokens" do
+    dir = Agent::Runtime::E2b::WORKSPACE_DIR
     runs_at_pause = nil
     sandbox = FakeSandbox.new(
       sandbox_id: "sbx-new",
@@ -165,7 +165,7 @@ class Agent::Runtime::E2bTest < ActiveSupport::TestCase
       @runtime.run(pi_args: [ "--mode", "rpc" ]) { |_s| nil }
     end
 
-    assert_includes runs_at_pause, "rm -f #{mcp_path}",
+    assert_includes runs_at_pause, "rm -f #{dir}/.pi/mcp.json #{dir}/.mcp.json",
                     "mcp config deleted before pause — a paused snapshot must not hold tokens"
   end
 

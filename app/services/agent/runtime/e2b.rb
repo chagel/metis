@@ -309,8 +309,8 @@ module Agent
       # tokens it carries. Re-staged next turn by #stage_mcp_config.
       # Logged-not-raised — cleanup must not crash a streamed turn.
       def discard_mcp_config(sandbox)
-        path = "#{WORKSPACE_DIR}/#{Agent::McpConfig::FILENAME}"
-        sandbox.commands.run("rm -f #{Shellwords.escape(path)}")
+        paths = Agent::McpConfig::TOKEN_FILENAMES.map { |filename| Shellwords.escape("#{WORKSPACE_DIR}/#{filename}") }
+        sandbox.commands.run("rm -f #{paths.join(" ")}")
       rescue StandardError => e
         Rails.logger.warn("E2B mcp config cleanup failed for conversation #{conversation.id}: #{e.message}")
       end

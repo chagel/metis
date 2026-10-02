@@ -11,6 +11,10 @@ module Agent
     # pi's project-level MCP config, relative to its working directory. Read only
     # for trusted projects — Adapters::Pi passes --approve.
     FILENAME = ".pi/mcp.json".freeze
+    # pi-mcp-adapter's old path. A turn interrupted before the upgrade can
+    # leave its bearer tokens there, so cleanup removes both.
+    LEGACY_FILENAME = ".mcp.json".freeze
+    TOKEN_FILENAMES = [ FILENAME, LEGACY_FILENAME ].freeze
 
     def initialize(conversation)
       @conversation = conversation

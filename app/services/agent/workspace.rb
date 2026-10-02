@@ -170,9 +170,11 @@ module Agent
     # Remove the token file and abandoned atomic temps so bearer tokens do not
     # outlive the turn. Re-staged next turn; best-effort.
     def discard_mcp_config
-      path = workspace_dir.join(McpConfig::FILENAME)
-      FileUtils.rm_f(path)
-      sweep_atomic_temps(path)
+      McpConfig::TOKEN_FILENAMES.each do |filename|
+        path = workspace_dir.join(filename)
+        FileUtils.rm_f(path)
+        sweep_atomic_temps(path)
+      end
     end
 
     # Write the rendered AGENTS.md into the workspace root. pi auto-loads

@@ -232,7 +232,17 @@ class Agent::WorkspaceTest < ActiveSupport::TestCase
     refute stale.exist?
   end
 
-  test "discard_mcp_config removes the token-bearing .mcp.json" do
+  test "discard_mcp_config removes a legacy .mcp.json left by a pre-upgrade turn" do
+    workspace = Agent::Workspace.scratch(@conversation).ensure!
+    legacy = workspace.workspace_dir.join(".mcp.json")
+    File.write(legacy, %({"mcpServers":{"github":{"headers":{"Authorization":"Bearer old"}}}}))
+
+    workspace.discard_mcp_config
+
+    assert_not legacy.exist?
+  end
+
+  test "discard_mcp_config removes the token-bearing .pi/mcp.json" do
     workspace = Agent::Workspace.scratch(@conversation)
     workspace.ensure!
     workspace.stage_mcp_config(%({"mcpServers":{}}))

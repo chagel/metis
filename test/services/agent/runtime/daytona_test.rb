@@ -234,8 +234,7 @@ class Agent::Runtime::DaytonaTest < ActiveSupport::TestCase
     assert_includes sandbox.process.runs, "mkdir -p #{WORKSPACE}/.pi"
   end
 
-  test "discards .pi/mcp.json at end of turn so the fs holds no bearer tokens" do
-    mcp_path = "#{WORKSPACE}/#{Agent::McpConfig::FILENAME}"
+  test "discards .pi/mcp.json and the legacy .mcp.json at end of turn so the fs holds no bearer tokens" do
     sandbox = FakeSandbox.new(id: "sbx-new")
     client = FakeClient.new(create: sandbox)
 
@@ -243,7 +242,7 @@ class Agent::Runtime::DaytonaTest < ActiveSupport::TestCase
       @runtime.run(pi_args: [ "--mode", "rpc" ]) { |_s| nil }
     end
 
-    assert_includes sandbox.process.runs, "rm -f #{mcp_path}",
+    assert_includes sandbox.process.runs, "rm -f #{WORKSPACE}/.pi/mcp.json #{WORKSPACE}/.mcp.json",
                     "mcp config deleted at end of turn — the warm/persisted fs must hold no tokens"
   end
 
