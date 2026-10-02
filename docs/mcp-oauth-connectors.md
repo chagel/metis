@@ -42,17 +42,13 @@ secret to store. That is the proof: any deployment can self-register.
 connector.definition.url  (the MCP resource, e.g. https://mcp.notion.com/mcp)
   1. GET  /.well-known/oauth-protected-resource{/path}   → authorization_servers[0]   (RFC 9728)
   2. GET  /.well-known/oauth-authorization-server{/path} → authorize/token/register   (RFC 8414)
-  3. POST {registration_endpoint}                        → client_id   (DCR / RFC 7591, cached per server)
+  3. POST {registration_endpoint}                        → client_id   (DCR / RFC 7591, per connect)
   4. redirect browser → {authorization_endpoint}         → code        (auth-code + PKCE S256 + resource=<url>)
   5. POST {token_endpoint}                               → access + refresh token   (audience-bound, RFC 8707)
   6. McpConfig injects  Authorization: Bearer <token>    → pi-mcp-adapter talks to the server
 ```
 
-Steps 1–3 are **per server** (deployment-wide); 4–6 are **per member**.
-
-A server can revoke a registered client (Linear has). Any token call answered
-`invalid_client` deletes the cached `McpOauthClient`, so the member's next
-connect re-registers instead of looping on a dead `client_id`.
+Steps 1–2 are **per server**; 3–6 run **per connect**.
 
 ## Mapping onto Metis
 
@@ -70,8 +66,10 @@ Most of this already exists — it generalizes what `github` does.
 - `Mcp::Oauth` — the OAuth client: `Discovery`, `Registration` (DCR),
   `Pkce`, plus `authorize_url` / `exchange_code`. *(Scaffolded in this
   branch; see below.)*
-- A cache of DCR clients per authorization server (one `client_id` reused
-  deployment-wide) — a small `mcp_oauth_clients` table.
+- A fresh DCR client per connect, its `client_id` carried through the session
+  and then stored on the member's credential (refresh uses that one). No
+  cache: a server can revoke a registration (Linear has), and a consent page
+  that rejects a stale `client_id` never tells Metis.
 - A **single generic callback** route (`/connectors/oauth/callback`); the
   `state` encodes connector + team + PKCE verifier.
 - A new catalog `auth: mcp_oauth` type. A connector entry then collapses to:
@@ -135,8 +133,7 @@ Scaffolded and unit-tested (HTTP stubbed; live behavior verified above):
 - `Mcp::Oauth.authorize_url` / `.exchange_code` — auth-code + PKCE +
   `resource` indicator.
 
-**Not yet built (the integration, next slice):** the `mcp_oauth_clients`
-cache table, the generic callback route + controller, generalizing
-`OauthGrant` keying, the `auth: mcp_oauth` catalog type, and the
+**Not yet built (the integration, next slice):** the generic callback route +
+controller, generalizing `OauthGrant` keying, the `auth: mcp_oauth` catalog type, and the
 registry-fed candidate queue. The spike de-risks discovery + registration
 — the parts the standard makes fiddly.

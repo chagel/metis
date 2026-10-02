@@ -11,10 +11,6 @@ module Mcp
   # docs/mcp-oauth-connectors.md.
   module Oauth
     Error = Class.new(StandardError)
-    # The authorization server no longer knows our registered client (it can
-    # revoke DCR clients) — the cached McpOauthClient is dead and is dropped
-    # so the next connect re-registers.
-    InvalidClient = Class.new(Error)
 
     module_function
 
@@ -41,10 +37,11 @@ module Mcp
     # Exchange the callback's authorization code for tokens. Returns the
     # raw token response (access_token, refresh_token, expires_in, …).
     def exchange_code(metadata, client_id:, code:, code_verifier:, redirect_uri:, resource:)
-      post_token(metadata.token_endpoint, client_id, {
+      Http.post_form(metadata.token_endpoint, {
         grant_type: "authorization_code",
         code: code,
         redirect_uri: redirect_uri,
+        client_id: client_id,
         code_verifier: code_verifier,
         resource: resource
       })
@@ -53,25 +50,12 @@ module Mcp
     # Refresh an expired access token. The token_endpoint + client_id are
     # persisted on the credential, so this needs no re-discovery.
     def refresh(token_endpoint:, client_id:, refresh_token:, resource:)
-      post_token(token_endpoint, client_id, {
+      Http.post_form(token_endpoint, {
         grant_type: "refresh_token",
         refresh_token: refresh_token,
+        client_id: client_id,
         resource: resource
       })
-    end
-
-    def post_token(token_endpoint, client_id, payload)
-      Http.post_form(token_endpoint, payload.merge(client_id: client_id))
-    rescue InvalidClient
-      forget_client(token_endpoint, client_id)
-      raise
-    end
-
-    # client_id is only unique per issuer, and a refresh knows just the token
-    # endpoint — so match the issuer by host. A cross-host issuer is kept.
-    def forget_client(token_endpoint, client_id)
-      host = URI(token_endpoint).host
-      McpOauthClient.where(client_id: client_id).select { |client| URI(client.issuer).host == host }.each(&:destroy!)
     end
   end
 end

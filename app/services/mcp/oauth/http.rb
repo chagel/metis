@@ -65,17 +65,10 @@ module Mcp
 
       def parse_or_raise(response, url)
         unless ok?(response)
-          error = invalid_client?(response) ? InvalidClient : Error
-          raise error, "#{url} -> #{response.code}: #{response.body.to_s.truncate(200)}"
+          raise Error, "#{url} -> #{response.code}: #{response.body.to_s.truncate(200)}"
         end
 
         JSON.parse(response.body)
-      end
-
-      def invalid_client?(response)
-        JSON.parse(response.body.to_s)["error"] == "invalid_client"
-      rescue JSON::ParserError, TypeError
-        false
       end
     end
   end

@@ -544,7 +544,8 @@ the agent hands back.
 
 OAuth client for remote MCP servers per the MCP authorization spec —
 protected-resource + auth-server metadata discovery, Dynamic Client
-Registration (stored in `McpOauthClient`), OAuth 2.1 auth-code + PKCE,
+Registration (a fresh client per connect, never cached — servers revoke
+them), OAuth 2.1 auth-code + PKCE,
 RFC 8707 resource indicators. Connects any DCR-capable MCP server with
 no pre-registered provider app. Distinct from `OauthBroker` (the
 sign-in/connector providers with static apps).

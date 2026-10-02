@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_13_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_02_022617) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -170,16 +170,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_13_000000) do
     t.integer "position", default: 0, null: false
     t.datetime "updated_at", null: false
     t.index ["key"], name: "index_llm_providers_on_key", unique: true
-  end
-
-  create_table "mcp_oauth_clients", force: :cascade do |t|
-    t.string "client_id", null: false
-    t.text "client_secret"
-    t.datetime "created_at", null: false
-    t.string "issuer", null: false
-    t.jsonb "registration", default: {}, null: false
-    t.datetime "updated_at", null: false
-    t.index ["issuer"], name: "index_mcp_oauth_clients_on_issuer", unique: true
   end
 
   create_table "memberships", force: :cascade do |t|
