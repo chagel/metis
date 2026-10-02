@@ -65,7 +65,7 @@ module Agent
         @touched_skill_slugs << slug if slug.present?
       end
 
-      # The rendered `.mcp.json` (Agent::McpConfig) for this
+      # The rendered `.pi/mcp.json` (Agent::McpConfig) for this
       # conversation's connectors, for a runtime to stage into pi's
       # workspace each turn.
       def mcp_config

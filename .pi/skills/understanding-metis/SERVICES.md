@@ -236,7 +236,7 @@ scope/
   sessions/                pi --session-dir : transcript
   workspace/               pi cwd : files the agent creates
     uploads/               staged user uploads
-    .mcp.json              MCP connector config (per turn)
+    .pi/mcp.json           MCP connector config (per turn)
     AGENTS.md              boot identity + project catalog (per turn)
     .pi/skills/            repo + team skills, layered (per turn)
 ```
@@ -255,7 +255,7 @@ signature unchanged).
 
 ## `Agent::McpConfig`
 
-Renders the `.mcp.json` `pi-mcp-adapter` reads, from the
+Renders the `.pi/mcp.json` pi's built-in MCP support reads, from the
 conversation team's `Connector`s. Each connector resolves to the
 member's credential (own → team-shared → drop). An OAuth-shaped
 connector whose grant is missing, missing required scopes, or fails
@@ -708,8 +708,8 @@ the REST alternative (Cloudflare Email Service, registered as
 
 Per `VISION.md`:
 - No second agent backend (pi is *the* backend).
-- No Rails-side MCP runtime — MCP servers are bridged into pi via
-  `pi-mcp-adapter` extension, **not** loaded by Rails.
+- No Rails-side MCP runtime — pi connects MCP servers natively;
+  **not** loaded by Rails.
 - No polymorphic `owner` — tenancy is `Team`-only.
 - No SPA — Hotwire all the way down.
 - No per-user provider keys — LLM keys are deployment-shared.

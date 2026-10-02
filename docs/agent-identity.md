@@ -16,7 +16,7 @@ flag, or pi extension.
 `workspace/AGENTS.md`. The Rails records are the durable source; the
 file is a runtime view of them.
 
-This is the same shape as `.mcp.json` (`Agent::McpConfig`) and
+This is the same shape as `.pi/mcp.json` (`Agent::McpConfig`) and
 `workspace/uploads/` — see [*The projected-input pattern*](#the-projected-input-pattern)
 below.
 
@@ -81,8 +81,8 @@ that writes through the sandbox SDK because the workspace is remote.
 
 ## Ordering
 
-Each runtime stages `AGENTS.md` *after* `.mcp.json`. The identity
-file's Connectors block describes what's in `.mcp.json`; staging in
+Each runtime stages `AGENTS.md` *after* `.pi/mcp.json`. The identity
+file's Connectors block describes what's in `.pi/mcp.json`; staging in
 this order means a transient render failure in one file cannot leave
 the other describing a different connector set.
 
@@ -94,7 +94,7 @@ workspace:
 | Projected input | Renderer | Durable source |
 |---|---|---|
 | `workspace/uploads/*` | `Workspace#stage_uploads` | `Message` attachments |
-| `workspace/.mcp.json` | `Agent::McpConfig` | `Connector` + `ConnectorCredential` |
+| `workspace/.pi/mcp.json` | `Agent::McpConfig` | `Connector` + `ConnectorCredential` |
 | `workspace/AGENTS.md` | `Agent::Identity` | `Conversation` + `Team` + `Connector` + runtime |
 
 All three are:

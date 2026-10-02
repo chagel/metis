@@ -61,8 +61,8 @@ class Agent::ForkPreparerTest < ActiveSupport::TestCase
     assert_equal 5, File.readlines(file).size
   end
 
-  test "does not copy the secret .mcp.json into the fork" do
-    File.write(@src_ws.workspace_dir.join(Agent::McpConfig::FILENAME), "{}")
+  test "does not copy the secret .pi/mcp.json into the fork" do
+    @src_ws.stage_mcp_config("{}")
     fork = fork_from(@a2)
     Agent::ForkPreparer.prepare(fork)
 

@@ -63,9 +63,7 @@ other way*.
    Rails holds the credentials and decides who sees what. It does not
    re-implement.
 7. **MCP is the default connector transport.** Connectors speak MCP
-   through one pi extension
-   ([`pi-mcp-adapter`](https://github.com/nicobailon/pi-mcp-adapter)) —
-   see [`docs/connectors.md`](docs/connectors.md). CLI + skill is the
+   through pi's built-in MCP support — see [`docs/connectors.md`](docs/connectors.md). CLI + skill is the
    documented fallback when no MCP server exists or its distribution
    is gated (today: Google Workspace through `gws`, because the
    self-hosted `google_workspace_mcp` path depends on Google's MCP
@@ -88,7 +86,7 @@ have considered and rejected.
   agent-neutral — `text_delta`, `tool_call_*`, `turn_finished` map onto
   Claude Code, Codex, or OpenCode just as well as pi. The lock-in is
   below it. `Runtime#run` takes `pi_args` and opens a `PiAgent::Session`;
-  MCP (`.mcp.json` via the pi-mcp-adapter extension), skills
+  MCP (`.pi/mcp.json`, read by pi's built-in MCP support), skills
   (`.pi/skills/` + path-regex detection), identity (`AGENTS.md`
   auto-load), and credentials (`--provider/--model/--api-key`) are all
   pi-protocol projections; and `pi-agent-rb` is the only driver gem we
@@ -96,7 +94,7 @@ have considered and rejected.
   subsystems plus a driver gem per agent. That's a different product, and
   the focus is making pi excellent, not making the harness swappable.
 - **A Rails-side MCP client.** Metis is the **host** — it holds
-  credentials and stages `.mcp.json` per turn; pi speaks the protocol.
+  credentials and stages `.pi/mcp.json` per turn; pi speaks the protocol.
   Rails never *consumes* an MCP server (re-implementing that client side
   duplicates pi). *Serving* Metis's own task API over MCP is different
   and allowed: `/api/bridge/mcp` is a thin facade over the bridge REST

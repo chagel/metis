@@ -14,7 +14,7 @@ layered into one tree:
 | Repo `.pi/skills/` (versioned in git, identical for every team) | Copied wholesale by `Workspace#stage_skills`. |
 | Team's enabled `Skill` rows (DB-authored, per-team) | Extracted under `workspace/.pi/skills/<slug>/` after the repo copy. |
 
-This is a per-turn projected input (like `uploads/`, `.mcp.json`,
+This is a per-turn projected input (like `uploads/`, `.pi/mcp.json`,
 `AGENTS.md`) — wiped + rewritten each turn, never archived. pi
 auto-discovers from cwd, so a triggered skill surfaces as a `read`
 tool call on `SKILL.md`, relabelled to `skill: <name>` by the

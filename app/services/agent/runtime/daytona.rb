@@ -348,10 +348,12 @@ module Agent
       end
 
       def stage_mcp_config(sandbox)
-        put_file(sandbox, "#{WORKSPACE_DIR}/#{Agent::McpConfig::FILENAME}", mcp_config)
+        path = "#{WORKSPACE_DIR}/#{Agent::McpConfig::FILENAME}"
+        sandbox.process.exec("mkdir -p #{Shellwords.escape(File.dirname(path))}")
+        put_file(sandbox, path, mcp_config)
       end
 
-      # Delete .mcp.json at end of turn so neither the keep-warm running sandbox
+      # Delete .pi/mcp.json at end of turn so neither the keep-warm running sandbox
       # nor its persisted filesystem holds the live bearer tokens it carries.
       # Re-staged next turn. Logged-not-raised.
       def discard_mcp_config(sandbox)

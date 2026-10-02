@@ -1,5 +1,5 @@
 module Agent
-  # Renders the `.mcp.json` that pi-mcp-adapter reads, from the
+  # Renders the `.pi/mcp.json` that pi's built-in MCP support reads, from the
   # conversation team's Connectors. Each connector resolves to
   # the conversation member's credential — their own, else the team's
   # shared one. A connector the member has no credential for is omitted;
@@ -8,14 +8,15 @@ module Agent
   # ConnectorCredential records are the durable source. See
   # docs/connectors.md.
   class McpConfig
-    # pi-mcp-adapter reads this from pi's working directory.
-    FILENAME = ".mcp.json".freeze
+    # pi's project-level MCP config, relative to its working directory. Read only
+    # for trusted projects — Adapters::Pi passes --approve.
+    FILENAME = ".pi/mcp.json".freeze
 
     def initialize(conversation)
       @conversation = conversation
     end
 
-    # The `.mcp.json` document.
+    # The `mcp.json` document.
     def to_h
       entries = connectors.filter_map do |connector|
         entry = server_entry(connector)
@@ -37,7 +38,7 @@ module Agent
       # cli-transport connectors (Gmail, Calendar, Drive via `gws`) have
       # no MCP server to stage — the agent reaches them through a CLI on
       # PATH, authorised by Runtime::Base#sandbox_env. Filter them out
-      # so they never land in .mcp.json.
+      # so they never land in mcp.json.
       @conversation.team.connectors.where.not(transport: Connector.transports[:cli])
     end
 
@@ -52,7 +53,7 @@ module Agent
         Rails.logger.error(
           "McpConfig: connector #{connector.id} (#{connector.name}) references " \
           "catalog_key=#{connector.catalog_key.inspect} which has no entry — " \
-          "dropping from .mcp.json"
+          "dropping from mcp.json"
         )
         return nil
       end
@@ -86,7 +87,7 @@ module Agent
       if grant.nil?
         Rails.logger.warn(
           "McpConfig: connector #{connector.id} (#{connector.name}) has no OAuth " \
-          "grant for user #{@conversation.user_id} — dropping from .mcp.json"
+          "grant for user #{@conversation.user_id} — dropping from mcp.json"
         )
         return nil
       end
@@ -95,7 +96,7 @@ module Agent
         Rails.logger.warn(
           "McpConfig: connector #{connector.id} (#{connector.name}) needs " \
           "#{app.oauth_scopes.inspect} but user #{@conversation.user_id}'s grant " \
-          "only has #{grant.scope_set.inspect} — dropping from .mcp.json"
+          "only has #{grant.scope_set.inspect} — dropping from mcp.json"
         )
         return nil
       end
@@ -117,7 +118,7 @@ module Agent
       if bearer.blank?
         Rails.logger.warn(
           "McpConfig: connector #{connector.id} (#{connector.name}) has no usable " \
-          "MCP-OAuth token for user #{@conversation.user_id} — dropping from .mcp.json"
+          "MCP-OAuth token for user #{@conversation.user_id} — dropping from mcp.json"
         )
         return nil
       end

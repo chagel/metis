@@ -161,7 +161,7 @@ module Agent
 
       # Stop all guest writers (session close tears the container's pi
       # down) before the container is removed and the bind mount is read
-      # host-side; the token-bearing .mcp.json is discarded no matter
+      # host-side; the token-bearing .pi/mcp.json is discarded no matter
       # what failed before it.
       def teardown(session, turn_started_at)
         session.close

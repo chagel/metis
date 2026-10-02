@@ -147,7 +147,7 @@ replays `Conversation#replayable_history` into `AGENTS.md` so the next turn
 recovers prior context.
 
 Per-turn projected inputs — `workspace/uploads/` (from `Message`
-attachments), the rendered `workspace/.mcp.json`, the rendered
+attachments), the rendered `workspace/.pi/mcp.json`, the rendered
 `workspace/AGENTS.md` (per-turn boot identity, see `docs/agent-identity.md`),
 and the repo's `.pi/skills/` tree copied into `workspace/.pi/skills/` (pi
 auto-discovers skills there) — are re-staged each turn even on a resumed
@@ -182,15 +182,14 @@ are deployment-level ENV — never per-user. See
 ### Connectors (MCP)
 
 The agent reaches external systems (GitHub, Google, Linear, …) through
-**MCP servers**, bridged into pi by the `pi-mcp-adapter` extension —
-installed into each pi environment at setup/image-build time, not loaded
-by Rails. See `docs/connectors.md` (and `docs/mcp-oauth-connectors.md` for
+**MCP servers**, connected by pi's built-in MCP support (pi ≥ 1.0) from a
+per-turn `.pi/mcp.json` — not loaded by Rails. See `docs/connectors.md` (and `docs/mcp-oauth-connectors.md` for
 the OAuth/DCR flow).
 
 - `Connector` + `ConnectorCredential` + `OauthGrant` model the
   per-team-and-user authorization state; `ConnectorsController` is the
   install/auth UI.
-- `Agent::McpConfig` renders a `.mcp.json` per turn into the workspace
+- `Agent::McpConfig` renders a `.pi/mcp.json` per turn into the workspace
   from the team's enabled connectors. It is a projected input, never
   durable. When the deployment is GitHub-App-auth configured and an admin
   enables it on the team's github connector (`bot_enabled`,
@@ -203,9 +202,11 @@ the OAuth/DCR flow).
   (`{github,google,linear}_app/`). Provider API keys for the LLM are
   separate from connector OAuth tokens — don't conflate them.
 
-pi ships no MCP support of its own; the bridge-via-extension choice (vs.
-pi's recommended skill+CLI path) is a load-bearing decision documented in
-`docs/connectors.md` and `VISION.md`. Don't replace it with CLI wrappers.
+MCP (vs. pi's recommended skill+CLI path) is a load-bearing decision
+documented in `docs/connectors.md` and `VISION.md`. Don't replace it with
+CLI wrappers. `pi-mcp-adapter` is gone: an installed copy registers `/mcp`
+and replaces pi's built-in support, hiding `.pi/mcp.json` — `bin/setup`
+removes it.
 
 ### Skills
 
@@ -215,7 +216,7 @@ auto-discovered from cwd). Metis layers two sources into
 (`Agent::RepoSkills`) and the team's DB-authored `Skill` rows
 (`belongs_to :team`), the latter installable from GitHub via
 `Agent::SkillImporter` / `Agent::SkillMarketplace` and the
-`/settings/skills` UI. Like uploads and `.mcp.json`, this tree is a
+`/settings/skills` UI. Like uploads and `.pi/mcp.json`, this tree is a
 projected input — rewritten each turn, never durable. See `docs/skills.md`.
 
 ### Workflows & the local bridge

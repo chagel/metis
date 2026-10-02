@@ -155,13 +155,14 @@ module Agent
       end
     end
 
-    # Write the rendered .mcp.json into the workspace root — a per-turn
+    # Write the rendered .pi/mcp.json into the workspace — a per-turn
     # projected input like uploads/, overwritten each turn and never
     # archived (see docs/connectors.md). It carries live OAuth bearer
     # tokens, so it is written 0600 and discarded at turn end
     # (#discard_mcp_config) — the rendered token must not linger on disk.
     def stage_mcp_config(content)
       path = workspace_dir.join(McpConfig::FILENAME)
+      repair_directory_chain(path.dirname)
       sweep_atomic_temps(path)
       atomic_replace(path, mode: 0o600) { |file| file.write(content) }
     end
@@ -176,7 +177,7 @@ module Agent
 
     # Write the rendered AGENTS.md into the workspace root. pi auto-loads
     # it from `cwd` as ambient instructions — the agent boots reading
-    # this every turn. Per-turn projected input like .mcp.json: rendered
+    # this every turn. Per-turn projected input like .pi/mcp.json: rendered
     # fresh each turn, never archived. See Agent::Identity.
     def stage_identity(content)
       atomic_replace(workspace_dir.join(Identity::FILENAME)) { |file| file.write(content) }

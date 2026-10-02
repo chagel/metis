@@ -1,6 +1,6 @@
 # One configured MCP server, owned by a team. Each connector becomes a
-# `mcpServers` entry in the `.mcp.json` the runtime stages for a turn;
-# pi-mcp-adapter then exposes its tools to the agent. The non-secret
+# `mcpServers` entry in the `.pi/mcp.json` the runtime stages for a turn;
+# pi then exposes its tools to the agent. The non-secret
 # server definition lives here; secrets are separate
 # ConnectorCredentials, shared or per-member. See docs/connectors.md.
 class Connector < ApplicationRecord
@@ -11,7 +11,7 @@ class Connector < ApplicationRecord
   # cli — no MCP entry at all (the agent reaches the service through a
   # CLI on PATH, authorised by Runtime::Base#sandbox_env). cli connectors
   # are catalog-only — they exist as marketplace tiles and OAuth-grant
-  # markers, and McpConfig skips them when rendering .mcp.json.
+  # markers, and McpConfig skips them when rendering .pi/mcp.json.
   enum :transport, { stdio: 0, http: 1, cli: 2 }
 
   # Admin opt-in for the github_bot installation token, off by default —

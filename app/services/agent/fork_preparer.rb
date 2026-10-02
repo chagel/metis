@@ -47,7 +47,7 @@ module Agent
       FileUtils.rm_rf(dst.scope_dir)
       copy_dir(src.session_dir, dst.session_dir)
       copy_dir(src.workspace_dir, dst.workspace_dir)
-      # .mcp.json carries live OAuth tokens and is re-staged each turn anyway.
+      # .pi/mcp.json carries live OAuth tokens and is re-staged each turn anyway.
       FileUtils.rm_f(dst.workspace_dir.join(McpConfig::FILENAME))
     end
 

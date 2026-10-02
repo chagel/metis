@@ -11,10 +11,7 @@ namespace :daytona do
 
     # `gh` is installed from GitHub's apt source so the agent can act on
     # GitHub as the operator via the per-turn GH_TOKEN env var (see
-    # app/services/agent/runtime/base.rb + docs/connectors.md). Keep the
-    # pi-mcp-adapter and gws versions in sync with bin/setup, e2b.rake, and
-    # docker/pi-runtime/Dockerfile. The sandbox runs as root (Daytona::OS_USER),
-    # so `pi install` writes root's ~/.pi and run-time discovery agrees.
+    # app/services/agent/runtime/base.rb + docs/connectors.md).
     install_gh = <<~SH.strip.gsub(/\s+/, " ")
       install -m 0755 -d /etc/apt/keyrings &&
       curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg
@@ -39,8 +36,7 @@ namespace :daytona do
                               # reaches Gmail, Calendar, and Drive. Reads its
                               # bearer from GOOGLE_WORKSPACE_CLI_TOKEN, exported
                               # per turn from the user's Google OauthGrant.
-                              "npm install -g @googleworkspace/cli",
-                              "pi install npm:pi-mcp-adapter@2.7.0"
+                              "npm install -g @googleworkspace/cli"
                             )
 
     client = Agent::Runtime::Daytona.client

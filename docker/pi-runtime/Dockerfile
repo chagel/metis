@@ -36,17 +36,6 @@ RUN pip install --no-cache-dir --break-system-packages \
 ARG PI_VERSION
 RUN npm install --global "@earendil-works/pi-coding-agent@${PI_VERSION}"
 
-# The MCP connector bridge (pi-mcp-adapter). Keep the version in sync
-# with bin/setup and lib/tasks/e2b.rake.
-#
-# Install it under the same HOME the runtime uses (`--env HOME=/tmp` in
-# Agent::Runtime::Docker#docker_args), so pi at runtime finds the
-# package + settings.json. The container runs as the host UID with no
-# /etc/passwd entry, so we chmod the tree world-rwx — the runtime user
-# must be able to read the extension and write pi's session/cache state.
-RUN HOME=/tmp pi install npm:pi-mcp-adapter@2.7.0 \
- && chmod -R a+rwX /tmp/.pi
-
 # The Google Workspace CLI (gws) — how the agent reaches Gmail,
 # Calendar, and Drive. It reads its bearer from
 # GOOGLE_WORKSPACE_CLI_TOKEN, which Agent::Runtime::Base#sandbox_env

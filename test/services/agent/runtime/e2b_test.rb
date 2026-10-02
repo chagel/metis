@@ -143,7 +143,17 @@ class Agent::Runtime::E2bTest < ActiveSupport::TestCase
     assert_equal "sbx-new", @conversation.reload.e2b_sandbox_id
   end
 
-  test "discards .mcp.json before pausing so the snapshot holds no bearer tokens" do
+  test "creates .pi before staging mcp.json" do
+    sandbox = FakeSandbox.new(sandbox_id: "sbx-new")
+
+    with_e2b(create: sandbox) do
+      @runtime.run(pi_args: [ "--mode", "rpc" ]) { |_s| nil }
+    end
+
+    assert_includes sandbox.commands.runs, "mkdir -p #{Agent::Runtime::E2b::WORKSPACE_DIR}/.pi"
+  end
+
+  test "discards .pi/mcp.json before pausing so the snapshot holds no bearer tokens" do
     mcp_path = "#{Agent::Runtime::E2b::WORKSPACE_DIR}/#{Agent::McpConfig::FILENAME}"
     runs_at_pause = nil
     sandbox = FakeSandbox.new(

@@ -296,13 +296,15 @@ module Agent
         end
       end
 
-      # Write the rendered .mcp.json into the sandbox workspace — a
+      # Write the rendered .pi/mcp.json into the sandbox workspace — a
       # per-turn projected input, overwriting any prior turn's copy.
       def stage_mcp_config(sandbox)
-        sandbox.files.write("#{WORKSPACE_DIR}/#{Agent::McpConfig::FILENAME}", mcp_config)
+        path = "#{WORKSPACE_DIR}/#{Agent::McpConfig::FILENAME}"
+        sandbox.commands.run("mkdir -p #{Shellwords.escape(File.dirname(path))}")
+        sandbox.files.write(path, mcp_config)
       end
 
-      # Delete .mcp.json before #pause_sandbox so the snapshot E2B
+      # Delete .pi/mcp.json before #pause_sandbox so the snapshot E2B
       # persists server-side between turns never holds the live bearer
       # tokens it carries. Re-staged next turn by #stage_mcp_config.
       # Logged-not-raised — cleanup must not crash a streamed turn.

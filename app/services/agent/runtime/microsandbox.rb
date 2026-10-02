@@ -240,7 +240,7 @@ module Agent
             end
             timed(:ingest_team_skills) { ingest_team_skills(slugs: touched_skill_slugs) }
           end
-          # Even when the VM never booted — the staged .mcp.json carries live
+          # Even when the VM never booted — the staged .pi/mcp.json carries live
           # bearer tokens and must not linger on the persistent host dir.
           workspace.discard_mcp_config
           log_timings

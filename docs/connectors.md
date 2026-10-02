@@ -4,28 +4,22 @@
 
 metis connects the agent to external systems — business data through
 something like Metabase, plus GitHub, Slack, Notion, and the rest. pi
-itself ships **no MCP support**: a deliberate upstream omission, with the
-standing recommendation to wrap CLI tools as *skills* instead.
+long recommended wrapping CLI tools as *skills* instead of MCP; it shipped
+no MCP support until 1.0.
 
-So there is a fork. metis chooses **MCP, through a bridge extension** —
-not the skill + CLI path pi recommends. This doc records why.
+metis chose **MCP** over the skill + CLI path anyway — first through the
+`pi-mcp-adapter` extension, now through pi's built-in support (pi ≥ 1.0).
+This doc records why.
 
 ## Decision
 
-A connector is an MCP server. metis reaches it through
-**[`pi-mcp-adapter`](https://github.com/nicobailon/pi-mcp-adapter)** — a
-mature, MIT-licensed pi extension that connects pi to MCP servers and
-exposes their tools to the agent. metis adopts it rather than building a
-bridge of its own; forking is the fallback if its programmatic-config gap
-stalls upstream. CLIs are not used as the connector mechanism.
+A connector is an MCP server. metis reaches it through **pi's built-in
+MCP support** (pi ≥ 1.0) — nothing to install. CLIs are not used as the
+connector mechanism.
 
-pi-mcp-adapter is a pi *package*, installed with `pi install` into each
-pi environment at setup or image-build time — `bin/setup` for local dev,
-the Docker image, the E2B template. pi auto-discovers it; metis neither
-vendors it nor loads it explicitly.
-
-The adapter reads its server list from an on-disk `.mcp.json`, so metis
-**stages a `.mcp.json` per run** into the pi workspace — non-secret
+pi reads project servers from `.pi/mcp.json` in its working directory —
+only for a trusted project, which `Adapters::Pi` grants with `--approve`.
+So metis **stages a `.pi/mcp.json` per run** into the pi workspace — non-secret
 server definitions and inline credentials, both rendered from the
 `Connector` model. That file is a per-turn projected input, re-rendered each turn from
 the durable `Connector` records, so the secrets never become durable
@@ -82,9 +76,9 @@ whole team uses, typical for a data source like Metabase. A row with a
 identity-bearing service like GitHub or Slack, where the agent should act
 as that member.
 
-Staging `.mcp.json` for member X resolves each connector to X's own
+Staging `.pi/mcp.json` for member X resolves each connector to X's own
 credential if present, else the shared credential, else omits the
-connector from X's `.mcp.json`. That resolution point is also the audit
+connector from X's `.pi/mcp.json`. That resolution point is also the audit
 anchor: which member used which connector under which credential.
 
 ## Why pi recommends CLIs — and why metis differs
@@ -143,7 +137,7 @@ the fact actually does prompt the user.
   the secret directly (no change).
 
 `OauthBroker.access_token_for(grant)` mints/refreshes the access
-token when staging `.mcp.json`, dispatching to the per-provider
+token when staging `.pi/mcp.json`, dispatching to the per-provider
 client (`OauthBroker::Clients::Github`, `::Google`) based on the
 grant's `provider`. McpConfig checks that the grant covers the
 connector's `oauth_scopes` before staging; if not, the connector is
@@ -323,7 +317,7 @@ The per-turn token flow:
    reach for a desktop keyring in the headless sandbox). This is
    the same pattern as `GH_TOKEN` for GitHub.
 3. `Agent::McpConfig` skips `cli`-transport connectors so they
-   never land in `.mcp.json`. The shipped `gws-*` skills in
+   never land in `.pi/mcp.json`. The shipped `gws-*` skills in
    `.pi/skills/` tell the agent how to drive `gws gmail`,
    `gws calendar`, `gws drive`, etc. The bearer's scopes decide
    what calls succeed.

@@ -9,7 +9,7 @@
 # A row with no user is the team's shared credential (a service account
 # the whole team uses, only meaningful for token-auth connectors); a
 # row with a user is that member's own. The runtime resolves one per
-# member when staging `.mcp.json`. See docs/connectors.md.
+# member when staging `.pi/mcp.json`. See docs/connectors.md.
 class ConnectorCredential < ApplicationRecord
   belongs_to :connector
   belongs_to :user, optional: true
@@ -19,7 +19,7 @@ class ConnectorCredential < ApplicationRecord
   validates :user_id, uniqueness: { scope: :connector_id }
 
   # The header bag (`Authorization` → "Bearer xyz") to merge into the
-  # connector's `.mcp.json` entry. Token-auth connectors store these
+  # connector's `.pi/mcp.json` entry. Token-auth connectors store these
   # directly; OAuth-shaped connectors return an empty hash here — the
   # runtime projects the live access token (from OauthGrant) through
   # the catalog's credential format.
@@ -113,7 +113,7 @@ class ConnectorCredential < ApplicationRecord
 
   # A usable bearer for the MCP server: the stored token if still fresh,
   # otherwise a refresh. nil means the member must reconnect (no token, or
-  # the refresh failed) — the caller drops the connector from .mcp.json.
+  # the refresh failed) — the caller drops the connector from .pi/mcp.json.
   def mcp_oauth_bearer
     data = mcp_oauth_data
     return nil if data["access_token"].blank?

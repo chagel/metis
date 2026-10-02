@@ -39,7 +39,7 @@ Why this and not the alternatives:
   ordinary runtime. Streaming, cancel, stats, artifacts all unchanged.
 - **Not a second agent.** pi is the only agent; the daemon runs no loop.
 - **Not an MCP server in the daemon.** An MCP path would need a
-  per-turn token in `.mcp.json`, a new pi-facing HTTP endpoint, and a
+  per-turn token in `.pi/mcp.json`, a new pi-facing HTTP endpoint, and a
   held Puma thread per tool call. HostBridge rides pi's RPC, needs no
   token, and its wait runs on the ChatJob worker that is already held for
   the whole turn (pi-agent-rb services each extension-UI request on its

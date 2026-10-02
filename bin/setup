@@ -15,13 +15,11 @@ FileUtils.chdir APP_ROOT do
   puts "== Installing dependencies =="
   system("bundle check") || system!("bundle install")
 
-  puts "\n== Installing pi packages =="
-  # The MCP connector bridge. Keep the version in sync with
-  # docker/pi-runtime/Dockerfile and lib/tasks/e2b.rake.
-  if system("pi list 2>/dev/null | grep -q 'pi-mcp-adapter@2.7.0'")
-    puts "pi-mcp-adapter already installed."
-  else
-    system! "pi", "install", "npm:pi-mcp-adapter@2.7.0"
+  # pi >= 1.0 speaks MCP natively; a leftover pi-mcp-adapter registers /mcp
+  # and would replace the built-in support, hiding .pi/mcp.json.
+  if system("pi list 2>/dev/null | grep -q 'pi-mcp-adapter'")
+    puts "\n== Removing pi-mcp-adapter =="
+    system! "pi", "remove", "npm:pi-mcp-adapter"
   end
 
   # puts "\n== Copying sample files =="

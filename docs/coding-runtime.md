@@ -300,7 +300,7 @@ explicit deletion. Without this, deleted conversations leak.
   stale token cached in `~/.netrc` would silently fail. Each turn
   injects a fresh bearer; the sandbox should not persist it.
 - **Per-turn projected inputs** — `workspace/uploads/`,
-  `workspace/.mcp.json`, `workspace/AGENTS.md`,
+  `workspace/.pi/mcp.json`, `workspace/AGENTS.md`,
   `workspace/.pi/skills/` — keep being re-staged each turn from
   their durable Rails sources. The sandbox's copy is always a
   projection; the conversation's durable state lives in Rails.
