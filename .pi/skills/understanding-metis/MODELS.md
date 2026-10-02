@@ -143,14 +143,14 @@ def remove_scopes!(scopes_to_remove)
 ## Connector
 
 One configured MCP server, owned by a team. Becomes a `mcpServers`
-entry in the per-turn `.mcp.json` rendered by `Agent::McpConfig`.
+entry in the per-turn `.pi/mcp.json` rendered by `Agent::McpConfig`.
 
 ```ruby
 belongs_to :team
 has_many :connector_credentials, dependent: :destroy
 
 # stdio → `command` server entry; http → `url` server entry;
-# cli → omitted from `.mcp.json`, authorized via Runtime#sandbox_env
+# cli → omitted from `.pi/mcp.json`, authorized via Runtime#sandbox_env
 # (used today by the gws Google Workspace fallback).
 enum :transport, { stdio: 0, http: 1, cli: 2 }
 
@@ -203,7 +203,7 @@ validates :user_id, uniqueness: { scope: :connector_id }
 
 def credential_map
   # The header bag ("Authorization" => "Bearer xyz") to merge into
-  # the connector's .mcp.json entry. Token-auth stores these
+  # the connector's .pi/mcp.json entry. Token-auth stores these
   # directly; OAuth returns {} — runtime projects the live token
   # through the catalog's credential format.
 end

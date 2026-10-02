@@ -1,6 +1,6 @@
 # One configured MCP server, owned by a team. Each connector becomes a
-# `mcpServers` entry in the `.mcp.json` the runtime stages for a turn;
-# pi-mcp-adapter then exposes its tools to the agent. The non-secret
+# `mcpServers` entry in the `.pi/mcp.json` the runtime stages for a turn;
+# pi then exposes its tools to the agent. The non-secret
 # server definition lives here; secrets are separate
 # ConnectorCredentials, shared or per-member. See docs/connectors.md.
 class Connector < ApplicationRecord
@@ -11,7 +11,7 @@ class Connector < ApplicationRecord
   # cli — no MCP entry at all (the agent reaches the service through a
   # CLI on PATH, authorised by Runtime::Base#sandbox_env). cli connectors
   # are catalog-only — they exist as marketplace tiles and OAuth-grant
-  # markers, and McpConfig skips them when rendering .mcp.json.
+  # markers, and McpConfig skips them when rendering .pi/mcp.json.
   enum :transport, { stdio: 0, http: 1, cli: 2 }
 
   # Admin opt-in for the github_bot installation token, off by default —
@@ -36,6 +36,7 @@ class Connector < ApplicationRecord
                     uniqueness: { scope: :team_id }
   validates :transport, presence: true
   validate :definition_matches_transport
+  validate :name_unique_as_mcp_server
 
   def bot_enabled?
     ActiveModel::Type::Boolean.new.cast(bot_enabled)
@@ -57,6 +58,16 @@ class Connector < ApplicationRecord
 
   # A stdio server entry needs a command; an http one needs a url; a
   # cli one has no MCP server entry at all (definition is unused).
+  # pi treats server names differing only in `-` / `_` as one server and
+  # rejects the second, so `foo-bar` and `foo_bar` can't coexist in mcp.json.
+  def name_unique_as_mcp_server
+    return if name.blank? || errors.include?(:name)
+
+    clash = Connector.where(team_id: team_id).where.not(id: id)
+                     .where("REPLACE(name, '-', '_') = ?", name.tr("-", "_"))
+    errors.add(:name, :taken) if clash.exists?
+  end
+
   def definition_matches_transport
     return unless transport
     return if cli?

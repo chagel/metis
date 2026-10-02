@@ -6,7 +6,7 @@ module Linear
   # connector bearer. Used to populate the project picker on the project
   # form — a Rails-side metadata fetch for a UI list, the same shape as
   # GithubApp::InstallationToken.installations. It is *not* an MCP runtime
-  # (the agent still reaches Linear through pi-mcp-adapter); this is just a
+  # (the agent still reaches Linear through its MCP server); this is just a
   # direct API call so the operator can bind a project by name, not UUID.
   class Api
     Error = Class.new(StandardError)

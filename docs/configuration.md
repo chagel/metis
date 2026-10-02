@@ -133,11 +133,9 @@ The runtime decides *where* pi runs. See `coding-runtime.md` and
   turn over a persistent host bind mount (see
   [session-persistence](session-persistence.md)).
 
-Every runtime carries the **MCP connector bridge**
-([`pi-mcp-adapter`](https://github.com/nicobailon/pi-mcp-adapter)):
-`bin/setup` installs it into your local pi, and the `docker` image,
-`e2b` template, and `daytona` snapshot bake it in at build time. The
-X connector needs only deployment OAuth config (`X_CLIENT_ID`,
+MCP connectors need nothing installed: pi ≥ 1.0 speaks MCP natively.
+Remove any leftover `pi-mcp-adapter` (`bin/setup` does) — it replaces
+pi's built-in support and hides `.pi/mcp.json`. The X connector needs only deployment OAuth config (`X_CLIENT_ID`,
 `X_CLIENT_SECRET`, `X_REDIRECT_URI` — ENV first, then Rails
 credentials `x.*`). See `connectors.md`.
 

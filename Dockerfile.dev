@@ -2,8 +2,7 @@
 
 # Development image for the Docker Compose dev environment (compose.yaml).
 # Unlike the production Dockerfile, this bakes in everything a turn on the
-# :local runtime needs: Node, the pi binary, the pi-mcp-adapter bridge, and
-# the gws CLI — pi runs as a subprocess of this container (Runtime::Local).
+# :local runtime needs: Node, the pi binary, and the gws CLI — pi runs as a subprocess of this container (Runtime::Local).
 #
 # Build context is the repo root; only Gemfile(.lock) is copied — the app
 # code is bind-mounted at runtime by compose.
@@ -16,10 +15,8 @@ WORKDIR /rails
 ENV BUNDLE_PATH="/usr/local/bundle" \
     HOME="/root"
 
-# Pin these in lockstep with bin/setup, docker/pi-runtime/Dockerfile, and
-# lib/tasks/e2b.rake. PI_VERSION mirrors PiAgent::SUPPORTED_PI_VERSION.
-ARG PI_VERSION=0.87.1
-ARG PI_MCP_ADAPTER_VERSION=2.7.0
+# PI_VERSION mirrors PiAgent::SUPPORTED_PI_VERSION.
+ARG PI_VERSION=1.0.0
 
 # Base toolchain: gem build deps + libvips/libpq for the app, plus the
 # basics pi's bash tool and skills expect (git, ripgrep, curl). `gh` is
@@ -39,12 +36,9 @@ RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y gh nodejs && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives
 
-# pi itself, the MCP connector bridge, and the Google Workspace CLI. The
-# bridge installs under $HOME/.pi where pi (run as root in this container)
-# discovers it at turn time.
+# pi itself and the Google Workspace CLI.
 RUN npm install --global "@earendil-works/pi-coding-agent@${PI_VERSION}" && \
-    npm install --global @googleworkspace/cli && \
-    pi install "npm:pi-mcp-adapter@${PI_MCP_ADAPTER_VERSION}"
+    npm install --global @googleworkspace/cli
 
 # foreman drives bin/dev; baked in so the entrypoint doesn't gem-install it.
 RUN gem install foreman

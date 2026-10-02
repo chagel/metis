@@ -1,8 +1,8 @@
 require "digest"
 
 # Content fingerprint of everything baked into metis-pi: the pinned pi
-# version, the target CPU arch, the Dockerfile (which carries the pinned
-# pi-mcp-adapter / gws / toolchain), and the .pi/extensions tree. Stamped on
+# version, the target CPU arch, the Dockerfile (which carries the gws /
+# toolchain), and the .pi/extensions tree. Stamped on
 # the image as a label so a host can be asked "do you already have this exact
 # image?" — drives docker:sync_pi_image and the kamal pre-deploy hook. Bump
 # any input → new fingerprint → rebuild.

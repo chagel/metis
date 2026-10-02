@@ -96,11 +96,11 @@ class Agent::IdentityTest < ActiveSupport::TestCase
     assert_match(/not yet authorized/i, out)
   end
 
-  test "tells the agent that uploads and .mcp.json are projected inputs" do
+  test "tells the agent that uploads and .pi/mcp.json are projected inputs" do
     out = render
 
     assert_match(/uploads\//, out)
-    assert_match(/\.mcp\.json/, out)
+    assert_match(%r{\.pi/mcp\.json}, out)
     assert_match(/projected inputs/i, out)
   end
 

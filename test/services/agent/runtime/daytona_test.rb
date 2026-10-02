@@ -223,8 +223,7 @@ class Agent::Runtime::DaytonaTest < ActiveSupport::TestCase
     assert_equal Rails.application.config.x.agent.daytona_auto_delete_minutes, params.auto_delete_interval
   end
 
-  test "discards .mcp.json at end of turn so the fs holds no bearer tokens" do
-    mcp_path = "#{WORKSPACE}/#{Agent::McpConfig::FILENAME}"
+  test "creates .pi before staging mcp.json" do
     sandbox = FakeSandbox.new(id: "sbx-new")
     client = FakeClient.new(create: sandbox)
 
@@ -232,7 +231,18 @@ class Agent::Runtime::DaytonaTest < ActiveSupport::TestCase
       @runtime.run(pi_args: [ "--mode", "rpc" ]) { |_s| nil }
     end
 
-    assert_includes sandbox.process.runs, "rm -f #{mcp_path}",
+    assert_includes sandbox.process.runs, "mkdir -p #{WORKSPACE}/.pi"
+  end
+
+  test "discards .pi/mcp.json and the legacy .mcp.json at end of turn so the fs holds no bearer tokens" do
+    sandbox = FakeSandbox.new(id: "sbx-new")
+    client = FakeClient.new(create: sandbox)
+
+    with_daytona(client: client) do
+      @runtime.run(pi_args: [ "--mode", "rpc" ]) { |_s| nil }
+    end
+
+    assert_includes sandbox.process.runs, "rm -f #{WORKSPACE}/.pi/mcp.json #{WORKSPACE}/.mcp.json",
                     "mcp config deleted at end of turn — the warm/persisted fs must hold no tokens"
   end
 

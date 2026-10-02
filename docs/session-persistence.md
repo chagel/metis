@@ -148,7 +148,7 @@ in the persistent workspace — host filesystem for `Local`, `Docker`, and
 | Projected input | Source |
 |---|---|
 | `workspace/uploads/*` | `Message` attachments (Active Storage) |
-| `workspace/.mcp.json` | `Connector` + `ConnectorCredential` (see [`connectors.md`](connectors.md)) |
+| `workspace/.pi/mcp.json` | `Connector` + `ConnectorCredential` (see [`connectors.md`](connectors.md)) |
 | `workspace/AGENTS.md` | `Conversation` + `Team` + runtime (see [`agent-identity.md`](agent-identity.md)) |
 | `workspace/.pi/skills/*` | The repo's `.pi/skills/` tree + the team's enabled `Skill` rows — see [`skills.md`](skills.md) |
 

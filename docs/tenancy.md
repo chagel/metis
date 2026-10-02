@@ -74,7 +74,7 @@ projected into the pi runtime once per turn.
 
 | Resource  | Owned via            | Projected into the runtime as |
 |-----------|----------------------|-------------------------------|
-| Connector | `belongs_to :team`   | `.mcp.json` — see `connectors.md` |
+| Connector | `belongs_to :team`   | `.pi/mcp.json` — see `connectors.md` |
 | Project   | `belongs_to :team`   | repo + tracker context — see below |
 | Skill     | `belongs_to :team`   | `workspace/.pi/skills/<slug>/` — see [`skills.md`](skills.md) |
 | Upload    | `Message` attachment | `workspace/uploads/` — see `session-persistence.md` |

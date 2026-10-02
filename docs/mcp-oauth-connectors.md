@@ -45,7 +45,7 @@ connector.definition.url  (the MCP resource, e.g. https://mcp.notion.com/mcp)
   3. POST {registration_endpoint}                        → client_id   (DCR / RFC 7591, cached per server)
   4. redirect browser → {authorization_endpoint}         → code        (auth-code + PKCE S256 + resource=<url>)
   5. POST {token_endpoint}                               → access + refresh token   (audience-bound, RFC 8707)
-  6. McpConfig injects  Authorization: Bearer <token>    → pi-mcp-adapter talks to the server
+  6. McpConfig injects  Authorization: Bearer <token>    → pi talks to the server
 ```
 
 Steps 1–3 are **per server** (deployment-wide); 4–6 are **per member**.
@@ -82,7 +82,7 @@ Most of this already exists — it generalizes what `github` does.
 
 This is OAuth in Rails, not MCP-in-Rails: **Rails holds credentials and
 runs consent** (it has the user's browser; pi is headless in a sandbox),
-then hands the bearer to the adapter via `.mcp.json` — exactly the
+then hands the bearer to pi via `.pi/mcp.json` — exactly the
 existing `github` shape. Consistent with VISION (MCP is the default
 transport; no Rails-side MCP runtime).
 

@@ -6,8 +6,6 @@ namespace :e2b do
 
     puts "Building E2B template '#{name}' with #{pi_package}..."
 
-    # The MCP connector bridge (pi-mcp-adapter) is baked in alongside pi.
-    # Keep the version in sync with bin/setup and docker/pi-runtime/Dockerfile.
     # `gh` is installed from GitHub's apt source so the agent can act on
     # GitHub as the operator via the per-turn GH_TOKEN env var (see
     # app/services/agent/runtime/base.rb + docs/connectors.md). The
@@ -44,12 +42,6 @@ namespace :e2b do
                             # agent. npm fetches the matching prebuilt
                             # binary from the project's GitHub Releases.
                             .npm_install("@googleworkspace/cli", g: true)
-                            # Explicit user: pi extensions install into the user's
-                            # home; running as root would write to /root/.pi and
-                            # pi at runtime (user `user`) wouldn't find them.
-                            # Also workaround for E2B builder leaving user state
-                            # unresolved after a prior `user: "root"` step.
-                            .run_cmd("pi install npm:pi-mcp-adapter@2.7.0", user: "user")
                             # Bake the repo's .pi/skills/ tree into the image.
                             # Agent::Runtime::E2b#provision copies this into
                             # the conversation workspace on a fresh sandbox

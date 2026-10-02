@@ -122,7 +122,7 @@ prior conversation.
 | Path | Source |
 |---|---|
 | `workspace/uploads/*` | `Message` attachments (Active Storage) |
-| `workspace/.mcp.json` | `Connector` + `ConnectorCredential` (`Agent::McpConfig`) |
+| `workspace/.pi/mcp.json` | `Connector` + `ConnectorCredential` (`Agent::McpConfig`) |
 | `workspace/AGENTS.md` | `Conversation` + `Team` + runtime (`Agent::Identity`) |
 | `workspace/.pi/skills/*` | Repo's `.pi/skills/` tree + team's enabled `Skill` rows, layered into one tree by `Workspace#stage_skills` |
 
@@ -271,12 +271,12 @@ the team's + members' authorization state. The agent reaches external
 systems through one of two transports:
 
 - **MCP** (default) — `Connector#transport` is `stdio` or `http`, and
-  the connector is rendered into per-turn `.mcp.json` by
-  `Agent::McpConfig`. pi reads it via the `pi-mcp-adapter` extension,
-  installed at setup/image-build time, not loaded by Rails. Shipped:
+  the connector is rendered into per-turn `.pi/mcp.json` by
+  `Agent::McpConfig`. pi's built-in MCP support (pi ≥ 1.0) reads it;
+  nothing is loaded by Rails. Shipped:
   **GitHub**, **Linear**.
 - **CLI + skill** (documented fallback) — `Connector#transport` is
-  `cli`; the connector is *omitted* from `.mcp.json` and instead
+  `cli`; the connector is *omitted* from `.pi/mcp.json` and instead
   authorizes a CLI on PATH via `Runtime::Base#sandbox_env`. Shipped:
   **Google Workspace** (Gmail / Calendar / Drive) over the `gws` CLI,
   used because Google's MCP path excludes personal accounts. The CLI
@@ -284,7 +284,7 @@ systems through one of two transports:
   branches on transport) — bar is "MCP unavailable or gated", not
   "CLI feels easier".
 
-The bridge-via-extension choice (vs. pi's recommended skill+CLI path
+The MCP choice (vs. pi's recommended skill+CLI path
 for *everything*) is a load-bearing decision in `VISION.md`. Don't
 collapse the MCP path into CLI wrappers.
 

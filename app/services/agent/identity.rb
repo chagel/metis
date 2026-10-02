@@ -82,8 +82,9 @@ module Agent
 
         #{connectors_block}
 
-        Server config and auth headers are in `.mcp.json`, rendered
-        for this turn. The MCP bridge reads it.
+        Server config and auth headers are in `.pi/mcp.json`, rendered
+        for this turn. pi connects them natively; their tools are
+        named `mcp__<server>__<tool>`.
 
         ## Slash commands
 
@@ -126,7 +127,7 @@ module Agent
 
         ## Conventions
 
-        - `uploads/` and `.mcp.json` are projected inputs — rewritten
+        - `uploads/` and `.pi/mcp.json` are projected inputs — rewritten
           each turn. Don't edit them expecting it to stick.
         - Outside the workspace is the operator's host (`Local`) or a
           sandbox wall (`Docker` / `E2b`). The wall holds; don't probe

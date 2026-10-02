@@ -172,22 +172,22 @@ class Agent::WorkspaceTest < ActiveSupport::TestCase
     assert_equal "new upload", File.read(destination)
   end
 
-  test "stage_mcp_config writes .mcp.json into the workspace root" do
+  test "stage_mcp_config writes .pi/mcp.json into the workspace" do
     workspace = Agent::Workspace.scratch(@conversation)
     workspace.ensure!
 
     workspace.stage_mcp_config(%({"mcpServers":{}}))
 
-    assert_equal %({"mcpServers":{}}), File.read(workspace.workspace_dir.join(".mcp.json"))
+    assert_equal %({"mcpServers":{}}), File.read(workspace.workspace_dir.join(".pi/mcp.json"))
   end
 
-  test "stage_mcp_config writes .mcp.json 0600 — it carries bearer tokens" do
+  test "stage_mcp_config writes .pi/mcp.json 0600 — it carries bearer tokens" do
     workspace = Agent::Workspace.scratch(@conversation)
     workspace.ensure!
 
     workspace.stage_mcp_config(%({"mcpServers":{}}))
 
-    mode = File.stat(workspace.workspace_dir.join(".mcp.json")).mode & 0o777
+    mode = File.stat(workspace.workspace_dir.join(".pi/mcp.json")).mode & 0o777
     assert_equal 0o600, mode
   end
 
@@ -195,8 +195,9 @@ class Agent::WorkspaceTest < ActiveSupport::TestCase
     workspace = Agent::Workspace.scratch(@conversation)
     workspace.ensure!
     victim = workspace.scope_dir.join("victim.json")
-    destination = workspace.workspace_dir.join(".mcp.json")
+    destination = workspace.workspace_dir.join(".pi/mcp.json")
     File.write(victim, "keep")
+    FileUtils.mkdir_p(destination.dirname)
     File.symlink(victim, destination)
 
     workspace.stage_mcp_config(%({"mcpServers":{}}))
@@ -207,9 +208,23 @@ class Agent::WorkspaceTest < ActiveSupport::TestCase
     assert_equal 0o600, File.stat(destination).mode & 0o777
   end
 
+  test "stage_mcp_config replaces a symlinked .pi directory instead of writing through it" do
+    workspace = Agent::Workspace.scratch(@conversation).ensure!
+    outside = workspace.scope_dir.join("outside")
+    FileUtils.mkdir_p(outside)
+    File.symlink(outside, workspace.workspace_dir.join(".pi"))
+
+    workspace.stage_mcp_config(%({"mcpServers":{}}))
+
+    assert_empty outside.children
+    refute File.symlink?(workspace.workspace_dir.join(".pi"))
+    assert_equal %({"mcpServers":{}}), File.read(workspace.workspace_dir.join(".pi/mcp.json"))
+  end
+
   test "stage_mcp_config removes stale token-bearing temp files before staging" do
     workspace = Agent::Workspace.scratch(@conversation).ensure!
-    stale = workspace.workspace_dir.join("..mcp.json-abandoned.tmp")
+    stale = workspace.workspace_dir.join(".pi/.mcp.json-abandoned.tmp")
+    FileUtils.mkdir_p(stale.dirname)
     File.write(stale, "old bearer token")
 
     workspace.stage_mcp_config(%({"mcpServers":{}}))
@@ -217,14 +232,24 @@ class Agent::WorkspaceTest < ActiveSupport::TestCase
     refute stale.exist?
   end
 
-  test "discard_mcp_config removes the token-bearing .mcp.json" do
+  test "discard_mcp_config removes a legacy .mcp.json left by a pre-upgrade turn" do
+    workspace = Agent::Workspace.scratch(@conversation).ensure!
+    legacy = workspace.workspace_dir.join(".mcp.json")
+    File.write(legacy, %({"mcpServers":{"github":{"headers":{"Authorization":"Bearer old"}}}}))
+
+    workspace.discard_mcp_config
+
+    assert_not legacy.exist?
+  end
+
+  test "discard_mcp_config removes the token-bearing .pi/mcp.json" do
     workspace = Agent::Workspace.scratch(@conversation)
     workspace.ensure!
     workspace.stage_mcp_config(%({"mcpServers":{}}))
 
     workspace.discard_mcp_config
 
-    assert_not File.exist?(workspace.workspace_dir.join(".mcp.json"))
+    assert_not File.exist?(workspace.workspace_dir.join(".pi/mcp.json"))
   end
 
   test "stage_identity writes AGENTS.md into the workspace root" do

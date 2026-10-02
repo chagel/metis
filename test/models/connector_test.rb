@@ -40,6 +40,21 @@ class ConnectorTest < ActiveSupport::TestCase
     assert_not stdio_connector.valid?
   end
 
+  test "names differing only in - and _ collide, since pi treats them as one MCP server" do
+    stdio_connector(name: "foo-bar").save!
+
+    connector = stdio_connector(name: "foo_bar")
+    assert_not connector.valid?
+    assert connector.errors.added?(:name, :taken)
+  end
+
+  test "a connector does not collide with itself on update" do
+    connector = stdio_connector(name: "foo-bar")
+    connector.save!
+
+    assert connector.update(definition: { "command" => "uvx" })
+  end
+
   test "the same name is allowed for a different team" do
     stdio_connector.save!
     other = Team.create!(name: "Other")
