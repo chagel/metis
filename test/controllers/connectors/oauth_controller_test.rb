@@ -13,12 +13,8 @@ class Connectors::OauthControllerTest < ActionDispatch::IntegrationTest
       { "access_token" => "tok-123", "refresh_token" => "rt-9", "expires_in" => 3600 }
     end
 
-    def initialize(client_id = "cid")
-      @client_id = client_id
-    end
-
     def token_endpoint = "https://auth.example.com/token"
-    attr_reader :client_id
+    def client_id = "cid"
   end
 
   setup do
@@ -26,15 +22,14 @@ class Connectors::OauthControllerTest < ActionDispatch::IntegrationTest
     sign_in @user
   end
 
-  # Each start registers a new client (cid-1, cid-2, …); the callback rebuilds
-  # the provider from the client id carried in the session.
+  # Captures what the controller hands Provider: the CIMD URL on connect, the
+  # session's client id on resume.
   def with_provider
-    registered = 0
-    callback_client_ids = @callback_client_ids = []
-    register = ->(_url, redirect_uri:) { FakeProvider.new("cid-#{registered += 1}") }
-    resume = ->(_url, client_id:) { callback_client_ids << client_id; FakeProvider.new(client_id) }
-    with_stub(Mcp::Oauth::Provider, :register, register) do
-      with_stub(Mcp::Oauth::Provider, :for, resume) { yield }
+    calls = @provider_calls = { connect: [], resume: [] }
+    connect = ->(_url, redirect_uri:, client_metadata_url:) { calls[:connect] << client_metadata_url; FakeProvider.new }
+    resume = ->(_url, client_id:) { calls[:resume] << client_id; FakeProvider.new }
+    with_stub(Mcp::Oauth::Provider, :connect, connect) do
+      with_stub(Mcp::Oauth::Provider, :resume, resume) { yield }
     end
   end
 
@@ -44,18 +39,10 @@ class Connectors::OauthControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to "https://auth.example.com/authorize?x=1"
     flow = session[:mcp_oauth]
     assert_equal "notion", flow["catalog_key"]
+    assert_equal "cid", flow["client_id"]
+    assert_equal [ mcp_client_metadata_url ], @provider_calls[:connect]
     assert flow["state"].present?
     assert flow["verifier"].present?
-  end
-
-  test "every start registers a fresh client, so a revoked one is never reused" do
-    with_provider do
-      post connector_oauth_start_path("notion")
-      assert_equal "cid-1", session[:mcp_oauth]["client_id"]
-
-      post connector_oauth_start_path("notion")
-      assert_equal "cid-2", session[:mcp_oauth]["client_id"]
-    end
   end
 
   test "start rejects an unknown or non-mcp_oauth connector" do
@@ -75,7 +62,7 @@ class Connectors::OauthControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to connectors_path
-    assert_equal [ "cid-1" ], @callback_client_ids
+    assert_equal [ "cid" ], @provider_calls[:resume], "the callback reuses the client the start chose"
     connector = @user.personal_team.connectors.find_by(catalog_key: "notion")
     assert_equal "tok-123", connector.credential_for(@user).mcp_oauth_access_token
   end

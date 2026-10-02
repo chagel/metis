@@ -48,4 +48,16 @@ class Mcp::OauthTest < ActiveSupport::TestCase
     assert_equal "ver", captured[:payload][:code_verifier]
     assert_equal "https://mcp.example.com/mcp", captured[:payload][:resource]
   end
+
+  test "Http raises InvalidClient only for an invalid_client error body" do
+    response = ->(code, body) { Struct.new(:code, :body).new(code, body) }
+
+    assert_raises(Mcp::Oauth::InvalidClient) do
+      Mcp::Oauth::Http.parse_or_raise(response.("401", %({"error":"invalid_client"})), "t")
+    end
+    [ [ "400", %({"error":"invalid_grant"}) ], [ "502", "<html>" ], [ "400", "[]" ] ].each do |code, body|
+      error = assert_raises(Mcp::Oauth::Error) { Mcp::Oauth::Http.parse_or_raise(response.(code, body), "t") }
+      assert_not_kind_of Mcp::Oauth::InvalidClient, error
+    end
+  end
 end

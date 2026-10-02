@@ -270,8 +270,9 @@ Linear involves **two independent token paths**, deliberately kept apart,
 plus the OAuth app's own webhook:
 
 1. **MCP-OAuth** (the connector itself) — the per-member token the agent
-   uses to reach Linear's MCP server (`mcp.linear.app/mcp`), obtained via
-   Dynamic Client Registration and stored on the member's
+   uses to reach Linear's MCP server (`mcp.linear.app/mcp`), obtained
+   with Metis's Client ID Metadata Document as `client_id` (see
+   `mcp-oauth-connectors.md`) and stored on the member's
    `ConnectorCredential` (`mcp_oauth`). It authenticates **only** the MCP
    gateway — it is **not** accepted by `api.linear.app/graphql`.
 2. **Direct Linear OAuth** (`linear.app/oauth`) — a deployment-registered

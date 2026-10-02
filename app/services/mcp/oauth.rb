@@ -11,6 +11,9 @@ module Mcp
   # docs/mcp-oauth-connectors.md.
   module Oauth
     Error = Class.new(StandardError)
+    # A token endpoint's RFC 6749 §5.2 answer for a client it doesn't know.
+    InvalidClient = Class.new(Error)
+    CLIENT_NAME = "Metis".freeze
 
     module_function
 
