@@ -28,11 +28,21 @@ module Agent
     # else (a genuine user dialog has nowhere to go in async web chat).
     def self.handler(conversation)
       lambda do |request|
+        next log_notification(conversation, request) if request.method == :notify
+
         op = request.title.to_s
         next nil unless op.start_with?(PREFIX)
 
         call(conversation, op.delete_prefix(PREFIX), params_from(request))
       end
+    end
+
+    # pi reports MCP servers that failed or need sign-in only through
+    # `ctx.ui.notify`; with no TUI to show it, the log is where it surfaces.
+    def self.log_notification(conversation, request)
+      level = { "error" => :error, "warning" => :warn }.fetch(request.notify_type.to_s, :info)
+      Rails.logger.public_send(level, "pi notify (conversation #{conversation.id}): #{request.message}")
+      nil
     end
 
     def self.params_from(request)

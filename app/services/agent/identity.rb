@@ -4,11 +4,12 @@ module Agent
   class Identity
     FILENAME = "AGENTS.md".freeze
 
-    def initialize(conversation, runtime_kind, restore_history: false, workspace_evicted: false)
+    def initialize(conversation, runtime_kind, restore_history: false, workspace_evicted: false, mcp_config: nil)
       @conversation = conversation
       @runtime_kind = runtime_kind.to_s
       @restore_history = restore_history
       @workspace_evicted = workspace_evicted
+      @mcp_config = mcp_config
     end
 
     def content
@@ -391,18 +392,34 @@ module Agent
     end
 
     def connector_auth_description(connector, app)
+      return cli_connector_auth_description(connector, app) if connector.cli?
+
       credential = connector.credential_for(user)
-      return "no credential — you'll see the server, but it may reject calls" if credential.nil?
+      # Ask McpConfig, never re-derive its gate: a connector described as
+      # available but left out of mcp.json sends the agent after tools it doesn't have.
+      unless mcp_config.staged?(connector)
+        return "not connected for you — omitted from this turn" if credential.nil?
 
-      if app&.oauth?
-        # Mirror McpConfig's gate exactly: claiming OAuth-ready when McpConfig
-        # drops the connector makes the agent call tools it doesn't have.
-        return "as you (OAuth)" if credential.oauth_ready?
-
-        return "OAuth not yet authorized — connector will be omitted from this turn"
+        return "not yet authorized or the token expired — omitted from this turn; the operator can reconnect it"
       end
+      return "no credential — you'll see the server, but it may reject calls" if credential.nil?
+      return "as you (OAuth)" if app&.oauth? || app&.mcp_oauth?
 
       credential.user_id ? "as you" : "team-shared credential"
+    end
+
+    # cli connectors are authorized through Runtime::Base#sandbox_env, not mcp.json.
+    def cli_connector_auth_description(connector, app)
+      credential = connector.credential_for(user)
+      return "no credential — you'll see the server, but it may reject calls" if credential.nil?
+      return "OAuth not yet authorized — connector will be omitted from this turn" if app&.oauth? && !credential.oauth_ready?
+      return "as you (OAuth)" if app&.oauth?
+
+      credential.user_id ? "as you" : "team-shared credential"
+    end
+
+    def mcp_config
+      @mcp_config ||= McpConfig.new(@conversation)
     end
 
     def enabled_connectors

@@ -88,6 +88,14 @@ credential if present, else the shared credential, else omits the
 connector from X's `.pi/mcp.json`. That resolution point is also the audit
 anchor: which member used which connector under which credential.
 
+The per-turn `AGENTS.md` describes each MCP connector from the same
+resolution: `Agent::Identity` asks the turn's `Agent::McpConfig#staged?`
+(one instance per turn, shared by `Runtime::Base`) rather than
+re-deriving the gate, so a connector dropped from `.pi/mcp.json` — no
+credential, a failed OAuth refresh, a missing MCP-OAuth token — is never
+described as available. pi reports servers that fail to connect or need
+sign-in only through `ctx.ui.notify`; `Agent::HostBridge` logs those.
+
 ## Why pi recommends CLIs — and why metis differs
 
 pi's recommendation is sound *for pi*. pi is a single-user coding agent
