@@ -86,6 +86,18 @@ module Agent
         for this turn. pi connects them natively; their tools are
         named `mcp__<server>__<tool>`.
 
+        Most MCP tools are reachable only from `codemode` scripts:
+
+        - Call them flat: `await tools.mcp__github__get_me({})`.
+          There is no `tools.mcp__github.get_me`.
+        - `ALL_TOOLS` is an array of `{ name, description }`;
+          `await searchTools("query")` resolves to one. Filter on
+          `t.name`, not `t`.
+        - `await describeTool("mcp__<server>__<tool>")` gives the
+          argument schema; check it before guessing parameters.
+        - `tools`, `ALL_TOOLS`, `searchTools`, and `describeTool` are
+          globals — don't redeclare them (`const tools = …` fails).
+
         ## Slash commands
 
         A leading `/<slug>` in the operator's message is a deliberate

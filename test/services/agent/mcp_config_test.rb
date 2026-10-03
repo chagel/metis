@@ -32,6 +32,21 @@ class Agent::McpConfigTest < ActiveSupport::TestCase
     assert_equal({ "command" => "npx", "args" => [ "-y", "x" ] }, rendered["mcpServers"]["fs"])
   end
 
+  test "a catalog connector carries its catalog description for pi's tool discovery" do
+    add_connector(name: "linear", transport: :http, catalog_key: "linear",
+                  definition: { "url" => "https://mcp.linear.app/mcp" })
+
+    assert_equal ConnectorCatalog.find("linear").description,
+                 rendered["mcpServers"]["linear"]["description"]
+  end
+
+  test "a definition's own description wins over the catalog's" do
+    add_connector(name: "linear", transport: :http, catalog_key: "linear",
+                  definition: { "url" => "https://mcp.linear.app/mcp", "description" => "Ours." })
+
+    assert_equal "Ours.", rendered["mcpServers"]["linear"]["description"]
+  end
+
   test "merges the member's own credential into a stdio connector's env" do
     connector = add_connector(name: "fs", definition: { "command" => "npx" })
     connector.connector_credentials.create!(user: member, credential_map: { "API_KEY" => "mine" })
@@ -189,6 +204,16 @@ class Agent::McpConfigTest < ActiveSupport::TestCase
       with_stub(GithubApp::InstallationToken, :for, ->(id = nil) { "ghs_bot" }) do
         assert_equal({ "Authorization" => "Bearer ghs_bot" },
                      rendered["mcpServers"]["github_bot"]["headers"])
+      end
+    end
+  end
+
+  test "the github_bot server is described so the agent can tell it apart from github" do
+    add_github_connector
+    with_stub(GithubApp::Config, :app_auth_configured?, -> { true }) do
+      with_stub(GithubApp::InstallationToken, :for, ->(id = nil) { "ghs_bot" }) do
+        assert_equal Agent::McpConfig::BOT_DESCRIPTION,
+                     rendered["mcpServers"]["github_bot"]["description"]
       end
     end
   end

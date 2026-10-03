@@ -73,6 +73,16 @@ class Agent::IdentityTest < ActiveSupport::TestCase
     assert_match(/GitHub.*`github`.*OAuth/i, out)
   end
 
+  test "tells the agent how to call MCP tools from codemode" do
+    out = render
+
+    assert_includes out, "tools.mcp__github__get_me"
+    assert_match(/ALL_TOOLS.*\{ name, description \}/m, out)
+    assert_includes out, "await searchTools("
+    assert_includes out, "describeTool("
+    assert_match(/don't redeclare/, out)
+  end
+
   test "explicitly notes when no connectors are wired" do
     assert_match(/None enabled/i, render)
   end

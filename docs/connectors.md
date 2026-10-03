@@ -26,6 +26,13 @@ the durable `Connector` records, so the secrets never become durable
 on disk. A fresh sandbox carries no other MCP config, so the staged
 file is the only source.
 
+Each entry also carries a `description` — the catalog app's, unless the
+definition sets its own; `github_bot` gets a fixed one naming its bot
+identity. pi ≥ 1.0 exposes MCP tools through `codemode` by default and
+lists only server names and descriptions in the system prompt, so the
+description is how the agent picks a server (and how `searchTools()`
+ranks its tools).
+
 ## Why not skill + CLI
 
 A CLI is an end-to-end application built for a human at a terminal on
