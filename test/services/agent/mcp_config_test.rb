@@ -265,4 +265,33 @@ class Agent::McpConfigTest < ActiveSupport::TestCase
 
     assert_nil rendered["mcpServers"]["notion"]
   end
+
+  test "staged? is true only for connectors rendered into mcp.json" do
+    staged = add_connector(name: "fs")
+    dropped = add_connector(name: "other", definition: { "command" => "npx" })
+    stranger = User.create!(email: "s-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    dropped.connector_credentials.create!(user: stranger, credential_map: { "K" => "v" })
+    config = Agent::McpConfig.new(conversation)
+
+    assert config.staged?(staged)
+    refute config.staged?(dropped)
+    assert_equal [ "fs" ], config.to_h["mcpServers"].keys
+  end
+
+  test "resolves credentials once across to_h and staged?" do
+    connector, cred = add_notion
+    cred.store_mcp_oauth!({ "access_token" => "old", "refresh_token" => "rt", "expires_in" => -10 },
+                          token_endpoint: "https://auth.example/token", client_id: "cid")
+    refreshes = 0
+    refresh = ->(**) { refreshes += 1; { "access_token" => "fresh", "expires_in" => -10 } }
+
+    with_stub(Mcp::Oauth, :refresh, refresh) do
+      config = Agent::McpConfig.new(conversation)
+      config.content
+      assert config.staged?(connector)
+      config.to_h
+    end
+
+    assert_equal 1, refreshes
+  end
 end

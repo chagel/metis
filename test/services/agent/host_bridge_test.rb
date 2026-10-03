@@ -13,8 +13,8 @@ class Agent::HostBridgeTest < ActiveSupport::TestCase
     @conversation = @user.conversations.create!(team: @team, project: @project)
   end
 
-  # A stand-in for PiAgent::ExtensionUI::Request (title + placeholder).
-  Req = Struct.new(:title, :placeholder)
+  # A stand-in for PiAgent::ExtensionUI::Request.
+  Req = Struct.new(:title, :placeholder, :method, :message, :notify_type)
 
   test "get_workflow returns the full definition as JSON" do
     json = Agent::HostBridge.call(@conversation, "get_workflow", "name" => "Ship")
@@ -79,6 +79,18 @@ class Agent::HostBridgeTest < ActiveSupport::TestCase
   test "the handler cancels non-metis (genuine user) dialogs" do
     handler = Agent::HostBridge.handler(@conversation)
     assert_nil handler.call(Req.new("Pick a file", "options"))
+  end
+
+  test "the handler logs pi notifications instead of dropping them" do
+    log = StringIO.new
+    original, Rails.logger = Rails.logger, ActiveSupport::Logger.new(log)
+    request = Req.new(nil, nil, :notify, "MCP servers need attention:\n  notion: needs sign-in", "warning")
+
+    assert_nil Agent::HostBridge.handler(@conversation).call(request)
+    assert_includes log.string, "notion: needs sign-in"
+    assert_includes log.string, "conversation #{@conversation.id}"
+  ensure
+    Rails.logger = original
   end
 
   test "the handler tolerates malformed params, falling back to empty" do

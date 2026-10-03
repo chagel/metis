@@ -69,7 +69,7 @@ module Agent
       # conversation's connectors, for a runtime to stage into pi's
       # workspace each turn.
       def mcp_config
-        Agent::McpConfig.new(conversation).content
+        mcp_document.content
       end
 
       # The rendered AGENTS.md (Agent::Identity) — pi's per-turn boot file.
@@ -78,7 +78,13 @@ module Agent
       def identity_content
         restore = context_lost? || conversation.needs_history_replay?
         Agent::Identity.new(conversation, kind, restore_history: restore,
-                            workspace_evicted: workspace_evicted?).content
+                            workspace_evicted: workspace_evicted?, mcp_config: mcp_document).content
+      end
+
+      # One per turn, so AGENTS.md describes exactly the connectors staged in
+      # .pi/mcp.json and OAuth refreshes run once.
+      def mcp_document
+        @mcp_document ||= Agent::McpConfig.new(conversation)
       end
 
       # The working tree was reclaimed while its transcript survived —

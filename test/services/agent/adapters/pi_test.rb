@@ -339,7 +339,9 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
     handler = runtime.extension_ui
     assert handler.respond_to?(:call), "a callable handler is threaded into the runtime"
 
-    req = Struct.new(:title, :placeholder).new("metis:get_workflow", JSON.generate(name: "Ship"))
+    req = PiAgent::ExtensionUI::Request.new(
+      "method" => "input", "title" => "metis:get_workflow", "placeholder" => JSON.generate(name: "Ship")
+    )
     assert_equal workflow.name, JSON.parse(handler.call(req))["name"]
   end
 
