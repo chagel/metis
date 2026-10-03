@@ -15,6 +15,11 @@ module Agent
     # leave its bearer tokens there, so cleanup removes both.
     LEGACY_FILENAME = ".mcp.json".freeze
     TOKEN_FILENAMES = [ FILENAME, LEGACY_FILENAME ].freeze
+    # github_bot serves the same tools as `github` from the same URL; without
+    # this the agent can't tell which identity a call will carry.
+    BOT_DESCRIPTION = "Same GitHub tools as `github`, but acting as the GitHub App bot " \
+                      "instead of the operator. Use it to post PR reviews (approve / request " \
+                      "changes) or when an action must come from the bot; otherwise use `github`.".freeze
 
     def initialize(conversation)
       @conversation = conversation
@@ -68,12 +73,20 @@ module Agent
       secrets = secrets_for(connector, credential)
       return nil if secrets.nil?
 
-      entry = connector.definition.deep_dup
+      entry = with_description(connector.definition.deep_dup, connector.catalog_app&.description)
       return entry if secrets.empty?
 
       slot = connector.stdio? ? "env" : "headers"
       entry[slot] = (entry[slot] || {}).merge(secrets)
       entry
+    end
+
+    # pi lists a server's `description` in the system prompt and ranks
+    # codemode's searchTools() by it. A definition's own description wins.
+    def with_description(entry, description)
+      return entry if description.blank? || entry["description"].present?
+
+      entry.merge("description" => description)
     end
 
     # The header/env values a credential contributes to its connector's
@@ -146,7 +159,7 @@ module Agent
       return unless github&.bot_enabled?
 
       token = GithubApp::InstallationToken.for(github.bot_installation_id)
-      entry = github.definition.deep_dup
+      entry = github.definition.deep_dup.merge("description" => BOT_DESCRIPTION)
       entry["headers"] = (entry["headers"] || {}).merge(github.catalog_app.credential_map_for(token))
       [ "github_bot", entry ]
     rescue GithubApp::InstallationToken::Error => error
