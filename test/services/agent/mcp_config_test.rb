@@ -187,78 +187,13 @@ class Agent::McpConfigTest < ActiveSupport::TestCase
                  "connector with no catalog entry must be dropped, not rendered without auth"
   end
 
-  # A second `github_bot` server (installation token) is staged next to
-  # the user's own `github` server when the deployment is App-auth
-  # configured AND an admin has turned the bot on for the connector, so
-  # the agent can act as the bot for PR reviews.
-  def add_github_connector(bot_enabled: true)
-    connector = add_connector(name: "github", transport: :http,
-                              definition: { "url" => "https://mcp.example/" }, catalog_key: "github")
-    connector.update!(bot_enabled: bot_enabled)
-    connector
-  end
-
-  test "stages a github_bot server with a minted installation token when configured and enabled" do
-    add_github_connector
+  test "stages the github_bot server next to the team's connectors" do
+    add_connector(name: "github", transport: :http, catalog_key: "github",
+                  definition: { "url" => "https://mcp.example/" }).update!(bot_enabled: true)
     with_stub(GithubApp::Config, :app_auth_configured?, -> { true }) do
       with_stub(GithubApp::InstallationToken, :for, ->(id = nil) { "ghs_bot" }) do
         assert_equal({ "Authorization" => "Bearer ghs_bot" },
                      rendered["mcpServers"]["github_bot"]["headers"])
-      end
-    end
-  end
-
-  test "the github_bot server is described so the agent can tell it apart from github" do
-    add_github_connector
-    with_stub(GithubApp::Config, :app_auth_configured?, -> { true }) do
-      with_stub(GithubApp::InstallationToken, :for, ->(id = nil) { "ghs_bot" }) do
-        assert_equal Agent::McpConfig::BOT_DESCRIPTION,
-                     rendered["mcpServers"]["github_bot"]["description"]
-      end
-    end
-  end
-
-  test "the github_bot token is minted for the connector's chosen installation" do
-    add_github_connector.update!(bot_installation_id: "777")
-    minted_for = :unset
-    with_stub(GithubApp::Config, :app_auth_configured?, -> { true }) do
-      with_stub(GithubApp::InstallationToken, :for, ->(id = nil) { minted_for = id; "ghs_bot" }) do
-        rendered
-      end
-    end
-
-    assert_equal "777", minted_for
-  end
-
-  test "no github_bot server when the connector has not enabled the bot" do
-    add_github_connector(bot_enabled: false)
-    with_stub(GithubApp::Config, :app_auth_configured?, -> { true }) do
-      with_stub(GithubApp::InstallationToken, :for, ->(id = nil) { "ghs_bot" }) do
-        assert_not_includes rendered["mcpServers"].keys, "github_bot"
-      end
-    end
-  end
-
-  test "no github_bot server when the deployment lacks App auth" do
-    add_github_connector
-    with_stub(GithubApp::Config, :app_auth_configured?, -> { false }) do
-      assert_not_includes rendered["mcpServers"].keys, "github_bot"
-    end
-  end
-
-  test "no github_bot server when the team has no github connector" do
-    add_connector(name: "fs", definition: { "command" => "npx" })
-    with_stub(GithubApp::Config, :app_auth_configured?, -> { true }) do
-      assert_not_includes rendered["mcpServers"].keys, "github_bot"
-    end
-  end
-
-  test "the github_bot server is omitted when minting fails" do
-    add_github_connector
-    failing = ->(_id = nil) { raise GithubApp::InstallationToken::Error, "no install" }
-    with_stub(GithubApp::Config, :app_auth_configured?, -> { true }) do
-      with_stub(GithubApp::InstallationToken, :for, failing) do
-        assert_not_includes rendered["mcpServers"].keys, "github_bot"
       end
     end
   end

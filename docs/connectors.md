@@ -184,7 +184,7 @@ on file anywhere.
     App's sole installation (`GET /app/installations`, cached). With
     several installs and no choice anywhere, resolution raises and
     the bot is skipped — pick one on the manage page.
-    No bearer is stored. `McpConfig` stages this **second** server
+    No bearer is stored. `GithubApp::BotServer` stages this **second** server
     whenever the deployment is App-auth configured (`GITHUB_APP_ID` +
     `GITHUB_APP_PRIVATE_KEY`), the team has a `github` connector, **and an
     admin has turned the bot on** for it (`Connector#bot_enabled?` —
