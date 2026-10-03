@@ -97,6 +97,13 @@ class DoctorTest < ActiveSupport::TestCase
     end
   end
 
+  test "default model warns on a provider without a model, which pi 1.0 rejects as a flag pair" do
+    assert_equal :warn, check(doctor({ "METIS_AGENT_PROVIDER" => "anthropic" }), "Agent", "default model").status
+    both = { "METIS_AGENT_PROVIDER" => "anthropic", "METIS_AGENT_MODEL" => "claude-opus-5-5" }
+    assert_equal :ok, check(doctor(both), "Agent", "default model").status
+    assert_equal :off, check(doctor, "Agent", "default model").status
+  end
+
   test "unknown runtime fails" do
     assert_equal :fail, check(doctor({ "METIS_AGENT_RUNTIME" => "podman" }), "Agent", "runtime").status
   end

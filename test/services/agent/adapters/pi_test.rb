@@ -477,7 +477,7 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
   end
 
   test "pi_args omits --api-key when no key is configured for the provider" do
-    conversation = create_conversation(settings: { "provider" => "anthropic" })
+    conversation = create_conversation(settings: { "provider" => "anthropic", "model" => "claude-sonnet-4-5" })
     with_agent_config(api_keys: {}) do
       args = Agent::Adapters::Pi.new(conversation: conversation).pi_args
 
@@ -509,11 +509,33 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
   end
 
   test "the deployment api key is matched to the conversation's provider" do
-    conversation = create_conversation(settings: { "provider" => "openai" })
+    conversation = create_conversation(settings: { "provider" => "openai", "model" => "gpt-5" })
     with_agent_config(api_keys: { "anthropic" => "sk-ant", "openai" => "sk-oai" }) do
       args = Agent::Adapters::Pi.new(conversation: conversation).pi_args
 
       assert_equal "sk-oai", args[args.index("--api-key") + 1]
+    end
+  end
+
+  test "a provider-only setting passes the provider's first catalog model alongside --provider" do
+    LlmProvider.create!(key: "openai", label: "OpenAI").llm_models.create!(key: "gpt-5", label: "GPT-5")
+    conversation = create_conversation(settings: { "provider" => "openai" })
+    with_agent_config(model: nil, api_keys: { "openai" => "sk-oai" }) do
+      args = Agent::Adapters::Pi.new(conversation: conversation).pi_args
+
+      assert_equal "gpt-5", args[args.index("--model") + 1]
+      assert_equal "openai", args[args.index("--provider") + 1]
+    end
+  end
+
+  test "never passes --provider or --api-key without a model — pi 1.0 rejects them" do
+    conversation = create_conversation
+    with_agent_config(provider: "anthropic", model: nil, api_keys: { "anthropic" => "sk-ant" }) do
+      args = Agent::Adapters::Pi.new(conversation: conversation).pi_args
+
+      refute_includes args, "--model"
+      refute_includes args, "--provider"
+      refute_includes args, "--api-key"
     end
   end
 

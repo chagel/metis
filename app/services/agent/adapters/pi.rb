@@ -199,7 +199,8 @@ module Agent
 
         args = []
         args += [ "--model", model ] if model.present?
-        if provider.present?
+        # pi ≥ 1.0 refuses --provider (and --api-key) without --model.
+        if provider.present? && model.present?
           args += [ "--provider", provider ]
           key = Rails.application.config.x.agent.api_keys.to_h[provider]
           args += [ "--api-key", key ] if key.present?
