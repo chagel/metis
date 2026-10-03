@@ -262,7 +262,7 @@ Two distinct surfaces, separately governed:
    per-user. When the deployment is App-auth configured and an admin
    enables it on the team's github connector (`Connector#bot_enabled`,
    `bot_installation_id` — a per-team installation picker), `McpConfig`
-   stages a second `github_bot` server bearing a minted installation
+   stages (via `GithubApp::BotServer`) a second `github_bot` server bearing a minted installation
    token so the agent can act as `<slug>[bot]`. Off by default; the
    token is installation-wide.
 

@@ -159,7 +159,7 @@ enum :transport, { stdio: 0, http: 1, cli: 2 }
 #     token (off by default; installation-wide, shared team-wide).
 #   bot_installation_id — which App installation the bot acts through
 #     when the App has several (nil → GITHUB_APP_INSTALLATION_ID).
-#   McpConfig#bot_entry reads both to stage the `github_bot` server.
+#   GithubApp::BotServer reads both to stage the `github_bot` server.
 #   linear_organization_id — the authorizing Linear workspace's org id,
 #     captured on OAuth; inbound app-webhook deliveries resolve to the
 #     team via `for_linear_organization(org_id)`.

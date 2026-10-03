@@ -193,10 +193,11 @@ the OAuth/DCR flow).
   from the team's enabled connectors. It is a projected input, never
   durable. When the deployment is GitHub-App-auth configured and an admin
   enables it on the team's github connector (`bot_enabled`,
-  `bot_installation_id` — a per-team installation picker), McpConfig stages
-  a second `github_bot` server bearing a minted installation token so the
-  agent can act as `<slug>[bot]` (used by the reviewing-code skill to post
-  PR reviews). Off by default — the token is installation-wide.
+  `bot_installation_id` — a per-team installation picker),
+  `GithubApp::BotServer` adds a second `github_bot` server to it, bearing a
+  minted installation token so the agent can act as `<slug>[bot]` (used by
+  the reviewing-code skill to post PR reviews). Off by default — the token
+  is installation-wide.
 - OAuth flows live under `app/services/oauth_broker/`,
   `omniauth_connector.rb`, and the per-provider apps
   (`{github,google,linear}_app/`). Provider API keys for the LLM are

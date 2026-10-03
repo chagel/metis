@@ -268,8 +268,8 @@ have).
 def to_h
   # Per-connector member entries, plus an optional team-wide github_bot.
   entries = connectors.filter_map { |c| [c.name, server_entry(c)] if server_entry(c) }
-  entries << bot_entry if bot_entry
-  { "mcpServers" => entries.to_h }
+  entries << GithubApp::BotServer.for(connectors)
+  { "mcpServers" => entries.compact.to_h }
 end
 
 # secrets_for:
@@ -278,14 +278,15 @@ end
 #   {header => value} → merge into entry[stdio ? "env" : "headers"]
 ```
 
-`bot_entry` stages a second `github_bot` server — team-wide, independent
+`GithubApp::BotServer.for` stages a second `github_bot` server — team-wide, independent
 of the conversation member — when the deployment is GitHub-App-auth
 configured and an admin enabled it on the team's github connector
 (`bot_enabled` + `bot_installation_id`). It bears a freshly minted
 installation token (`GithubApp::InstallationToken.for`) so the agent can
 act as `<slug>[bot]` (the reviewing-code skill posts PR reviews this way;
 GitHub forbids approving your own PR, so the member `github` server
-can't). A mint failure just omits it — never crashes the turn.
+can't). It carries a fixed `DESCRIPTION` so the agent can tell it apart
+from `github`. A mint failure just omits it — never crashes the turn.
 
 ## `Agent::Identity`
 

@@ -15,11 +15,6 @@ module Agent
     # leave its bearer tokens there, so cleanup removes both.
     LEGACY_FILENAME = ".mcp.json".freeze
     TOKEN_FILENAMES = [ FILENAME, LEGACY_FILENAME ].freeze
-    # github_bot serves the same tools as `github` from the same URL; without
-    # this the agent can't tell which identity a call will carry.
-    BOT_DESCRIPTION = "Same GitHub tools as `github`, but acting as the GitHub App bot " \
-                      "instead of the operator. Use it to post PR reviews (approve / request " \
-                      "changes) or when an action must come from the bot; otherwise use `github`.".freeze
 
     def initialize(conversation)
       @conversation = conversation
@@ -31,9 +26,8 @@ module Agent
         entry = server_entry(connector)
         [ connector.name, entry ] if entry
       end
-      bot = bot_entry
-      entries << bot if bot
-      { "mcpServers" => entries.to_h }
+      entries << GithubApp::BotServer.for(connectors)
+      { "mcpServers" => entries.compact.to_h }
     end
 
     # The document as a string, ready to write to FILENAME.
@@ -48,7 +42,7 @@ module Agent
       # no MCP server to stage — the agent reaches them through a CLI on
       # PATH, authorised by Runtime::Base#sandbox_env. Filter them out
       # so they never land in mcp.json.
-      @conversation.team.connectors.where.not(transport: Connector.transports[:cli])
+      @connectors ||= @conversation.team.connectors.where.not(transport: Connector.transports[:cli]).to_a
     end
 
     # A connector's server entry for this conversation's member, or nil
@@ -141,30 +135,6 @@ module Agent
       end
 
       { "Authorization" => "Bearer #{bearer}" }
-    end
-
-    # A second GitHub server, `github_bot`, bearing a freshly minted
-    # installation token so the agent can act as `<slug>[bot]` — used by
-    # the reviewing-code skill to post PR reviews (GitHub forbids
-    # approving your own PR, so the personal `github` server can't).
-    # Staged only when the deployment is App-auth configured and an admin
-    # has enabled the bot on the team's github connector (`bot_enabled`,
-    # off by default — the token is installation-wide). nil (not eligible
-    # or a mint failure) just omits it — never crashes the turn. See
-    # docs/connectors.md.
-    def bot_entry
-      return unless GithubApp::Config.app_auth_configured?
-
-      github = connectors.find { |connector| connector.catalog_app&.oauth_provider == "github" }
-      return unless github&.bot_enabled?
-
-      token = GithubApp::InstallationToken.for(github.bot_installation_id)
-      entry = github.definition.deep_dup.merge("description" => BOT_DESCRIPTION)
-      entry["headers"] = (entry["headers"] || {}).merge(github.catalog_app.credential_map_for(token))
-      [ "github_bot", entry ]
-    rescue GithubApp::InstallationToken::Error => error
-      Rails.logger.error("McpConfig: github_bot server skipped — #{error.message}")
-      nil
     end
   end
 end
