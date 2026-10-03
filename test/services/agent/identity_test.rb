@@ -106,6 +106,69 @@ class Agent::IdentityTest < ActiveSupport::TestCase
     assert_match(/not yet authorized/i, out)
   end
 
+  test "an mcp_oauth connector McpConfig drops is described as omitted, not 'as you'" do
+    connector = conversation.team.connectors.create!(
+      name: "notion", transport: :http, catalog_key: "notion",
+      definition: { "url" => "https://mcp.notion.com/mcp" }
+    )
+    connector.connector_credentials.create!(user: conversation.user) # no MCP-OAuth token
+
+    line = render.lines.find { |l| l.include?("`notion`") }
+
+    refute_match(/as you/, line)
+    assert_match(/omitted from this turn/, line)
+  end
+
+  test "a staged mcp_oauth connector is described as acting as the member" do
+    connector = conversation.team.connectors.create!(
+      name: "notion", transport: :http, catalog_key: "notion",
+      definition: { "url" => "https://mcp.notion.com/mcp" }
+    )
+    connector.connector_credentials.create!(user: conversation.user)
+             .store_mcp_oauth!({ "access_token" => "tok", "expires_in" => 3600 },
+                               token_endpoint: "https://auth.example/token", client_id: "cid")
+
+    assert_match(/`notion`.*as you \(OAuth\)/, render)
+  end
+
+  test "an oauth connector whose stale token can't refresh is not described as 'as you (OAuth)'" do
+    connector = conversation.team.connectors.create!(
+      name: "x", transport: :http, catalog_key: "x", definition: { "url" => "https://api.x.com/mcp" }
+    )
+    connector.connector_credentials.create!(user: conversation.user)
+    conversation.user.oauth_grants.create!(
+      provider: "x", access_token: "stale", refresh_token: "rt", expires_at: 10.seconds.ago,
+      scopes: ConnectorCatalog.find("x").oauth_scopes.join(" ")
+    )
+
+    with_stub(XApp::Oauth, :refresh, ->(_rt) { raise XApp::Oauth::Error, "boom" }) do
+      line = render.lines.find { |l| l.include?("`x`") }
+
+      refute_match(/as you/, line)
+      assert_match(/omitted from this turn/, line)
+    end
+  end
+
+  test "a connector the member has no credential for, among others', is described as omitted" do
+    connector = conversation.team.connectors.create!(
+      name: "fs", transport: :stdio, definition: { "command" => "npx" }
+    )
+    other = User.create!(email: "other-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    connector.connector_credentials.create!(user: other, credential_map: { "API_KEY" => "theirs" })
+
+    assert_match(/`fs`.*not connected for you/, render)
+  end
+
+  test "describes connectors from the McpConfig it is handed" do
+    conversation.team.connectors.create!(name: "fs", transport: :stdio, definition: { "command" => "npx" })
+    mcp_config = Agent::McpConfig.new(conversation)
+    def mcp_config.staged?(_connector) = false
+
+    out = Agent::Identity.new(conversation, "docker", mcp_config: mcp_config).content
+
+    assert_match(/`fs`.*omitted from this turn/, out)
+  end
+
   test "tells the agent that uploads and .pi/mcp.json are projected inputs" do
     out = render
 

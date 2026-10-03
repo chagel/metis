@@ -109,8 +109,8 @@ attr_accessor :status_sink  # set by the adapter; #emit_status(phase, message)
                             # reports provisioning progress (→ runtime_status)
 ```
 
-`Base#mcp_config` renders `Agent::McpConfig.new(conversation).content`;
-`Base#identity_content` renders `Agent::Identity.new(conversation, kind).content`.
+`Base#mcp_config` renders the turn's one `Agent::McpConfig` (`#mcp_document`);
+`Base#identity_content` renders `Agent::Identity` with that same instance.
 Subclasses pull those at run time and stage them.
 
 ### `Runtime::Local`
@@ -259,10 +259,10 @@ Renders the `.pi/mcp.json` pi's built-in MCP support reads, from the
 conversation team's `Connector`s. Each connector resolves to the
 member's credential (own → team-shared → drop). An OAuth-shaped
 connector whose grant is missing, missing required scopes, or fails
-to refresh is dropped — `Identity#connectors_block` mirrors this gate
-exactly so the AGENTS.md never advertises a connector McpConfig
-silently omitted (the agent would burn turns trying tools it doesn't
-have).
+to refresh is dropped. `Identity#connectors_block` asks the same
+instance's `#staged?` instead of re-deriving the gate, so AGENTS.md never
+advertises a connector McpConfig omitted (the agent would burn turns
+trying tools it doesn't have). `#to_h` is memoized per instance.
 
 ```ruby
 def to_h

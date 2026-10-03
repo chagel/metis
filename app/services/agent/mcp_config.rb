@@ -20,14 +20,16 @@ module Agent
       @conversation = conversation
     end
 
-    # The `mcp.json` document.
+    # The `mcp.json` document. Memoized: resolving it refreshes OAuth tokens,
+    # and Agent::Identity reads the same instance through #staged?.
     def to_h
-      entries = connectors.filter_map do |connector|
-        entry = server_entry(connector)
-        [ connector.name, entry ] if entry
-      end
-      entries << GithubApp::BotServer.for(connectors)
-      { "mcpServers" => entries.compact.to_h }
+      @to_h ||= { "mcpServers" => [ *connector_entries, GithubApp::BotServer.for(connectors) ].compact.to_h }
+    end
+
+    # Whether `connector` is in this turn's mcp.json — the only truth for
+    # telling the agent a connector's tools exist.
+    def staged?(connector)
+      connector_entries.key?(connector.name)
     end
 
     # The document as a string, ready to write to FILENAME.
@@ -36,6 +38,10 @@ module Agent
     end
 
     private
+
+    def connector_entries
+      @connector_entries ||= connectors.to_h { |connector| [ connector.name, server_entry(connector) ] }.compact
+    end
 
     def connectors
       # cli-transport connectors (Gmail, Calendar, Drive via `gws`) have
