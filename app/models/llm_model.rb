@@ -10,4 +10,8 @@ class LlmModel < ApplicationRecord
 
   scope :enabled, -> { where(enabled: true) }
   scope :ordered, -> { order(:position, :key) }
+
+  def self.first_enabled_key_for(provider_key)
+    enabled.ordered.joins(:llm_provider).find_by(llm_providers: { key: provider_key })&.key
+  end
 end
