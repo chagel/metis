@@ -167,6 +167,19 @@ class ConversationTest < ActiveSupport::TestCase
     agent.provider = prev_provider
   end
 
+  test "a provider-only setting resolves to that provider's first enabled catalog model" do
+    agent = Rails.application.config.x.agent
+    prev_model = agent.model
+    agent.model = nil
+    LlmProvider.create!(key: "openai", label: "OpenAI").llm_models.create!(key: "gpt-5.5", label: "GPT-5.5")
+    conversation = @user.conversations.create!(settings: { "provider" => "openai" })
+
+    assert_equal "gpt-5.5", conversation.configured_model
+    assert_nil @user.conversations.create!(settings: { "provider" => "uncataloged" }).configured_model
+  ensure
+    agent.model = prev_model
+  end
+
   test "runtime_label is the runtime the last turn ran on" do
     @conversation.update!(runtime_state: { "runtime" => "e2b", "sandbox_id" => "sbx-7" })
     assert_equal "e2b", @conversation.runtime_label

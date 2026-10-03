@@ -221,7 +221,7 @@ class Conversation < ApplicationRecord
   # and the model line in AGENTS.md — the agent can't reliably name its
   # own model, so we hand it the real id.
   def configured_model
-    settings["model"].presence || Rails.application.config.x.agent.model.presence
+    settings["model"].presence || Rails.application.config.x.agent.model.presence || provider_default_model
   end
 
   def configured_provider
@@ -286,6 +286,13 @@ class Conversation < ApplicationRecord
   end
 
   private
+
+  # pi rejects --provider without --model, so a provider-only setting runs
+  # that provider's first enabled catalog model.
+  def provider_default_model
+    provider = configured_provider
+    LlmModel.first_enabled_key_for(provider) if provider.present?
+  end
 
   def default_team
     self.team ||= user&.personal_team

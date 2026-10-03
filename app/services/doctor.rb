@@ -292,7 +292,10 @@ class Doctor
 
   def default_model_check
     provider, model = @env["METIS_AGENT_PROVIDER"], @env["METIS_AGENT_MODEL"]
-    if provider.present? || model.present?
+    if provider.present? && model.blank?
+      Check.new(:warn, "default model",
+        "METIS_AGENT_PROVIDER=#{provider} without METIS_AGENT_MODEL — turns use its first enabled catalog model")
+    elsif provider.present? || model.present?
       Check.new(:ok, "default model", [ provider, model ].compact_blank.join(" / "))
     else
       Check.new(:off, "default model", "METIS_AGENT_PROVIDER/MODEL unset — pi's own default")
