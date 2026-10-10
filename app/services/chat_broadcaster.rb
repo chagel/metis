@@ -67,6 +67,16 @@ class ChatBroadcaster
     )
   end
 
+  # Called by ChatJob once the turn is persisted. Action Cable doesn't order
+  # broadcasts, so a stale delta can land after the final one; this later
+  # render from the saved content always wins.
+  def refresh_body
+    Turbo::StreamsChannel.broadcast_update_to(
+      @conversation, target: "#{base_id}_body",
+      html: ApplicationController.helpers.markdown(@message.content)
+    )
+  end
+
   # Swap the composer's Stop button back to Send once the turn ends.
   def refresh_composer
     Turbo::StreamsChannel.broadcast_replace_to(

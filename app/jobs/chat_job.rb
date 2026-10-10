@@ -91,6 +91,7 @@ class ChatJob < ApplicationJob
       conversation: conversation, user_message: user_message, assistant_message: assistant_message
     )
     broadcaster.refresh_usage
+    broadcaster.refresh_body
     broadcaster.collapse_activity
     broadcaster.reveal_actions
     broadcaster.stop_sidebar_indicator
