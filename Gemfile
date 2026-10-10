@@ -72,7 +72,9 @@ gem "tzinfo-data", platforms: %i[ windows jruby ]
 # Use the database-backed adapters for Rails.cache, Active Job, and Action Cable
 gem "solid_cache"
 gem "solid_queue"
-gem "solid_cable"
+# 4.1.0's batched writer holds broadcasts until the streaming job yields, then
+# lands them in one poll that Action Cable delivers out of order (solid_cable#92).
+gem "solid_cable", "4.0.2"
 
 # Cron parsing for scheduled routines (also a solid_queue transitive dep).
 gem "fugit"

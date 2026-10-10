@@ -109,6 +109,17 @@ class ChatBroadcasterTest < ActiveSupport::TestCase
     assert_includes streams.first.to_s, "msg-copy"
   end
 
+  test "refresh_body re-renders the body from the persisted content" do
+    @message.update!(content: "Final **answer**.")
+
+    streams = capture_turbo_stream_broadcasts(@conversation) { @broadcaster.refresh_body }
+
+    assert_equal 1, streams.size
+    assert_equal "update", streams.first["action"]
+    assert_equal "#{ActionView::RecordIdentifier.dom_id(@message)}_body", streams.first["target"]
+    assert_includes streams.first.to_s, "<strong>answer</strong>"
+  end
+
   test "reveal_actions stays silent while the message is unfinished" do
     streams = capture_turbo_stream_broadcasts(@owner) { @broadcaster.reveal_actions }
     assert_empty streams
