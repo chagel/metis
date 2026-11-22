@@ -61,6 +61,10 @@ module Agent
       # page (looping or endless cursors). It is not a coverage bound: a
       # healthy traversal runs to last_page? long before this.
       REAP_PAGE_BACKSTOP = 1000
+      # Runtime v0.7's `stop` waits without a deadline and never escalates,
+      # so both budgets are ours; they mirror the gem's own block-exit cleanup.
+      STOP_TIMEOUT = 10
+      KILL_TIMEOUT = 15
 
       def self.image
         Rails.application.config.x.agent.microsandbox_image
@@ -171,17 +175,17 @@ module Agent
         stop_or_kill(sandbox, context: "control_session") if sandbox
       end
 
-      # A failed `stop` leaves the VM running — holding its full CPU/memory
-      # reservation until MAX_DURATION, and invisible to the sweep, which
-      # only reaps terminal states — so escalate to SIGKILL instead of just
-      # logging. Logged-not-raised throughout: teardown must not crash a turn
-      # the user already saw stream.
+      # A failed or timed-out stop leaves the VM running — holding its full
+      # CPU/memory reservation until MAX_DURATION, and invisible to the sweep,
+      # which only reaps terminal states — so escalate to a kill instead of
+      # just logging. Logged-not-raised throughout: teardown must not crash a
+      # turn the user already saw stream.
       def self.stop_or_kill(sandbox, context:)
-        sandbox.stop
+        sandbox.stop_with_timeout(STOP_TIMEOUT)
       rescue ::Microsandbox::Error => e
         Rails.logger.warn("microsandbox stop failed (#{context}): #{e.message} — force-killing")
         begin
-          sandbox.kill
+          sandbox.kill_with_timeout(KILL_TIMEOUT)
         rescue ::Microsandbox::Error => kill_error
           Rails.logger.warn("microsandbox kill failed (#{context}): #{kill_error.message}")
         end
@@ -304,8 +308,7 @@ module Agent
         mounts
       end
 
-      # `stop` escalates SIGTERM → SIGKILL itself, and `ephemeral: true`
-      # reaps the stored state once stopped.
+      # `ephemeral: true` reaps the stored state once stopped.
       def stop_sandbox(sandbox)
         self.class.stop_or_kill(sandbox, context: "conversation #{conversation.id}")
       end

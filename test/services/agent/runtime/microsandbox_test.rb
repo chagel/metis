@@ -55,8 +55,8 @@ class Agent::Runtime::MicrosandboxTest < ActiveSupport::TestCase
       @kills = 0
     end
 
-    def stop = (@stops += 1)
-    def kill = (@kills += 1)
+    def stop_with_timeout(_seconds) = (@stops += 1)
+    def kill_with_timeout(_seconds) = (@kills += 1)
     def stopped? = @stops.positive?
   end
 
@@ -157,7 +157,7 @@ class Agent::Runtime::MicrosandboxTest < ActiveSupport::TestCase
 
   test "a stop failure escalates to a force-kill" do
     sandbox = FakeSandbox.new
-    def sandbox.stop = raise(::Microsandbox::Error, "already gone")
+    def sandbox.stop_with_timeout(_) = raise(::Microsandbox::Error, "already gone")
     turn_ran = false
 
     with_sandbox_create(sandbox) do |_captured|
@@ -173,8 +173,8 @@ class Agent::Runtime::MicrosandboxTest < ActiveSupport::TestCase
 
   test "a stop and kill that both fail are logged, not raised" do
     sandbox = FakeSandbox.new
-    def sandbox.stop = raise(::Microsandbox::Error, "already gone")
-    def sandbox.kill = raise(::Microsandbox::Error, "gone too")
+    def sandbox.stop_with_timeout(_) = raise(::Microsandbox::Error, "already gone")
+    def sandbox.kill_with_timeout(_) = raise(::Microsandbox::Error, "gone too")
     turn_ran = false
 
     with_sandbox_create(sandbox) do |_captured|

@@ -96,7 +96,9 @@ pushed to a registry the worker can pull from — built for the *worker's*
 architecture, since `docker:image` builds for whichever daemon it runs
 against.
 
-A `stop` that fails escalates to `kill` rather than only logging: an
+Teardown is bounded: `stop_with_timeout(10)`, and a stop that fails or
+times out escalates to `kill_with_timeout(15)` (runtime v0.7's plain
+`stop` waits forever and never kills). Escalating matters because an
 unstopped VM holds its 2 CPU / 2 GiB reservation until `MAX_DURATION`
 (7200s) and is invisible to the sweep, which only reaps terminal
 states. Both steps stay logged-not-raised.
