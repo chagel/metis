@@ -13,7 +13,7 @@ them, or argue them on a PR — don't drift into them.
 
 ## Overview
 
-Metis is a Rails 8.1 web app (Ruby 4.0.5, PostgreSQL) that puts a chat UI in
+Metis is a Rails 8.1 web app (Ruby 4.0.10, PostgreSQL) that puts a chat UI in
 front of an agent harness. v1 ships the **pi** backend, driven via the
 `pi-agent-rb` gem. Hotwire (Turbo + Stimulus, importmap, Tailwind) renders the
 live streaming chat; Devise handles auth. The app is PWA-installable

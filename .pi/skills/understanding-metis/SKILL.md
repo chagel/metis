@@ -6,7 +6,7 @@ version: 10
 
 # Metis Architecture
 
-Rails 8.1 web app (Ruby 4.0.5, PostgreSQL) that puts a streaming chat
+Rails 8.1 web app (Ruby 4.0.10, PostgreSQL) that puts a streaming chat
 UI in front of an agent harness. v1 ships the **pi** backend, driven
 via the `pi-agent-rb` gem. Hotwire (Turbo + Stimulus, importmap,
 Tailwind) renders the live chat; Devise + OmniAuth handles auth.

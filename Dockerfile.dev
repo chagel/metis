@@ -7,7 +7,7 @@
 # Build context is the repo root; only Gemfile(.lock) is copied — the app
 # code is bind-mounted at runtime by compose.
 
-ARG RUBY_VERSION=4.0.5
+ARG RUBY_VERSION=4.0.10
 FROM docker.io/library/ruby:$RUBY_VERSION-slim
 
 WORKDIR /rails
