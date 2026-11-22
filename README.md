@@ -62,7 +62,7 @@ a fast, open agent harness. The lessons come along; the lock-in does not.
 
 ## Stack
 
-- **Rails 8.1**, Ruby 4.0.5, PostgreSQL
+- **Rails 8.1**, Ruby 4.0.10, PostgreSQL
 - **pi** agent harness, driven via the [`pi-agent-rb`](https://github.com/chagel/pi-agent-rb) gem
 - **Any LLM provider [pi supports](https://pi.dev/docs/latest/providers)**, chosen per conversation
 - **Hotwire** (Turbo + Stimulus, importmap) and **Tailwind** for the live chat UI
