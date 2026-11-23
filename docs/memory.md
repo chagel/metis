@@ -43,14 +43,10 @@ report the id and labels, not the text.
 
 ## Where memory applies
 
-Memories are private, so they're used only where the user alone reads the
-replies (`UserMemory.available_in?`): a personal conversation with no
-public share link, not a workflow run, whose user is still a member of its
-team. Team-visible and shared chats get no memory block and the tools
-refuse. Sharing a chat later doesn't retract replies already written in it.
-
-Writes lock the user's `Membership` row, so concurrent saves can't exceed
-the cap and a save can't land after leaving the team deletes the rest.
+Every conversation of the user's, except workflow runs (team processes) and
+conversations in a team the user has since left (`UserMemory.available_in?`).
+Team-visible and shared chats included: who sees a conversation is the
+user's call, and sharing one shares what the agent knew in it.
 
 ## Apply
 

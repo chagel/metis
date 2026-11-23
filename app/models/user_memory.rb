@@ -22,10 +22,8 @@ class UserMemory < ApplicationRecord
   scope :for, ->(user, team) { where(user: user, team: team) }
   scope :ordered, -> { order(:kind, confidence: :desc, created_at: :asc) }
 
-  # Only where the user alone reads the replies: memories are private.
   def self.available_in?(conversation)
-    conversation.visibility_personal? && !conversation.shared? && conversation.workflow_run.nil? &&
-      conversation.team.members.include?(conversation.user)
+    conversation.workflow_run.nil? && conversation.team.members.include?(conversation.user)
   end
 
   def confirm!

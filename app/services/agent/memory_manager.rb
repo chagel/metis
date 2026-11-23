@@ -84,13 +84,7 @@ module Agent
     def guarded
       return unavailable unless UserMemory.available_in?(@conversation)
 
-      # The membership row lock serializes writes with each other (the cap) and
-      # with leaving the team, whose cleanup deletes this user's memories.
-      UserMemory.transaction do
-        next unavailable unless @conversation.team.memberships.lock.find_by(user: @conversation.user)
-
-        yield
-      end
+      yield
     rescue Invalid => e
       failure(e.message)
     rescue StandardError => e
@@ -100,6 +94,6 @@ module Agent
 
     def failure(error) = { ok: false, error: error }
 
-    def unavailable = failure("Memory is only available in your own private conversations.")
+    def unavailable = failure("Memory isn't available in this conversation.")
   end
 end

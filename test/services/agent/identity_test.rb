@@ -552,16 +552,6 @@ class Agent::IdentityTest < ActiveSupport::TestCase
     assert_no_match(/work-only fact/, render)
   end
 
-  test "no memory block where others can read the replies" do
-    UserMemory.create!(user: conversation.user, team: conversation.team, content: "short answers", kind: :preference)
-    conversation.update!(visibility: :team)
-    assert_no_match(/short answers/, render)
-
-    conversation.update!(visibility: :personal)
-    conversation.generate_share_token!
-    assert_no_match(/What you've learned about the operator/, render)
-  end
-
   test "no memory block once the operator has left the team" do
     team = Team.create!(name: "Gone #{SecureRandom.hex(2)}")
     @conversation = conversation.user.conversations.create!(team: team)
