@@ -527,4 +527,28 @@ class Agent::IdentityTest < ActiveSupport::TestCase
   test "no eviction warning by default" do
     refute_match(/## Workspace notice/, render)
   end
+
+  test "lists what Metis has learned about the operator, with ids and provenance" do
+    memory = UserMemory.create!(user: conversation.user, team: conversation.team,
+                                content: "no em dashes", kind: :correction, source: :stated, confidence: :high)
+    out = render
+
+    assert_match(/## What you've learned about the operator/, out)
+    assert_match(/\[#{memory.id} · correction · stated\/high\] no em dashes/, out)
+    assert_match(/metis_remember/, out)
+  end
+
+  test "an operator with no memories still gets the recording guidance" do
+    out = render
+    assert_match(/\(Nothing yet\.\)/, out)
+    assert_match(/metis_remember/, out)
+  end
+
+  test "memories from another team stay out" do
+    other = Team.create!(name: "Work #{SecureRandom.hex(2)}")
+    other.memberships.create!(user: conversation.user, role: :member)
+    UserMemory.create!(user: conversation.user, team: other, content: "work-only fact", kind: :fact)
+
+    assert_no_match(/work-only fact/, render)
+  end
 end

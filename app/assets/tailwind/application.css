@@ -1537,6 +1537,26 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
 .badge-warn { color:var(--danger); background:var(--danger-soft); }
 .btn-sm { padding:6px 11px; font-size:12px; border-radius:8px; }
 
+/* settings · memory */
+.memory-intro { margin-bottom:20px; }
+.memory-group { margin-bottom:24px; }
+.memory-group-title { font-size:12.5px; font-weight:600; color:var(--ink-2); margin-bottom:8px; }
+.memory-list { display:flex; flex-direction:column; gap:8px; }
+.memory-row {
+  display:flex; gap:10px; align-items:flex-start; background:var(--card);
+  border:1px solid var(--line); border-radius:12px; padding:10px 12px;
+}
+.memory-edit { flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; margin:0; }
+.memory-content {
+  width:100%; resize:vertical; font-family:var(--fb); font-size:13.5px; color:var(--ink);
+  background:transparent; border:1px solid transparent; border-radius:8px; padding:4px 6px;
+}
+.memory-content:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); }
+.memory-meta { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.memory-link { font-size:12px; color:var(--ink-3); }
+.badge-inferred { background:var(--bg); border:1px dashed var(--line-2); }
+.memory-actions { display:flex; flex-direction:column; gap:6px; }
+
 .models-intro {
   color:var(--ink-3); font-size:13.5px; line-height:1.5;
   max-width:60ch; margin-bottom:18px;

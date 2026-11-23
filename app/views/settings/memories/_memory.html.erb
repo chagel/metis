@@ -1,0 +1,24 @@
+<div id="<%= dom_id(memory) %>" class="memory-row">
+  <%= form_with model: memory, url: memory_path(memory), method: :patch, class: "memory-edit" do |f| %>
+    <%= f.text_area :content, rows: 2, maxlength: UserMemory::MAX_CONTENT, class: "memory-content" %>
+    <div class="memory-meta">
+      <span class="badge<%= " badge-inferred" if memory.source_inferred? %>">
+        <%= t("settings.memories.memory.provenance.#{memory.source}", confidence: t("settings.memories.memory.confidence.#{memory.confidence}")) %>
+      </span>
+      <% if memory.source_conversation %>
+        <%= link_to t("settings.memories.memory.source"), conversation_path(memory.source_conversation), class: "memory-link" %>
+      <% end %>
+      <% if memory.last_applied_at %>
+        <span class="muted"><%= t("settings.memories.memory.applied", time: time_ago_in_words(memory.last_applied_at)) %></span>
+      <% end %>
+      <div style="flex:1"></div>
+      <%= f.submit t("settings.memories.memory.save"), class: "btn btn-ghost btn-sm" %>
+    </div>
+  <% end %>
+  <div class="memory-actions">
+    <% if memory.source_inferred? %>
+      <%= button_to t("settings.memories.memory.confirm"), confirm_memory_path(memory), method: :patch, class: "btn btn-ghost btn-sm" %>
+    <% end %>
+    <%= button_to t("settings.memories.memory.delete"), memory_path(memory), method: :delete, class: "btn btn-danger btn-sm" %>
+  </div>
+</div>

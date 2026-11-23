@@ -94,6 +94,10 @@ Rails.application.routes.draw do
     post  "developer/bridge_token", to: "settings/developer#bridge_token", as: :developer_bridge_token
     patch "developer/bridge_prefs", to: "settings/developer#bridge_prefs", as: :developer_bridge_prefs
     resource :profile, only: %i[show update]
+    resources :memories, path: "memory", only: %i[index update destroy], controller: "settings/memories" do
+      member { patch :confirm }
+      collection { delete :clear }
+    end
 
     post  "profile/detect_timezone", to: "profiles#detect_timezone", as: :detect_timezone_profile
     patch "profile/theme",           to: "profiles#update_theme",    as: :update_theme_profile

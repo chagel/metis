@@ -210,6 +210,35 @@ en:
       routines: "Routines"
       models: "Models"
       developer: "Developer"
+      memory: "Memory"
+    memories:
+      index:
+        title: "Memory"
+        heading: "Memory"
+        intro: "What Metis has learned about you in %{team}. It records these on its own as you chat and applies them in every conversation. Edit, confirm or delete anything here."
+        empty: "Nothing yet. Metis learns about you as you chat: your corrections, preferences, goals and the way you work."
+        clear: "Clear all"
+        clear_confirm: "Delete every memory Metis has about you in this team?"
+        kinds:
+          preference: "Preferences"
+          correction: "Corrections"
+          fact: "Facts"
+          goal: "Goals"
+          commitment: "Follow-ups Metis promised"
+          experience: "Working with you"
+      memory:
+        provenance:
+          stated: "You said this"
+          inferred: "Inferred · %{confidence} confidence"
+        confidence:
+          low: "low"
+          medium: "medium"
+          high: "high"
+        source: "Source chat"
+        applied: "Applied %{time} ago"
+        save: "Save"
+        confirm: "Confirm"
+        delete: "Delete"
     accounts:
       show:
         title: "Account"

@@ -187,6 +187,35 @@
       routines: "例程"
       models: "模型"
       developer: "开发者"
+      memory: "记忆"
+    memories:
+      index:
+        title: "记忆"
+        heading: "记忆"
+        intro: "Metis 在 %{team} 中了解到的关于你的信息。它会在聊天中自行记录，并在每次对话中运用。你可以在这里编辑、确认或删除任何一条。"
+        empty: "还没有记忆。Metis 会在聊天中了解你：你的纠正、偏好、目标和工作方式。"
+        clear: "全部清除"
+        clear_confirm: "删除 Metis 在这个团队中关于你的所有记忆？"
+        kinds:
+          preference: "偏好"
+          correction: "纠正"
+          fact: "事实"
+          goal: "目标"
+          commitment: "Metis 承诺的跟进"
+          experience: "与你合作的经验"
+      memory:
+        provenance:
+          stated: "你明确说过"
+          inferred: "推断 · %{confidence}置信度"
+        confidence:
+          low: "低"
+          medium: "中"
+          high: "高"
+        source: "来源对话"
+        applied: "%{time}前用过"
+        save: "保存"
+        confirm: "确认"
+        delete: "删除"
     accounts:
       show:
         title: "账户"

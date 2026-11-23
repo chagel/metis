@@ -1,0 +1,31 @@
+<% content_for :title, t(".title") %>
+
+<main class="pane">
+  <header class="pane-head">
+    <h1 class="pane-title"><%= t(".heading") %></h1>
+    <div style="flex:1"></div>
+    <% if @memories.any? %>
+      <%= button_to t(".clear"), clear_memories_path, method: :delete, class: "btn btn-danger",
+            form: { data: { turbo_confirm: t(".clear_confirm") } } %>
+    <% end %>
+  </header>
+
+  <div class="pane-body">
+    <div class="pane-inner">
+      <p class="form-hint memory-intro"><%= t(".intro", team: current_team.name) %></p>
+
+      <% if @memories.empty? %>
+        <div class="pane-empty"><p><%= t(".empty") %></p></div>
+      <% else %>
+        <% @memories.group_by(&:kind).each do |kind, memories| %>
+          <section class="memory-group">
+            <h2 class="memory-group-title"><%= t(".kinds.#{kind}") %></h2>
+            <div class="memory-list">
+              <%= render partial: "settings/memories/memory", collection: memories %>
+            </div>
+          </section>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</main>
