@@ -551,4 +551,23 @@ class Agent::IdentityTest < ActiveSupport::TestCase
 
     assert_no_match(/work-only fact/, render)
   end
+
+  test "a team-visible conversation lists only style memories" do
+    conversation.update!(visibility: :team)
+    UserMemory.create!(user: conversation.user, team: conversation.team, content: "short answers", kind: :preference)
+    UserMemory.create!(user: conversation.user, team: conversation.team, content: "moving to Tokyo", kind: :fact)
+    out = render
+
+    assert_match(/short answers/, out)
+    assert_no_match(/moving to Tokyo/, out)
+    assert_match(/Teammates can read this conversation/, out)
+  end
+
+  test "no memory block once the operator has left the team" do
+    team = Team.create!(name: "Gone #{SecureRandom.hex(2)}")
+    @conversation = conversation.user.conversations.create!(team: team)
+    UserMemory.create!(user: conversation.user, team: team, content: "stale fact", kind: :fact)
+
+    assert_no_match(/What you've learned about the operator/, render)
+  end
 end

@@ -666,7 +666,7 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
     }),
 
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      return hostWrite(ctx, "remember", params, (r) => `Remembered (#${r.id}, ${r.kind}, ${r.source}/${r.confidence}): ${r.content}`);
+      return hostWrite(ctx, "remember", params, (r) => `Remembered as #${r.id} (${r.kind}, ${r.source}/${r.confidence}).`);
     },
   });
 
@@ -677,16 +677,18 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
     promptSnippet: "Revise a memory about the operator",
     promptGuidelines: [
       "Use metis_update_memory to raise confidence as evidence repeats, to correct a memory, or when the operator's current request shows a memory is out of date.",
+      "New wording is a new claim: pass source \"stated\" only if the operator said the new wording outright; otherwise it becomes \"inferred\".",
     ],
     parameters: Type.Object({
       id: Type.Number({ description: "The memory id, as listed in your context." }),
       content: Type.Optional(Type.String({ description: "New wording." })),
       kind: Type.Optional(Type.Union([Type.Literal("preference"), Type.Literal("correction"), Type.Literal("fact"), Type.Literal("goal"), Type.Literal("commitment"), Type.Literal("experience")])),
+      source: Type.Optional(Type.Union([Type.Literal("stated"), Type.Literal("inferred")], { description: "Only with new content. Defaults to inferred." })),
       confidence: Type.Optional(Type.Union([Type.Literal("low"), Type.Literal("medium"), Type.Literal("high")])),
     }),
 
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      return hostWrite(ctx, "update_memory", params, (r) => `Updated memory #${r.id} (${r.kind}, ${r.source}/${r.confidence}): ${r.content}`);
+      return hostWrite(ctx, "update_memory", params, (r) => `Updated memory #${r.id} (${r.kind}, ${r.source}/${r.confidence}).`);
     },
   });
 

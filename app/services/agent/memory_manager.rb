@@ -16,14 +16,8 @@ module Agent
 
     def remember
       guarded do
-        source = choice(:source, UserMemory.sources, default: "inferred")
-        memory = memories.new(
-          content: @params["content"],
-          kind: choice(:kind, UserMemory.kinds),
-          source: source,
-          confidence: choice(:confidence, UserMemory.confidences, default: source == "stated" ? "high" : "low"),
-          source_conversation: @conversation
-        )
+        memory = memories.new(content: @params["content"], kind: choice(:kind, UserMemory.kinds))
+        assign_provenance(memory)
         persist(memory, "remembered")
       end
     end
@@ -31,9 +25,13 @@ module Agent
     def update
       guarded do
         memory = find
-        memory.content = @params["content"] if @params.key?("content")
         memory.kind = choice(:kind, UserMemory.kinds) if @params.key?("kind")
-        memory.confidence = choice(:confidence, UserMemory.confidences) if @params.key?("confidence")
+        memory.content = @params["content"] if @params.key?("content")
+        if memory.content_changed?
+          assign_provenance(memory)
+        elsif @params.key?("confidence")
+          memory.confidence = choice(:confidence, UserMemory.confidences)
+        end
         persist(memory, "updated")
       end
     end
@@ -57,7 +55,14 @@ module Agent
 
     Invalid = Class.new(StandardError)
 
-    def memories = UserMemory.for(@conversation.user, @conversation.team)
+    def memories = UserMemory.in_conversation(@conversation)
+
+    # New wording is a new claim, so it never inherits an earlier "stated".
+    def assign_provenance(memory)
+      memory.source = choice(:source, UserMemory.sources, default: "inferred")
+      memory.confidence = choice(:confidence, UserMemory.confidences, default: memory.source_stated? ? "high" : "low")
+      memory.source_conversation = @conversation
+    end
 
     def find
       memories.find_by(id: @params["id"].to_i) || raise(Invalid, "No memory with id #{@params["id"].inspect}.")
@@ -73,12 +78,11 @@ module Agent
     def persist(memory, action)
       return failure(memory.errors.full_messages.join("; ")) unless memory.save
 
-      { ok: true, action: action, id: memory.id, kind: memory.kind, source: memory.source,
-        confidence: memory.confidence, content: memory.content }
+      { ok: true, action: action, id: memory.id, kind: memory.kind, source: memory.source, confidence: memory.confidence }
     end
 
     def guarded
-      return failure("Memory isn't available inside a workflow run.") if @conversation.workflow_run.present?
+      return failure("Memory isn't available in this conversation.") unless UserMemory.available_in?(@conversation)
 
       yield
     rescue Invalid => e

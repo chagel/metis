@@ -63,7 +63,63 @@ module Agent
 
       result = Agent::MemoryManager.remember(run.conversation, "content" => "x", "kind" => "fact")
       assert_not result[:ok]
-      assert_match(/workflow run/, result[:error])
+      assert_match(/isn't available/, result[:error])
+    end
+
+    test "memory is unavailable once the user has left the team" do
+      team = Team.create!(name: "Gone #{SecureRandom.hex(2)}")
+      conversation = @user.conversations.create!(team: team)
+
+      result = Agent::MemoryManager.remember(conversation, "content" => "x", "kind" => "fact")
+      assert_not result[:ok]
+      assert_not UserMemory.for(@user, team).exists?
+    end
+
+    test "new wording resets provenance to inferred from this conversation" do
+      earlier = @user.conversations.create!(team: @team)
+      memory = UserMemory.create!(user: @user, team: @team, content: "no em dashes", kind: :correction,
+                                  source: :stated, confidence: :high, source_conversation: earlier)
+
+      result = Agent::MemoryManager.update(@conversation, "id" => memory.id, "content" => "no dashes of any kind")
+
+      assert result[:ok]
+      memory.reload
+      assert memory.source_inferred?
+      assert memory.confidence_low?
+      assert_equal @conversation, memory.source_conversation
+    end
+
+    test "new wording the user stated stays stated" do
+      memory = UserMemory.create!(user: @user, team: @team, content: "uses Go", kind: :fact, source: :inferred)
+      Agent::MemoryManager.update(@conversation, "id" => memory.id, "content" => "uses Go and Rust", "source" => "stated")
+
+      assert memory.reload.source_stated?
+      assert memory.confidence_high?
+    end
+
+    test "a confidence-only update keeps provenance" do
+      earlier = @user.conversations.create!(team: @team)
+      memory = UserMemory.create!(user: @user, team: @team, content: "uses Go", kind: :fact,
+                                  source: :stated, confidence: :medium, source_conversation: earlier)
+      Agent::MemoryManager.update(@conversation, "id" => memory.id, "content" => "uses Go", "confidence" => "high")
+
+      memory.reload
+      assert memory.source_stated?
+      assert memory.confidence_high?
+      assert_equal earlier, memory.source_conversation
+    end
+
+    test "results don't echo the memory text" do
+      result = remember("content" => "prefers tables", "kind" => "preference")
+      assert_not result.key?(:content)
+    end
+
+    test "a team-visible conversation can't touch personal memories" do
+      @conversation.update!(visibility: :team)
+      fact = UserMemory.create!(user: @user, team: @team, content: "moving to Tokyo", kind: :fact)
+
+      assert_not Agent::MemoryManager.forget(@conversation, "id" => fact.id)[:ok]
+      assert UserMemory.exists?(fact.id)
     end
   end
 end

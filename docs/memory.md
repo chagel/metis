@@ -30,13 +30,28 @@ The agent decides what to record. Four tools in
 `Agent::MemoryManager`:
 
 - `metis_remember` — a new memory (defaults to `inferred`/`low`)
-- `metis_update_memory` — revise content, kind or confidence by id
+- `metis_update_memory` — revise content, kind or confidence by id. New
+  wording is a new claim: it becomes `inferred` from this conversation
+  unless the agent marks it `stated`; a confidence-only change keeps the
+  provenance
 - `metis_forget` — delete by id
 - `metis_note_applied` — report which memories shaped this reply
 
 Every op is scoped to the conversation's own user and team, so a turn can
 only touch that user's memories; there is no admin gate. Memory is
-unavailable in workflow-run conversations, which are team processes.
+unavailable in workflow-run conversations, which are team processes, and
+once the user is no longer a member of the conversation's team
+(`UserMemory.available_in?`). Tool results report the id and labels, not
+the text.
+
+## Team-visible conversations
+
+Teammates can read a team-visible conversation, so there
+(`UserMemory.in_conversation`) the agent sees and touches only
+`preference` and `correction` memories, which shape how replies are
+written, and is told not to record or repeat personal facts. A public
+share link is the owner's own choice to publish a chat and changes
+nothing here.
 
 ## Apply
 
@@ -52,7 +67,9 @@ shapes a reply, the agent says so in a few words and calls
 
 `/settings/memory` (`Settings::MemoriesController`) lists the current
 team's memories by kind with their provenance. The user can edit, confirm
-(an inference becomes `stated`/`high`), delete, or clear all.
+(an inference becomes `stated`/`high`), delete, or clear all. Deleting a
+memory removes it from every later turn's context; it doesn't erase chat
+history, so a resumed pi session still has the turn where it was said.
 
 ## Not yet
 
