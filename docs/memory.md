@@ -19,8 +19,9 @@ one team, so context learned in a work team never reaches a personal team.
 | `source_conversation` | Where it was learned; nullified if that chat is deleted |
 | `last_applied_at` | Last time a turn reported the memory shaped its reply |
 
-At most 100 per user per team; past that a save is refused and the agent is
-told to update or forget one. Leaving a team deletes your memories there
+A soft limit of 100 per user per team keeps the prompt bounded: past it a
+save is refused and the agent is told to update or forget one (concurrent
+saves can briefly overshoot). Leaving a team deletes your memories there
 (`Membership` `after_destroy`).
 
 ## Record
