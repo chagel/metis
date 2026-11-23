@@ -38,20 +38,19 @@ The agent decides what to record. Four tools in
 - `metis_note_applied` — report which memories shaped this reply
 
 Every op is scoped to the conversation's own user and team, so a turn can
-only touch that user's memories; there is no admin gate. Memory is
-unavailable in workflow-run conversations, which are team processes, and
-once the user is no longer a member of the conversation's team
-(`UserMemory.available_in?`). Tool results report the id and labels, not
-the text.
+only touch that user's memories; there is no admin gate. Tool results
+report the id and labels, not the text.
 
-## Team-visible conversations
+## Where memory applies
 
-Teammates can read a team-visible conversation, so there
-(`UserMemory.in_conversation`) the agent sees and touches only
-`preference` and `correction` memories, which shape how replies are
-written, and is told not to record or repeat personal facts. A public
-share link is the owner's own choice to publish a chat and changes
-nothing here.
+Memories are private, so they're used only where the user alone reads the
+replies (`UserMemory.available_in?`): a personal conversation with no
+public share link, not a workflow run, whose user is still a member of its
+team. Team-visible and shared chats get no memory block and the tools
+refuse. Sharing a chat later doesn't retract replies already written in it.
+
+Writes lock the user's `Membership` row, so concurrent saves can't exceed
+the cap and a save can't land after leaving the team deletes the rest.
 
 ## Apply
 
@@ -68,8 +67,9 @@ shapes a reply, the agent says so in a few words and calls
 `/settings/memory` (`Settings::MemoriesController`) lists the current
 team's memories by kind with their provenance. The user can edit, confirm
 (an inference becomes `stated`/`high`), delete, or clear all. Deleting a
-memory removes it from every later turn's context; it doesn't erase chat
-history, so a resumed pi session still has the turn where it was said.
+memory removes it from the list every later turn is given. It doesn't
+erase chat history: a resumed pi session still holds the turn where the
+memory was said or written.
 
 ## Not yet
 

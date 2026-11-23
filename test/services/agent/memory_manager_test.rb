@@ -63,7 +63,7 @@ module Agent
 
       result = Agent::MemoryManager.remember(run.conversation, "content" => "x", "kind" => "fact")
       assert_not result[:ok]
-      assert_match(/isn't available/, result[:error])
+      assert_match(/only available/, result[:error])
     end
 
     test "memory is unavailable once the user has left the team" do
@@ -114,10 +114,13 @@ module Agent
       assert_not result.key?(:content)
     end
 
-    test "a team-visible conversation can't touch personal memories" do
-      @conversation.update!(visibility: :team)
+    test "memory is unavailable in team-visible and shared conversations" do
       fact = UserMemory.create!(user: @user, team: @team, content: "moving to Tokyo", kind: :fact)
+      @conversation.update!(visibility: :team)
+      assert_not remember("content" => "x", "kind" => "preference")[:ok]
 
+      @conversation.update!(visibility: :personal)
+      @conversation.generate_share_token!
       assert_not Agent::MemoryManager.forget(@conversation, "id" => fact.id)[:ok]
       assert UserMemory.exists?(fact.id)
     end

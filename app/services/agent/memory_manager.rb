@@ -55,7 +55,7 @@ module Agent
 
     Invalid = Class.new(StandardError)
 
-    def memories = UserMemory.in_conversation(@conversation)
+    def memories = UserMemory.for(@conversation.user, @conversation.team)
 
     # New wording is a new claim, so it never inherits an earlier "stated".
     def assign_provenance(memory)
@@ -82,9 +82,15 @@ module Agent
     end
 
     def guarded
-      return failure("Memory isn't available in this conversation.") unless UserMemory.available_in?(@conversation)
+      return unavailable unless UserMemory.available_in?(@conversation)
 
-      yield
+      # The membership row lock serializes writes with each other (the cap) and
+      # with leaving the team, whose cleanup deletes this user's memories.
+      UserMemory.transaction do
+        next unavailable unless @conversation.team.memberships.lock.find_by(user: @conversation.user)
+
+        yield
+      end
     rescue Invalid => e
       failure(e.message)
     rescue StandardError => e
@@ -93,5 +99,7 @@ module Agent
     end
 
     def failure(error) = { ok: false, error: error }
+
+    def unavailable = failure("Memory is only available in your own private conversations.")
   end
 end

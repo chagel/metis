@@ -552,15 +552,14 @@ class Agent::IdentityTest < ActiveSupport::TestCase
     assert_no_match(/work-only fact/, render)
   end
 
-  test "a team-visible conversation lists only style memories" do
-    conversation.update!(visibility: :team)
+  test "no memory block where others can read the replies" do
     UserMemory.create!(user: conversation.user, team: conversation.team, content: "short answers", kind: :preference)
-    UserMemory.create!(user: conversation.user, team: conversation.team, content: "moving to Tokyo", kind: :fact)
-    out = render
+    conversation.update!(visibility: :team)
+    assert_no_match(/short answers/, render)
 
-    assert_match(/short answers/, out)
-    assert_no_match(/moving to Tokyo/, out)
-    assert_match(/Teammates can read this conversation/, out)
+    conversation.update!(visibility: :personal)
+    conversation.generate_share_token!
+    assert_no_match(/What you've learned about the operator/, render)
   end
 
   test "no memory block once the operator has left the team" do

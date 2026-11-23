@@ -3,8 +3,6 @@
 class UserMemory < ApplicationRecord
   MAX_CONTENT = 500
   MAX_PER_USER = 100
-  # How the user likes replies written, safe to apply where teammates read along.
-  SHAREABLE_KINDS = %w[preference correction].freeze
 
   enum :kind, { preference: 0, correction: 1, fact: 2, goal: 3, commitment: 4, experience: 5 }
   enum :source, { stated: 0, inferred: 1 }, prefix: true
@@ -22,14 +20,12 @@ class UserMemory < ApplicationRecord
   validate :under_cap, on: :create
 
   scope :for, ->(user, team) { where(user: user, team: team) }
-  scope :in_conversation, ->(conversation) {
-    scope = self.for(conversation.user, conversation.team)
-    conversation.visibility_team? ? scope.where(kind: SHAREABLE_KINDS) : scope
-  }
   scope :ordered, -> { order(:kind, confidence: :desc, created_at: :asc) }
 
+  # Only where the user alone reads the replies: memories are private.
   def self.available_in?(conversation)
-    conversation.workflow_run.nil? && conversation.team.members.include?(conversation.user)
+    conversation.visibility_personal? && !conversation.shared? && conversation.workflow_run.nil? &&
+      conversation.team.members.include?(conversation.user)
   end
 
   def confirm!
