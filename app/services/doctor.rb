@@ -177,7 +177,7 @@ class Doctor
   end
 
   def agent_checks
-    [ runtime_check, pi_check, providers_check, default_model_check, web_search_check ]
+    [ runtime_check, pi_check, providers_check, web_search_check ]
   end
 
   # pi itself, which runtime_check does not cover: it reports how the agent is
@@ -287,18 +287,6 @@ class Doctor
       Check.new(:warn, "providers", "no key in Metis env — local pi may still use its own config (~/.pi)")
     else
       Check.new(:fail, "providers", "no LLM provider key set — ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, …")
-    end
-  end
-
-  def default_model_check
-    provider, model = @env["METIS_AGENT_PROVIDER"], @env["METIS_AGENT_MODEL"]
-    if provider.present? && model.blank?
-      Check.new(:warn, "default model",
-        "METIS_AGENT_PROVIDER=#{provider} without METIS_AGENT_MODEL — turns use its first enabled catalog model")
-    elsif provider.present? || model.present?
-      Check.new(:ok, "default model", [ provider, model ].compact_blank.join(" / "))
-    else
-      Check.new(:off, "default model", "METIS_AGENT_PROVIDER/MODEL unset — pi's own default")
     end
   end
 

@@ -28,6 +28,9 @@ en:
       refresh: "Refresh"
       refreshing: "Refreshing…"
       intro: "The providers and models this deployment offers in the new-chat composer."
+      default_label: "Default model"
+      default_none: "First enabled model (%{model})"
+      default_hint: "Used for chats, routines and workflow runs when neither the composer nor the user's profile picks one."
       intro_superuser: "Refresh to pull the latest from pi, then toggle on what you want."
       intro_managed: "Managed by an administrator."
       empty: "The catalog is empty."
@@ -48,6 +51,8 @@ en:
       reasoning: "reasoning"
       disable_model: "Disable %{model}"
       enable_model: "Enable %{model}"
+      default: "default"
+      default_title: "Chats, routines and workflow runs use this model when neither the composer nor the user's profile picks one."
   pwa:
     manifest:
       name: "Metis"

@@ -28,14 +28,10 @@ class Agent::CatalogTest < ActiveSupport::TestCase
     assert_nil Agent::Catalog.provider_for("anything")
   end
 
-  test "known_model allows the configured fallback before the catalog is seeded" do
-    original = Rails.application.config.x.agent.model
-    Rails.application.config.x.agent.model = "gpt-5.5"
-
+  test "known_model needs an enabled catalog model" do
+    assert_not Agent::Catalog.known_model?("gpt-5.5")
+    seed_catalog
     assert Agent::Catalog.known_model?("gpt-5.5")
-    assert_not Agent::Catalog.known_model?("no-such-model")
-  ensure
-    Rails.application.config.x.agent.model = original
   end
 
   test "grouped_model_options groups label/id model pairs under each provider" do
@@ -53,31 +49,28 @@ class Agent::CatalogTest < ActiveSupport::TestCase
     assert_nil Agent::Catalog.provider_for("no-such-model")
   end
 
-  test "default_model and default_provider follow the configured deployment default" do
-    seed_catalog
-    original_model = Rails.application.config.x.agent.model
-    original_provider = Rails.application.config.x.agent.provider
-    Rails.application.config.x.agent.model = "gpt-5.5"
-    Rails.application.config.x.agent.provider = "openai-codex"
+  test "default_model and default_provider follow the model marked on the Models page" do
+    _, codex = seed_catalog
+    codex.llm_models.first.make_deployment_default!
 
     assert_equal "gpt-5.5", Agent::Catalog.default_model
     assert_equal "openai-codex", Agent::Catalog.default_provider
-  ensure
-    Rails.application.config.x.agent.model = original_model
-    Rails.application.config.x.agent.provider = original_provider
   end
 
   test "default falls back to the first listed provider's first model" do
     seed_catalog
-    original_model = Rails.application.config.x.agent.model
-    original_provider = Rails.application.config.x.agent.provider
-    Rails.application.config.x.agent.model = nil
-    Rails.application.config.x.agent.provider = nil
 
     assert_equal "anthropic", Agent::Catalog.default_provider
     assert_equal "claude-opus-4-8", Agent::Catalog.default_model
-  ensure
-    Rails.application.config.x.agent.model = original_model
-    Rails.application.config.x.agent.provider = original_provider
+  end
+
+  test "a disabled default falls back too, and only one model is ever the default" do
+    anthropic, codex = seed_catalog
+    codex.llm_models.first.make_deployment_default!
+    anthropic.llm_models.first.make_deployment_default!
+    assert_equal 1, LlmModel.where(deployment_default: true).count
+
+    anthropic.llm_models.first.update!(enabled: false)
+    assert_equal "gpt-5.5", Agent::Catalog.default_model
   end
 end

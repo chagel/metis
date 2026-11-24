@@ -31,6 +31,9 @@
         <div class="model-main">
           <div class="model-head">
             <span class="model-label"><%= model.label %></span>
+            <% if model.deployment_default? %>
+              <span class="badge" title="<%= t('.default_title') %>"><%= t('.default') %></span>
+            <% end %>
             <% if model.last_seen_at.nil? %>
               <span class="badge badge-warn" title="<%= t('.stale_title') %>"><%= t('.stale') %></span>
             <% end %>

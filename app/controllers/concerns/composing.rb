@@ -11,12 +11,11 @@ module Composing
     Array(params[:attachments]).reject(&:blank?)
   end
 
-  # The conversation's provider/model from the composer's model picker.
-  # Composer wins; profile default backs up a scrubbed pick; both blank →
-  # the adapter falls back to deployment defaults.
+  # The composer's model pick; blank leaves it to Conversation's default
+  # (the user's preferred model, else the catalog's deployment default).
   def chat_settings
-    model = params[:model].presence || current_user.preferred_model.presence
-    { "provider" => model && Agent::Catalog.provider_for(model), "model" => model }.compact
+    model = params[:model].presence
+    model ? { "provider" => Agent::Catalog.provider_for(model), "model" => model }.compact : {}
   end
 
   # The composer's visibility pick; anything but an explicit "team" stays

@@ -21,6 +21,7 @@ class Conversation < ApplicationRecord
   # A conversation is owned by a team; default it to the creator's
   # personal team unless one was given (docs/tenancy.md).
   before_validation :default_team, on: :create
+  before_create :apply_default_model
 
   # A destroyed conversation must not leave runtime state behind: cloud
   # runtimes leave a sandbox on the provider's servers (each kill hook
@@ -216,16 +217,20 @@ class Conversation < ApplicationRecord
   end
 
   # The model / provider Metis passes pi for a turn: the conversation's
-  # own choice, else the deployment default (config.x.agent). This is the
-  # single source for both the `--model`/`--provider` flags (Adapters::Pi)
-  # and the model line in AGENTS.md — the agent can't reliably name its
-  # own model, so we hand it the real id.
+  # own choice (filled at creation, see apply_default_model), else the same
+  # default for older rows. The single source for both the `--model` /
+  # `--provider` flags (Adapters::Pi) and the model line in AGENTS.md.
   def configured_model
-    settings["model"].presence || Rails.application.config.x.agent.model.presence || provider_default_model
+    return settings["model"] if settings["model"].present?
+
+    settings["provider"].present? ? provider_default_model : fallback_settings["model"]
   end
 
   def configured_provider
-    settings["provider"].presence || Rails.application.config.x.agent.provider.presence
+    return settings["provider"] if settings["provider"].present?
+    return Agent::Catalog.provider_for(settings["model"]) if settings["model"].present?
+
+    fallback_settings["provider"]
   end
 
   # The runtime the last turn ran on (local, e2b), or nil before any.
@@ -290,8 +295,15 @@ class Conversation < ApplicationRecord
   # pi rejects --provider without --model, so a provider-only setting runs
   # that provider's first enabled catalog model.
   def provider_default_model
-    provider = configured_provider
-    LlmModel.first_enabled_key_for(provider) if provider.present?
+    LlmModel.first_enabled_key_for(settings["provider"])
+  end
+
+  def fallback_settings = Agent::ModelSelection.default_settings(user)
+
+  # Every conversation records its model when it's born — routines, workflow
+  # runs and forks included — so the header shows what it actually runs on.
+  def apply_default_model
+    self.settings = fallback_settings.merge(settings.to_h) if settings.to_h.values_at("model", "provider").all?(&:blank?)
   end
 
   def default_team

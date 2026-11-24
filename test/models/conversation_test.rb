@@ -153,31 +153,32 @@ class ConversationTest < ActiveSupport::TestCase
     assert_equal "openai", conversation.configured_provider
   end
 
-  test "configured_model/provider fall back to the deployment default" do
-    agent = Rails.application.config.x.agent
-    prev_model, prev_provider = agent.model, agent.provider
-    agent.model = "anthropic/claude-opus-4-8"
-    agent.provider = "anthropic"
-    @conversation.update!(settings: {})
+  test "a new conversation records the user's own default model, else the catalog default" do
+    anthropic = LlmProvider.create!(key: "anthropic", label: "Anthropic", position: 1)
+    anthropic.llm_models.create!(key: "claude-opus-5-5", label: "Claude Opus 5.5")
+    LlmProvider.create!(key: "openai", label: "OpenAI", position: 2).llm_models.create!(key: "gpt-5.5", label: "GPT-5.5")
 
-    assert_equal "anthropic/claude-opus-4-8", @conversation.configured_model
-    assert_equal "anthropic", @conversation.configured_provider
-  ensure
-    agent.model = prev_model
-    agent.provider = prev_provider
+    assert_equal({ "model" => "claude-opus-5-5", "provider" => "anthropic" }, @user.conversations.create!.settings)
+
+    @user.update!(preferred_model: "gpt-5.5")
+    assert_equal({ "model" => "gpt-5.5", "provider" => "openai" }, @user.conversations.create!.settings)
+    assert_equal "claude-opus-5-5", @user.conversations.create!(settings: { "model" => "claude-opus-5-5" }).settings["model"]
+  end
+
+  test "an older conversation without settings resolves the same default at turn time" do
+    LlmProvider.create!(key: "openai", label: "OpenAI").llm_models.create!(key: "gpt-5.5", label: "GPT-5.5")
+    @conversation.update_columns(settings: {})
+
+    assert_equal "gpt-5.5", @conversation.configured_model
+    assert_equal "openai", @conversation.configured_provider
   end
 
   test "a provider-only setting resolves to that provider's first enabled catalog model" do
-    agent = Rails.application.config.x.agent
-    prev_model = agent.model
-    agent.model = nil
     LlmProvider.create!(key: "openai", label: "OpenAI").llm_models.create!(key: "gpt-5.5", label: "GPT-5.5")
     conversation = @user.conversations.create!(settings: { "provider" => "openai" })
 
     assert_equal "gpt-5.5", conversation.configured_model
     assert_nil @user.conversations.create!(settings: { "provider" => "uncataloged" }).configured_model
-  ensure
-    agent.model = prev_model
   end
 
   test "runtime_label is the runtime the last turn ran on" do

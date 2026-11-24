@@ -28,6 +28,9 @@
       refresh: "刷新"
       refreshing: "刷新中…"
       intro: "此部署在新对话编辑器中提供的提供商和模型。"
+      default_label: "默认模型"
+      default_none: "第一个已启用的模型（%{model}）"
+      default_hint: "当输入框和用户资料都未选择模型时，对话、例程和工作流运行使用此模型。"
       intro_superuser: "刷新以从 pi 拉取最新内容，然后开启你想要的项。"
       intro_managed: "由管理员管理。"
       empty: "目录为空。"
@@ -48,6 +51,8 @@
       reasoning: "推理"
       disable_model: "禁用 %{model}"
       enable_model: "启用 %{model}"
+      default: "默认"
+      default_title: "当输入框和用户资料都未选择模型时，对话、例程和工作流运行都使用此模型。"
   pwa:
     manifest:
       name: "Metis"

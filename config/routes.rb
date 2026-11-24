@@ -126,6 +126,7 @@ Rails.application.routes.draw do
 
     get   "models",                   to: "models#index",           as: :models
     post  "models/refresh",           to: "models#refresh",         as: :refresh_models
+    patch "models/default",           to: "models#update_default",  as: :models_default
     patch "models/providers/:id",     to: "models#update_provider", as: :model_provider
     patch "models/items/:id",         to: "models#update_model",    as: :model_item
 

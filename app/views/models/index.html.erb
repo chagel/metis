@@ -34,6 +34,20 @@
             <% end %>
           </div>
         <% else %>
+          <div class="models-default">
+            <span class="models-default-label"><%= t('.default_label') %></span>
+            <% if current_user.superuser? %>
+              <%= form_with url: models_default_path, method: :patch, data: { controller: "auto-submit" } do %>
+                <%= select_tag :model_id,
+                      grouped_options_for_select(@default_options, @default&.id),
+                      include_blank: @default ? nil : t('.default_none', model: @fallback_label),
+                      class: "team-input", data: { action: "change->auto-submit#submit" } %>
+              <% end %>
+            <% else %>
+              <span><%= @default&.label || t('.default_none', model: @fallback_label) %></span>
+            <% end %>
+            <span class="models-default-hint"><%= t('.default_hint') %></span>
+          </div>
           <% @providers.each do |provider| %>
             <%= render "provider", provider: provider %>
           <% end %>

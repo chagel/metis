@@ -89,7 +89,7 @@ deletions; corrections this window against the one before.
 
 **Nightly review.** The first memory a user saves in a team creates a
 "Memory review" routine for them (`MemoryReview`, personal, daily at 03:00
-in their zone, deployment default model, marked
+in their zone, on their own default model, marked
 `trigger_config["purpose"] = "memory_review"`). Each fire is an ordinary
 turn: it reads the report from the previous review on, tidies memories
 with the existing tools, and replies with a short "what I learned" note.

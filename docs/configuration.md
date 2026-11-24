@@ -28,7 +28,6 @@ required is missing). In a deployment:
 | Variable | Purpose |
 |---|---|
 | `METIS_AGENT_RUNTIME` | `local` (default), `docker`, `e2b`, `daytona`, or `microsandbox` |
-| `METIS_AGENT_PROVIDER` / `METIS_AGENT_MODEL` | default LLM provider/model for pi |
 | Provider API keys — `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, … | see [Providers](#providers) |
 | `SERPER_API_KEY` / `BRAVE_SEARCH_API_KEY` | web-search backend for the agent's `web_search` tool — recommended (DuckDuckGo rate-limits sandbox IPs); see [Web search](#web-search) |
 | `SEARXNG_URL` | keyless web-search alternative — base URL of a self-hosted SearXNG with the JSON format enabled; see [Web search](#web-search) |
@@ -168,6 +167,14 @@ locally works here. The new-chat composer's model list is the deployment
 LLM catalog — synced from pi and curated by a superuser at **Settings →
 Models**. After setting a provider's key, click **Refresh** there to pull
 that provider's models into the catalog, then enable the ones to offer.
+
+There is no model env var. A conversation records its model when it is
+created: the composer's pick, else the user's profile default (if still
+enabled), else the catalog's **default model**, which a superuser picks at the top
+of the Models page (the first listed model until one is picked). Routines, workflow runs and forks follow the same chain
+(`Agent::ModelSelection.default_settings`, applied in
+`Conversation#apply_default_model`). With no catalog at all, pi runs its own
+configured default.
 
 ## Web search
 

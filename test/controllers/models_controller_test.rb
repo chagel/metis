@@ -44,6 +44,20 @@ class ModelsControllerTest < ActionDispatch::IntegrationTest
     assert_not @model.reload.enabled?
   end
 
+  test "a superuser picks the deployment default; members only see it" do
+    sign_in @superuser
+    patch models_default_path, params: { model_id: @model.id }
+    assert @model.reload.deployment_default?
+
+    other = @provider.llm_models.create!(key: "gpt-6", label: "GPT-6")
+    sign_in @member
+    patch models_default_path, params: { model_id: other.id }
+    assert @model.reload.deployment_default?
+    get models_path
+    assert_select ".models-default", text: /GPT-5.5/
+    assert_select ".model-label + .badge", text: "default"
+  end
+
   test "a superuser toggles a provider, cascading to its models" do
     sign_in @superuser
     patch model_provider_path(@provider), params: { enabled: false }

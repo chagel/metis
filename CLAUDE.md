@@ -156,9 +156,10 @@ storage failure must not crash a turn the user already saw stream.
 
 ### Credentials
 
-pi's `--provider` / `--model` come from the conversation's `settings` (jsonb,
-set by the new-chat composer) or fall back to `config.x.agent` deployment
-defaults (`METIS_AGENT_PROVIDER` / `METIS_AGENT_MODEL`). The `--api-key` is the
+pi's `--provider` / `--model` come from the conversation's `settings` (jsonb),
+filled when the conversation is created: the composer's pick, else the user's
+`preferred_model`, else the catalog default a superuser marks on the Models
+page (`LlmModel#deployment_default`). There is no model env var. The `--api-key` is the
 per-provider deployment key in `config.x.agent.api_keys` — env var names mirror
 pi's own conventions (https://pi.dev/docs/latest/providers): `ANTHROPIC_API_KEY`,
 `OPENAI_API_KEY`, `GEMINI_API_KEY` (note: not `GOOGLE_API_KEY` — pi's name),

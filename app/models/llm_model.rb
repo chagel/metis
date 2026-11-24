@@ -14,4 +14,12 @@ class LlmModel < ApplicationRecord
   def self.first_enabled_key_for(provider_key)
     enabled.ordered.joins(:llm_provider).find_by(llm_providers: { key: provider_key })&.key
   end
+
+  # The superuser's pick on the Models page; at most one row holds it.
+  def make_deployment_default!
+    transaction do
+      LlmModel.where(deployment_default: true).where.not(id: id).update_all(deployment_default: false)
+      update!(deployment_default: true, enabled: true)
+    end
+  end
 end
