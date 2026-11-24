@@ -112,6 +112,11 @@ en:
         notice: "%{name} deleted."
         alert: "%{name} %{error}."
     settings:
+      memories:
+        destroy:
+          notice: "Memory deleted."
+        clear:
+          notice: "All memories cleared."
       teams:
         update:
           notice: "Team renamed."

@@ -15,6 +15,10 @@
  *   metis_list_routines   — list the team's routines, with trigger + status (live)
  *   metis_create_routine  — create a scheduled/event routine (admin only)
  *   metis_update_routine  — edit a routine / enable-disable it (admin only)
+ *   metis_remember        — record something learned about the operator
+ *   metis_update_memory   — revise a memory (content, kind, confidence)
+ *   metis_forget          — drop a memory that's wrong or stale
+ *   metis_note_applied    — report which memories shaped this reply
  *
  * These manage team skills as single SKILL.md rows. Multi-file skills (with
  * supporting assets) still go through the native file path: write
@@ -142,6 +146,12 @@ function formatRoutines(
     })
     .join("\n");
 }
+
+// Mirror UserMemory's enums (app/models/user_memory.rb).
+const literals = (values: string[], options?: object) => Type.Union(values.map((v) => Type.Literal(v)), options);
+const memoryKind = (options?: object) => literals(["preference", "correction", "fact", "goal", "commitment", "experience"], options);
+const memorySource = (options?: object) => literals(["stated", "inferred"], options);
+const memoryConfidence = (options?: object) => literals(["low", "medium", "high"], options);
 
 const StepSchema = Type.Object({
   name: Type.String({
@@ -628,6 +638,97 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
         params,
         (r) => `Updated the "${r.name}" routine${r.enabled === false ? " (disabled)" : ""}. Review it: ${r.url}`,
       );
+    },
+  });
+
+  pi.registerTool({
+    name: "metis_remember",
+    label: "Remember",
+    description:
+      "Record something you learned about the operator so every future conversation " +
+      "in this team can use it. One short fact per memory (max 500 characters).",
+    promptSnippet: "Record something learned about the operator",
+    promptGuidelines: [
+      "Use metis_remember when the operator corrects you, states a preference, shares a lasting fact about their work, sets a goal, or when you promise a follow-up, or notice a pattern in their choices.",
+      "Don't record one-off task details, secrets, credentials, or sensitive personal data.",
+      "Use source \"stated\" only for what the operator said outright; anything you concluded yourself is \"inferred\", usually at \"low\" confidence.",
+      "Check the memories already listed in your context first; update an existing one instead of adding a near-duplicate.",
+    ],
+    parameters: Type.Object({
+      content: Type.String({ description: "The memory, one short fact in plain words, without a subject: \"Co-founded Pipi Hosting\", not \"The operator co-founded…\"." }),
+      kind: memoryKind({
+        description: "preference (how they like things), correction (something they corrected), fact (about them or their work), goal (something they're pursuing), commitment (a follow-up you promised), experience (a lesson about working with them).",
+      }),
+      source: Type.Optional(
+        memorySource({
+          description: "\"stated\" if the operator said it outright, \"inferred\" if you concluded it. Defaults to inferred.",
+        }),
+      ),
+      confidence: Type.Optional(
+        memoryConfidence({
+          description: "How sure you are. Defaults to high for stated, low for inferred.",
+        }),
+      ),
+    }),
+
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return hostWrite(ctx, "remember", params, (r) => `Remembered as #${r.id} (${r.kind}, ${r.source}/${r.confidence}).`);
+    },
+  });
+
+  pi.registerTool({
+    name: "metis_update_memory",
+    label: "Update Memory",
+    description: "Revise one of your memories about the operator, by id. Pass only what changes.",
+    promptSnippet: "Revise a memory about the operator",
+    promptGuidelines: [
+      "Use metis_update_memory to raise confidence as evidence repeats, to correct a memory, or when the operator's current request shows a memory is out of date.",
+      "New wording is a new claim: pass source \"stated\" only if the operator said the new wording outright; otherwise it becomes \"inferred\".",
+    ],
+    parameters: Type.Object({
+      id: Type.Number({ description: "The memory id, as listed in your context." }),
+      content: Type.Optional(Type.String({ description: "New wording." })),
+      kind: Type.Optional(memoryKind()),
+      source: Type.Optional(memorySource({ description: "Only with new content. Defaults to inferred." })),
+      confidence: Type.Optional(memoryConfidence()),
+    }),
+
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return hostWrite(ctx, "update_memory", params, (r) => `Updated memory #${r.id} (${r.kind}, ${r.source}/${r.confidence}).`);
+    },
+  });
+
+  pi.registerTool({
+    name: "metis_forget",
+    label: "Forget Memory",
+    description: "Delete one of your memories about the operator, by id.",
+    promptSnippet: "Forget a memory about the operator",
+    promptGuidelines: [
+      "Use metis_forget when a memory is wrong or stale, or when the operator asks you to forget something.",
+    ],
+    parameters: Type.Object({
+      id: Type.Number({ description: "The memory id, as listed in your context." }),
+    }),
+
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return hostWrite(ctx, "forget_memory", params, (r) => `Forgot memory #${r.id}.`);
+    },
+  });
+
+  pi.registerTool({
+    name: "metis_note_applied",
+    label: "Note Applied Memories",
+    description: "Report which of your memories about the operator shaped this reply.",
+    promptSnippet: "Report which memories shaped this reply",
+    promptGuidelines: [
+      "Call metis_note_applied once per reply that a memory actually shaped, with those memory ids. Skip it when none did.",
+    ],
+    parameters: Type.Object({
+      ids: Type.Array(Type.Number(), { description: "Ids of the memories that shaped this reply." }),
+    }),
+
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return hostWrite(ctx, "note_memory_applied", params, (r) => `Noted ${r.noted} applied memor${r.noted === 1 ? "y" : "ies"}.`);
     },
   });
 }

@@ -170,4 +170,11 @@ class Agent::HostBridgeTest < ActiveSupport::TestCase
     assert_equal true, JSON.parse(json)["ok"]
     refute skill.reload.enabled?
   end
+
+  test "remember writes a memory for the conversation's own user" do
+    result = JSON.parse(Agent::HostBridge.call(@conversation, "remember", "content" => "prefers Go", "kind" => "preference"))
+
+    assert result["ok"]
+    assert_equal "prefers Go", UserMemory.for(@user, @team).sole.content
+  end
 end

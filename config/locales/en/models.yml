@@ -4,6 +4,10 @@ en:
   activerecord:
     errors:
       models:
+        user_memory:
+          attributes:
+            base:
+              cap_reached: "already has %{count} memories — update or forget one first"
         skill:
           attributes:
             slug:

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_13_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_22_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -322,6 +322,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_13_000000) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "user_memories", force: :cascade do |t|
+    t.integer "confidence", default: 0, null: false
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.integer "kind", null: false
+    t.datetime "last_applied_at"
+    t.integer "source", default: 1, null: false
+    t.bigint "source_conversation_id"
+    t.bigint "team_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["source_conversation_id"], name: "index_user_memories_on_source_conversation_id"
+    t.index ["team_id", "user_id", "kind"], name: "index_user_memories_on_team_id_and_user_id_and_kind"
+    t.index ["user_id"], name: "index_user_memories_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.text "about_you"
     t.boolean "auto_claim_tasks", default: true, null: false
@@ -429,6 +445,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_13_000000) do
   add_foreign_key "tasks", "users", column: "approved_by_id", on_delete: :nullify
   add_foreign_key "tasks", "users", column: "claimed_by_user_id", on_delete: :nullify
   add_foreign_key "tasks", "workflow_runs", on_delete: :cascade
+  add_foreign_key "user_memories", "conversations", column: "source_conversation_id", on_delete: :nullify
+  add_foreign_key "user_memories", "teams", on_delete: :cascade
+  add_foreign_key "user_memories", "users", on_delete: :cascade
   add_foreign_key "webhook_events", "projects"
   add_foreign_key "webhook_events", "teams"
   add_foreign_key "workflow_runs", "conversations", on_delete: :cascade

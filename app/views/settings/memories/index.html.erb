@@ -1,0 +1,45 @@
+<% content_for :title, t(".title") %>
+
+<main class="pane" data-controller="memory-filter">
+  <header class="pane-head">
+    <h1 class="pane-title"><%= t(".heading") %></h1>
+    <div style="flex:1"></div>
+    <% if @memories.any? %>
+      <label class="search memory-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" placeholder="<%= t(".search") %>" aria-label="<%= t(".search") %>"
+               data-memory-filter-target="query" data-action="input->memory-filter#apply">
+      </label>
+    <% end %>
+  </header>
+
+  <div class="pane-body">
+    <div class="pane-inner">
+      <p class="form-hint memory-intro"><%= t(".intro", team: current_team.personal? ? t(".personal_team") : current_team.name) %></p>
+
+      <% if @memories.empty? %>
+        <div class="pane-empty"><p><%= t(".empty") %></p></div>
+      <% else %>
+        <% counts = @memories.group_by(&:kind).transform_values(&:size) %>
+        <nav class="memory-tabs" aria-label="<%= t(".filter") %>">
+          <%= render "settings/memories/tab", key: "", label: t(".all"), count: @memories.size, on: true %>
+          <% UserMemory.kinds.each_key do |kind| %>
+            <%= render "settings/memories/tab", key: kind, label: t(".kinds.#{kind}"), count: counts[kind].to_i %>
+          <% end %>
+          <span class="memory-tabs-sep" aria-hidden="true"></span>
+          <%= render "settings/memories/tab", key: "review", label: t(".review"), count: @memories.count(&:source_inferred?) %>
+        </nav>
+
+        <div class="memory-list" data-memory-filter-target="list">
+          <%= render partial: "settings/memories/memory", collection: @memories %>
+        </div>
+        <p class="memory-none" data-memory-filter-target="none" hidden><%= t(".no_match") %></p>
+
+        <div class="memory-foot">
+          <%= button_to t(".clear"), clear_memories_path, method: :delete, class: "memory-clear",
+                form: { data: { turbo_confirm: t(".clear_confirm") } } %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</main>

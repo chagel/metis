@@ -4,6 +4,10 @@
   activerecord:
     errors:
       models:
+        user_memory:
+          attributes:
+            base:
+              cap_reached: "已有 %{count} 条记忆 — 请先更新或删除一条"
         skill:
           attributes:
             slug:

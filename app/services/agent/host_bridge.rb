@@ -10,7 +10,8 @@ module Agent
   # Reads and writes both go through here. The sandbox never holds Metis
   # credentials — it only sends a request; HostBridge does the work and
   # authorizes it server-side (admin for create/update/skill writes, membership
-  # for start), always within the conversation's team, so a sandbox can't widen
+  # for start, the conversation's own user for memory), always within the
+  # conversation's team, so a sandbox can't widen
   # its own scope. Writes delegate to Agent::WorkflowHandoff / WorkflowAuthoring
   # / SkillManager, which return `{ ok:, ... }` the agent relays in its reply.
   class HostBridge
@@ -21,6 +22,7 @@ module Agent
       get_workflow get_project start_workflow create_workflow update_workflow
       list_skills create_skill update_skill
       list_routines create_routine update_routine
+      remember update_memory forget_memory note_memory_applied
     ].freeze
 
     # Build an `extension_ui:` handler bound to this conversation. It services
@@ -130,6 +132,22 @@ module Agent
 
     def update_routine
       JSON.generate(Agent::RoutineManager.update(@conversation, @params))
+    end
+
+    def remember
+      JSON.generate(Agent::MemoryManager.remember(@conversation, @params))
+    end
+
+    def update_memory
+      JSON.generate(Agent::MemoryManager.update(@conversation, @params))
+    end
+
+    def forget_memory
+      JSON.generate(Agent::MemoryManager.forget(@conversation, @params))
+    end
+
+    def note_memory_applied
+      JSON.generate(Agent::MemoryManager.note_applied(@conversation, @params))
     end
   end
 end

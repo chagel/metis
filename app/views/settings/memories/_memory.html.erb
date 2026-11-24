@@ -1,0 +1,46 @@
+<div id="<%= dom_id(memory) %>" class="memory-row<%= " is-inferred" if memory.source_inferred? %>"
+     data-controller="memory-row" data-memory-filter-target="row"
+     data-kind="<%= memory.kind %>" data-review="<%= memory.source_inferred? %>">
+  <div class="memory-view" data-memory-row-target="view">
+    <button type="button" class="memory-text" title="<%= memory.content %>" data-action="memory-row#edit"><%= memory.content %></button>
+    <span class="memory-meta">
+      <%= t("settings.memories.memory.kinds.#{memory.kind}") %> ·
+      <%= t("settings.memories.memory.provenance.#{memory.source}", confidence: t("settings.memories.memory.confidence.#{memory.confidence}")) %>
+      <% if memory.last_applied_at %>
+        · <%= t("settings.memories.memory.applied", time: time_ago_in_words(memory.last_applied_at)) %>
+      <% end %>
+    </span>
+    <span class="memory-actions">
+      <% if memory.source_inferred? %>
+        <%= button_to confirm_memory_path(memory), method: :patch, class: "memory-icon",
+              title: t("settings.memories.memory.confirm"), aria: { label: t("settings.memories.memory.confirm") } do %>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"/></svg>
+        <% end %>
+      <% end %>
+      <% if memory.source_conversation_id %>
+        <%= link_to conversation_path(memory.source_conversation_id), class: "memory-icon",
+              title: t("settings.memories.memory.source"), aria: { label: t("settings.memories.memory.source") } do %>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5H3.5v9h9V10M9 3h4v4M13 3 7.5 8.5"/></svg>
+        <% end %>
+      <% end %>
+      <button type="button" class="memory-icon" data-action="memory-row#edit"
+              title="<%= t("settings.memories.memory.edit") %>" aria-label="<%= t("settings.memories.memory.edit") %>">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 2.5 13.5 5.5 5.5 13.5H2.5V10.5Z"/></svg>
+      </button>
+      <%= button_to memory_path(memory), method: :delete, class: "memory-icon memory-icon-danger",
+            title: t("settings.memories.memory.delete"), aria: { label: t("settings.memories.memory.delete") } do %>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>
+      <% end %>
+    </span>
+  </div>
+
+  <%= form_with model: memory, url: memory_path(memory), method: :patch, class: "memory-edit",
+        html: { hidden: true }, data: { memory_row_target: "form", action: "keydown->memory-row#key" } do |f| %>
+    <%= f.text_area :content, rows: 2, maxlength: UserMemory::MAX_CONTENT, class: "memory-content", data: { memory_row_target: "input" } %>
+    <div class="memory-edit-bar">
+      <span class="memory-hint"><%= t("settings.memories.memory.edit_hint") %></span>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="memory-row#cancel"><%= t("settings.memories.memory.cancel") %></button>
+      <%= f.submit t("settings.memories.memory.save"), class: "btn btn-primary btn-sm" %>
+    </div>
+  <% end %>
+</div>

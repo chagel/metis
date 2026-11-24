@@ -105,6 +105,11 @@
         notice: "%{name} 已删除。"
         alert: "%{name} %{error}。"
     settings:
+      memories:
+        destroy:
+          notice: "记忆已删除。"
+        clear:
+          notice: "已清除所有记忆。"
       teams:
         update:
           notice: "团队已重命名。"

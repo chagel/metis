@@ -17,6 +17,7 @@ class Membership < ApplicationRecord
   # A departing member's public artifact links die with the membership —
   # revocation is creator-only, so nobody left in the team could revoke them.
   after_destroy { ArtifactShare.minted_by(user).where(team: team).delete_all }
+  after_destroy { UserMemory.for(user, team).delete_all }
 
   # Owners and admins manage the team (members, settings); plain
   # members only use its shared resources.

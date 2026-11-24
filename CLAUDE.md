@@ -289,6 +289,15 @@ collect-then-trigger webhook split), and manual `run`. Managed from the
 with **fugit** (IANA zone embedded as the trailing field). See
 [`docs/routines.md`](docs/routines.md).
 
+### User memory
+
+Metis learns each user as they chat. `UserMemory` (team + user, encrypted,
+typed by `kind` / `source` / `confidence`) is recorded by the agent's own
+`metis_remember` / `metis_update_memory` / `metis_forget` tools
+(`Agent::MemoryManager` over `Agent::HostBridge`), shown every turn by
+`Agent::Identity`, and managed at `/settings/memory`. See
+[`docs/memory.md`](docs/memory.md).
+
 ## Conventions
 
 - **Tenancy is `Team`-only.** Every ownable resource (`Conversation`,
@@ -301,7 +310,8 @@ with **fugit** (IANA zone embedded as the trailing field). See
   `Message#streaming_status`, `Message#kind`, `Connector#transport`,
   `WorkflowRun#status`, `Task#status`, `Task#gate`, `Workflow#trigger_source`,
   `Membership#role`, `Invitation#role`, `WebhookEvent#provider`,
-  `Routine#trigger_source`, `Routine#visibility`.
+  `Routine#trigger_source`, `Routine#visibility`, `UserMemory#kind`,
+  `UserMemory#source`, `UserMemory#confidence`.
 - User-facing copy lives in `config/locales/*.en.yml` (split by surface:
   `views_*`, `flash`, `mailers`, `models`, …), reached via `t(...)` / `I18n.t`
   — not inline strings. English is the baseline.

@@ -42,6 +42,9 @@ sections render only when set):
   team's other saved projects.
 - **Operator preferences** — the user's profile `about_you` /
   `custom_instructions`, framed as standing guidance.
+- **What you've learned about the operator** — the user's
+  `UserMemory` rows for this team (omitted in workflow runs), with how
+  to apply and record them. See [`memory.md`](memory.md).
 - **Connectors** — each enabled connector with how the agent acts on
   it (*as you (OAuth)*, *team-shared credential*, *no credential —
   server visible but may reject*).
