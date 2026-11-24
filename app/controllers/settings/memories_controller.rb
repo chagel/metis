@@ -5,10 +5,15 @@ class Settings::MemoriesController < ApplicationController
 
   def index
     @memories = memories.newest_first.load
+    @review = MemoryReview.routine_for(current_user, current_team)
+    @last_review = @review&.conversations&.order(created_at: :desc)&.first
+    week = Agent::MemoryReport.new(current_user, current_team, since: 1.week.ago)
+    @corrections_this_week = week.corrections_count
+    @corrections_last_week = week.previous_corrections_count
   end
 
   def update
-    if @memory.update(memory_params)
+    if @memory.edit_by_user(memory_params[:content])
       respond_with_row
     else
       redirect_to memories_path, alert: @memory.errors.full_messages.to_sentence
@@ -21,7 +26,10 @@ class Settings::MemoriesController < ApplicationController
   end
 
   def destroy
-    @memory.destroy
+    Membership.transaction do
+      current_membership.record_memory_deletions!([ @memory.kind ])
+      @memory.destroy!
+    end
     respond_to do |format|
       format.turbo_stream { render turbo_stream: turbo_stream.remove(helpers.dom_id(@memory)) }
       format.html { redirect_to memories_path, notice: t("flash.settings.memories.destroy.notice") }
@@ -29,7 +37,10 @@ class Settings::MemoriesController < ApplicationController
   end
 
   def clear
-    memories.delete_all
+    Membership.transaction do
+      current_membership.record_memory_deletions!(memories.pluck(:kind))
+      memories.delete_all
+    end
     redirect_to memories_path, notice: t("flash.settings.memories.clear.notice")
   end
 

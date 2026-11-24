@@ -42,6 +42,35 @@ cost is small and honest: a `Team` row per signup and a `team_id` on
 resources that feel personal; a `personal:` flag lets the UI hide the team
 framing for solo users.
 
+## Scope within a team
+
+Ownership stays with the team, but a resource can also say *whose* it is
+inside that team. A scoped resource carries `visibility` (`personal` |
+`team`) and a user:
+
+| Scope | Sees it | Manages it |
+|-------|---------|------------|
+| `team` | every member | admins and owners |
+| `personal` | its user alone | its user alone (admins included: no override) |
+
+Both kinds live side by side in one table; the UI splits them into *My* and
+*Team* tabs. Lifecycle is unchanged: a personal resource is still deleted
+with its team, and a user's personal resources in a team go when they
+leave it (`Membership` `after_destroy`). Names are unique within a scope:
+per user for personal, per team for team.
+
+This is a branch, but a narrow one: it is per resource, opt-in, and inside
+one team, never User-vs-Team ownership. Each scoped resource keeps it in one
+place, a `visible_to(user)` scope and a `manageable_by?(user)` method,
+applied within `current_team`: membership stays the first check, scope the
+second.
+
+Scoped today: `Conversation` (`visibility`, author), `Routine`
+(`visibility`, runs-as user). Per-user state inside a team resource
+(`ConnectorCredential`, `UserMemory`) is the same idea without a team
+variant. Not yet scoped: workflows, skills, connectors, projects, all
+team-only and admin-managed.
+
 ## A second axis: the deployment superuser
 
 Team membership answers "may this user touch this *team's* resource?" It
@@ -104,9 +133,9 @@ that scopes them to one repo and one tracker and bundles them as a named
 context. A Project references connectors; it does not re-implement their
 auth.
 
-Projects are user-managed for now. Under team-of-one that is already
-team-aware — a user's project is owned by their personal team — so
-team-shared projects arrive later with no migration.
+Projects are team-only for now: admins create and edit them, members use
+them. Under team-of-one that already means a user manages their own; a
+personal scope (above) can be added later without a migration of ownership.
 
 ## Open
 

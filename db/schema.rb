@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_22_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_23_030000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -184,6 +184,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_010000) do
 
   create_table "memberships", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.jsonb "memory_deletions", default: [], null: false
     t.integer "role", null: false
     t.bigint "team_id", null: false
     t.datetime "updated_at", null: false
@@ -194,9 +195,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_010000) do
   end
 
   create_table "messages", force: :cascade do |t|
+    t.bigint "applied_memory_ids", default: [], null: false, array: true
     t.integer "cache_read_tokens"
     t.text "content"
     t.bigint "conversation_id", null: false
+    t.datetime "corrected_at"
+    t.text "correction_note"
     t.decimal "cost", precision: 12, scale: 6
     t.datetime "created_at", null: false
     t.datetime "finished_at"
@@ -216,6 +220,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_010000) do
     t.index ["conversation_id"], name: "index_messages_on_conversation_id"
     t.index ["conversation_id"], name: "index_messages_on_one_in_progress_turn", unique: true, where: "((role = 1) AND (streaming_status = ANY (ARRAY[0, 1])))"
     t.index ["sender_id"], name: "index_messages_on_sender_id"
+    t.index ["conversation_id", "corrected_at"], name: "index_messages_on_corrections", where: "(corrected_at IS NOT NULL)"
+    t.index ["conversation_id"], name: "index_messages_applying_memories", where: "(cardinality(applied_memory_ids) > 0)"
   end
 
   create_table "oauth_grants", force: :cascade do |t|
@@ -263,7 +269,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_010000) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.integer "visibility", default: 0, null: false
-    t.index "team_id, lower((name)::text)", name: "index_routines_on_team_id_and_lower_name", unique: true
+    t.index "team_id, lower((name)::text)", name: "index_routines_on_team_lower_name_team_scope", unique: true, where: "(visibility = 1)"
+    t.index "team_id, user_id, lower((name)::text)", name: "index_routines_on_team_user_lower_name_personal", unique: true, where: "(visibility = 0)"
     t.index ["enabled", "trigger_source", "event_type"], name: "index_routines_on_event_dispatch"
     t.index ["enabled", "trigger_source", "next_run_at"], name: "index_routines_on_due"
     t.index ["project_id"], name: "index_routines_on_project_id"
@@ -326,6 +333,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_010000) do
     t.integer "confidence", default: 0, null: false
     t.text "content", null: false
     t.datetime "created_at", null: false
+    t.datetime "edited_by_user_at"
     t.integer "kind", null: false
     t.datetime "last_applied_at"
     t.integer "source", default: 1, null: false

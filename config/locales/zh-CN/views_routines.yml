@@ -3,16 +3,26 @@
     index:
       title: "例程"
       new: "新建"
-      empty: "还没有例程。例程是一个会自动运行的已保存提示词 — 按计划或在收到 webhook 事件时触发 — 作为一次普通的智能体回合执行。"
+      tabs:
+        mine: "我的例程"
+        team: "团队例程"
+      hints:
+        mine: "只有你能看到这些例程及其运行记录。"
+        team: "所有成员都能看到这些例程及其运行记录；由管理员管理。"
+      empty:
+        mine: "你还没有自己的例程。例程是一个会自动运行的已保存提示词 — 按计划或在收到 webhook 事件时触发 — 作为一次普通的智能体回合执行。"
+        team: "还没有团队例程。"
       create_first: "创建你的第一个例程"
     routine:
       disabled: "已暂停"
-      schedule: "%{cron} · %{tz}"
       event: "当 %{type} 时"
-      project_suffix: "· %{name}"
       run: "立即运行"
       pause: "暂停"
       resume: "恢复"
+      next_run: "%{time}后运行"
+      last_run: "%{time}前运行过"
+      never_run: "从未运行"
+      runs_as: "以 %{name} 身份运行"
     new:
       title: "新建例程"
     edit:
@@ -63,11 +73,12 @@
       event_hint_html: "触发此例程的 webhook 事件。只能选择你团队实际收到过的事件类型（例如 <code>pull_request.opened</code>、<code>Issue.create</code>），以及每个家族的 <code>.*</code> 通配项（<code>pull_request.*</code>）。在团队的 GitHub/Linear webhook 配置好并有事件到达之前，列表为空。"
       cooldown_label: "冷却时间（秒）"
       cooldown_hint: "对于频繁的事件，两次触发之间的最小间隔。0 = 无冷却。"
-      visibility_label: "可见性"
+      visibility_label: "归属"
       visibilities:
-        personal: "个人 — 仅你可见运行记录"
-        team: "团队 — 任何成员都可打开运行记录"
-      visibility_hint: "每次触发都会开启一个对话；此项设置谁能看到它。"
+        personal: "我 — 只有我能看到和管理它及其运行记录"
+        team: "团队 — 所有成员都能看到它及其运行记录；由管理员管理"
+      visibility_hint: "每次触发都会开启一个可见性相同的对话。"
+      visibility_personal_only: "只有你能看到和管理这个例程及其运行记录。团队例程由管理员创建。"
       project_label: "项目"
       project_blank: "无"
       project_hint: "可选 — 为运行提供某个项目的仓库与规范作为上下文。"

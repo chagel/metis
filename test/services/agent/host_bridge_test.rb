@@ -177,4 +177,11 @@ class Agent::HostBridgeTest < ActiveSupport::TestCase
     assert result["ok"]
     assert_equal "prefers Go", UserMemory.for(@user, @team).sole.content
   end
+
+  test "memory_report and note_memory_correction are dispatchable" do
+    @conversation.messages.create!(role: :assistant, content: "x", streaming_status: :done)
+
+    assert JSON.parse(Agent::HostBridge.call(@conversation, "note_memory_correction", "note" => "wrong repo"))["ok"]
+    assert JSON.parse(Agent::HostBridge.call(@conversation, "memory_report", {})).key?("totals")
+  end
 end

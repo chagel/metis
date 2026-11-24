@@ -18,10 +18,25 @@ class Membership < ApplicationRecord
   # revocation is creator-only, so nobody left in the team could revoke them.
   after_destroy { ArtifactShare.minted_by(user).where(team: team).delete_all }
   after_destroy { UserMemory.for(user, team).delete_all }
+  # Nobody left could see a departed member's personal routines, and their
+  # team routines would keep running as someone outside the team.
+  after_destroy { team.routines.visibility_personal.where(user: user).destroy_all }
+  after_destroy { team.routines.where(user: user).update_all(enabled: false, next_run_at: nil) }
 
   # Owners and admins manage the team (members, settings); plain
   # members only use its shared resources.
   def manages_team?
     admin? || owner?
+  end
+
+  # Memories the user deleted on the memory page, as { kind, at } with no
+  # text, kept 30 days so the nightly review knows what was rejected.
+  def record_memory_deletions!(kinds)
+    kept = memory_deletions.select { |deletion| Time.iso8601(deletion["at"]) > 30.days.ago }
+    update!(memory_deletions: kept + kinds.map { |kind| { "kind" => kind, "at" => Time.current.iso8601 } })
+  end
+
+  def memory_deletions_since(time)
+    memory_deletions.select { |deletion| Time.iso8601(deletion["at"]) >= time }.map { |deletion| deletion["kind"] }.tally
   end
 end

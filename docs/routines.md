@@ -38,7 +38,7 @@ chat — runtimes, credential pass-through, connectors, skills, observability
 | `prompt` | the instruction, run each fire; supports `{{variables}}` |
 | `cron` + `timezone` | 5-field cron and IANA zone (schedule kind) |
 | `event_type` | webhook event to match, exact or `family.*` (webhook kind) |
-| `visibility` | enum `{ personal, team }` — who can open the fired runs |
+| `visibility` | enum `{ personal, team }` — who sees and manages the routine and its fired runs (see Scope) |
 | `enabled` | off pauses it; agent-created routines start disabled |
 | `next_run_at` / `last_run_at` | scheduler cursor + cooldown anchor |
 | `trigger_config` | jsonb: `cooldown_seconds`, `conditions`, `variables`, run `settings` |
@@ -78,7 +78,19 @@ with `WorkflowHandoff`); unset inherits the deployment default.
 
 ## Surface
 
-- **Web** — `RoutinesController` under `/settings/routines`: CRUD plus
+- **Scope** — a routine is **personal** (its user alone sees and manages it
+  and its runs; admins included) or **team** (every member sees it and its
+  runs; admins manage it). Both live in one team (`docs/tenancy.md`, *Scope
+  within a team*). `Routine.visible_to(user)` and `Routine#manageable_by?`
+  hold the rule for the web and chat paths alike. Any member can create a
+  personal routine; only admins create or edit team ones. Names are unique
+  per user among personal routines and per team among team ones. When a
+  member leaves, their personal routines are deleted and team routines that
+  run as them are paused. A personal team shows no team framing: one list,
+  no scope picker, every routine personal.
+- **Web** — `RoutinesController` under `/settings/routines`: **My routines**
+  and **Team routines** tabs, each row with its schedule in words, next and
+  last run, and (on Team) who it runs as; CRUD plus
   `toggle` (pause/resume) and `run` (fire now). A `routine-form` Stimulus
   controller drives a schedule builder — frequency + hour/minute, a weekday
   picker for weekly, day-of-month for monthly, a live human-readable preview,
@@ -94,9 +106,13 @@ with `WorkflowHandoff`); unset inherits the deployment default.
   `.pi/extensions/metis-workflow/index.ts`: `metis_list_routines`,
   `metis_create_routine`, `metis_update_routine` (both writes cover every
   property, model/provider included). No delete tool — removing a routine
-  stays an operator action in the UI. Writes are team-admin-gated and refused
-  inside a workflow run; a routine the agent creates **starts disabled** until
+  stays an operator action in the UI. Writes follow `Routine#manageable_by?` and
+  are refused inside a workflow run; a routine the agent creates **starts disabled** until
   the operator enables it.
+- **Memory review** — Metis creates one routine per user per team itself,
+  marked `trigger_config["purpose"] = "memory_review"` (`docs/memory.md`);
+  `fire_scheduled!` skips it on a night with no memory activity. It is an
+  ordinary personal routine.
 - **Provenance** — a fired conversation is tagged with `Conversation#routine`,
   surfaced as a clock badge on its sidebar row and a "Routine · <name>" chip on
   its show header, so it's distinguishable from a hand-started chat.

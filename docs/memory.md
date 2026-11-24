@@ -68,6 +68,40 @@ memory removes it from the list every later turn is given. It doesn't
 erase chat history: a resumed pi session still holds the turn where the
 memory was said or written.
 
+## Learning (P1)
+
+Memories improve from what the user does with the replies they shaped.
+
+**Signals.** `metis_note_applied` also stores the ids on the turn's reply
+(`Message#applied_memory_ids`). When the next message corrects, redoes or
+rejects a reply, the agent calls `metis_note_correction`, which sets
+`Message#corrected_at` and an encrypted `correction_note` on the previous
+finished reply. Cancels (`streaming_status: canceled`) and forks
+(`Conversation#forked_from_message_id`) need no call. A reply with none of
+these counts as accepted. On `/settings/memory`, an edit marks the memory
+`stated`/`high` with `edited_by_user_at`; a delete keeps only
+`{ kind, at }` in `Membership#memory_deletions` (30 days, no text).
+
+**Report.** `Agent::MemoryReport` (tool `metis_memory_report`) summarises
+a window: per memory, replies applied / corrected / cancelled / forked;
+corrections on replies that used no memory; the user's own edits and
+deletions; corrections this window against the one before.
+
+**Nightly review.** The first memory a user saves in a team creates a
+"Memory review" routine for them (`MemoryReview`, personal, daily at 03:00
+in their zone, deployment default model, marked
+`trigger_config["purpose"] = "memory_review"`). Each fire is an ordinary
+turn: it reads the report from the previous review on, tidies memories
+with the existing tools, and replies with a short "what I learned" note.
+`Routine#fire_scheduled!` skips a night with no activity since the last
+review's reply (so the review's own edits don't count) without running a
+turn. The memory page shows the last review, corrections this week against
+last week, and a link to the routine's settings.
+
+A review is an ordinary personal routine: only its user sees, edits or runs
+it, under "My routines". Pause it to turn reviews off; deleting it only lasts
+until the next new memory recreates it.
+
 ## Not yet
 
-Consolidation, outcome scoring (P1), directions and foresight (P3).
+A decision log for prepared and proposed work, and directions and foresight (P3).

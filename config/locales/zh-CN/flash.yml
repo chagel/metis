@@ -82,6 +82,7 @@
         notice: "%{name} 已删除。"
       run:
         notice: "正在立即运行 %{name}。"
+      not_allowed: "团队例程只能由团队管理员管理，个人例程只能由其所有者管理。"
     workflow_runs:
       claim:
         claimed: "%{step} 已认领 — 你的守护进程会在下次轮询时接手。"

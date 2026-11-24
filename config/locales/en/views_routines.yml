@@ -3,16 +3,26 @@ en:
     index:
       title: "Routines"
       new: "New"
-      empty: "No routines yet. A routine is a saved prompt that runs on its own — on a schedule or when a webhook event arrives — as a normal agent turn."
+      tabs:
+        mine: "My routines"
+        team: "Team routines"
+      hints:
+        mine: "Only you see these and their runs."
+        team: "Every member sees these and their runs; admins manage them."
+      empty:
+        mine: "No routines of your own yet. A routine is a saved prompt that runs on its own — on a schedule or when a webhook event arrives — as a normal agent turn."
+        team: "No team routines yet."
       create_first: "Create your first routine"
     routine:
       disabled: "Paused"
-      schedule: "%{cron} · %{tz}"
       event: "On %{type}"
-      project_suffix: "· %{name}"
       run: "Run now"
       pause: "Pause"
       resume: "Resume"
+      next_run: "Next in %{time}"
+      last_run: "Last ran %{time} ago"
+      never_run: "Never run"
+      runs_as: "Runs as %{name}"
     new:
       title: "New routine"
     edit:
@@ -63,11 +73,12 @@ en:
       event_hint_html: "The webhook event that fires this routine. You can only pick an event type your team has actually received (e.g. <code>pull_request.opened</code>, <code>Issue.create</code>), plus a <code>.*</code> wildcard per family (<code>pull_request.*</code>). The list is empty until your team's GitHub/Linear webhooks are configured and events arrive."
       cooldown_label: "Cooldown (seconds)"
       cooldown_hint: "Minimum gap between fires for bursty events. 0 = no cooldown."
-      visibility_label: "Visibility"
+      visibility_label: "Belongs to"
       visibilities:
-        personal: "Personal — only you see the runs"
-        team: "Team — any member can open the runs"
-      visibility_hint: "Each fire starts a conversation; this sets who can see it."
+        personal: "Me — only I see and manage it and its runs"
+        team: "Team — every member sees it and its runs; admins manage it"
+      visibility_hint: "Each fire starts a conversation with the same visibility."
+      visibility_personal_only: "Only you see and manage this routine and its runs. Team routines are created by admins."
       project_label: "Project"
       project_blank: "None"
       project_hint: "Optional — gives the run a project's repo and standards as context."

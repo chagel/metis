@@ -19,6 +19,8 @@ class UserMemory < ApplicationRecord
   validates :content, presence: true, length: { maximum: MAX_CONTENT }
   validate :under_cap, on: :create
 
+  after_create_commit :ensure_review
+
   scope :for, ->(user, team) { where(user: user, team: team) }
   scope :newest_first, -> { order(created_at: :desc) }
   scope :ordered, -> { order(:kind, confidence: :desc, created_at: :asc) }
@@ -31,11 +33,25 @@ class UserMemory < ApplicationRecord
     update!(source: :stated, confidence: :high)
   end
 
+  # The user's own wording: as good as stated, and a signal for the review.
+  def edit_by_user(content)
+    self.content = content
+    assign_attributes(source: :stated, confidence: :high, edited_by_user_at: Time.current) if content_changed?
+    save
+  end
+
   private
 
   def under_cap
     return unless UserMemory.for(user, team).count >= MAX_PER_USER
 
     errors.add(:base, :cap_reached, count: MAX_PER_USER)
+  end
+
+  # The memory is already saved; a failed review setup must not report it lost.
+  def ensure_review
+    MemoryReview.ensure_for(user, team)
+  rescue ActiveRecord::ActiveRecordError => e
+    Rails.error.report(e, handled: true)
   end
 end

@@ -60,12 +60,12 @@ module Agent
       assert_not row[:enabled]
     end
 
-    test "a non-admin member is refused" do
+    test "a non-admin member can't create a team routine" do
       other_team = Team.create!(name: "Acme")
       other_team.memberships.create!(user: @user, role: :member)
       conversation = @user.conversations.create!(team: other_team)
 
-      result = Agent::RoutineManager.create(conversation, "name" => "X", "prompt" => "p", "trigger" => "schedule", "cron" => "0 9 * * *")
+      result = Agent::RoutineManager.create(conversation, "name" => "X", "prompt" => "p", "trigger" => "schedule", "cron" => "0 9 * * *", "visibility" => "team")
       assert_not result[:ok]
       assert_match(/admin/i, result[:error])
     end

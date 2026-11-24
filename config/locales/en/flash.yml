@@ -89,6 +89,7 @@ en:
         notice: "%{name} deleted."
       run:
         notice: "Running %{name} now."
+      not_allowed: "Only team admins manage team routines, and only its owner manages a personal one."
     workflow_runs:
       claim:
         claimed: "%{step} claimed — your daemon picks it up on its next poll."

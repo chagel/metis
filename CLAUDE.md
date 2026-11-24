@@ -295,7 +295,10 @@ Metis learns each user as they chat. `UserMemory` (team + user, encrypted,
 typed by `kind` / `source` / `confidence`) is recorded by the agent's own
 `metis_remember` / `metis_update_memory` / `metis_forget` tools
 (`Agent::MemoryManager` over `Agent::HostBridge`), shown every turn by
-`Agent::Identity`, and managed at `/settings/memory`. See
+`Agent::Identity`, and managed at `/settings/memory`. Replies record which
+memories shaped them and whether the user corrected, cancelled or forked
+them; a nightly per-user "Memory review" routine (`MemoryReview`) reads
+`Agent::MemoryReport` and tidies the memories, skipping quiet nights. See
 [`docs/memory.md`](docs/memory.md).
 
 ## Conventions
@@ -303,9 +306,11 @@ typed by `kind` / `source` / `confidence`) is recorded by the agent's own
 - **Tenancy is `Team`-only.** Every ownable resource (`Conversation`,
   `Connector`, `Project`, `Skill`, `Workflow`, `WorkflowRun`) has
   `belongs_to :team`. A user's personal account is a team of one.
-  Authorization is always `resource.team.members.include?(user)` — no
-  `User`-vs-`Team` branch, no polymorphic `owner`. See `docs/tenancy.md`
-  and `docs/teams.md`.
+  Authorization starts at `resource.team.members.include?(user)` — no
+  `User`-vs-`Team` branch, no polymorphic `owner`. A resource may add a
+  scope within the team (`visibility` personal/team + a user, via
+  `visible_to` / `manageable_by?`; today `Conversation`, `Routine`). See
+  `docs/tenancy.md` and `docs/teams.md`.
 - Models use integer enums: `Conversation#visibility`, `Message#role`,
   `Message#streaming_status`, `Message#kind`, `Connector#transport`,
   `WorkflowRun#status`, `Task#status`, `Task#gate`, `Workflow#trigger_source`,
