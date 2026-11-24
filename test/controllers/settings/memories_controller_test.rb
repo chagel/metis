@@ -13,16 +13,18 @@ class Settings::MemoriesControllerTest < ActionDispatch::IntegrationTest
     UserMemory.create!({ user: @user, team: @team, content: "prefers short answers", kind: :preference }.merge(attrs))
   end
 
-  test "index groups memories and shows provenance" do
+  test "index lists memories one per row with kind tabs and provenance" do
     memory
     memory(content: "no em dashes", kind: :correction, source: :stated, confidence: :high)
     get memories_path
 
     assert_response :success
-    assert_select ".memory-group-title", text: "Preferences"
-    assert_select ".memory-group-title", text: "Corrections"
-    assert_select ".badge", text: /Inferred · low confidence/
-    assert_select ".badge", text: /You said this/
+    assert_select ".memory-tabs .board-chip[data-key='preference']", text: /Preferences\s+1/
+    assert_select ".memory-tabs .board-chip[data-key='goal'][hidden]"
+    assert_select ".memory-tabs .board-chip[data-key='review']", text: /Needs review\s+1/
+    assert_select ".memory-row.is-inferred .memory-meta", text: /Preference · guessed, low/
+    assert_select ".memory-row:not(.is-inferred) .memory-meta", text: /Correction · you said/
+    assert_select ".memory-intro", text: /your personal workspace/
   end
 
   test "index empty state" do

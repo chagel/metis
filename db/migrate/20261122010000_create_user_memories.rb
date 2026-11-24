@@ -1,7 +1,7 @@
 class CreateUserMemories < ActiveRecord::Migration[8.1]
   def change
     create_table :user_memories do |t|
-      t.references :team, null: false, foreign_key: { on_delete: :cascade }
+      t.references :team, null: false, index: false, foreign_key: { on_delete: :cascade }
       t.references :user, null: false, foreign_key: { on_delete: :cascade }
       t.references :source_conversation, foreign_key: { to_table: :conversations, on_delete: :nullify }
       t.text :content, null: false

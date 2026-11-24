@@ -147,6 +147,12 @@ function formatRoutines(
     .join("\n");
 }
 
+// Mirror UserMemory's enums (app/models/user_memory.rb).
+const literals = (values: string[], options?: object) => Type.Union(values.map((v) => Type.Literal(v)), options);
+const memoryKind = (options?: object) => literals(["preference", "correction", "fact", "goal", "commitment", "experience"], options);
+const memorySource = (options?: object) => literals(["stated", "inferred"], options);
+const memoryConfidence = (options?: object) => literals(["low", "medium", "high"], options);
+
 const StepSchema = Type.Object({
   name: Type.String({
     description: 'Short step name, e.g. "Implement".',
@@ -649,17 +655,17 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
       "Check the memories already listed in your context first; update an existing one instead of adding a near-duplicate.",
     ],
     parameters: Type.Object({
-      content: Type.String({ description: "The memory, one short fact in plain words." }),
-      kind: Type.Union([Type.Literal("preference"), Type.Literal("correction"), Type.Literal("fact"), Type.Literal("goal"), Type.Literal("commitment"), Type.Literal("experience")], {
+      content: Type.String({ description: "The memory, one short fact in plain words, without a subject: \"Co-founded Pipi Hosting\", not \"The operator co-founded…\"." }),
+      kind: memoryKind({
         description: "preference (how they like things), correction (something they corrected), fact (about them or their work), goal (something they're pursuing), commitment (a follow-up you promised), experience (a lesson about working with them).",
       }),
       source: Type.Optional(
-        Type.Union([Type.Literal("stated"), Type.Literal("inferred")], {
+        memorySource({
           description: "\"stated\" if the operator said it outright, \"inferred\" if you concluded it. Defaults to inferred.",
         }),
       ),
       confidence: Type.Optional(
-        Type.Union([Type.Literal("low"), Type.Literal("medium"), Type.Literal("high")], {
+        memoryConfidence({
           description: "How sure you are. Defaults to high for stated, low for inferred.",
         }),
       ),
@@ -682,9 +688,9 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
     parameters: Type.Object({
       id: Type.Number({ description: "The memory id, as listed in your context." }),
       content: Type.Optional(Type.String({ description: "New wording." })),
-      kind: Type.Optional(Type.Union([Type.Literal("preference"), Type.Literal("correction"), Type.Literal("fact"), Type.Literal("goal"), Type.Literal("commitment"), Type.Literal("experience")])),
-      source: Type.Optional(Type.Union([Type.Literal("stated"), Type.Literal("inferred")], { description: "Only with new content. Defaults to inferred." })),
-      confidence: Type.Optional(Type.Union([Type.Literal("low"), Type.Literal("medium"), Type.Literal("high")])),
+      kind: Type.Optional(memoryKind()),
+      source: Type.Optional(memorySource({ description: "Only with new content. Defaults to inferred." })),
+      confidence: Type.Optional(memoryConfidence()),
     }),
 
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {

@@ -1,0 +1,4 @@
+<button type="button" class="board-chip<%= " is-on" if local_assigns[:on] %>" data-key="<%= key %>"
+        data-memory-filter-target="tab" data-action="memory-filter#select" <%= "hidden" if count.zero? %>>
+  <%= label %> <span class="board-chip-n" data-memory-filter-target="count"><%= count %></span>
+</button>

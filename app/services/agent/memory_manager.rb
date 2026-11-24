@@ -82,7 +82,7 @@ module Agent
     end
 
     def guarded
-      return unavailable unless UserMemory.available_in?(@conversation)
+      return failure("Memory isn't available in this conversation.") unless UserMemory.available_in?(@conversation)
 
       yield
     rescue Invalid => e
@@ -93,7 +93,5 @@ module Agent
     end
 
     def failure(error) = { ok: false, error: error }
-
-    def unavailable = failure("Memory isn't available in this conversation.")
   end
 end

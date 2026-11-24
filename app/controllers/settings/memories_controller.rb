@@ -4,7 +4,7 @@ class Settings::MemoriesController < ApplicationController
   before_action :set_memory, only: %i[update destroy confirm]
 
   def index
-    @memories = memories.ordered.includes(:source_conversation)
+    @memories = memories.newest_first.load
   end
 
   def update
@@ -42,7 +42,7 @@ class Settings::MemoriesController < ApplicationController
   end
 
   def memory_params
-    params.require(:user_memory).permit(:content, :kind)
+    params.require(:user_memory).permit(:content)
   end
 
   def respond_with_row

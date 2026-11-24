@@ -335,7 +335,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_010000) do
     t.bigint "user_id", null: false
     t.index ["source_conversation_id"], name: "index_user_memories_on_source_conversation_id"
     t.index ["team_id", "user_id", "kind"], name: "index_user_memories_on_team_id_and_user_id_and_kind"
-    t.index ["team_id"], name: "index_user_memories_on_team_id"
     t.index ["user_id"], name: "index_user_memories_on_user_id"
   end
 

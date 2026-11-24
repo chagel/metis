@@ -20,10 +20,11 @@ class UserMemory < ApplicationRecord
   validate :under_cap, on: :create
 
   scope :for, ->(user, team) { where(user: user, team: team) }
+  scope :newest_first, -> { order(created_at: :desc) }
   scope :ordered, -> { order(:kind, confidence: :desc, created_at: :asc) }
 
   def self.available_in?(conversation)
-    conversation.workflow_run.nil? && conversation.team.members.include?(conversation.user)
+    conversation.workflow_run.nil? && Membership.exists?(team_id: conversation.team_id, user_id: conversation.user_id)
   end
 
   def confirm!

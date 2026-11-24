@@ -369,8 +369,7 @@ module Agent
     end
 
     # Agent-written counterpart to the operator's own preferences: what Metis
-    # has learned about them, plus when to record more. Left out of workflow
-    # runs, which are team processes rather than a personal chat.
+    # has learned about them, plus when to record more.
     def operator_memory_block
       return "" unless UserMemory.available_in?(@conversation)
 
@@ -399,7 +398,9 @@ module Agent
         credentials, or sensitive personal data. Something you inferred from one
         conversation is `inferred`/`low`; raise its confidence with
         `metis_update_memory` as evidence repeats, and fix or drop stale ones with
-        `metis_update_memory` / `metis_forget`. Keep each memory to one short fact.
+        `metis_update_memory` / `metis_forget`. Keep each memory to one short fact,
+        written without a subject ("Co-founded Pipi Hosting", not "The operator
+        co-founded…"); the operator reads these too.
       MD
     end
 
