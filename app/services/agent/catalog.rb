@@ -41,17 +41,20 @@ module Agent
       provider_for(model_id, provider_options).present?
     end
 
-    # The deployment default: the model a superuser marked on the Models
-    # page, else the first listed provider's first model.
-    def self.default_model(provider_options = providers)
-      marked = LlmModel.find_by(deployment_default: true)&.key
-      return marked if marked && known_model?(marked, provider_options)
+    # The deployment default as a model + provider pair (keys repeat across
+    # providers): the model a superuser marked on the Models page, else the
+    # first listed provider's first model. Empty without a catalog.
+    def self.default_selection(provider_options = providers)
+      marked = LlmModel.includes(:llm_provider).find_by(deployment_default: true)
+      if marked && provider_options.any? { |p| p[:id] == marked.llm_provider.key && p[:models].any? { |m| m[:id] == marked.key } }
+        return { "model" => marked.key, "provider" => marked.llm_provider.key }
+      end
 
-      provider_options.first&.dig(:models)&.first&.dig(:id)
+      first = provider_options.first
+      first ? { "model" => first[:models].first[:id], "provider" => first[:id] } : {}
     end
 
-    def self.default_provider(provider_options = providers)
-      provider_for(default_model(provider_options), provider_options) || provider_options.first&.dig(:id)
-    end
+    def self.default_model(provider_options = providers) = default_selection(provider_options)["model"]
+    def self.default_provider(provider_options = providers) = default_selection(provider_options)["provider"]
   end
 end

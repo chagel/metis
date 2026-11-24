@@ -64,6 +64,14 @@ class Agent::CatalogTest < ActiveSupport::TestCase
     assert_equal "claude-opus-4-8", Agent::Catalog.default_model
   end
 
+  test "a default whose key repeats under another provider keeps its own provider" do
+    anthropic, codex = seed_catalog
+    anthropic.llm_models.create!(key: "gpt-5.5", label: "GPT-5.5 via Anthropic", position: 0)
+    codex.llm_models.first.make_deployment_default!
+
+    assert_equal({ "model" => "gpt-5.5", "provider" => "openai-codex" }, Agent::Catalog.default_selection)
+  end
+
   test "a disabled default falls back too, and only one model is ever the default" do
     anthropic, codex = seed_catalog
     codex.llm_models.first.make_deployment_default!

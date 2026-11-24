@@ -97,6 +97,17 @@ class DoctorTest < ActiveSupport::TestCase
     end
   end
 
+  test "default model fails on a sandbox runtime with no catalog, warns until one is picked" do
+    docker = { "METIS_AGENT_RUNTIME" => "docker" }
+    assert_equal :fail, check(doctor(docker), "Agent", "default model").status
+    assert_equal :warn, check(doctor, "Agent", "default model").status
+
+    model = LlmProvider.create!(key: "anthropic", label: "Anthropic").llm_models.create!(key: "claude-opus-5-5", label: "Opus")
+    assert_equal :warn, check(doctor(docker), "Agent", "default model").status
+    model.make_deployment_default!
+    assert_equal :ok, check(doctor(docker), "Agent", "default model").status
+  end
+
   test "unknown runtime fails" do
     assert_equal :fail, check(doctor({ "METIS_AGENT_RUNTIME" => "podman" }), "Agent", "runtime").status
   end

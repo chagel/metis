@@ -14,6 +14,19 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_user_session_path
   end
 
+  test "the composer pre-selects the catalog default when the user's own model is disabled" do
+    provider = LlmProvider.create!(key: "anthropic", label: "Anthropic")
+    provider.llm_models.create!(key: "claude-haiku-5-5", label: "Haiku", position: 1)
+    stale = provider.llm_models.create!(key: "claude-opus-4-8", label: "Opus 4.8", position: 2)
+    provider.llm_models.create!(key: "claude-opus-5-5", label: "Opus 5.5", position: 3).make_deployment_default!
+    @user.update!(preferred_model: "claude-opus-4-8")
+    stale.update!(enabled: false)
+
+    sign_in @user
+    get conversations_path
+    assert_select "select[name=model] option[selected][value=?]", "claude-opus-5-5"
+  end
+
   test "lists conversations for a signed-in user" do
     @user.conversations.create!(title: "Existing")
     sign_in @user

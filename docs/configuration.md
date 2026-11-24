@@ -170,11 +170,17 @@ that provider's models into the catalog, then enable the ones to offer.
 
 There is no model env var. A conversation records its model when it is
 created: the composer's pick, else the user's profile default (if still
-enabled), else the catalog's **default model**, which a superuser picks at the top
-of the Models page (the first listed model until one is picked). Routines, workflow runs and forks follow the same chain
+enabled), else the catalog's **default model**, which a superuser picks at
+the top of the Models page (the first listed model until one is picked).
+Routines, workflow runs and forks follow the same chain
 (`Agent::ModelSelection.default_settings`, applied in
-`Conversation#apply_default_model`). With no catalog at all, pi runs its own
-configured default.
+`Conversation#apply_default_model`).
+
+With no catalog at all, pi runs its own configured default. That only works
+on the `local` runtime, where pi can read its own config: sandboxed runtimes
+get provider keys only through `--api-key`, which needs a model. So a new
+deployment must **Refresh** the catalog and enable models before its first
+chat; `bin/rails metis:doctor` fails the "default model" check until it has.
 
 ## Web search
 

@@ -177,7 +177,7 @@ class Doctor
   end
 
   def agent_checks
-    [ runtime_check, pi_check, providers_check, web_search_check ]
+    [ runtime_check, pi_check, providers_check, default_model_check, web_search_check ]
   end
 
   # pi itself, which runtime_check does not cover: it reports how the agent is
@@ -288,6 +288,23 @@ class Doctor
     else
       Check.new(:fail, "providers", "no LLM provider key set — ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, …")
     end
+  end
+
+  # Without an enabled catalog model a turn passes pi no --model, so no
+  # --provider/--api-key either: a sandbox, which never sees provider keys in
+  # its env, can't reach any LLM.
+  def default_model_check
+    selection = Agent::Catalog.default_selection
+    if selection.empty?
+      status = runtime == "local" ? :warn : :fail
+      Check.new(status, "default model", "no enabled catalog model — Settings → Models → Refresh, then enable models")
+    else
+      picked = LlmModel.exists?(deployment_default: true, key: selection["model"])
+      Check.new(picked ? :ok : :warn, "default model",
+        "#{selection["provider"]} / #{selection["model"]}#{" (first enabled; pick one on Settings → Models)" unless picked}")
+    end
+  rescue ActiveRecord::ActiveRecordError
+    Check.new(:off, "default model", "database unavailable")
   end
 
   def web_search_check
