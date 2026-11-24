@@ -34,6 +34,7 @@ class Routine < ApplicationRecord
   scope :visible_to, ->(user) { visibility_team.or(where(user: user)) }
   scope :named, ->(name) { where("LOWER(name) = LOWER(?)", name.to_s.strip).order(:id) }
 
+  before_validation { self.visibility = :personal if team&.personal? }
   before_save :refresh_next_run_at
 
   store_accessor :trigger_config, :variables

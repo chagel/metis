@@ -11,7 +11,7 @@
       <% end %>
       <span><%= routine.last_run_at ? t(".last_run", time: time_ago_in_words(routine.last_run_at)) : t(".never_run") %></span>
       <% if routine.project %><span><%= routine.project.name %></span><% end %>
-      <% if tab == "team" %><span><%= t(".runs_as", name: routine.user.display_name.presence || routine.user.email) %></span><% end %>
+      <% if routine.visibility_team? %><span><%= t(".runs_as", name: routine.user.display_name.presence || routine.user.email) %></span><% end %>
     </div>
   </div>
   <% if routine.manageable_by?(current_user) %>

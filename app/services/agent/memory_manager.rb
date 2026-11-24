@@ -49,8 +49,8 @@ module Agent
       guarded do
         ids = memories.where(id: Array(@params["ids"]).map(&:to_i)).pluck(:id)
         memories.where(id: ids).update_all(last_applied_at: Time.current)
-        reply = @conversation.messages.inflight.first
-        reply&.update_columns(applied_memory_ids: (reply.applied_memory_ids + ids).uniq)
+        reply = @conversation.inflight_message
+        reply&.update_columns(applied_memory_ids: reply.applied_memory_ids | ids)
         { ok: true, noted: ids.size }
       end
     end

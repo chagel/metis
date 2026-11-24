@@ -86,6 +86,11 @@ class User < ApplicationRecord
     teams.find_by(personal: true)
   end
 
+  # Users may store a Rails zone name; cron (fugit) needs the IANA one.
+  def iana_timezone
+    ActiveSupport::TimeZone[timezone.to_s]&.tzinfo&.name || "UTC"
+  end
+
   # The bridge token (docs/local-bridge.md): digest stored, plaintext
   # returned once, regenerating revokes. update_column — an internally
   # minted digest must not be blocked by unrelated profile validations.

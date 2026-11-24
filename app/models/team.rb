@@ -28,7 +28,9 @@ class Team < ApplicationRecord
   # Admins and owners curate the team's shared tools; plain members use them.
   # The one rule the UI (require_team_admin!) and the agent tools share.
   def managed_by?(user)
-    memberships.find_by(user: user)&.manages_team? || false
+    (@managed_by ||= {}).fetch(user.id) do
+      @managed_by[user.id] = memberships.find_by(user: user)&.manages_team? || false
+    end
   end
 
   # Hand ownership to another member and step the current owner down to

@@ -14,6 +14,12 @@ module RoutinesHelper
     "#{display} #{hour < 12 ? "AM" : "PM"}"
   end
 
+  # 9, 30 → "9:30 AM"; matches the form preview's timeLabel().
+  def routine_time_label(hour, minute)
+    display = hour % 12
+    format("%d:%02d %s", display.zero? ? 12 : display, minute, hour < 12 ? "AM" : "PM")
+  end
+
   def routine_minute_options
     (0..55).step(5).map { |m| [ format(":%02d", m), m ] }
   end
@@ -43,7 +49,7 @@ module RoutinesHelper
     return words.(:hourly, minute: format(":%02d", m.to_i), tz: tz) if [ h, dom, dow ].all?("*")
     return words.(:custom, cron: routine.cron, tz: tz) unless numeric.(h)
 
-    time = routine_hour_label(h.to_i).sub(" ", format(":%02d ", m.to_i))
+    time = routine_time_label(h.to_i, m.to_i)
     days = routine_cron_days(dow)
     if dom == "*" && dow == "*" then words.(:daily, time: time, tz: tz)
     elsif dom == "*" && days then words.(:weekly, days: days, time: time, tz: tz)

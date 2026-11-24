@@ -30,7 +30,7 @@ module MemoryReview
   def self.ensure_for(user, team)
     routine_for(user, team) || team.routines.create!(
       user: user, name: name_for(user, team), prompt: PROMPT, cron: CRON,
-      timezone: iana_zone(user.timezone), enabled: true, trigger_config: { "purpose" => PURPOSE }
+      timezone: user.iana_timezone, enabled: true, trigger_config: { "purpose" => PURPOSE }
     )
   end
 
@@ -47,10 +47,5 @@ module MemoryReview
     name = "Memory review · #{user.display_name}".truncate(Routine::NAME_MAX)
     team.routines.named(name).exists? ? "#{name.truncate(Routine::NAME_MAX - 8)} ##{user.id}" : name
   end
-
-  # Users may store a Rails zone name; cron (fugit) needs the IANA one.
-  def self.iana_zone(zone)
-    ActiveSupport::TimeZone[zone.to_s]&.tzinfo&.name || "UTC"
-  end
-  private_class_method :name_for, :iana_zone
+  private_class_method :name_for
 end

@@ -9,15 +9,12 @@ class RoutinesController < ApplicationController
 
   def index
     routines = current_team.routines.visible_to(current_user).includes(:user, :project).order(:name)
-    return @routines = routines if current_team.personal?
-
-    @mine, @team = routines.partition(&:visibility_personal?)
+    @mine, @team = current_team.personal? ? [ routines.to_a, [] ] : routines.partition(&:visibility_personal?)
     @tab = params[:tab].presence_in(%w[mine team]) || (@mine.empty? && @team.any? ? "team" : "mine")
   end
 
   def new
-    tz = ActiveSupport::TimeZone[current_user.timezone.to_s]&.tzinfo&.name || "UTC"
-    @routine = current_team.routines.new(user: current_user, timezone: tz)
+    @routine = current_team.routines.new(user: current_user, timezone: current_user.iana_timezone)
   end
 
   def create
@@ -25,6 +22,8 @@ class RoutinesController < ApplicationController
     @routine.user = current_user
     apply_cooldown
     apply_model
+    return require_team_admin! unless @routine.manageable_by?(current_user)
+
     if @routine.save
       redirect_to routines_path(tab: tab_for(@routine)), notice: t("flash.routines.create.notice")
     else
@@ -39,6 +38,8 @@ class RoutinesController < ApplicationController
     @routine.assign_attributes(routine_params)
     apply_cooldown
     apply_model
+    return require_team_admin! unless @routine.manageable_by?(current_user)
+
     if @routine.save
       redirect_to edit_routine_path(@routine), notice: t("flash.routines.update.notice")
     else
@@ -104,7 +105,6 @@ class RoutinesController < ApplicationController
       :cron, :timezone, :event_type
     )
     permitted[:project_id] = nil if permitted[:project_id].blank?
-    permitted[:visibility] = "personal" unless team_manager? && !current_team.personal?
     permitted
   end
 end

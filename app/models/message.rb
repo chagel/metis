@@ -49,7 +49,6 @@ class Message < ApplicationRecord
   scope :conversational, -> { where(role: %i[user assistant]) }
   scope :replies_of, ->(user, team) { assistant.joins(:conversation).where(conversations: { user_id: user.id, team_id: team.id }) }
   scope :applying_memories, -> { where("cardinality(messages.applied_memory_ids) > 0") }
-  scope :corrected, -> { where.not(corrected_at: nil) }
   # An in-flight turn: the assistant message still pending or streaming.
   scope :inflight, -> { assistant.where(streaming_status: %i[pending streaming]) }
 

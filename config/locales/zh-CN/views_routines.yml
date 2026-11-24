@@ -15,9 +15,7 @@
       create_first: "创建你的第一个例程"
     routine:
       disabled: "已暂停"
-      schedule: "%{cron} · %{tz}"
       event: "当 %{type} 时"
-      project_suffix: "· %{name}"
       run: "立即运行"
       pause: "暂停"
       resume: "恢复"

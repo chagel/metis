@@ -10,30 +10,30 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_23_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_23_020000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
 
   create_table "active_storage_attachments", force: :cascade do |t|
-    t.string "name", null: false
-    t.string "record_type", null: false
-    t.bigint "record_id", null: false
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.bigint "record_id", null: false
+    t.string "record_type", null: false
     t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
     t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
   end
 
   create_table "active_storage_blobs", force: :cascade do |t|
-    t.string "key", null: false
-    t.string "filename", null: false
-    t.string "content_type"
-    t.text "metadata"
-    t.string "service_name", null: false
     t.bigint "byte_size", null: false
     t.string "checksum"
+    t.string "content_type"
     t.datetime "created_at", null: false
+    t.string "filename", null: false
+    t.string "key", null: false
+    t.text "metadata"
+    t.string "service_name", null: false
     t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
   end
 
@@ -44,11 +44,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_010000) do
   end
 
   create_table "artifact_shares", force: :cascade do |t|
-    t.bigint "team_id", null: false
     t.bigint "blob_id", null: false
-    t.bigint "created_by_id", null: false
-    t.string "token", null: false
     t.datetime "created_at", null: false
+    t.bigint "created_by_id", null: false
+    t.bigint "team_id", null: false
+    t.string "token", null: false
     t.datetime "updated_at", null: false
     t.index ["blob_id"], name: "index_artifact_shares_on_blob_id", unique: true
     t.index ["created_by_id"], name: "index_artifact_shares_on_created_by_id"
@@ -58,54 +58,54 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_010000) do
 
   create_table "connector_credentials", force: :cascade do |t|
     t.bigint "connector_id", null: false
-    t.bigint "user_id"
-    t.text "credentials"
     t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.text "credentials"
     t.string "external_login"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["connector_id", "user_id"], name: "index_connector_credentials_on_connector_id_and_user_id", unique: true, nulls_not_distinct: true
     t.index ["connector_id"], name: "index_connector_credentials_on_connector_id"
     t.index ["user_id"], name: "index_connector_credentials_on_user_id"
   end
 
   create_table "connectors", force: :cascade do |t|
-    t.bigint "team_id", null: false
-    t.string "name", null: false
-    t.integer "transport", null: false
+    t.string "catalog_key"
+    t.datetime "created_at", null: false
     t.jsonb "definition", default: {}, null: false
     t.boolean "enabled", default: true, null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "catalog_key"
+    t.string "name", null: false
     t.jsonb "settings", default: {}, null: false
+    t.bigint "team_id", null: false
+    t.integer "transport", null: false
+    t.datetime "updated_at", null: false
     t.index ["team_id", "catalog_key"], name: "index_connectors_on_team_id_and_catalog_key", unique: true
     t.index ["team_id", "name"], name: "index_connectors_on_team_id_and_name", unique: true
     t.index ["team_id"], name: "index_connectors_on_team_id"
   end
 
   create_table "conversations", force: :cascade do |t|
-    t.bigint "user_id", null: false
-    t.string "title"
-    t.jsonb "settings", default: {}, null: false
-    t.string "backend_session_id"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.jsonb "runtime_state", default: {}, null: false
-    t.jsonb "context_usage", default: {}, null: false
     t.jsonb "agent_model", default: {}, null: false
-    t.datetime "cancel_requested_at"
-    t.bigint "team_id", null: false
-    t.string "e2b_sandbox_id"
     t.datetime "archived_at"
-    t.string "share_token"
-    t.bigint "project_id"
-    t.datetime "starred_at"
+    t.string "backend_session_id"
+    t.datetime "cancel_requested_at"
+    t.jsonb "context_usage", default: {}, null: false
+    t.datetime "created_at", null: false
     t.string "daytona_sandbox_id"
-    t.bigint "forked_from_message_id"
+    t.string "e2b_sandbox_id"
     t.boolean "fork_pending", default: false, null: false
-    t.integer "visibility", default: 0, null: false
+    t.bigint "forked_from_message_id"
+    t.bigint "project_id"
     t.bigint "routine_id"
+    t.jsonb "runtime_state", default: {}, null: false
+    t.jsonb "settings", default: {}, null: false
+    t.string "share_token"
     t.datetime "shared_at"
+    t.datetime "starred_at"
+    t.bigint "team_id", null: false
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.integer "visibility", default: 0, null: false
     t.index ["archived_at"], name: "index_conversations_on_archived_at"
     t.index ["daytona_sandbox_id"], name: "index_conversations_on_daytona_sandbox_id"
     t.index ["e2b_sandbox_id"], name: "index_conversations_on_e2b_sandbox_id"
@@ -120,24 +120,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_010000) do
   end
 
   create_table "identities", force: :cascade do |t|
-    t.bigint "user_id", null: false
+    t.datetime "created_at", null: false
     t.string "provider", null: false
     t.string "uid", null: false
-    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
     t.index ["provider", "uid"], name: "index_identities_on_provider_and_uid", unique: true
     t.index ["user_id"], name: "index_identities_on_user_id"
   end
 
   create_table "invitations", force: :cascade do |t|
-    t.bigint "team_id", null: false
-    t.bigint "invited_by_id", null: false
-    t.string "email", null: false
-    t.integer "role", default: 0, null: false
-    t.string "token", null: false
     t.datetime "accepted_at"
-    t.datetime "expires_at", null: false
     t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.datetime "expires_at", null: false
+    t.bigint "invited_by_id", null: false
+    t.integer "role", default: 0, null: false
+    t.bigint "team_id", null: false
+    t.string "token", null: false
     t.datetime "updated_at", null: false
     t.index ["invited_by_id"], name: "index_invitations_on_invited_by_id"
     t.index ["team_id", "email"], name: "index_invitations_on_team_id_and_email", unique: true, where: "(accepted_at IS NULL)"
@@ -146,104 +146,106 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_010000) do
   end
 
   create_table "llm_models", force: :cascade do |t|
-    t.bigint "llm_provider_id", null: false
+    t.integer "context_window"
+    t.jsonb "cost", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.boolean "enabled", default: true, null: false
+    t.jsonb "input_modalities", default: [], null: false
     t.string "key", null: false
     t.string "label", null: false
-    t.boolean "enabled", default: true, null: false
-    t.integer "position", default: 0, null: false
-    t.integer "context_window"
-    t.integer "max_tokens"
-    t.boolean "reasoning", default: false, null: false
-    t.jsonb "input_modalities", default: [], null: false
-    t.jsonb "cost", default: {}, null: false
     t.datetime "last_seen_at"
-    t.datetime "created_at", null: false
+    t.bigint "llm_provider_id", null: false
+    t.integer "max_tokens"
+    t.integer "position", default: 0, null: false
+    t.boolean "reasoning", default: false, null: false
     t.datetime "updated_at", null: false
     t.index ["llm_provider_id", "key"], name: "index_llm_models_on_llm_provider_id_and_key", unique: true
     t.index ["llm_provider_id"], name: "index_llm_models_on_llm_provider_id"
   end
 
   create_table "llm_providers", force: :cascade do |t|
+    t.datetime "created_at", null: false
     t.string "key", null: false
     t.string "label", null: false
     t.integer "position", default: 0, null: false
-    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["key"], name: "index_llm_providers_on_key", unique: true
   end
 
   create_table "mcp_oauth_clients", force: :cascade do |t|
-    t.string "issuer", null: false
     t.string "client_id", null: false
     t.text "client_secret"
-    t.jsonb "registration", default: {}, null: false
     t.datetime "created_at", null: false
+    t.string "issuer", null: false
+    t.jsonb "registration", default: {}, null: false
     t.datetime "updated_at", null: false
     t.index ["issuer"], name: "index_mcp_oauth_clients_on_issuer", unique: true
   end
 
   create_table "memberships", force: :cascade do |t|
-    t.bigint "user_id", null: false
-    t.bigint "team_id", null: false
-    t.integer "role", null: false
     t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
     t.jsonb "memory_deletions", default: [], null: false
+    t.integer "role", null: false
+    t.bigint "team_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
     t.index ["team_id"], name: "index_memberships_on_team_id"
     t.index ["user_id", "team_id"], name: "index_memberships_on_user_id_and_team_id", unique: true
     t.index ["user_id"], name: "index_memberships_on_user_id"
   end
 
   create_table "messages", force: :cascade do |t|
-    t.bigint "conversation_id", null: false
-    t.integer "role", null: false
-    t.text "content"
-    t.jsonb "native_ref"
-    t.integer "input_tokens"
-    t.integer "output_tokens"
-    t.integer "cache_read_tokens"
-    t.string "tool_call_id"
-    t.integer "streaming_status", default: 0, null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.datetime "started_at"
-    t.datetime "finished_at"
-    t.text "reasoning"
-    t.jsonb "tool_calls", default: [], null: false
-    t.decimal "cost", precision: 12, scale: 6
-    t.string "model_key"
-    t.integer "kind", default: 0, null: false
-    t.bigint "sender_id"
     t.bigint "applied_memory_ids", default: [], null: false, array: true
+    t.integer "cache_read_tokens"
+    t.text "content"
+    t.bigint "conversation_id", null: false
     t.datetime "corrected_at"
     t.text "correction_note"
+    t.decimal "cost", precision: 12, scale: 6
+    t.datetime "created_at", null: false
+    t.datetime "finished_at"
+    t.integer "input_tokens"
+    t.integer "kind", default: 0, null: false
+    t.string "model_key"
+    t.jsonb "native_ref"
+    t.integer "output_tokens"
+    t.text "reasoning"
+    t.integer "role", null: false
+    t.bigint "sender_id"
+    t.datetime "started_at"
+    t.integer "streaming_status", default: 0, null: false
+    t.string "tool_call_id"
+    t.jsonb "tool_calls", default: [], null: false
+    t.datetime "updated_at", null: false
     t.index ["conversation_id"], name: "index_messages_on_conversation_id"
     t.index ["conversation_id"], name: "index_messages_on_one_in_progress_turn", unique: true, where: "((role = 1) AND (streaming_status = ANY (ARRAY[0, 1])))"
     t.index ["sender_id"], name: "index_messages_on_sender_id"
+    t.index ["conversation_id", "corrected_at"], name: "index_messages_on_corrections", where: "(corrected_at IS NOT NULL)"
+    t.index ["conversation_id"], name: "index_messages_applying_memories", where: "(cardinality(applied_memory_ids) > 0)"
   end
 
   create_table "oauth_grants", force: :cascade do |t|
-    t.bigint "user_id", null: false
-    t.string "provider", null: false
     t.text "access_token"
-    t.text "refresh_token"
-    t.datetime "expires_at"
-    t.text "scopes"
     t.datetime "created_at", null: false
+    t.datetime "expires_at"
+    t.string "provider", null: false
+    t.text "refresh_token"
+    t.text "scopes"
     t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
     t.index ["user_id", "provider"], name: "index_oauth_grants_on_user_id_and_provider", unique: true
     t.index ["user_id"], name: "index_oauth_grants_on_user_id"
   end
 
   create_table "projects", force: :cascade do |t|
-    t.bigint "team_id", null: false
-    t.bigint "created_by_id"
-    t.bigint "updated_by_id"
-    t.string "name", null: false
     t.text "about"
     t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.bigint "created_by_id"
     t.jsonb "external_refs", default: {}, null: false
+    t.string "name", null: false
+    t.bigint "team_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "updated_by_id"
     t.index ["created_by_id"], name: "index_projects_on_created_by_id"
     t.index ["team_id", "name"], name: "index_projects_on_team_id_and_name", unique: true
     t.index ["team_id"], name: "index_projects_on_team_id"
@@ -251,22 +253,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_010000) do
   end
 
   create_table "routines", force: :cascade do |t|
-    t.bigint "team_id", null: false
-    t.bigint "user_id", null: false
-    t.bigint "project_id"
-    t.string "name", null: false
-    t.text "prompt", null: false
-    t.integer "trigger_source", default: 0, null: false
-    t.integer "visibility", default: 0, null: false
-    t.boolean "enabled", default: true, null: false
-    t.string "cron"
-    t.string "timezone", default: "UTC", null: false
-    t.string "event_type"
-    t.jsonb "trigger_config", default: {}, null: false
-    t.datetime "next_run_at"
-    t.datetime "last_run_at"
     t.datetime "created_at", null: false
+    t.string "cron"
+    t.boolean "enabled", default: true, null: false
+    t.string "event_type"
+    t.datetime "last_run_at"
+    t.string "name", null: false
+    t.datetime "next_run_at"
+    t.bigint "project_id"
+    t.text "prompt", null: false
+    t.bigint "team_id", null: false
+    t.string "timezone", default: "UTC", null: false
+    t.jsonb "trigger_config", default: {}, null: false
+    t.integer "trigger_source", default: 0, null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.integer "visibility", default: 0, null: false
     t.index "team_id, lower((name)::text)", name: "index_routines_on_team_id_and_lower_name", unique: true
     t.index ["enabled", "trigger_source", "event_type"], name: "index_routines_on_event_dispatch"
     t.index ["enabled", "trigger_source", "next_run_at"], name: "index_routines_on_due"
@@ -276,16 +278,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_010000) do
   end
 
   create_table "skills", force: :cascade do |t|
-    t.bigint "team_id", null: false
-    t.bigint "created_by_id"
-    t.bigint "updated_by_id"
-    t.string "slug", null: false
-    t.string "description"
     t.text "content_cache"
-    t.jsonb "metadata", default: {}, null: false
-    t.boolean "enabled", default: true, null: false
     t.datetime "created_at", null: false
+    t.bigint "created_by_id"
+    t.string "description"
+    t.boolean "enabled", default: true, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.string "slug", null: false
+    t.bigint "team_id", null: false
     t.datetime "updated_at", null: false
+    t.bigint "updated_by_id"
     t.index ["created_by_id"], name: "index_skills_on_created_by_id"
     t.index ["team_id", "slug"], name: "index_skills_on_team_id_and_slug", unique: true
     t.index ["team_id"], name: "index_skills_on_team_id"
@@ -293,26 +295,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_010000) do
   end
 
   create_table "tasks", force: :cascade do |t|
-    t.bigint "workflow_run_id", null: false
-    t.bigint "assistant_message_id"
     t.bigint "approved_by_id"
-    t.integer "position", null: false
-    t.string "name"
-    t.text "prompt"
-    t.integer "gate", default: 0, null: false
-    t.integer "status", default: 0, null: false
-    t.datetime "decided_at"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.boolean "delegated", default: false, null: false
-    t.string "claimed_by"
-    t.jsonb "result", default: {}, null: false
-    t.jsonb "progress", default: [], null: false
-    t.datetime "dispatched_at"
-    t.bigint "claimed_by_user_id"
-    t.datetime "last_reported_at"
-    t.integer "reclaims_count", default: 0, null: false
+    t.bigint "assistant_message_id"
     t.datetime "claimed_at"
+    t.string "claimed_by"
+    t.bigint "claimed_by_user_id"
+    t.datetime "created_at", null: false
+    t.datetime "decided_at"
+    t.boolean "delegated", default: false, null: false
+    t.datetime "dispatched_at"
+    t.integer "gate", default: 0, null: false
+    t.datetime "last_reported_at"
+    t.string "name"
+    t.integer "position", null: false
+    t.jsonb "progress", default: [], null: false
+    t.text "prompt"
+    t.integer "reclaims_count", default: 0, null: false
+    t.jsonb "result", default: {}, null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "workflow_run_id", null: false
     t.index ["approved_by_id"], name: "index_tasks_on_approved_by_id"
     t.index ["assistant_message_id"], name: "index_tasks_on_assistant_message_id"
     t.index ["claimed_by_user_id"], name: "index_tasks_on_claimed_by_user_id"
@@ -320,65 +322,65 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_010000) do
   end
 
   create_table "teams", force: :cascade do |t|
+    t.datetime "created_at", null: false
     t.string "name", null: false
     t.boolean "personal", default: false, null: false
-    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
 
   create_table "user_memories", force: :cascade do |t|
-    t.bigint "team_id", null: false
-    t.bigint "user_id", null: false
-    t.bigint "source_conversation_id"
-    t.text "content", null: false
-    t.integer "kind", null: false
-    t.integer "source", default: 1, null: false
     t.integer "confidence", default: 0, null: false
-    t.datetime "last_applied_at"
+    t.text "content", null: false
     t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
     t.datetime "edited_by_user_at"
+    t.integer "kind", null: false
+    t.datetime "last_applied_at"
+    t.integer "source", default: 1, null: false
+    t.bigint "source_conversation_id"
+    t.bigint "team_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
     t.index ["source_conversation_id"], name: "index_user_memories_on_source_conversation_id"
     t.index ["team_id", "user_id", "kind"], name: "index_user_memories_on_team_id_and_user_id_and_kind"
     t.index ["user_id"], name: "index_user_memories_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
+    t.text "about_you"
+    t.boolean "auto_claim_tasks", default: true, null: false
+    t.string "avatar_url"
+    t.string "bridge_client"
+    t.datetime "bridge_seen_at"
+    t.string "bridge_token_digest"
+    t.string "bridge_token_hint"
+    t.datetime "created_at", null: false
+    t.text "custom_instructions"
+    t.string "display_name"
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
-    t.string "reset_password_token"
-    t.datetime "reset_password_sent_at"
-    t.datetime "remember_created_at"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "display_name"
-    t.string "timezone"
     t.string "language"
     t.string "preferred_model"
-    t.text "about_you"
-    t.text "custom_instructions"
-    t.string "theme"
-    t.string "avatar_url"
+    t.datetime "remember_created_at"
+    t.datetime "reset_password_sent_at"
+    t.string "reset_password_token"
     t.boolean "superuser", default: false, null: false
-    t.string "bridge_token_digest"
-    t.datetime "bridge_seen_at"
-    t.string "bridge_client"
-    t.boolean "auto_claim_tasks", default: true, null: false
-    t.string "bridge_token_hint"
+    t.string "theme"
+    t.string "timezone"
+    t.datetime "updated_at", null: false
     t.index ["bridge_token_digest"], name: "index_users_on_bridge_token_digest", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
   create_table "webhook_events", force: :cascade do |t|
-    t.bigint "team_id", null: false
-    t.bigint "project_id"
-    t.integer "provider", null: false
+    t.datetime "created_at", null: false
     t.string "event_type", null: false
     t.string "external_id"
-    t.string "source_installation_id"
     t.jsonb "payload", default: {}, null: false
-    t.datetime "created_at", null: false
+    t.bigint "project_id"
+    t.integer "provider", null: false
+    t.string "source_installation_id"
+    t.bigint "team_id", null: false
     t.datetime "updated_at", null: false
     t.index ["project_id"], name: "index_webhook_events_on_project_id"
     t.index ["provider", "external_id"], name: "index_webhook_events_on_provider_and_external_id", unique: true, where: "(external_id IS NOT NULL)"
@@ -386,30 +388,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_010000) do
   end
 
   create_table "workflow_runs", force: :cascade do |t|
-    t.bigint "team_id", null: false
-    t.bigint "workflow_id"
     t.bigint "conversation_id", null: false
-    t.integer "status", default: 0, null: false
-    t.string "trigger_summary"
     t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
     t.text "input"
+    t.integer "status", default: 0, null: false
+    t.bigint "team_id", null: false
+    t.string "trigger_summary"
+    t.datetime "updated_at", null: false
+    t.bigint "workflow_id"
     t.index ["conversation_id"], name: "index_workflow_runs_on_conversation_id", unique: true
     t.index ["team_id"], name: "index_workflow_runs_on_team_id"
     t.index ["workflow_id"], name: "index_workflow_runs_on_workflow_id"
   end
 
   create_table "workflows", force: :cascade do |t|
-    t.bigint "team_id", null: false
-    t.string "name", null: false
-    t.string "description"
-    t.jsonb "steps", default: [], null: false
-    t.integer "trigger_source", default: 0, null: false
-    t.jsonb "trigger_config", default: {}, null: false
-    t.boolean "enabled", default: true, null: false
     t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
     t.bigint "default_project_id"
+    t.string "description"
+    t.boolean "enabled", default: true, null: false
+    t.string "name", null: false
+    t.jsonb "steps", default: [], null: false
+    t.bigint "team_id", null: false
+    t.jsonb "trigger_config", default: {}, null: false
+    t.integer "trigger_source", default: 0, null: false
+    t.datetime "updated_at", null: false
     t.index "team_id, lower((name)::text)", name: "index_workflows_on_team_id_and_lower_name", unique: true
     t.index ["default_project_id"], name: "index_workflows_on_default_project_id"
     t.index ["team_id"], name: "index_workflows_on_team_id"

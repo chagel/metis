@@ -19,13 +19,17 @@ module Agent
 
     def corrections_count = corrections.count
 
+    def previous_corrections_count
+      all_replies.where(corrected_at: (@since - (Time.current - @since))...@since).count
+    end
+
     def to_h
       {
         since: @since.iso8601,
         memories: memories.ordered.map { |memory| memory_entry(memory) },
         corrections_without_memory: corrections.where(applied_memory_ids: []).map { |reply| { at: reply.corrected_at.iso8601, note: reply.correction_note } },
         deleted_by_you: deletions,
-        totals: { replies: replies.count, corrections: corrections_count, corrections_previous_window: previous_corrections }
+        totals: { replies: replies.count, corrections: corrections_count, corrections_previous_window: previous_corrections_count }
       }
     end
 
@@ -33,13 +37,9 @@ module Agent
 
     def memories = UserMemory.for(@user, @team)
 
-    def replies = Message.replies_of(@user, @team).where(created_at: @since..)
-
-    def corrections = Message.replies_of(@user, @team).where(corrected_at: @since..)
-
-    def previous_corrections
-      Message.replies_of(@user, @team).where(corrected_at: (@since - (Time.current - @since))...@since).count
-    end
+    def all_replies = Message.replies_of(@user, @team)
+    def replies = all_replies.where(created_at: @since..)
+    def corrections = all_replies.where(corrected_at: @since..)
 
     def deletions
       @deletions ||= Membership.find_by(user: @user, team: @team)&.memory_deletions_since(@since) || {}

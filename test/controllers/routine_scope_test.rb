@@ -53,11 +53,17 @@ class RoutineScopeTest < ActionDispatch::IntegrationTest
     assert @shared.reload.enabled?
   end
 
-  test "a member's new routine is always personal" do
+  test "a member can create a personal routine but not a team one" do
     act_as(@member)
-    post routines_path, params: { routine: { name: "Mine", prompt: "go", trigger_source: "schedule", cron: "0 9 * * *", timezone: "UTC", visibility: "team" } }
-
+    params = { name: "Mine", prompt: "go", trigger_source: "schedule", cron: "0 9 * * *", timezone: "UTC" }
+    post routines_path, params: { routine: params }
     assert @team.routines.named("Mine").first.visibility_personal?
+
+    assert_no_difference -> { @team.routines.count } do
+      post routines_path, params: { routine: params.merge(name: "Ours", visibility: "team") }
+    end
+    patch routine_path(@mine), params: { routine: { visibility: "team" } }
+    assert @mine.reload.visibility_personal?
   end
 
   test "the agent's routine tools follow the same rule" do

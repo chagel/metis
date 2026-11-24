@@ -20,12 +20,12 @@
         <p class="routine-hint"><%= t(".hints.#{@tab}") %></p>
       <% end %>
 
-      <% routines = @routines || (@tab == "team" ? @team : @mine) %>
+      <% routines = @tab == "team" ? @team : @mine %>
       <% if routines.any? %>
-        <div class="conn-list"><%= render partial: "routine", collection: routines, locals: { tab: @tab } %></div>
+        <div class="conn-list"><%= render routines %></div>
       <% else %>
         <div class="pane-empty">
-          <p><%= t(".empty.#{@tab || "mine"}") %></p>
+          <p><%= t(".empty.#{@tab}") %></p>
           <% if @tab != "team" || team_manager? %>
             <%= link_to t(".create_first"), new_routine_path, class: "btn btn-primary" %>
           <% end %>

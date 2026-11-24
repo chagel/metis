@@ -15,9 +15,7 @@ en:
       create_first: "Create your first routine"
     routine:
       disabled: "Paused"
-      schedule: "%{cron} · %{tz}"
       event: "On %{type}"
-      project_suffix: "· %{name}"
       run: "Run now"
       pause: "Pause"
       resume: "Resume"

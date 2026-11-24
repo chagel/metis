@@ -85,7 +85,7 @@ module Agent
       if has?(:visibility)
         return "Visibility must be one of: #{VISIBILITIES.join(", ")}." unless VISIBILITIES.include?(arg(:visibility))
 
-        routine.visibility = @conversation.team.personal? ? "personal" : arg(:visibility)
+        routine.visibility = arg(:visibility)
       end
 
       if has?(:cooldown_seconds)
