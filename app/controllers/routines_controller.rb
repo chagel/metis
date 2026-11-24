@@ -95,7 +95,7 @@ class RoutinesController < ApplicationController
   end
 
   # The fired conversation runs on this model (provider derived from the
-  # catalog, as the composer does); blank inherits the deployment default.
+  # catalog, as the composer does); blank uses the user's default model.
   def apply_model
     return unless params.dig(:routine).key?(:model)
 

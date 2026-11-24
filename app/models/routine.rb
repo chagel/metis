@@ -39,7 +39,7 @@ class Routine < ApplicationRecord
   store_accessor :trigger_config, :variables
 
   # The conversation settings (model/provider) a fired run launches with; an
-  # unset routine inherits the deployment defaults like any new chat.
+  # unset routine gets its user's default model, like any new chat.
   def run_settings
     trigger_config["settings"].presence || {}
   end
