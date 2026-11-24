@@ -1,8 +1,9 @@
 <%# provider: an LlmProvider %>
 <% models = provider.llm_models.sort_by { |model| [ model.position, model.key ] } %>
 <% enabled_count = models.count(&:enabled?) %>
-<section class="model-provider <%= 'is-off' unless provider.enabled? %>">
-  <header class="model-provider-head">
+<details class="model-provider <%= 'is-off' unless provider.enabled? %>" <%= "open" if provider.key == @open %>>
+  <summary class="model-provider-head">
+    <span class="model-provider-chevron" aria-hidden="true"></span>
     <div class="model-provider-id">
       <h2 class="model-provider-name"><%= provider.label %></h2>
       <div class="model-provider-sub">
@@ -23,7 +24,7 @@
     <% else %>
       <span class="status-pill <%= 'is-on' if provider.enabled? %>"><%= provider.enabled? ? t('.on') : t('.off') %></span>
     <% end %>
-  </header>
+  </summary>
 
   <ul class="model-list">
     <% models.each do |model| %>
@@ -60,4 +61,4 @@
       </li>
     <% end %>
   </ul>
-</section>
+</details>
