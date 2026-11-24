@@ -8,6 +8,7 @@ class RoutinesController < ApplicationController
   before_action :require_manageable!, only: %i[edit update destroy toggle run]
 
   def index
+    current_team.memberships.load
     routines = current_team.routines.visible_to(current_user).includes(:user, :project).order(:name)
     @mine, @team = current_team.personal? ? [ routines.to_a, [] ] : routines.partition(&:visibility_personal?)
     @tab = params[:tab].presence_in(%w[mine team]) || (@mine.empty? && @team.any? ? "team" : "mine")
@@ -22,7 +23,7 @@ class RoutinesController < ApplicationController
     @routine.user = current_user
     apply_cooldown
     apply_model
-    return require_team_admin! unless @routine.manageable_by?(current_user)
+    return refuse unless @routine.manageable_by?(current_user)
 
     if @routine.save
       redirect_to routines_path(tab: tab_for(@routine)), notice: t("flash.routines.create.notice")
@@ -38,7 +39,7 @@ class RoutinesController < ApplicationController
     @routine.assign_attributes(routine_params)
     apply_cooldown
     apply_model
-    return require_team_admin! unless @routine.manageable_by?(current_user)
+    return refuse unless @routine.manageable_by?(current_user)
 
     if @routine.save
       redirect_to edit_routine_path(@routine), notice: t("flash.routines.update.notice")
@@ -66,7 +67,11 @@ class RoutinesController < ApplicationController
   private
 
   def require_manageable!
-    require_team_admin! unless @routine.manageable_by?(current_user)
+    refuse unless @routine.manageable_by?(current_user)
+  end
+
+  def refuse
+    redirect_to routines_path, alert: t("flash.routines.not_allowed")
   end
 
   def tab_for(routine)

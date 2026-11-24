@@ -16,10 +16,9 @@ class Routine < ApplicationRecord
   normalizes :name, with: ->(name) { name.to_s.strip }
   normalizes :timezone, with: ->(tz) { tz.to_s.strip.presence || "UTC" }
 
-  validates :name, presence: true,
-                   uniqueness: { scope: :team_id, case_sensitive: false },
-                   length: { maximum: NAME_MAX },
-                   format: { without: /[\r\n]/ }
+  validates :name, presence: true, length: { maximum: NAME_MAX }, format: { without: /[\r\n]/ }
+  validates :name, uniqueness: { scope: :team_id, case_sensitive: false, conditions: -> { visibility_team } }, if: :visibility_team?
+  validates :name, uniqueness: { scope: %i[team_id user_id], case_sensitive: false, conditions: -> { visibility_personal } }, if: :visibility_personal?
   validates :prompt, presence: true
   validates :cron, presence: true, if: :schedule?
   validates :event_type, presence: true, if: :webhook?

@@ -18,6 +18,10 @@ class Membership < ApplicationRecord
   # revocation is creator-only, so nobody left in the team could revoke them.
   after_destroy { ArtifactShare.minted_by(user).where(team: team).delete_all }
   after_destroy { UserMemory.for(user, team).delete_all }
+  # Nobody left could see a departed member's personal routines, and their
+  # team routines would keep running as someone outside the team.
+  after_destroy { team.routines.visibility_personal.where(user: user).destroy_all }
+  after_destroy { team.routines.where(user: user).update_all(enabled: false, next_run_at: nil) }
 
   # Owners and admins manage the team (members, settings); plain
   # members only use its shared resources.

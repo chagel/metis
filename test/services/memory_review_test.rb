@@ -20,13 +20,33 @@ class MemoryReviewTest < ActiveSupport::TestCase
     assert_equal 1, @team.routines.count
   end
 
-  test "teammates with the same display name each get their own review" do
-    other = User.create!(email: "rv2-#{SecureRandom.hex(4)}@example.com", password: "password123", display_name: @user.display_name)
-    @team.memberships.create!(user: other, role: :member)
-    remember
-    UserMemory.create!(user: other, team: @team, content: "uses Go", kind: :fact)
+  test "teammates each get their own review under the same name" do
+    team = Team.create!(name: "Acme")
+    other = User.create!(email: "rv2-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    [ @user, other ].each do |user|
+      team.memberships.create!(user: user, role: :member)
+      UserMemory.create!(user: user, team: team, content: "uses Go", kind: :fact)
+    end
 
-    assert_not_equal MemoryReview.routine_for(@user, @team).name, MemoryReview.routine_for(other, @team).name
+    reviews = [ @user, other ].map { |user| MemoryReview.routine_for(user, team) }
+    assert_equal [ MemoryReview::NAME ] * 2, reviews.map(&:name)
+    assert_equal 2, reviews.uniq.size
+  end
+
+  test "the review's own edits don't make the next night active" do
+    memory = remember
+    routine = MemoryReview.routine_for(@user, @team)
+    review = routine.conversations.create!(user: @user, team: @team)
+    memory.update_columns(updated_at: 1.minute.ago)
+    review.messages.create!(role: :assistant, content: "Raised one memory.", streaming_status: :done)
+
+    assert_not MemoryReview.activity?(routine)
+  end
+
+  test "a failed review setup doesn't fail the memory" do
+    with_stub(MemoryReview, :ensure_for, ->(*) { raise ActiveRecord::RecordInvalid }) do
+      assert remember.persisted?
+    end
   end
 
   test "a due review is skipped on a quiet night and fires when there's activity" do

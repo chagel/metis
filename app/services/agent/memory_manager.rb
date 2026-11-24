@@ -57,7 +57,7 @@ module Agent
 
     def note_correction
       guarded do
-        reply = @conversation.messages.assistant.done.chronological.last
+        reply = @conversation.messages.assistant.where.not(streaming_status: %i[pending streaming]).chronological.last
         raise Invalid, "There's no earlier reply in this conversation to mark as corrected." unless reply
 
         reply.update!(corrected_at: Time.current, correction_note: @params["note"].to_s.strip.truncate(UserMemory::MAX_CONTENT))

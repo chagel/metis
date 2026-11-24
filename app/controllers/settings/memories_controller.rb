@@ -26,8 +26,10 @@ class Settings::MemoriesController < ApplicationController
   end
 
   def destroy
-    current_membership.record_memory_deletions!([ @memory.kind ])
-    @memory.destroy
+    Membership.transaction do
+      current_membership.record_memory_deletions!([ @memory.kind ])
+      @memory.destroy!
+    end
     respond_to do |format|
       format.turbo_stream { render turbo_stream: turbo_stream.remove(helpers.dom_id(@memory)) }
       format.html { redirect_to memories_path, notice: t("flash.settings.memories.destroy.notice") }
@@ -35,8 +37,10 @@ class Settings::MemoriesController < ApplicationController
   end
 
   def clear
-    current_membership.record_memory_deletions!(memories.pluck(:kind))
-    memories.delete_all
+    Membership.transaction do
+      current_membership.record_memory_deletions!(memories.pluck(:kind))
+      memories.delete_all
+    end
     redirect_to memories_path, notice: t("flash.settings.memories.clear.notice")
   end
 

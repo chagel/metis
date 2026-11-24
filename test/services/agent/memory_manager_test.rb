@@ -134,6 +134,17 @@ module Agent
       assert_equal "wanted it shorter", earlier.correction_note
     end
 
+    test "note_correction marks a cancelled previous reply, not an older one" do
+      older = @conversation.messages.create!(role: :assistant, content: "old", streaming_status: :done)
+      cancelled = @conversation.messages.create!(role: :assistant, content: "half", streaming_status: :canceled)
+      @conversation.messages.create!(role: :assistant, streaming_status: :streaming)
+
+      Agent::MemoryManager.note_correction(@conversation, "note" => "not that")
+
+      assert cancelled.reload.corrected_at
+      assert_nil older.reload.corrected_at
+    end
+
     test "note_correction refuses when there's no earlier reply" do
       assert_not Agent::MemoryManager.note_correction(@conversation, "note" => "x")[:ok]
     end

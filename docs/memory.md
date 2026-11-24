@@ -93,12 +93,14 @@ in their zone, deployment default model, marked
 `trigger_config["purpose"] = "memory_review"`). Each fire is an ordinary
 turn: it reads the report from the previous review on, tidies memories
 with the existing tools, and replies with a short "what I learned" note.
-`Routine#fire_scheduled!` skips a night with no activity without running a
+`Routine#fire_scheduled!` skips a night with no activity since the last
+review's reply (so the review's own edits don't count) without running a
 turn. The memory page shows the last review, corrections this week against
 last week, and a link to the routine's settings.
 
 A review is an ordinary personal routine: only its user sees, edits or runs
-it, under "My routines".
+it, under "My routines". Pause it to turn reviews off; deleting it only lasts
+until the next new memory recreates it.
 
 ## Not yet
 

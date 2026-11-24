@@ -83,8 +83,11 @@ with `WorkflowHandoff`); unset inherits the deployment default.
   runs; admins manage it). Both live in one team (`docs/tenancy.md`, *Scope
   within a team*). `Routine.visible_to(user)` and `Routine#manageable_by?`
   hold the rule for the web and chat paths alike. Any member can create a
-  personal routine; only admins create or edit team ones. A personal team
-  shows no team framing: one list, no scope picker, every routine personal.
+  personal routine; only admins create or edit team ones. Names are unique
+  per user among personal routines and per team among team ones. When a
+  member leaves, their personal routines are deleted and team routines that
+  run as them are paused. A personal team shows no team framing: one list,
+  no scope picker, every routine personal.
 - **Web** — `RoutinesController` under `/settings/routines`: **My routines**
   and **Team routines** tabs, each row with its schedule in words, next and
   last run, and (on Team) who it runs as; CRUD plus

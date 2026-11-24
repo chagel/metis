@@ -5,6 +5,7 @@
 module MemoryReview
   PURPOSE = "memory_review".freeze
   CRON = "0 3 * * *".freeze
+  NAME = "Memory review".freeze
 
   PROMPT = <<~MD.freeze
     Nightly memory review. Call metis_memory_report, then tidy what you know about me
@@ -29,7 +30,7 @@ module MemoryReview
 
   def self.ensure_for(user, team)
     routine_for(user, team) || team.routines.create!(
-      user: user, name: name_for(user, team), prompt: PROMPT, cron: CRON,
+      user: user, name: NAME, prompt: PROMPT, cron: CRON,
       timezone: user.iana_timezone, enabled: true, trigger_config: { "purpose" => PURPOSE }
     )
   end
@@ -39,13 +40,10 @@ module MemoryReview
     routine_for(user, team)&.conversations&.where(created_at: ...before)&.maximum(:created_at)
   end
 
+  # Counted from when the last review's reply was written, so the review's
+  # own memory edits aren't activity.
   def self.activity?(routine)
-    Agent::MemoryReport.new(routine.user, routine.team, since: routine.last_run_at || routine.created_at).activity?
+    since = Message.where(conversation: routine.conversations).maximum(:updated_at) || routine.created_at
+    Agent::MemoryReport.new(routine.user, routine.team, since: since).activity?
   end
-
-  def self.name_for(user, team)
-    name = "Memory review · #{user.display_name}".truncate(Routine::NAME_MAX)
-    team.routines.named(name).exists? ? "#{name.truncate(Routine::NAME_MAX - 8)} ##{user.id}" : name
-  end
-  private_class_method :name_for
 end

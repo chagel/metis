@@ -66,6 +66,29 @@ class RoutineScopeTest < ActionDispatch::IntegrationTest
     assert @mine.reload.visibility_personal?
   end
 
+  test "an admin can't hand a teammate's team routine to them as personal" do
+    @shared.update!(user: @member)
+    act_as(@admin)
+    patch routine_path(@shared), params: { routine: { visibility: "personal" } }
+
+    assert_redirected_to routines_path
+    assert @shared.reload.visibility_team?
+  end
+
+  test "personal names are unique per user, team names per team" do
+    assert routine("Max's digest", user: @admin, visibility: :personal).persisted?
+    assert_not @team.routines.new(name: "standup", user: @member, visibility: :team, prompt: "go", cron: "0 9 * * *").valid?
+    assert_not @team.routines.new(name: "max's DIGEST", user: @member, visibility: :personal, prompt: "go", cron: "0 9 * * *").valid?
+  end
+
+  test "leaving a team removes your personal routines and pauses the team ones you run" do
+    @shared.update!(user: @member)
+    @team.memberships.find_by!(user: @member).destroy
+
+    assert_not Routine.exists?(@mine.id)
+    assert_not @shared.reload.enabled?
+  end
+
   test "the agent's routine tools follow the same rule" do
     admin_chat = @admin.conversations.create!(team: @team)
     assert_not_includes Agent::RoutineManager.list(admin_chat).map { |r| r[:name] }, @mine.name

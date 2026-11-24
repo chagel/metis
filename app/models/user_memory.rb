@@ -19,7 +19,7 @@ class UserMemory < ApplicationRecord
   validates :content, presence: true, length: { maximum: MAX_CONTENT }
   validate :under_cap, on: :create
 
-  after_create_commit { MemoryReview.ensure_for(user, team) }
+  after_create_commit :ensure_review
 
   scope :for, ->(user, team) { where(user: user, team: team) }
   scope :newest_first, -> { order(created_at: :desc) }
@@ -46,5 +46,12 @@ class UserMemory < ApplicationRecord
     return unless UserMemory.for(user, team).count >= MAX_PER_USER
 
     errors.add(:base, :cap_reached, count: MAX_PER_USER)
+  end
+
+  # The memory is already saved; a failed review setup must not report it lost.
+  def ensure_review
+    MemoryReview.ensure_for(user, team)
+  rescue ActiveRecord::ActiveRecordError => e
+    Rails.error.report(e, handled: true)
   end
 end

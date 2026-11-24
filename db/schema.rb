@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_23_020000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_23_030000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -269,7 +269,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_020000) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.integer "visibility", default: 0, null: false
-    t.index "team_id, lower((name)::text)", name: "index_routines_on_team_id_and_lower_name", unique: true
+    t.index "team_id, lower((name)::text)", name: "index_routines_on_team_lower_name_team_scope", unique: true, where: "(visibility = 1)"
+    t.index "team_id, user_id, lower((name)::text)", name: "index_routines_on_team_user_lower_name_personal", unique: true, where: "(visibility = 0)"
     t.index ["enabled", "trigger_source", "event_type"], name: "index_routines_on_event_dispatch"
     t.index ["enabled", "trigger_source", "next_run_at"], name: "index_routines_on_due"
     t.index ["project_id"], name: "index_routines_on_project_id"

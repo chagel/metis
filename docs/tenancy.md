@@ -56,7 +56,8 @@ inside that team. A scoped resource carries `visibility` (`personal` |
 Both kinds live side by side in one table; the UI splits them into *My* and
 *Team* tabs. Lifecycle is unchanged: a personal resource is still deleted
 with its team, and a user's personal resources in a team go when they
-leave it.
+leave it (`Membership` `after_destroy`). Names are unique within a scope:
+per user for personal, per team for team.
 
 This is a branch, but a narrow one: it is per resource, opt-in, and inside
 one team, never User-vs-Team ownership. Each scoped resource keeps it in one
