@@ -1,8 +1,9 @@
 module Agent
   # Agent-driven management of team Routine rows from a chat, over pi's
   # Extension UI channel (Agent::HostBridge). `list` reads; `create`/`update`
-  # mutate. Writes are team-admin-gated (matching RoutinesController) and
-  # refused from inside a workflow run. A routine the agent creates starts
+  # mutate. Writes follow Routine#manageable_by? (matching RoutinesController):
+  # your own personal routines, or team routines as an admin. Refused from
+  # inside a workflow run. A routine the agent creates starts
   # disabled — a self-firing rule shouldn't go live without the operator
   # enabling it. There's no delete tool — removing a routine stays an operator
   # action in the UI. Never raises into the turn — a failure is { ok: false }.
@@ -20,7 +21,7 @@ module Agent
     end
 
     def list
-      @conversation.team.routines.order(:name).map do |routine|
+      @conversation.team.routines.visible_to(@conversation.user).order(:name).map do |routine|
         {
           name: routine.name, trigger: routine.trigger_source,
           schedule: (routine.schedule? ? "#{routine.cron} (#{routine.timezone})" : nil),
@@ -41,6 +42,7 @@ module Agent
         if (error = apply(routine))
           return failure(error)
         end
+        return refused unless routine.manageable_by?(@conversation.user)
 
         persist(routine, "created")
       end
@@ -50,10 +52,12 @@ module Agent
       guarded do
         routine = existing
         return failure("No routine named #{quoted(name)} on this team.") unless routine
+        return refused unless routine.manageable_by?(@conversation.user)
 
         if (error = apply(routine))
           return failure(error)
         end
+        return refused unless routine.manageable_by?(@conversation.user)
         routine.enabled = ActiveModel::Type::Boolean.new.cast(@params["enabled"]) if @params.key?("enabled")
 
         persist(routine, "updated")
@@ -81,7 +85,7 @@ module Agent
       if has?(:visibility)
         return "Visibility must be one of: #{VISIBILITIES.join(", ")}." unless VISIBILITIES.include?(arg(:visibility))
 
-        routine.visibility = arg(:visibility)
+        routine.visibility = @conversation.team.personal? ? "personal" : arg(:visibility)
       end
 
       if has?(:cooldown_seconds)
@@ -116,7 +120,6 @@ module Agent
 
     def guarded
       return failure("Can't manage routines from inside a workflow run.") if @conversation.workflow_run.present?
-      return failure("Only team admins can manage routines.") unless admin?
 
       yield
     rescue StandardError => e
@@ -131,9 +134,9 @@ module Agent
         url: Rails.application.routes.url_helpers.edit_routine_path(routine) }
     end
 
-    def existing = @conversation.team.routines.named(name).first
+    def existing = @conversation.team.routines.visible_to(@conversation.user).named(name).first
     def name = @params["name"].to_s.strip
-    def admin? = @conversation.team.managed_by?(@conversation.user)
+    def refused = failure("Only team admins can manage team routines; anyone can manage their own personal ones.")
     def has?(key) = @params.key?(key.to_s)
     def arg(key) = @params[key.to_s].to_s.strip
     def failure(error) = { ok: false, error: error }

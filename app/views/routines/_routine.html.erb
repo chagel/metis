@@ -4,16 +4,17 @@
       <%= routine.name %>
       <% unless routine.enabled? %><span class="pill pill-muted"><%= t(".disabled") %></span><% end %>
     </div>
-    <div class="conn-sub">
-      <% if routine.schedule? %>
-        <%= t(".schedule", cron: routine.cron, tz: routine.timezone) %>
-      <% else %>
-        <%= t(".event", type: routine.event_type) %>
+    <div class="conn-sub"><%= routine_schedule_text(routine) %></div>
+    <div class="conn-sub routine-meta">
+      <% if routine.enabled? && routine.next_run_at&.future? %>
+        <span><%= t(".next_run", time: time_ago_in_words(routine.next_run_at)) %></span>
       <% end %>
-      <%= t(".project_suffix", name: routine.project.name) if routine.project %>
+      <span><%= routine.last_run_at ? t(".last_run", time: time_ago_in_words(routine.last_run_at)) : t(".never_run") %></span>
+      <% if routine.project %><span><%= routine.project.name %></span><% end %>
+      <% if tab == "team" %><span><%= t(".runs_as", name: routine.user.display_name.presence || routine.user.email) %></span><% end %>
     </div>
   </div>
-  <% if team_manager? %>
+  <% if routine.manageable_by?(current_user) %>
     <div class="conn-actions">
       <%# Break out of the settings #main frame so the redirect loads the
           full chat layout (sidebar included), not just the pane. %>

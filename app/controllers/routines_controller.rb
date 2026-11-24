@@ -5,10 +5,14 @@ class RoutinesController < ApplicationController
   layout "settings"
 
   before_action :set_routine, only: %i[edit update destroy toggle run]
-  before_action :require_team_admin!, except: :index
+  before_action :require_manageable!, only: %i[edit update destroy toggle run]
 
   def index
-    @routines = current_team.routines.order(:name)
+    routines = current_team.routines.visible_to(current_user).includes(:user, :project).order(:name)
+    return @routines = routines if current_team.personal?
+
+    @mine, @team = routines.partition(&:visibility_personal?)
+    @tab = params[:tab].presence_in(%w[mine team]) || (@mine.empty? && @team.any? ? "team" : "mine")
   end
 
   def new
@@ -22,7 +26,7 @@ class RoutinesController < ApplicationController
     apply_cooldown
     apply_model
     if @routine.save
-      redirect_to routines_path, notice: t("flash.routines.create.notice")
+      redirect_to routines_path(tab: tab_for(@routine)), notice: t("flash.routines.create.notice")
     else
       render :new, status: :unprocessable_entity
     end
@@ -45,12 +49,12 @@ class RoutinesController < ApplicationController
   def destroy
     name = @routine.name
     @routine.destroy
-    redirect_to routines_path, notice: t("flash.routines.destroy.notice", name: name)
+    redirect_to routines_path(tab: tab_for(@routine)), notice: t("flash.routines.destroy.notice", name: name)
   end
 
   def toggle
     @routine.update(enabled: !@routine.enabled)
-    redirect_to routines_path
+    redirect_to routines_path(tab: tab_for(@routine))
   end
 
   def run
@@ -60,8 +64,18 @@ class RoutinesController < ApplicationController
 
   private
 
+  def require_manageable!
+    require_team_admin! unless @routine.manageable_by?(current_user)
+  end
+
+  def tab_for(routine)
+    return if current_team.personal?
+
+    routine.visibility_personal? ? "mine" : "team"
+  end
+
   def set_routine
-    @routine = current_team.routines.find(params[:id])
+    @routine = current_team.routines.visible_to(current_user).find(params[:id])
   end
 
   # Merged, not assigned, so it doesn't clobber other trigger_config keys
@@ -90,6 +104,7 @@ class RoutinesController < ApplicationController
       :cron, :timezone, :event_type
     )
     permitted[:project_id] = nil if permitted[:project_id].blank?
+    permitted[:visibility] = "personal" unless team_manager? && !current_team.personal?
     permitted
   end
 end

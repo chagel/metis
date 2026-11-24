@@ -24,6 +24,19 @@ class RoutinesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".conn-list .conn-name", text: /Standup/
   end
 
+  test "a personal team has no team framing: no tabs, no scope picker, always personal" do
+    make_routine(visibility: :team)
+    get routines_path
+    assert_select ".routine-tabs", count: 0
+    assert_select ".conn-name", text: /Standup/
+
+    get new_routine_path
+    assert_select "select#routine_visibility", count: 0
+
+    post routines_path, params: { routine: { name: "Solo", prompt: "go", trigger_source: "schedule", cron: "0 9 * * *", timezone: "UTC", visibility: "team" } }
+    assert team.routines.named("Solo").first.visibility_personal?
+  end
+
   test "index empty state" do
     get routines_path
     assert_response :success

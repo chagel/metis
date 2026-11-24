@@ -8,6 +8,8 @@ module Agent
     def self.update(conversation, params) = new(conversation, params).update
     def self.forget(conversation, params) = new(conversation, params).forget
     def self.note_applied(conversation, params) = new(conversation, params).note_applied
+    def self.note_correction(conversation, params) = new(conversation, params).note_correction
+    def self.report(conversation, params) = new(conversation, params).report
 
     def initialize(conversation, params)
       @conversation = conversation
@@ -45,9 +47,28 @@ module Agent
 
     def note_applied
       guarded do
-        ids = Array(@params["ids"]).map(&:to_i)
-        count = memories.where(id: ids).update_all(last_applied_at: Time.current)
-        { ok: true, noted: count }
+        ids = memories.where(id: Array(@params["ids"]).map(&:to_i)).pluck(:id)
+        memories.where(id: ids).update_all(last_applied_at: Time.current)
+        reply = @conversation.messages.inflight.first
+        reply&.update_columns(applied_memory_ids: (reply.applied_memory_ids + ids).uniq)
+        { ok: true, noted: ids.size }
+      end
+    end
+
+    def note_correction
+      guarded do
+        reply = @conversation.messages.assistant.done.chronological.last
+        raise Invalid, "There's no earlier reply in this conversation to mark as corrected." unless reply
+
+        reply.update!(corrected_at: Time.current, correction_note: @params["note"].to_s.strip.truncate(UserMemory::MAX_CONTENT))
+        { ok: true, corrected: reply.id }
+      end
+    end
+
+    def report
+      guarded do
+        since = MemoryReview.window_start(@conversation.user, @conversation.team, before: @conversation.created_at)
+        { ok: true, **Agent::MemoryReport.new(@conversation.user, @conversation.team, since: since).to_h }
       end
     end
 

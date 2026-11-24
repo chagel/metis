@@ -5,10 +5,14 @@ class Settings::MemoriesController < ApplicationController
 
   def index
     @memories = memories.newest_first.load
+    @review = MemoryReview.routine_for(current_user, current_team)
+    @last_review = @review&.conversations&.order(created_at: :desc)&.first
+    @corrections_this_week = Agent::MemoryReport.new(current_user, current_team, since: 1.week.ago).corrections_count
+    @corrections_last_week = Agent::MemoryReport.new(current_user, current_team, since: 2.weeks.ago).corrections_count - @corrections_this_week
   end
 
   def update
-    if @memory.update(memory_params)
+    if @memory.edit_by_user(memory_params[:content])
       respond_with_row
     else
       redirect_to memories_path, alert: @memory.errors.full_messages.to_sentence
@@ -21,6 +25,7 @@ class Settings::MemoriesController < ApplicationController
   end
 
   def destroy
+    membership.record_memory_deletions!([ @memory.kind ])
     @memory.destroy
     respond_to do |format|
       format.turbo_stream { render turbo_stream: turbo_stream.remove(helpers.dom_id(@memory)) }
@@ -29,6 +34,7 @@ class Settings::MemoriesController < ApplicationController
   end
 
   def clear
+    membership.record_memory_deletions!(memories.pluck(:kind))
     memories.delete_all
     redirect_to memories_path, notice: t("flash.settings.memories.clear.notice")
   end
@@ -36,6 +42,8 @@ class Settings::MemoriesController < ApplicationController
   private
 
   def memories = UserMemory.for(current_user, current_team)
+
+  def membership = current_team.memberships.find_by!(user: current_user)
 
   def set_memory
     @memory = memories.find(params[:id])

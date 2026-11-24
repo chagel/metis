@@ -24,4 +24,15 @@ class Membership < ApplicationRecord
   def manages_team?
     admin? || owner?
   end
+
+  # Memories the user deleted on the memory page, as { kind, at } with no
+  # text, kept 30 days so the nightly review knows what was rejected.
+  def record_memory_deletions!(kinds)
+    kept = memory_deletions.select { |deletion| Time.iso8601(deletion["at"]) > 30.days.ago }
+    update!(memory_deletions: kept + kinds.map { |kind| { "kind" => kind, "at" => Time.current.iso8601 } })
+  end
+
+  def memory_deletions_since(time)
+    memory_deletions.select { |deletion| Time.iso8601(deletion["at"]) >= time }.map { |deletion| deletion["kind"] }.tally
+  end
 end

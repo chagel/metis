@@ -19,6 +19,8 @@ class UserMemory < ApplicationRecord
   validates :content, presence: true, length: { maximum: MAX_CONTENT }
   validate :under_cap, on: :create
 
+  after_create_commit { MemoryReview.ensure_for(user, team) }
+
   scope :for, ->(user, team) { where(user: user, team: team) }
   scope :newest_first, -> { order(created_at: :desc) }
   scope :ordered, -> { order(:kind, confidence: :desc, created_at: :asc) }
@@ -29,6 +31,13 @@ class UserMemory < ApplicationRecord
 
   def confirm!
     update!(source: :stated, confidence: :high)
+  end
+
+  # The user's own wording: as good as stated, and a signal for the review.
+  def edit_by_user(content)
+    self.content = content
+    assign_attributes(source: :stated, confidence: :high, edited_by_user_at: Time.current) if content_changed?
+    save
   end
 
   private

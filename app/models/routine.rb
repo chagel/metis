@@ -29,6 +29,9 @@ class Routine < ApplicationRecord
 
   scope :active, -> { where(enabled: true) }
   scope :due, -> { active.schedule.where("next_run_at <= ?", Time.current) }
+  # Personal routines belong to their user alone; team routines are open to
+  # every member and managed by admins (docs/tenancy.md, scope within a team).
+  scope :visible_to, ->(user) { visibility_team.or(where(user: user)) }
   scope :named, ->(name) { where("LOWER(name) = LOWER(?)", name.to_s.strip).order(:id) }
 
   before_save :refresh_next_run_at
@@ -39,6 +42,14 @@ class Routine < ApplicationRecord
   # unset routine inherits the deployment defaults like any new chat.
   def run_settings
     trigger_config["settings"].presence || {}
+  end
+
+  def manageable_by?(someone)
+    visibility_personal? ? user_id == someone.id : team.managed_by?(someone)
+  end
+
+  def memory_review?
+    trigger_config["purpose"] == MemoryReview::PURPOSE
   end
 
   def cooldown_seconds
@@ -64,7 +75,7 @@ class Routine < ApplicationRecord
     with_lock do
       return false unless enabled? && schedule? && next_run_at && next_run_at <= Time.current
 
-      fire!
+      fire! unless memory_review? && !MemoryReview.activity?(self)
       update!(next_run_at: next_cron_time)
       true
     end

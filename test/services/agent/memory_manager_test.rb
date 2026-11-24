@@ -113,5 +113,42 @@ module Agent
       result = remember("content" => "prefers tables", "kind" => "preference")
       assert_not result.key?(:content)
     end
+
+    test "note_applied records the ids on this turn's reply" do
+      own = UserMemory.create!(user: @user, team: @team, content: "short answers", kind: :preference)
+      reply = @conversation.messages.create!(role: :assistant, streaming_status: :streaming)
+
+      Agent::MemoryManager.note_applied(@conversation, "ids" => [ own.id, 999_999 ])
+
+      assert_equal [ own.id ], reply.reload.applied_memory_ids
+    end
+
+    test "note_correction marks the previous finished reply in this conversation" do
+      earlier = @conversation.messages.create!(role: :assistant, content: "long answer", streaming_status: :done)
+      @conversation.messages.create!(role: :assistant, streaming_status: :streaming)
+
+      result = Agent::MemoryManager.note_correction(@conversation, "note" => "wanted it shorter")
+
+      assert result[:ok]
+      assert earlier.reload.corrected_at
+      assert_equal "wanted it shorter", earlier.correction_note
+    end
+
+    test "note_correction refuses when there's no earlier reply" do
+      assert_not Agent::MemoryManager.note_correction(@conversation, "note" => "x")[:ok]
+    end
+
+    test "report starts at the previous review" do
+      memory = UserMemory.create!(user: @user, team: @team, content: "short answers", kind: :preference)
+      routine = MemoryReview.routine_for(@user, @team)
+      previous = @user.conversations.create!(team: @team, routine: routine, created_at: 2.days.ago)
+      current = @user.conversations.create!(team: @team, routine: routine)
+
+      result = Agent::MemoryManager.report(current, {})
+
+      assert result[:ok]
+      assert_equal previous.created_at.iso8601, result[:since]
+      assert_includes result[:memories].map { |m| m[:id] }, memory.id
+    end
   end
 end

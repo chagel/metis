@@ -16,6 +16,18 @@
   <div class="pane-body">
     <div class="pane-inner">
       <p class="form-hint memory-intro"><%= t(".intro", team: current_team.personal? ? t(".personal_team") : current_team.name) %></p>
+      <% if @review %>
+        <p class="memory-status">
+          <% if @last_review %>
+            <%= t(".last_review", time: time_ago_in_words(@last_review.created_at)) %>
+            <%= link_to t(".read_review"), conversation_path(@last_review) %>
+          <% else %>
+            <%= t(".first_review") %>
+          <% end %>
+          · <%= t(".corrections", this_week: @corrections_this_week, last_week: @corrections_last_week) %>
+          · <%= link_to t(".review_settings"), edit_routine_path(@review) %>
+        </p>
+      <% end %>
 
       <% if @memories.empty? %>
         <div class="pane-empty"><p><%= t(".empty") %></p></div>

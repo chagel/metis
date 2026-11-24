@@ -4,19 +4,29 @@
   <header class="pane-head">
     <h1 class="pane-title"><%= t(".title") %></h1>
     <div style="flex:1"></div>
-    <% if team_manager? %>
-      <%= link_to t(".new"), new_routine_path, class: "btn btn-ghost" %>
-    <% end %>
+    <%= link_to t(".new"), new_routine_path, class: "btn btn-ghost" %>
   </header>
 
   <div class="pane-body">
     <div class="pane-inner">
-      <% if @routines.any? %>
-        <div class="conn-list"><%= render @routines %></div>
+      <% unless current_team.personal? %>
+        <nav class="routine-tabs">
+          <% { "mine" => @mine, "team" => @team }.each do |key, list| %>
+            <%= link_to routines_path(tab: key), class: "board-chip#{" is-on" if @tab == key}" do %>
+              <%= t(".tabs.#{key}") %> <span class="board-chip-n"><%= list.size %></span>
+            <% end %>
+          <% end %>
+        </nav>
+        <p class="routine-hint"><%= t(".hints.#{@tab}") %></p>
+      <% end %>
+
+      <% routines = @routines || (@tab == "team" ? @team : @mine) %>
+      <% if routines.any? %>
+        <div class="conn-list"><%= render partial: "routine", collection: routines, locals: { tab: @tab } %></div>
       <% else %>
         <div class="pane-empty">
-          <p><%= t(".empty") %></p>
-          <% if team_manager? %>
+          <p><%= t(".empty.#{@tab || "mine"}") %></p>
+          <% if @tab != "team" || team_manager? %>
             <%= link_to t(".create_first"), new_routine_path, class: "btn btn-primary" %>
           <% end %>
         </div>

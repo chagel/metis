@@ -30,6 +30,43 @@ module RoutinesHelper
     ActiveSupport::TimeZone.all.map { |tz| [ tz.to_s, tz.tzinfo.name ] }
   end
 
+  # The schedule in words, matching the form's live preview; exotic crons
+  # fall back to the raw expression.
+  def routine_schedule_text(routine)
+    return t("routines.routine.event", type: routine.event_type) unless routine.schedule?
+
+    m, h, dom, mon, dow = routine.cron.to_s.split
+    words = ->(key, **vars) { vars.reduce(t("routines.form.preview.#{key}")) { |text, (k, v)| text.sub("{#{k}}", v.to_s) } }
+    tz = routine.timezone
+    numeric = ->(v) { v.to_s.match?(/\A\d+\z/) }
+    return words.(:custom, cron: routine.cron, tz: tz) unless mon == "*" && numeric.(m)
+    return words.(:hourly, minute: format(":%02d", m.to_i), tz: tz) if [ h, dom, dow ].all?("*")
+    return words.(:custom, cron: routine.cron, tz: tz) unless numeric.(h)
+
+    time = routine_hour_label(h.to_i).sub(" ", format(":%02d ", m.to_i))
+    days = routine_cron_days(dow)
+    if dom == "*" && dow == "*" then words.(:daily, time: time, tz: tz)
+    elsif dom == "*" && days then words.(:weekly, days: days, time: time, tz: tz)
+    elsif dow == "*" && numeric.(dom) then words.(:monthly, dom: dom, time: time, tz: tz)
+    else words.(:custom, cron: routine.cron, tz: tz)
+    end
+  end
+
+  # "1-5" / "1,3,5" → "Mon, Tue, …"; nil for steps or names.
+  def routine_cron_days(dow)
+    numbers = dow.to_s.split(",").flat_map do |token|
+      case token
+      when /\A\d\z/ then [ token.to_i % 7 ]
+      when /\A(\d)-(\d)\z/ then ($1.to_i..$2.to_i).map { |n| n % 7 }
+      else return nil
+      end
+    end.uniq
+    return t("routines.form.preview.every_day") if numbers.size == 7
+
+    labels = routine_day_options.to_h
+    [ 1, 2, 3, 4, 5, 6, 0 ].select { |n| numbers.include?(n) }.map { |n| labels[n] }.join(", ")
+  end
+
   PROVIDER_LABELS = { "github" => "GitHub", "linear" => "Linear" }.freeze
 
   # Event types the team has actually received, grouped by connector for a

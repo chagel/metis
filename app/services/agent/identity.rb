@@ -311,12 +311,13 @@ module Agent
     ROUTINES_RENDERED_MAX = 25
 
     def routines_block
-      routines = @conversation.team.routines.order(:name).limit(ROUTINES_RENDERED_MAX).to_a
+      routines = @conversation.team.routines.visible_to(@conversation.user).order(:name).limit(ROUTINES_RENDERED_MAX).to_a
       header =
         "## Routines\n\n" \
         "Saved prompts that fire on their own — on a schedule or a webhook " \
-        "event — each as a normal agent turn. Team admins can ask you to set " \
-        "one up, change it, or enable/disable it via `metis_create_routine` / " \
+        "event — each as a normal agent turn. Anyone can have you set up, " \
+        "change or enable/disable their own personal routines; team routines " \
+        "need a team admin. Use `metis_create_routine` / " \
         "`metis_update_routine`; `metis_list_routines` reads them. A routine " \
         "you create starts disabled until the operator enables it. There's no " \
         "delete tool — ask the operator to remove a routine from the UI."
@@ -390,6 +391,9 @@ module Agent
           or forget that memory.
         - When a memory actually shapes your reply, say so in a few words ("Kept this
           short, as you prefer") and report its id with `metis_note_applied`.
+        - When the operator's message corrects, redoes or rejects your previous reply,
+          call `metis_note_correction` with a one-line note of what was wrong, then fix
+          or record the memory behind it.
 
         Record what will make future conversations better, with `metis_remember`:
         corrections the operator makes, preferences they state, lasting facts about

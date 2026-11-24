@@ -72,4 +72,31 @@ class Settings::MemoriesControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
     assert UserMemory.exists?(theirs.id)
   end
+
+  test "editing a memory makes it the user's own words" do
+    m = memory
+    patch memory_path(m), params: { user_memory: { content: "prefers very short answers" } }
+
+    m.reload
+    assert m.source_stated?
+    assert m.confidence_high?
+    assert m.edited_by_user_at
+  end
+
+  test "deleting records the kind, not the text, for the review" do
+    m = memory(kind: :fact)
+    delete memory_path(m)
+
+    deletions = @team.memberships.find_by!(user: @user).memory_deletions
+    assert_equal [ "fact" ], deletions.map { |d| d["kind"] }
+    assert_not deletions.first.key?("content")
+  end
+
+  test "index shows the review status and weekly corrections" do
+    memory
+    get memories_path
+
+    assert_select ".memory-status", text: /First review runs tonight/
+    assert_select ".memory-status", text: /Corrections: 0 this week, 0 last week/
+  end
 end

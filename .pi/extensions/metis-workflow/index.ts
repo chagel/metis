@@ -19,6 +19,8 @@
  *   metis_update_memory   — revise a memory (content, kind, confidence)
  *   metis_forget          — drop a memory that's wrong or stale
  *   metis_note_applied    — report which memories shaped this reply
+ *   metis_note_correction — mark the previous reply as corrected by the operator
+ *   metis_memory_report   — how memories fared lately (the nightly review reads it)
  *
  * These manage team skills as single SKILL.md rows. Multi-file skills (with
  * supporting assets) still go through the native file path: write
@@ -523,7 +525,7 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
       "Create a routine: a saved prompt that fires on its own, either on a cron " +
       "schedule or when a webhook event arrives. Each fire runs the prompt as a " +
       "normal agent turn (it can use connectors, skills, or start a workflow). " +
-      "Only team admins can create. A new routine starts DISABLED — tell the " +
+      "Anyone can create a personal routine; team routines need a team admin. A new routine starts DISABLED — tell the " +
       "operator to enable it (in the routines UI or with metis_update_routine).",
     promptSnippet: "Create a scheduled or event-driven routine",
     promptGuidelines: [
@@ -532,7 +534,7 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
       "For an event, pass `trigger: \"webhook\"` and an `event_type` (e.g. \"pull_request.opened\", or \"pull_request.*\" for a family).",
       "Write a clear, self-contained `prompt`. It may use {{date}}, {{team}}, {{user}}, and on events {{event_type}} / {{event_payload}}.",
       "Pass `model` (and optionally `provider`) only if the operator names one to run the routine on; omit to inherit the deployment default. An unknown model is rejected with the available options.",
-      "It starts disabled; on success, tell the operator that and give them the returned link to review and enable it. Relay any error (e.g. not a team admin, invalid cron).",
+      "It starts disabled; on success, tell the operator that and give them the returned link to review and enable it. Relay any error (e.g. a team routine without admin rights, invalid cron).",
     ],
     parameters: Type.Object({
       name: Type.String({ description: 'Name for the routine, e.g. "Morning digest".' }),
@@ -551,7 +553,7 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
       ),
       visibility: Type.Optional(
         Type.Union([Type.Literal("personal"), Type.Literal("team")], {
-          description: '"personal" (only the owner sees runs) or "team". Defaults to personal.',
+          description: '"personal" (only the owner sees and manages it and its runs) or "team" (every member sees it; admins manage it). Defaults to personal.',
         }),
       ),
       project: Type.Optional(
@@ -613,7 +615,7 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
       event_type: Type.Optional(Type.String({ description: "New webhook event type." })),
       visibility: Type.Optional(
         Type.Union([Type.Literal("personal"), Type.Literal("team")], {
-          description: "Change who can see the runs.",
+          description: "Move between personal (yours alone) and team (admins only).",
         }),
       ),
       project: Type.Optional(
@@ -729,6 +731,42 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
 
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       return hostWrite(ctx, "note_memory_applied", params, (r) => `Noted ${r.noted} applied memor${r.noted === 1 ? "y" : "ies"}.`);
+    },
+  });
+
+  pi.registerTool({
+    name: "metis_note_correction",
+    label: "Note Correction",
+    description: "Mark your previous reply in this conversation as corrected by the operator, with a one-line note of what was wrong.",
+    promptSnippet: "Mark the previous reply as corrected",
+    promptGuidelines: [
+      "Call metis_note_correction when the operator's message corrects, redoes or rejects your previous reply. Not for new requests or follow-up questions.",
+    ],
+    parameters: Type.Object({
+      note: Type.String({ description: "What was wrong with the previous reply, in one line." }),
+    }),
+
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return hostWrite(ctx, "note_memory_correction", params, () => "Noted the correction.");
+    },
+  });
+
+  pi.registerTool({
+    name: "metis_memory_report",
+    label: "Memory Report",
+    description:
+      "How your memories about the operator fared since the last review: for each memory, " +
+      "how many replies used it and how many of those were corrected, cancelled or forked; " +
+      "corrections on replies that used no memory; memories the operator edited or deleted; totals.",
+    promptSnippet: "See how memories fared since the last review",
+    promptGuidelines: [
+      "Use metis_memory_report during the nightly memory review, or when the operator asks what you've learned about them.",
+      "This returns the data directly — act on its result.",
+    ],
+    parameters: Type.Object({}),
+
+    async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
+      return hostWrite(ctx, "memory_report", {}, (r) => JSON.stringify(r, null, 2));
     },
   });
 }

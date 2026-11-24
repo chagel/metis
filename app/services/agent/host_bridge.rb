@@ -22,7 +22,7 @@ module Agent
       get_workflow get_project start_workflow create_workflow update_workflow
       list_skills create_skill update_skill
       list_routines create_routine update_routine
-      remember update_memory forget_memory note_memory_applied
+      remember update_memory forget_memory note_memory_applied note_memory_correction memory_report
     ].freeze
 
     # Build an `extension_ui:` handler bound to this conversation. It services
@@ -148,6 +148,14 @@ module Agent
 
     def note_memory_applied
       JSON.generate(Agent::MemoryManager.note_applied(@conversation, @params))
+    end
+
+    def note_memory_correction
+      JSON.generate(Agent::MemoryManager.note_correction(@conversation, @params))
+    end
+
+    def memory_report
+      JSON.generate(Agent::MemoryManager.report(@conversation, @params))
     end
   end
 end
