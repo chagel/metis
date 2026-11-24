@@ -14,6 +14,16 @@ module Agent
       new(base_settings, model, provider).resolve
     end
 
+    # What a conversation runs on when nobody picked: the user's own default
+    # if it's still enabled, else the catalog's deployment default. Empty
+    # without a catalog, so pi uses its own configured default.
+    def self.default_settings(user, options = Catalog.providers)
+      preferred = user&.preferred_model.presence
+      return Catalog.default_selection(options) unless preferred && Catalog.known_model?(preferred, options)
+
+      { "model" => preferred, "provider" => Catalog.provider_for(preferred, options) }
+    end
+
     def initialize(base_settings, model, provider)
       @settings = (base_settings || {}).dup
       @model = model.to_s.strip

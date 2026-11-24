@@ -8,6 +8,18 @@ class ModelsController < ApplicationController
 
   def index
     @providers = LlmProvider.ordered.includes(:llm_models)
+    @open = params[:open]
+    @default = LlmModel.enabled.find_by(deployment_default: true)
+    @fallback_label = @providers.flat_map(&:llm_models).find { |m| m.key == Agent::Catalog.default_model }&.label
+    @default_options = @providers.filter_map do |provider|
+      models = provider.llm_models.select(&:enabled?).sort_by { |m| [ m.position, m.key ] }
+      [ provider.label, models.map { |m| [ m.label, m.id ] } ] if models.any?
+    end
+  end
+
+  def update_default
+    LlmModel.enabled.find(params[:model_id]).make_deployment_default!
+    redirect_to models_path
   end
 
   def refresh
@@ -19,13 +31,14 @@ class ModelsController < ApplicationController
   end
 
   def update_provider
-    LlmProvider.find(params[:id]).set_enabled!(boolean_param(params[:enabled]))
-    redirect_to models_path
+    provider = LlmProvider.find(params[:id])
+    provider.set_enabled!(boolean_param(params[:enabled]))
+    redirect_to models_path(open: provider.key)
   end
 
   def update_model
     model = LlmModel.find(params[:id])
     model.update!(enabled: boolean_param(params[:enabled]))
-    redirect_to models_path
+    redirect_to models_path(open: model.llm_provider.key)
   end
 end

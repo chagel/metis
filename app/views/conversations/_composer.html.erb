@@ -86,8 +86,7 @@
             <% catalog_providers = Agent::Catalog.providers %>
             <span class="model-pick">
               <select name="model" aria-label="<%= t('.model') %>">
-                <% selected_model = current_user.preferred_model.presence ||
-                                    Agent::Catalog.default_model(catalog_providers) %>
+                <% selected_model = Agent::ModelSelection.default_settings(current_user, catalog_providers)["model"] %>
                 <%= grouped_options_for_select(
                       Agent::Catalog.grouped_model_options(catalog_providers), selected_model
                     ) %>

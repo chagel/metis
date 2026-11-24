@@ -3,8 +3,8 @@ module Agent
   #
   # Sourced from the deployment's LLM catalog — LlmProvider / LlmModel rows
   # that a superuser curates and Agent::ModelCatalogSync refreshes from pi.
-  # Empty before the first sync: the composer renders no options and a turn
-  # falls back to the deployment default (config.x.agent / Conversation).
+  # Empty before the first sync: the composer renders no options and pi runs
+  # on its own configured default.
   # The chosen values land in Conversation#settings and are passed through
   # verbatim as pi's --provider/--model.
   module Catalog
@@ -38,28 +38,23 @@ module Agent
     end
 
     def self.known_model?(model_id, provider_options = providers)
-      return true if provider_for(model_id, provider_options)
-
-      provider_options.empty? && !LlmModel.exists? &&
-        model_id == Rails.application.config.x.agent.model.presence
+      provider_for(model_id, provider_options).present?
     end
 
-    # Model pre-selected in the composer: the configured env default when
-    # it's in the catalog, else the default provider's first model.
-    def self.default_model(provider_options = providers)
-      configured = Rails.application.config.x.agent.model.presence
-      return configured if configured && known_model?(configured, provider_options)
+    # The deployment default as a model + provider pair (keys repeat across
+    # providers): the model a superuser marked on the Models page, else the
+    # first listed provider's first model. Empty without a catalog.
+    def self.default_selection(provider_options = providers)
+      marked = LlmModel.includes(:llm_provider).find_by(deployment_default: true)
+      if marked && provider_options.any? { |p| p[:id] == marked.llm_provider.key && p[:models].any? { |m| m[:id] == marked.key } }
+        return { "model" => marked.key, "provider" => marked.llm_provider.key }
+      end
 
-      provider = provider_options.find { |p| p[:id] == default_provider(provider_options) }
-      provider&.dig(:models)&.first&.dig(:id)
+      first = provider_options.first
+      first ? { "model" => first[:models].first[:id], "provider" => first[:id] } : {}
     end
 
-    # Provider pre-selected in the composer: the configured env default,
-    # else the first listed.
-    def self.default_provider(provider_options = providers)
-      configured = Rails.application.config.x.agent.provider.presence
-      ids = provider_options.map { |provider| provider[:id] }
-      ids.include?(configured) ? configured : ids.first
-    end
+    def self.default_model(provider_options = providers) = default_selection(provider_options)["model"]
+    def self.default_provider(provider_options = providers) = default_selection(provider_options)["provider"]
   end
 end

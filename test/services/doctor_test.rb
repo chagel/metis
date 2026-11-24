@@ -97,11 +97,15 @@ class DoctorTest < ActiveSupport::TestCase
     end
   end
 
-  test "default model warns on a provider without a model, which pi 1.0 rejects as a flag pair" do
-    assert_equal :warn, check(doctor({ "METIS_AGENT_PROVIDER" => "anthropic" }), "Agent", "default model").status
-    both = { "METIS_AGENT_PROVIDER" => "anthropic", "METIS_AGENT_MODEL" => "claude-opus-5-5" }
-    assert_equal :ok, check(doctor(both), "Agent", "default model").status
-    assert_equal :off, check(doctor, "Agent", "default model").status
+  test "default model fails on a sandbox runtime with no catalog, warns until one is picked" do
+    docker = { "METIS_AGENT_RUNTIME" => "docker" }
+    assert_equal :fail, check(doctor(docker), "Agent", "default model").status
+    assert_equal :warn, check(doctor, "Agent", "default model").status
+
+    model = LlmProvider.create!(key: "anthropic", label: "Anthropic").llm_models.create!(key: "claude-opus-5-5", label: "Opus")
+    assert_equal :warn, check(doctor(docker), "Agent", "default model").status
+    model.make_deployment_default!
+    assert_equal :ok, check(doctor(docker), "Agent", "default model").status
   end
 
   test "unknown runtime fails" do

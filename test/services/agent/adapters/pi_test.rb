@@ -99,7 +99,7 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
     user.conversations.create!(attrs)
   end
 
-  # Set config.x.agent deployment defaults for the block, then restore.
+  # Set config.x.agent values (api keys) for the block, then restore.
   def with_agent_config(**values)
     agent = Rails.application.config.x.agent
     original = values.keys.index_with { |key| agent.public_send(key) }
@@ -488,26 +488,25 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
     end
   end
 
-  test "credential flags fall back to the deployment config when settings are empty" do
+  test "credential flags use the catalog default when nobody picked a model" do
+    LlmProvider.create!(key: "anthropic", label: "Anthropic").llm_models.create!(key: "claude-sonnet-4-5", label: "Sonnet")
     conversation = create_conversation
-    with_agent_config(provider: "anthropic", model: "anthropic/claude-sonnet-4-5",
-                      api_keys: { "anthropic" => "sk-deploy" }) do
+    with_agent_config(api_keys: { "anthropic" => "sk-deploy" }) do
       args = Agent::Adapters::Pi.new(conversation: conversation).pi_args
 
-      assert_equal "anthropic/claude-sonnet-4-5", args[args.index("--model") + 1]
+      assert_equal "claude-sonnet-4-5", args[args.index("--model") + 1]
       assert_equal "anthropic", args[args.index("--provider") + 1]
       assert_equal "sk-deploy", args[args.index("--api-key") + 1]
     end
   end
 
-  test "conversation settings override the deployment config" do
+  test "conversation settings override the catalog default" do
+    LlmProvider.create!(key: "anthropic", label: "Anthropic").llm_models.create!(key: "claude-sonnet-4-5", label: "Sonnet")
     conversation = create_conversation(settings: { "provider" => "openai", "model" => "openai/gpt-5" })
-    with_agent_config(provider: "anthropic", model: "anthropic/claude-sonnet-4-5") do
-      args = Agent::Adapters::Pi.new(conversation: conversation).pi_args
+    args = Agent::Adapters::Pi.new(conversation: conversation).pi_args
 
-      assert_equal "openai/gpt-5", args[args.index("--model") + 1]
-      assert_equal "openai", args[args.index("--provider") + 1]
-    end
+    assert_equal "openai/gpt-5", args[args.index("--model") + 1]
+    assert_equal "openai", args[args.index("--provider") + 1]
   end
 
   test "the deployment api key is matched to the conversation's provider" do
@@ -522,7 +521,7 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
   test "a provider-only setting passes the provider's first catalog model alongside --provider" do
     LlmProvider.create!(key: "openai", label: "OpenAI").llm_models.create!(key: "gpt-5", label: "GPT-5")
     conversation = create_conversation(settings: { "provider" => "openai" })
-    with_agent_config(model: nil, api_keys: { "openai" => "sk-oai" }) do
+    with_agent_config(api_keys: { "openai" => "sk-oai" }) do
       args = Agent::Adapters::Pi.new(conversation: conversation).pi_args
 
       assert_equal "gpt-5", args[args.index("--model") + 1]
@@ -530,9 +529,9 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
     end
   end
 
-  test "never passes --provider or --api-key without a model — pi 1.0 rejects them" do
+  test "without a catalog it passes no model flags, leaving pi on its own default" do
     conversation = create_conversation
-    with_agent_config(provider: "anthropic", model: nil, api_keys: { "anthropic" => "sk-ant" }) do
+    with_agent_config(api_keys: { "anthropic" => "sk-ant" }) do
       args = Agent::Adapters::Pi.new(conversation: conversation).pi_args
 
       refute_includes args, "--model"

@@ -107,17 +107,6 @@ class UserTest < ActiveSupport::TestCase
     assert user.valid?
   end
 
-  test "preferred_model accepts the configured fallback before the catalog is seeded" do
-    original = Rails.application.config.x.agent.model
-    Rails.application.config.x.agent.model = "gpt-5.5"
-    user = create_user
-    user.preferred_model = "gpt-5.5"
-
-    assert user.valid?
-  ensure
-    Rails.application.config.x.agent.model = original
-  end
-
   test "placeholder_email? matches the metis synth suffix and GitHub's noreply, anchored" do
     assert User.placeholder_email?("90943+chagel@users.noreply.github.com")
     assert User.placeholder_email?("42+mgc@github.users.noreply.metis")

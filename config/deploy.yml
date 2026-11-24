@@ -94,8 +94,6 @@ env:
     # 14 days idle before a conversation's workspace/ is warm-evicted
     # (sessions kept — see docs/session-persistence.md).
     METIS_DOCKER_WORKSPACE_EVICTION_HOURS: "336"
-    METIS_AGENT_PROVIDER: anthropic
-    METIS_AGENT_MODEL: anthropic/claude-opus-4-8
     METIS_E2B_TEMPLATE: metis-pi
     METIS_E2B_EVICTION_HOURS: "24"
     METIS_DAYTONA_SNAPSHOT: metis-pi

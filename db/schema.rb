@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_23_030000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_24_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -149,6 +149,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_030000) do
     t.integer "context_window"
     t.jsonb "cost", default: {}, null: false
     t.datetime "created_at", null: false
+    t.boolean "deployment_default", default: false, null: false
     t.boolean "enabled", default: true, null: false
     t.jsonb "input_modalities", default: [], null: false
     t.string "key", null: false
@@ -159,6 +160,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_030000) do
     t.integer "position", default: 0, null: false
     t.boolean "reasoning", default: false, null: false
     t.datetime "updated_at", null: false
+    t.index ["deployment_default"], name: "index_llm_models_on_deployment_default", unique: true, where: "deployment_default"
     t.index ["llm_provider_id", "key"], name: "index_llm_models_on_llm_provider_id_and_key", unique: true
     t.index ["llm_provider_id"], name: "index_llm_models_on_llm_provider_id"
   end

@@ -42,6 +42,29 @@ class ModelsControllerTest < ActionDispatch::IntegrationTest
     patch model_item_path(@model), params: { enabled: false }
 
     assert_not @model.reload.enabled?
+    assert_redirected_to models_path(open: "openai-codex")
+    follow_redirect!
+    assert_select "details.model-provider[open] .model-provider-name", text: "OpenAI Codex"
+  end
+
+  test "provider groups start collapsed" do
+    sign_in @member
+    get models_path
+    assert_select "details.model-provider:not([open])", count: 1
+  end
+
+  test "a superuser picks the deployment default; members only see it" do
+    sign_in @superuser
+    patch models_default_path, params: { model_id: @model.id }
+    assert @model.reload.deployment_default?
+
+    other = @provider.llm_models.create!(key: "gpt-6", label: "GPT-6")
+    sign_in @member
+    patch models_default_path, params: { model_id: other.id }
+    assert @model.reload.deployment_default?
+    get models_path
+    assert_select ".models-default", text: /GPT-5.5/
+    assert_select ".model-label + .badge", text: "default"
   end
 
   test "a superuser toggles a provider, cascading to its models" do

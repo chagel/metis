@@ -71,15 +71,13 @@ module Agent
 
     private
 
-    # Prefer the conversation's chosen provider, then the deployment
+    # Prefer the conversation's chosen provider, then the catalog's
     # default — but the pick must be one this class can speak
     # (TITLE_MODELS) with a key configured; a conversation on e.g.
     # minimax falls through to any usable provider instead of losing
     # its title to the truncation fallback.
     def pick_provider
-      preferred = [ @conversation.settings["provider"],
-                    Rails.application.config.x.agent.provider,
-                    Agent::Catalog.default_provider ]
+      preferred = [ @conversation.settings["provider"], Agent::Catalog.default_provider ]
       (preferred.compact_blank + TITLE_MODELS.keys).uniq.find do |provider|
         TITLE_MODELS.key?(provider) && api_keys[provider].present?
       end

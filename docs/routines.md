@@ -58,7 +58,8 @@ A routine can pin the **LLM** its fires run on — model/provider live in
 `trigger_config["settings"]` and are fed into the fired conversation's
 `settings` by `Routine#run_settings`. Both the form and the chat tools resolve
 the choice against the deployment catalog via `Agent::ModelSelection` (shared
-with `WorkflowHandoff`); unset inherits the deployment default.
+with `WorkflowHandoff`); unset runs on the routine user's own default model,
+else the catalog default (`docs/configuration.md#providers`).
 
 ## The three firing paths
 

@@ -134,12 +134,6 @@ if microsandbox_quota_mib
 end
 Rails.application.config.x.agent.microsandbox_workspace_quota_mib = microsandbox_quota_mib
 
-# pi's default provider/model — used when a conversation sets none of
-# its own (the new-chat composer normally does). See
-# Agent::Adapters::Pi#credential_args.
-Rails.application.config.x.agent.provider = ENV["METIS_AGENT_PROVIDER"].presence
-Rails.application.config.x.agent.model = ENV["METIS_AGENT_MODEL"].presence
-
 # How long an assistant turn may sit pending/streaming before
 # ReapStalledTurnsJob treats it as abandoned — its agent process died
 # mid-turn (a worker restart, an OOM, a dev code-reload on the in-process

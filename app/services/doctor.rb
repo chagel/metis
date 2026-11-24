@@ -290,16 +290,21 @@ class Doctor
     end
   end
 
+  # Without an enabled catalog model a turn passes pi no --model, so no
+  # --provider/--api-key either: a sandbox, which never sees provider keys in
+  # its env, can't reach any LLM.
   def default_model_check
-    provider, model = @env["METIS_AGENT_PROVIDER"], @env["METIS_AGENT_MODEL"]
-    if provider.present? && model.blank?
-      Check.new(:warn, "default model",
-        "METIS_AGENT_PROVIDER=#{provider} without METIS_AGENT_MODEL — turns use its first enabled catalog model")
-    elsif provider.present? || model.present?
-      Check.new(:ok, "default model", [ provider, model ].compact_blank.join(" / "))
+    selection = Agent::Catalog.default_selection
+    if selection.empty?
+      status = runtime == "local" ? :warn : :fail
+      Check.new(status, "default model", "no enabled catalog model — Settings → Models → Refresh, then enable models")
     else
-      Check.new(:off, "default model", "METIS_AGENT_PROVIDER/MODEL unset — pi's own default")
+      picked = LlmModel.exists?(deployment_default: true, key: selection["model"])
+      Check.new(picked ? :ok : :warn, "default model",
+        "#{selection["provider"]} / #{selection["model"]}#{" (first enabled; pick one on Settings → Models)" unless picked}")
     end
+  rescue ActiveRecord::ActiveRecordError
+    Check.new(:off, "default model", "database unavailable")
   end
 
   def web_search_check
