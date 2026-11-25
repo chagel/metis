@@ -105,9 +105,17 @@ def extension_paths   # pi extensions reachable from this runtime
 def run(pi_args:, extension_ui: nil) { |session| ... }  # provision → yield → finalize
 def runtime_info      # { "runtime" => kind, … }
 def sandbox_env       # per-turn env: GH_TOKEN + git author/committer (sandboxed only)
+def run_policy        # the turn's one Agent::RunPolicy (memoized)
+def skill_sync_allowed?  # policy allows update_skill; else teardown discards
+                         # .pi/skills writes instead of ingesting them
 attr_accessor :status_sink  # set by the adapter; #emit_status(phase, message)
                             # reports provisioning progress (→ runtime_status)
 ```
+
+`bearer_or_nil(provider:)`, the one place sandbox tokens are fetched, returns
+nil unless `run_policy.provider_allowed?(provider)`. After an unattended turn
+host runtimes call `Workspace#discard_skills` (drop `.pi/skills`, restaged
+next turn); E2B/Daytona drop `.imports` and the team-skills marker.
 
 `Base#mcp_config` renders the turn's one `Agent::McpConfig` (`#mcp_document`);
 `Base#identity_content` renders `Agent::Identity` with that same instance.
@@ -256,7 +264,8 @@ signature unchanged).
 ## `Agent::McpConfig`
 
 Renders the `.pi/mcp.json` pi's built-in MCP support reads, from the
-conversation team's `Connector`s. Each connector resolves to the
+conversation team's `Connector`s, filtered by the turn's `RunPolicy`
+(`policy.connector_allowed?`; `github_bot` only if `allowed_server?`). Each connector resolves to the
 member's credential (own → team-shared → drop). An OAuth-shaped
 connector whose grant is missing, missing required scopes, or fails
 to refresh is dropped. `Identity#connectors_block` asks the same
@@ -278,6 +287,8 @@ end
 #   {header => value} → merge into entry[stdio ? "env" : "headers"]
 ```
 
+`GithubApp::BotServer.eligible(connectors)` (App auth configured + a
+bot-enabled github connector) is shared with the routine form.
 `GithubApp::BotServer.for` stages a second `github_bot` server — team-wide, independent
 of the conversation member — when the deployment is GitHub-App-auth
 configured and an admin enabled it on the team's github connector
@@ -317,9 +328,12 @@ deployment's **DB catalog** — `LlmProvider` / `LlmModel` rows a superuser
 curates. `Agent::ModelCatalogSync` mirrors pi's `get_available_models` into
 those rows: pi is the source of truth for *what exists*, the rows add
 curation (enabled / label / position), which is sticky across refreshes.
-Empty before the first sync → the composer renders no options and a turn
-falls back to the `config.x.agent` deployment default. Chosen values land in
-`Conversation#settings` and pass verbatim as pi's `--provider`/`--model`.
+Empty before the first sync → the composer renders no options and pi uses
+its own config. Chosen values land in `Conversation#settings` and pass
+verbatim as pi's `--provider`/`--model`. `Catalog.default_selection` is the
+model a new conversation falls back to (after the composer pick and the
+user's `preferred_model`): the `LlmModel#deployment_default` row if it's
+still offered, else the first enabled model. No model env var.
 
 ```ruby
 Catalog.providers              # providers with ≥1 enabled model, grouped
@@ -424,6 +438,13 @@ thread (checks out its own AR connection) and never raises — a failed
 call cancels the dialog, not the turn. Results are JSON strings the
 extension parses into the tool result the model sees.
 
+The handler takes the runtime's `run_policy`; `call` refuses an op the policy
+disallows with `{ ok: false, error: "<op> isn't allowed in an unattended
+routine run…" }`. Memory ops (`remember`, `update_memory`, `forget_memory`,
+`note_memory_applied`, `note_memory_correction`, `memory_report`) route to
+`Agent::MemoryManager`.
+
+
 ## `Agent::WorkflowHandoff`
 
 Starts a workflow run **from inside a chat**. The agent's
@@ -466,6 +487,9 @@ provider-scoped — an unscoped match spanning providers is ambiguous
 and errors. Provider without a model → its first enabled model. Both
 `provider` and `model` are always set together so a provider switch
 never keeps a model from the old provider.
+`ModelSelection.default_settings(user)` is what a conversation runs on when
+nobody picked: the user's `preferred_model` if still enabled, else
+`Catalog.default_selection`.
 
 ## Routines — `Agent::RoutineManager` / `Routine::EventDispatcher` / `Routine::PromptRenderer`
 
@@ -498,6 +522,46 @@ The Linear processor also enqueues `Linear::ProjectBackfillJob` when a
 fresh event references an issue but carries no project (Linear
 serializes comments shallowly) — it resolves the project via the
 Linear API, best-effort.
+
+## `Agent::RunPolicy` & `UnattendedBudget`
+
+`RunPolicy.for(conversation)` decides what one turn may reach. Unattended =
+fired by a routine (`routine` present or `settings["fired_by_routine"]`) and
+the latest user message has no sender. Attended turns are unrestricted.
+
+```ruby
+UNATTENDED_OPS   # always allowed: get_workflow get_project list_skills list_routines
+                 # note_memory_applied note_memory_correction memory_report
+MEMORY_WRITE_OPS # remember update_memory forget_memory — memory review only
+GRANTABLE_OPS    # start_workflow — via grants["actions"]
+def connector_allowed?(connector)  # OAuth-provider connectors → provider grant
+def allowed_server?(name)          # grants["connectors"] includes name
+def provider_allowed?(provider)    # "provider:<key>" granted
+def op_allowed?(op)                # allowlist; unknown ops refused
+```
+
+One instance per turn (`Runtime::Base#run_policy`) feeds McpConfig,
+`sandbox_env`, Identity's "Unattended run" block, and HostBridge. A deleted
+routine leaves its queued fire unattended with nothing granted. A policy
+error fails staging, so the turn errors instead of running unrestricted.
+
+`UnattendedBudget.new(user).check!` raises `UnattendedBudget::Exceeded` (a
+localized message) past the daily run count or cost (sum of assistant
+`Message#cost`) over the user's routine conversations in a rolling 24h.
+`Routine#fire!` calls it under a user lock; the controller's `run` shows the
+message, the scheduler logs and skips.
+
+## Memory — `Agent::MemoryManager` / `Agent::MemoryReport` / `MemoryReview`
+
+`Agent::MemoryManager` serves the memory ops over HostBridge, scoped to the
+conversation's own user and team (not admin-gated), never raising — a
+failure is `{ ok: false }`. `Agent::MemoryReport.new(user, team, since:)`
+summarizes what happened since a point (default 7 days): memories changed,
+replies that applied them and how the user reacted (corrected, cancelled,
+forked, or accepted), and deletions; `#activity?` gates the nightly run.
+`MemoryReview` owns the per-user "Memory review" routine (`PURPOSE`,
+`CRON = "0 3 * * *"`, `ensure_for(user, team)`, `activity?(routine)`), an
+ordinary personal routine whose prompt reads `metis_memory_report` and tidies.
 
 ## Skills — `Agent::SkillManager` / `SkillImporter` / `RepoSkills` / `SkillMarketplace`
 

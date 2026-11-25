@@ -18,6 +18,7 @@ has_many :teams, through: :memberships
 has_many :conversations, dependent: :destroy
 has_many :connector_credentials, dependent: :destroy
 has_many :identities, dependent: :destroy        # (provider, uid) lookup keys
+# iana_timezone — the user's zone as IANA (cron/fugit needs it), else "UTC".
 has_many :oauth_grants, dependent: :destroy      # token + scope set per provider
 has_many :artifact_shares, foreign_key: :created_by_id  # public artifact links minted
 has_one_attached :avatar
@@ -88,6 +89,15 @@ belongs_to :team
 
 enum :role, { member: 0, admin: 1, owner: 2 }
 validates :user_id, uniqueness: { scope: :team_id }
+
+# memory_deletions (jsonb, default []) — memories the user deleted on the
+# memory page, as { kind, at } with no text, kept 30 days for the review.
+def record_memory_deletions!(kinds)
+def memory_deletions_since(time)   # { kind => count }
+
+# Leaving a team: the user's memories there and personal routines are
+# deleted; team routines that run as them are paused.
+after_destroy { UserMemory.for(user, team).delete_all }
 ```
 
 ## Identity
@@ -361,6 +371,12 @@ has_many_attached :artifacts  # agent-published files, populated by ChatJob
 
 encrypts :content
 encrypts :reasoning
+encrypts :correction_note
+
+# Memory signals: applied_memory_ids (bigint[]) — the UserMemory rows that
+# shaped this reply; corrected_at + correction_note — the user corrected it.
+scope :replies_of, ->(user, team) { ... }   # assistant replies in that user's team convos
+scope :applying_memories, -> { where("cardinality(messages.applied_memory_ids) > 0") }
 
 ALLOWED_IMAGE_TYPES = %w[image/jpeg image/png image/gif image/webp]
 ALLOWED_FILE_TYPES  = %w[application/pdf text/plain text/csv text/markdown
@@ -488,13 +504,26 @@ scope :active, -> { where(enabled: true) }
 scope :due,    -> { active.schedule.where("next_run_at <= ?", Time.current) }
 scope :named,  ->(name) { where("LOWER(name) = LOWER(?)", name.to_s.strip).order(:id) }
 
+# Names are unique per user among personal routines, per team among team ones.
+# trigger_config["grants"] = { "connectors" => [...], "actions" => [...] }
+# — what an unattended fire may reach (Agent::RunPolicy); set only by the form.
+# trigger_config["purpose"] = "memory_review" marks the nightly memory review.
+def granted_connectors      # connector names, "github_bot", "provider:<key>"
+def granted_actions         # e.g. ["start_workflow"]
+def grantable_connectors    # label => grant for the form; provider-grouped
+def grantable_actions
+def memory_review?
+
 def fire!(event: nil)
-  # Starts one turn in a fresh conversation (routine's user/team/project,
-  # trigger_config settings, routine's visibility, title = name), stamps
-  # last_run_at. `event` (a WebhookEvent) feeds the prompt's event_* variables.
+  # Under a lock on the user: UnattendedBudget#check! (raises
+  # UnattendedBudget::Exceeded), then a fresh conversation (routine's
+  # user/team/project, settings + "fired_by_routine" => true, routine's
+  # visibility, title = name). Then starts one turn and stamps last_run_at.
+  # `event` (a WebhookEvent) feeds the prompt's event_* variables.
 def fire_scheduled!
   # Scheduler path: row-locked so overlapping ticks can't double-fire,
-  # advances next_run_at past now so it won't reselect.
+  # advances next_run_at past now so it won't reselect. Skips a memory
+  # review with no activity and a fire over budget (logged), still advancing.
 def matches_event?(event)
   # Exact event_type match, or a "pull_request.*" prefix wildcard.
 ```
@@ -544,6 +573,36 @@ belongs_to :llm_provider
 # input_modalities (jsonb), cost (jsonb), enabled, position, last_seen_at.
 # Curation (enabled/label/position) is sticky across syncs; models pi
 # stops reporting are kept and flagged stale by last_seen_at, never deleted.
+# deployment_default (bool, unique partial index) — the superuser's pick on
+# the Models page; the last fallback for a new conversation's model.
+def make_deployment_default!   # clears any other, sets this one + enabled
+```
+
+## UserMemory
+
+What the agent has learned about one user in one team (`docs/memory.md`).
+
+```ruby
+MAX_CONTENT = 500
+MAX_PER_USER = 100   # per user per team, checked on create
+
+enum :kind,       { preference: 0, correction: 1, fact: 2, goal: 3, commitment: 4, experience: 5 }
+enum :source,     { stated: 0, inferred: 1 }, prefix: true
+enum :confidence, { low: 0, medium: 1, high: 2 }, prefix: true
+
+belongs_to :team
+belongs_to :user
+belongs_to :source_conversation, class_name: "Conversation", optional: true  # FK nullify
+
+encrypts :content
+# edited_by_user_at, last_applied_at
+
+after_create_commit :ensure_review   # MemoryReview.ensure_for(user, team)
+
+scope :for, ->(user, team) { where(user: user, team: team) }
+def self.available_in?(conversation)  # not a workflow run, user still a member
+def confirm!                          # stated + high
+def edit_by_user(content)             # the user's own wording: stated + high
 ```
 
 ## Skill

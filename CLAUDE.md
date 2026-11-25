@@ -290,9 +290,11 @@ collect-then-trigger webhook split), and manual `run`. Managed from the
 with **fugit** (IANA zone embedded as the trailing field). See
 [`docs/routines.md`](docs/routines.md).
 
-A fire is an **unattended run** (`Agent::RunPolicy`): only the connectors the
-routine grants (`trigger_config["grants"]`) reach the sandbox, HostBridge
-refuses self-widening ops and memory writes (outside the memory review), and
+A fire is an **unattended run** (`Agent::RunPolicy`): only what the routine
+grants (`trigger_config["grants"]` — connectors, a provider grant covering
+all connectors that share its token, and actions like `start_workflow`)
+reaches the sandbox, HostBridge allows only listed ops (memory writes only in
+the memory review), skills written to disk are discarded, and
 `UnattendedBudget` caps daily runs and cost. The limit is which
 credentials enter the sandbox, never the prompt. See
 [`docs/unattended-runs.md`](docs/unattended-runs.md).
