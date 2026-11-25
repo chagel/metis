@@ -132,6 +132,7 @@
   <fieldset class="field routine-grants">
     <legend><%= t(".grants_label") %></legend>
     <p class="field-hint"><%= t(".grants_hint") %></p>
+    <p class="field-hint"><%= t(".grants_provider_hint") %></p>
     <%= hidden_field_tag "routine[grants][connectors][]", "", id: nil %>
     <% choices = routine.grantable_connectors %>
     <% if choices.empty? %>

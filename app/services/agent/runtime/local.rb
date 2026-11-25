@@ -43,7 +43,7 @@ module Agent
           yield session
         ensure
           collect_host_artifacts(dir: workspace.artifacts_dir, since: turn_started_at)
-          ingest_team_skills(slugs: touched_skill_slugs)
+          ingest_team_skills(slugs: touched_skill_slugs) if skill_sync_allowed?
           session.close
           workspace.discard_mcp_config
         end

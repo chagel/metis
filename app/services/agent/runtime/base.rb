@@ -65,6 +65,11 @@ module Agent
         @touched_skill_slugs << slug if slug.present?
       end
 
+      # Skills written to disk become team skills, the same as create_skill.
+      def skill_sync_allowed?
+        run_policy.op_allowed?("update_skill")
+      end
+
       # The rendered `.pi/mcp.json` (Agent::McpConfig) for this
       # conversation's connectors, for a runtime to stage into pi's
       # workspace each turn.

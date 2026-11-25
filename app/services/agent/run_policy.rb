@@ -15,37 +15,44 @@ module Agent
     def initialize(conversation)
       @conversation = conversation
       @routine = conversation.routine
-      @unattended = @routine.present? && !human_prompted?
+      @unattended = (@routine.present? || conversation.settings["fired_by_routine"]) && !human_prompted?
     end
 
     def unattended? = @unattended
 
+    # A CLI connector works only through its provider's token.
     def connector_allowed?(connector)
-      allowed_server?(connector.name)
+      provider = connector.cli? && connector.catalog_app&.oauth_provider
+      provider ? provider_allowed?(provider) : allowed_server?(connector.name)
     end
 
     def allowed_server?(name)
-      !unattended? || @routine.granted_connectors.include?(name)
+      !unattended? || granted_names.include?(name)
     end
 
-    # The sandbox's CLI tokens (GH_TOKEN, the gws token) follow the grant of a
-    # connector on the same OAuth provider.
+    # The sandbox's CLI tokens (GH_TOKEN, the gws token) carry the user's whole
+    # grant for a provider, so they need every connector on it granted.
     def provider_allowed?(provider)
       return true unless unattended?
 
-      @conversation.team.connectors.where(name: @routine.granted_connectors)
-                   .any? { |connector| connector.catalog_app&.oauth_provider == provider }
+      names = @conversation.team.connectors.select { |connector| connector.catalog_app&.oauth_provider == provider }.map(&:name)
+      names.any? && (names - granted_names).empty?
     end
 
     def op_allowed?(op)
       return true unless unattended?
-      return @routine.may_start_workflows? if op == "start_workflow"
-      return @routine.memory_review? if MEMORY_WRITE_OPS.include?(op)
+      return !!@routine&.may_start_workflows? if op == "start_workflow"
+      return !!@routine&.memory_review? if MEMORY_WRITE_OPS.include?(op)
 
       UNATTENDED_OPS.include?(op)
     end
 
     private
+
+    # A deleted routine leaves its queued fires with nothing granted.
+    def granted_names
+      @routine&.granted_connectors || []
+    end
 
     def human_prompted?
       @conversation.messages.user.last&.sender_id.present?

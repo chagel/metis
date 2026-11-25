@@ -70,6 +70,15 @@ class Agent::RunPolicyTest < ActiveSupport::TestCase
     assert_equal "live-bearer", Agent::Runtime::Docker.new(conversation: granted).sandbox_env["GH_TOKEN"]
   end
 
+  test "the Google token needs every Google connector granted" do
+    %w[gmail google_calendar].each { |key| @team.connectors.create!(name: key, transport: :cli, catalog_key: key) }
+
+    gmail_only = Agent::RunPolicy.for(fired(grants: { "connectors" => %w[gmail] }))
+    assert_not gmail_only.provider_allowed?("google")
+    assert_not gmail_only.connector_allowed?(@team.connectors.find_by(name: "gmail"))
+    assert Agent::RunPolicy.for(fired(grants: { "connectors" => %w[gmail google_calendar] })).provider_allowed?("google")
+  end
+
   test "an unattended turn can't widen itself through HostBridge" do
     conversation = fired
     %w[create_routine update_routine create_workflow update_workflow create_skill update_skill start_workflow].each do |op|
@@ -110,5 +119,23 @@ class Agent::RunPolicyTest < ActiveSupport::TestCase
     assert_match "## Unattended run", content
     assert_match "(`linear`) — not granted to this unattended run — omitted", content
     assert_no_match "## Unattended run", Agent::Identity.new(@user.conversations.create!, :docker).content
+  end
+
+  test "a fire stays unattended with nothing granted after its routine is deleted" do
+    conversation = fired(grants: { "connectors" => %w[linear], "start_workflow" => true })
+    conversation.routine.destroy!
+    policy = Agent::RunPolicy.for(conversation.reload)
+
+    assert policy.unattended?
+    assert_empty servers(conversation)
+    assert_not policy.op_allowed?("start_workflow")
+  end
+
+  test "an unattended turn doesn't sync skills written to disk" do
+    assert_not Agent::Runtime::Local.new(conversation: fired).send(:skill_sync_allowed?)
+
+    chat = @user.conversations.create!
+    ConversationTurn.start(chat, content: "hi", sender: @user)
+    assert Agent::Runtime::Local.new(conversation: chat).send(:skill_sync_allowed?)
   end
 end

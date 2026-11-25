@@ -79,11 +79,13 @@ class Routine < ApplicationRecord
   # routine's user, and stamp last_run_at. `event` (a WebhookEvent) feeds the
   # prompt's event_* variables on the webhook path. Returns the conversation.
   def fire!(event: nil)
-    UnattendedBudget.new(user).check!
-    conversation = user.conversations.create!(
-      team: team, project: project, routine: self,
-      settings: run_settings, visibility: visibility, title: name
-    )
+    conversation = user.with_lock do
+      UnattendedBudget.new(user).check!
+      user.conversations.create!(
+        team: team, project: project, routine: self,
+        settings: run_settings.merge("fired_by_routine" => true), visibility: visibility, title: name
+      )
+    end
     ConversationTurn.start(conversation, content: rendered_prompt(event))
     update!(last_run_at: Time.current)
     conversation

@@ -242,7 +242,7 @@ module Agent
             timed(:collect_artifacts) do
               collect_host_artifacts(dir: workspace.artifacts_dir, since: turn_started_at)
             end
-            timed(:ingest_team_skills) { ingest_team_skills(slugs: touched_skill_slugs) }
+            timed(:ingest_team_skills) { ingest_team_skills(slugs: touched_skill_slugs) } if skill_sync_allowed?
           end
           # Even when the VM never booted — the staged .pi/mcp.json carries live
           # bearer tokens and must not linger on the persistent host dir.
