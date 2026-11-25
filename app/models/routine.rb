@@ -48,6 +48,25 @@ class Routine < ApplicationRecord
     visibility_personal? ? user_id == someone.id : team.managed_by?(someone)
   end
 
+  # Connector names (plus GithubApp::BotServer::NAME) an unattended fire may
+  # reach; set only from the routine form (docs/unattended-runs.md).
+  def granted_connectors
+    Array(trigger_config.dig("grants", "connectors")).map(&:to_s)
+  end
+
+  # label => server name, for the form: the team's connectors, plus the bot
+  # when an admin enabled it on the github connector.
+  def grantable_connectors
+    connectors = team.connectors.order(:name).to_a
+    choices = connectors.to_h { |connector| [ connector.catalog_app&.name || connector.name, connector.name ] }
+    choices["GitHub bot"] = GithubApp::BotServer::NAME if connectors.any?(&:bot_enabled?)
+    choices
+  end
+
+  def may_start_workflows?
+    trigger_config.dig("grants", "start_workflow") == true
+  end
+
   def memory_review?
     trigger_config["purpose"] == MemoryReview::PURPOSE
   end
@@ -60,6 +79,7 @@ class Routine < ApplicationRecord
   # routine's user, and stamp last_run_at. `event` (a WebhookEvent) feeds the
   # prompt's event_* variables on the webhook path. Returns the conversation.
   def fire!(event: nil)
+    UnattendedBudget.new(user).check!
     conversation = user.conversations.create!(
       team: team, project: project, routine: self,
       settings: run_settings, visibility: visibility, title: name
@@ -75,7 +95,11 @@ class Routine < ApplicationRecord
     with_lock do
       return false unless enabled? && schedule? && next_run_at && next_run_at <= Time.current
 
-      fire! unless memory_review? && !MemoryReview.activity?(self)
+      begin
+        fire! unless memory_review? && !MemoryReview.activity?(self)
+      rescue UnattendedBudget::Exceeded => error
+        Rails.logger.warn("Routine #{id} skipped: #{error.message}")
+      end
       update!(next_run_at: next_cron_time)
       true
     end

@@ -7,3 +7,6 @@
     remove: "移除"
     restore: "恢复"
     import: "导入"
+  unattended_budget:
+    runs: "已达每日上限：过去 24 小时内已有 %{limit} 次无人值守运行。"
+    cost: "已达每日上限：过去 24 小时内无人值守运行已花费 $%{limit}。"

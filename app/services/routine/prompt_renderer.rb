@@ -47,8 +47,13 @@ class Routine
       {
         "event_type" => @event.event_type.to_s,
         "event_provider" => @event.provider.to_s,
-        "event_payload" => JSON.pretty_generate(@event.payload)
+        "event_payload" => untrusted(JSON.pretty_generate(@event.payload, script_safe: true))
       }
+    end
+
+    # script_safe escapes "</" so a payload can't close the fence early.
+    def untrusted(json)
+      "<untrusted_event_payload>\n#{json}\n</untrusted_event_payload>"
     end
 
     def custom_vars

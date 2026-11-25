@@ -119,6 +119,38 @@ class RoutinesControllerTest < ActionDispatch::IntegrationTest
     assert_empty routine.reload.run_settings
   end
 
+  test "the form grants unattended access, keeping only the team's own connectors" do
+    team.connectors.create!(name: "linear", transport: :http, definition: { "url" => "https://linear.example/" })
+    routine = make_routine
+    get edit_routine_path(routine)
+    assert_select "input[type=checkbox][name='routine[grants][connectors][]'][value=linear]"
+
+    patch routine_path(routine), params: { routine: { name: routine.name, prompt: "x",
+      grants: { connectors: [ "", "linear", "github_bot", "other" ], start_workflow: "1" } } }
+    routine.reload
+    assert_equal %w[linear], routine.granted_connectors
+    assert routine.may_start_workflows?
+
+    patch routine_path(routine), params: { routine: { name: routine.name, prompt: "x",
+      grants: { connectors: [ "" ], start_workflow: "0" } } }
+    assert_empty routine.reload.granted_connectors
+    assert_not routine.may_start_workflows?
+  end
+
+  test "run over the daily budget is refused with the reason" do
+    routine = make_routine
+    config = Rails.application.config.x.agent
+    original = config.unattended_daily_runs
+    config.unattended_daily_runs = 0
+    assert_no_difference -> { @user.conversations.count } do
+      post run_routine_path(routine)
+    end
+    assert_redirected_to routines_path
+    assert_match "Daily limit reached", flash[:alert]
+  ensure
+    config.unattended_daily_runs = original
+  end
+
   test "toggle flips enabled" do
     routine = make_routine(enabled: true)
     patch toggle_routine_path(routine)

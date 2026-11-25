@@ -16,14 +16,17 @@ module Agent
     LEGACY_FILENAME = ".mcp.json".freeze
     TOKEN_FILENAMES = [ FILENAME, LEGACY_FILENAME ].freeze
 
-    def initialize(conversation)
+    attr_reader :policy
+
+    def initialize(conversation, policy: RunPolicy.for(conversation))
       @conversation = conversation
+      @policy = policy
     end
 
     # The `mcp.json` document. Memoized: resolving it refreshes OAuth tokens,
     # and Agent::Identity reads the same instance through #staged?.
     def to_h
-      @to_h ||= { "mcpServers" => [ *connector_entries, GithubApp::BotServer.for(connectors) ].compact.to_h }
+      @to_h ||= { "mcpServers" => [ *connector_entries, bot_entry ].compact.to_h }
     end
 
     # Whether `connector` is in this turn's mcp.json — the only truth for
@@ -40,7 +43,15 @@ module Agent
     private
 
     def connector_entries
-      @connector_entries ||= connectors.to_h { |connector| [ connector.name, server_entry(connector) ] }.compact
+      @connector_entries ||= connectors.select { |connector| policy.connector_allowed?(connector) }
+                                       .to_h { |connector| [ connector.name, server_entry(connector) ] }.compact
+    end
+
+    # An unattended turn's bot token can review and comment but not push or merge.
+    def bot_entry
+      return unless policy.allowed_server?(GithubApp::BotServer::NAME)
+
+      GithubApp::BotServer.for(connectors, permissions: (GithubApp::BotServer::UNATTENDED_PERMISSIONS if policy.unattended?))
     end
 
     def connectors

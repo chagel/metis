@@ -29,7 +29,7 @@ class GithubApp::InstallationTokenTest < ActiveSupport::TestCase
   test "resolves the App's sole installation when no id is given" do
     configured do
       with_stub(GithubApp::InstallationToken, :installation_ids, -> { [ "555" ] }) do
-        with_stub(GithubApp::InstallationToken, :mint, ->(id) { "ghs_#{id}" }) do
+        with_stub(GithubApp::InstallationToken, :mint, ->(id, _permissions) { "ghs_#{id}" }) do
           assert_equal "ghs_555", GithubApp::InstallationToken.for
         end
       end
@@ -41,7 +41,7 @@ class GithubApp::InstallationTokenTest < ActiveSupport::TestCase
       with_env("GITHUB_APP_INSTALLATION_ID" => "999") do
         # installation_ids is left unstubbed — the override must short-circuit
         # before any network lookup.
-        with_stub(GithubApp::InstallationToken, :mint, ->(id) { "ghs_#{id}" }) do
+        with_stub(GithubApp::InstallationToken, :mint, ->(id, _permissions) { "ghs_#{id}" }) do
           assert_equal "ghs_999", GithubApp::InstallationToken.for
         end
       end
@@ -71,7 +71,7 @@ class GithubApp::InstallationTokenTest < ActiveSupport::TestCase
     # must not bubble out as a raw Net::OpenTimeout and break the turn.
     configured do
       with_env("GITHUB_APP_INSTALLATION_ID" => "42") do
-        with_stub(GithubApp::InstallationToken, :mint, ->(_id) { raise Net::OpenTimeout, "timed out" }) do
+        with_stub(GithubApp::InstallationToken, :mint, ->(_id, _permissions) { raise Net::OpenTimeout, "timed out" }) do
           error = assert_raises(GithubApp::InstallationToken::Error) { GithubApp::InstallationToken.for }
           assert_match(/Net::OpenTimeout/, error.message)
         end
@@ -81,7 +81,7 @@ class GithubApp::InstallationTokenTest < ActiveSupport::TestCase
 
   test "returns the minted token" do
     configured do
-      with_stub(GithubApp::InstallationToken, :mint, ->(_id) { "ghs_minted" }) do
+      with_stub(GithubApp::InstallationToken, :mint, ->(_id, _permissions) { "ghs_minted" }) do
         assert_equal "ghs_minted", GithubApp::InstallationToken.for("42")
       end
     end
@@ -91,7 +91,7 @@ class GithubApp::InstallationTokenTest < ActiveSupport::TestCase
     configured do
       store = ActiveSupport::Cache::MemoryStore.new
       calls = 0
-      minter = ->(_id) { calls += 1; "ghs_#{calls}" }
+      minter = ->(_id, _permissions) { calls += 1; "ghs_#{calls}" }
       with_stub(Rails, :cache, -> { store }) do
         with_stub(GithubApp::InstallationToken, :mint, minter) do
           assert_equal "ghs_1", GithubApp::InstallationToken.for("42")

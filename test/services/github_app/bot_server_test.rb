@@ -14,7 +14,7 @@ class GithubApp::BotServerTest < ActiveSupport::TestCase
     GithubApp::BotServer.for(team.connectors.to_a)
   end
 
-  def with_app_auth(configured: true, mint: ->(id = nil) { "ghs_bot" })
+  def with_app_auth(configured: true, mint: ->(id = nil, **) { "ghs_bot" })
     with_stub(GithubApp::Config, :app_auth_configured?, -> { configured }) do
       with_stub(GithubApp::InstallationToken, :for, mint) { yield }
     end
@@ -34,7 +34,7 @@ class GithubApp::BotServerTest < ActiveSupport::TestCase
   test "mints the token for the connector's chosen installation" do
     add_github_connector.update!(bot_installation_id: "777")
     minted_for = :unset
-    with_app_auth(mint: ->(id = nil) { minted_for = id; "ghs_bot" }) { server }
+    with_app_auth(mint: ->(id = nil, **) { minted_for = id; "ghs_bot" }) { server }
 
     assert_equal "777", minted_for
   end
@@ -56,7 +56,7 @@ class GithubApp::BotServerTest < ActiveSupport::TestCase
 
   test "nil when minting fails" do
     add_github_connector
-    with_app_auth(mint: ->(_id = nil) { raise GithubApp::InstallationToken::Error, "no install" }) do
+    with_app_auth(mint: ->(_id = nil, **) { raise GithubApp::InstallationToken::Error, "no install" }) do
       assert_nil server
     end
   end

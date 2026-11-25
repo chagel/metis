@@ -2890,6 +2890,11 @@ body.drawer-open { overflow:hidden; }
 .routine-day-chip:has(input:checked) {
   border-color:var(--accent); background:var(--accent-soft); color:var(--ink);
 }
+.routine-grants { border:0; padding:0; margin:0; display:flex; flex-direction:column; gap:6px; }
+.routine-grants legend { padding:0; margin-bottom:2px; font-size:12.5px; font-weight:600; color:var(--ink-2); }
+.routine-grant { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-2); cursor:pointer; }
+.routine-grant input { margin:0; accent-color:var(--accent); }
+.routine-grant code { font-size:11.5px; color:var(--ink-3); }
 .routine-sched-preview { font-size:12.5px; color:var(--ink-2); font-weight:500; min-height:1.2em; }
 .routine-cron-expr { font-family:var(--fm); }
 @media (max-width:560px) { .routine-sched-grid { grid-template-columns:1fr 1fr; } }

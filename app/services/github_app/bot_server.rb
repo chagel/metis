@@ -15,15 +15,22 @@ module GithubApp
                   "instead of the operator. Use it to post PR reviews (approve / request " \
                   "changes) or when an action must come from the bot; otherwise use `github`.".freeze
 
+    # No contents/workflows write: enough to read code, review and comment,
+    # never to push or merge. GitHub enforces it on the token itself.
+    UNATTENDED_PERMISSIONS = {
+      "contents" => "read", "metadata" => "read", "pull_requests" => "write", "issues" => "write"
+    }.freeze
+
     # `[NAME, entry]` for Agent::McpConfig, or nil when not eligible or
-    # the mint fails — never crashes the turn.
-    def self.for(connectors)
+    # the mint fails — never crashes the turn. `permissions` narrows the
+    # token below the installation's own.
+    def self.for(connectors, permissions: nil)
       return unless Config.app_auth_configured?
 
       github = connectors.find { |connector| connector.catalog_app&.oauth_provider == "github" }
       return unless github&.bot_enabled?
 
-      token = InstallationToken.for(github.bot_installation_id)
+      token = InstallationToken.for(github.bot_installation_id, permissions: permissions)
       entry = github.definition.deep_dup.merge("description" => DESCRIPTION)
       entry["headers"] = (entry["headers"] || {}).merge(github.catalog_app.credential_map_for(token))
       [ NAME, entry ]

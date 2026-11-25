@@ -30,12 +30,13 @@ module GithubApp
       # GITHUB_APP_INSTALLATION_ID, else resolve the App's sole
       # installation (the common single-org case). With >1 installs and
       # no choice anywhere, raises naming where to pick one.
-      def for(installation_id = nil)
+      def for(installation_id = nil, permissions: nil)
         raise Error, "GitHub App auth not configured" unless Config.app_auth_configured?
 
         id = installation_id.presence || Config.installation_id || sole_installation_id
-        Rails.cache.fetch("github_app/installation_token/#{id}", expires_in: CACHE_TTL) do
-          mint(id)
+        key = [ "github_app/installation_token/#{id}", permissions&.sort&.flatten&.join(":") ].compact.join("/")
+        Rails.cache.fetch(key, expires_in: CACHE_TTL) do
+          mint(id, permissions)
         end
       rescue Error
         raise
@@ -71,8 +72,9 @@ module GithubApp
 
       private
 
-      def mint(installation_id)
-        parse(signed_request(Net::HTTP::Post, "/app/installations/#{installation_id}/access_tokens"))
+      def mint(installation_id, permissions)
+        body = permissions && { permissions: permissions }.to_json
+        parse(signed_request(Net::HTTP::Post, "/app/installations/#{installation_id}/access_tokens", body: body))
       end
 
       # The id of the App's one installation, for connectors that haven't
@@ -93,9 +95,13 @@ module GithubApp
       end
 
       # An App-JWT-authenticated request to the GitHub API.
-      def signed_request(klass, path)
+      def signed_request(klass, path, body: nil)
         uri = URI("https://#{API_HOST}#{path}")
         request = klass.new(uri)
+        if body
+          request.body = body
+          request["Content-Type"] = "application/json"
+        end
         request["Authorization"] = "Bearer #{app_jwt}"
         request["Accept"] = "application/vnd.github+json"
         request["X-GitHub-Api-Version"] = "2022-11-28"

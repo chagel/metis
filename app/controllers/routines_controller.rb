@@ -23,6 +23,7 @@ class RoutinesController < ApplicationController
     @routine.user = current_user
     apply_cooldown
     apply_model
+    apply_grants
     return refuse unless @routine.manageable_by?(current_user)
 
     if @routine.save
@@ -39,6 +40,7 @@ class RoutinesController < ApplicationController
     @routine.assign_attributes(routine_params)
     apply_cooldown
     apply_model
+    apply_grants
     return refuse unless @routine.manageable_by?(current_user)
 
     if @routine.save
@@ -62,6 +64,8 @@ class RoutinesController < ApplicationController
   def run
     conversation = @routine.fire!
     redirect_to conversation_path(conversation), notice: t("flash.routines.run.notice", name: @routine.name)
+  rescue UnattendedBudget::Exceeded => error
+    redirect_to routines_path(tab: tab_for(@routine)), alert: error.message
   end
 
   private
@@ -102,6 +106,19 @@ class RoutinesController < ApplicationController
     model = params[:routine][:model].presence
     settings = model ? { "model" => model, "provider" => Agent::Catalog.provider_for(model) }.compact : {}
     @routine.trigger_config = @routine.trigger_config.merge("settings" => settings)
+  end
+
+  # Only the form sets grants; the agent's RoutineManager can't.
+  def apply_grants
+    grants = params.dig(:routine, :grants)
+    return unless grants
+
+    @routine.trigger_config = @routine.trigger_config.merge(
+      "grants" => {
+        "connectors" => Array(grants[:connectors]).compact_blank & @routine.grantable_connectors.values,
+        "start_workflow" => grants[:start_workflow] == "1"
+      }
+    )
   end
 
   def routine_params

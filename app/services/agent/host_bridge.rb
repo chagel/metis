@@ -61,11 +61,17 @@ module Agent
       return nil unless OPS.include?(op)
 
       ActiveRecord::Base.connection_pool.with_connection do
+        next denied(op) unless RunPolicy.for(conversation).op_allowed?(op)
+
         new(conversation, params || {}).public_send(op)
       end
     rescue StandardError => e
       Rails.logger.error("HostBridge #{op} failed for conversation #{conversation.id}: #{e.class}: #{e.message}")
       nil
+    end
+
+    def self.denied(op)
+      { ok: false, error: "#{op} isn't allowed in an unattended routine run. Say what you would have done; the operator can do it." }.to_json
     end
 
     def initialize(conversation, params)

@@ -191,7 +191,7 @@ class Agent::McpConfigTest < ActiveSupport::TestCase
     add_connector(name: "github", transport: :http, catalog_key: "github",
                   definition: { "url" => "https://mcp.example/" }).update!(bot_enabled: true)
     with_stub(GithubApp::Config, :app_auth_configured?, -> { true }) do
-      with_stub(GithubApp::InstallationToken, :for, ->(id = nil) { "ghs_bot" }) do
+      with_stub(GithubApp::InstallationToken, :for, ->(id = nil, **) { "ghs_bot" }) do
         assert_equal({ "Authorization" => "Bearer ghs_bot" },
                      rendered["mcpServers"]["github_bot"]["headers"])
       end

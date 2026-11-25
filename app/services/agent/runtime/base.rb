@@ -83,8 +83,12 @@ module Agent
 
       # One per turn, so AGENTS.md describes exactly the connectors staged in
       # .pi/mcp.json and OAuth refreshes run once.
+      def run_policy
+        @run_policy ||= Agent::RunPolicy.for(conversation)
+      end
+
       def mcp_document
-        @mcp_document ||= Agent::McpConfig.new(conversation)
+        @mcp_document ||= Agent::McpConfig.new(conversation, policy: run_policy)
       end
 
       # The working tree was reclaimed while its transcript survived —
@@ -199,7 +203,7 @@ module Agent
       # talk to a desktop keyring in the headless sandbox.
       def sandbox_env
         env = {}
-        github = bearer_or_nil(provider: "github", required_scopes: %w[repo])
+        github = run_policy.provider_allowed?("github") && bearer_or_nil(provider: "github", required_scopes: %w[repo])
         if github
           env["GH_TOKEN"] = github
           author = git_identity_for(conversation.user)
@@ -209,7 +213,7 @@ module Agent
           env["GIT_COMMITTER_EMAIL"] = author[:email]
         end
 
-        google = bearer_or_nil(provider: "google")
+        google = run_policy.provider_allowed?("google") && bearer_or_nil(provider: "google")
         if google
           env["GOOGLE_WORKSPACE_CLI_TOKEN"] = google
           env["GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND"] = "file"
