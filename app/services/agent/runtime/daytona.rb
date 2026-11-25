@@ -155,7 +155,9 @@ module Agent
       ensure
         if sandbox
           timed(:collect_artifacts) { collect_sandbox_artifacts(sandbox, since: turn_started_at) } if turn_started_at
-          timed(:ingest_team_skills) { ingest_team_skills(sandbox: sandbox, slugs: touched_skill_slugs) } if skill_sync_allowed?
+          timed(:ingest_team_skills) do
+            skill_sync_allowed? ? ingest_team_skills(sandbox: sandbox, slugs: touched_skill_slugs) : discard_skills(sandbox)
+          end
           timed(:discard_mcp) { discard_mcp_config(sandbox) }
           timed(:schedule_stop) { schedule_stop(sandbox) }
         end
@@ -356,6 +358,16 @@ module Agent
       # Delete .pi/mcp.json at end of turn so neither the keep-warm running sandbox
       # nor its persisted filesystem holds the live bearer tokens it carries.
       # Re-staged next turn. Logged-not-raised.
+      # After an unattended turn: drop its .imports and the team-skills marker,
+      # so a later turn neither imports them nor keeps a skill dir it rewrote.
+      def discard_skills(sandbox)
+        dest_root = "#{WORKSPACE_DIR}/#{Agent::Workspace::SKILLS_SUBPATH}"
+        paths = [ Agent::Workspace::SKILL_IMPORTS_FILE, TEAM_SKILLS_MARKER ].map { |name| Shellwords.escape("#{dest_root}/#{name}") }
+        sandbox.process.exec("rm -f #{paths.join(" ")}")
+      rescue StandardError => e
+        Rails.logger.warn("Daytona skills cleanup failed for conversation #{conversation.id}: #{e.message}")
+      end
+
       def discard_mcp_config(sandbox)
         paths = Agent::McpConfig::TOKEN_FILENAMES.map { |filename| Shellwords.escape("#{WORKSPACE_DIR}/#{filename}") }
         sandbox.process.exec("rm -f #{paths.join(" ")}")

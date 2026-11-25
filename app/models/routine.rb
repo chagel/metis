@@ -136,11 +136,9 @@ class Routine < ApplicationRecord
   private
 
   def provider_label(provider, group)
-    names = group.map { |connector| connector.catalog_app.name }
-    return names.first if names.one?
-
     brand = provider == "github" ? "GitHub" : provider.capitalize
-    "#{brand} (#{names.map { |name| name.delete_prefix("#{brand} ") }.join(", ")})"
+    names = group.map { |connector| connector.catalog_app.name.delete_prefix("#{brand} ") }
+    names == [ brand ] ? brand : "#{brand} (#{names.join(", ")})"
   end
 
   def fire_unless_over_budget

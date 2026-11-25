@@ -293,6 +293,29 @@ class Agent::WorkspaceTest < ActiveSupport::TestCase
     assert_equal "#!/bin/sh\n", File.read(dest.join("alpha/scripts/run.sh"))
   end
 
+  test "discard_skills drops an unattended turn's skill writes and imports; the next turn restages" do
+    workspace = Agent::Workspace.scratch(@conversation)
+    workspace.ensure!
+    dest = workspace.workspace_dir.join(".pi/skills")
+
+    with_skills_source do |source|
+      FileUtils.mkdir_p(source.join("alpha"))
+      File.write(source.join("alpha/SKILL.md"), "alpha")
+      workspace.stage_skills
+
+      FileUtils.mkdir_p(dest.join("planted"))
+      File.write(dest.join("planted/SKILL.md"), "planted")
+      File.write(dest.join(".imports"), "github.com/evil/skill\n")
+      workspace.discard_skills
+      workspace.stage_skills
+    end
+
+    assert_equal "alpha", File.read(dest.join("alpha/SKILL.md"))
+    assert_not dest.join("planted").exist?
+    assert_not dest.join(".imports").exist?
+    assert_no_enqueued_jobs { workspace.queue_skill_imports(by: @user) }
+  end
+
   test "stage_skills overwrites the prior turn's tree so deleted skills disappear" do
     workspace = Agent::Workspace.scratch(@conversation)
     workspace.ensure!

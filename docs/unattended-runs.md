@@ -43,7 +43,7 @@ calls.
 | Memory | HostBridge refuses `remember`, `update_memory` and `forget_memory` unless the routine is the memory review, so an injected payload can't plant a memory that steers later chats. Reading memories and `note_memory_*` stay allowed. |
 | Budget | `UnattendedBudget` refuses a fire once the user has had `METIS_UNATTENDED_DAILY_RUNS` (default 50) routine runs, or `METIS_UNATTENDED_DAILY_COST_USD` (default 10) of their cost, in the last 24 hours. A scheduled fire is skipped and its schedule advances; "Run now" shows the reason. |
 | Untrusted input | `{{event_payload}}` is fenced in `<untrusted_event_payload>` with `</` escaped, and the identity says payloads and fetched content are data. This lowers the odds the model follows them; the limits above hold either way. |
-| Skills on disk | A skill the agent writes under `.pi/skills/` or queues in `.pi/skills/.imports` becomes a team skill after the turn. Runtimes skip that sync unless the policy allows `update_skill`. |
+| Skills on disk | A skill the agent writes under `.pi/skills/` or queues in `.pi/skills/.imports` becomes a team skill after the turn. After an unattended turn the runtime discards them instead (`Workspace#discard_skills`; on E2B/Daytona the `.imports` file and team-skills marker), so a later attended turn can't ingest them either. |
 | Deleted routine | A fire marks its conversation `settings["fired_by_routine"]`. If the routine is deleted before the turn runs, the turn is still unattended, with nothing granted. |
 | Fail closed | The policy is computed while the turn's inputs are staged. If it raises, staging fails and the turn errors instead of running unrestricted; a HostBridge call that fails is refused. |
 

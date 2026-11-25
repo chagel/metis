@@ -75,6 +75,9 @@ class Agent::RunPolicyTest < ActiveSupport::TestCase
     routine = routine(grants: { "connectors" => %w[provider:google] })
 
     assert_equal "provider:google", routine.grantable_connectors["Google (Gmail, Calendar)"]
+    @team.connectors.find_by(name: "google_calendar").destroy!
+    assert_equal "provider:google", routine.grantable_connectors["Google (Gmail)"]
+    assert_equal "provider:github", routine.grantable_connectors["GitHub"]
     policy = Agent::RunPolicy.for(routine.fire!)
     assert policy.provider_allowed?("google")
     assert policy.connector_allowed?(@team.connectors.find_by(name: "gmail"))

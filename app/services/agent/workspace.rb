@@ -252,6 +252,17 @@ module Agent
       end
     end
 
+    # After an unattended turn: drop what the agent wrote under .pi/skills
+    # (skill dirs, .imports) so a later turn can't ingest it; the next turn
+    # restages the tree because its marker is gone.
+    def discard_skills
+      return unless repair_directory_chain(skills_dir, create: false)
+
+      FileUtils.rm_rf(skills_dir)
+    rescue StandardError => e
+      Rails.logger.warn("discard_skills failed for conversation #{@conversation.id}: #{e.message}")
+    end
+
     # Drain the agent-written .imports sentinel from disk; Runtime::E2b
     # reads from the sandbox and calls .enqueue_imports directly.
     def queue_skill_imports(by:)
