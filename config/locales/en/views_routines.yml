@@ -83,7 +83,7 @@ en:
       project_blank: "None"
       project_hint: "Optional — gives the run a project's repo and standards as context."
       grants_label: "Unattended access"
-      grants_hint: "What a run this routine starts may reach. Nothing else is staged, and a GitHub bot token can review and comment but not push or merge."
+      grants_hint: "What a run this routine starts may reach when nobody is watching. Anything not ticked is left out."
       grants_none: "This team has no connectors yet."
       grants_start_workflow: "Can start workflows"
       model_label: "Model"
