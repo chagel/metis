@@ -47,11 +47,8 @@ module Agent
                                        .to_h { |connector| [ connector.name, server_entry(connector) ] }.compact
     end
 
-    # An unattended turn's bot token can review and comment but not push or merge.
     def bot_entry
-      return unless policy.allowed_server?(GithubApp::BotServer::NAME)
-
-      GithubApp::BotServer.for(connectors, permissions: (GithubApp::BotServer::UNATTENDED_PERMISSIONS if policy.unattended?))
+      GithubApp::BotServer.for(connectors) if policy.allowed_server?(GithubApp::BotServer::NAME)
     end
 
     def connectors

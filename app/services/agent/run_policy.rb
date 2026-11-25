@@ -1,9 +1,9 @@
 module Agent
   # What one turn may reach. A turn a routine started with nobody watching is
-  # unattended: it gets only the connectors its routine grants, a narrowed
-  # bot token, no HostBridge ops that could widen its own reach, and no
-  # memory writes outside the memory review. Anything else is attended and
-  # unrestricted. See docs/unattended-runs.md.
+  # unattended: it gets only the connectors its routine grants, no HostBridge
+  # ops that could widen its own reach, and no memory writes outside the
+  # memory review. Anything else is attended and unrestricted.
+  # See docs/unattended-runs.md.
   class RunPolicy
     SELF_WIDENING_OPS = %w[
       create_workflow update_workflow create_skill update_skill create_routine update_routine

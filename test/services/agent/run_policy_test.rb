@@ -25,11 +25,8 @@ class Agent::RunPolicyTest < ActiveSupport::TestCase
   def servers(conversation) = JSON.parse(Agent::McpConfig.new(conversation).content)["mcpServers"]
 
   def with_bot(&block)
-    minted = []
     with_stub(GithubApp::Config, :app_auth_configured?, -> { true }) do
-      with_stub(GithubApp::InstallationToken, :for, ->(_id = nil, permissions: nil) { minted << permissions; "ghs_bot" }) do
-        block.call(minted)
-      end
+      with_stub(GithubApp::InstallationToken, :for, ->(_id = nil) { "ghs_bot" }, &block)
     end
   end
 
@@ -57,20 +54,10 @@ class Agent::RunPolicyTest < ActiveSupport::TestCase
     assert_empty servers(fired)
   end
 
-  test "an unattended turn gets the bot only when granted, with a narrowed token" do
-    with_bot do |minted|
+  test "an unattended turn gets the bot only when granted" do
+    with_bot do
       assert_not servers(fired(grants: { "connectors" => %w[github] })).key?("github_bot")
       assert servers(fired(grants: { "connectors" => %w[github_bot] })).key?("github_bot")
-      assert_equal [ GithubApp::BotServer::UNATTENDED_PERMISSIONS ], minted
-    end
-  end
-
-  test "an attended turn's bot token keeps the installation's permissions" do
-    conversation = @user.conversations.create!
-    ConversationTurn.start(conversation, content: "hi", sender: @user)
-    with_bot do |minted|
-      servers(conversation)
-      assert_equal [ nil ], minted
     end
   end
 

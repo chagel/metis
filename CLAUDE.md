@@ -291,9 +291,9 @@ with **fugit** (IANA zone embedded as the trailing field). See
 [`docs/routines.md`](docs/routines.md).
 
 A fire is an **unattended run** (`Agent::RunPolicy`): only the connectors the
-routine grants (`trigger_config["grants"]`) reach the sandbox, `github_bot`
-gets a token that can't push or merge, HostBridge refuses self-widening ops and memory writes (outside the memory review),
-and `UnattendedBudget` caps daily runs and cost. The limit is which
+routine grants (`trigger_config["grants"]`) reach the sandbox, HostBridge
+refuses self-widening ops and memory writes (outside the memory review), and
+`UnattendedBudget` caps daily runs and cost. The limit is which
 credentials enter the sandbox, never the prompt. See
 [`docs/unattended-runs.md`](docs/unattended-runs.md).
 

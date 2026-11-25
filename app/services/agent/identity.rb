@@ -174,8 +174,7 @@ module Agent
         its limits, not this prompt:
 
         - Only the connectors the routine grants are staged; the rest are
-          omitted below. The `github_bot` token, if staged, can read, review
-          and comment but not push or merge.
+          omitted below.
         - You can't create or edit routines, workflows or skills, and can
           start a workflow only if the routine allows it.
         - You can't record, edit or forget memories; only the memory review can.

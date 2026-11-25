@@ -38,7 +38,7 @@ calls.
 | --- | --- |
 | Connectors | Only those the routine grants are rendered into `.pi/mcp.json` (`Agent::McpConfig`). The rest never reach the sandbox. |
 | CLI tokens | `GH_TOKEN` and the `gws` token are set only when a connector on that OAuth provider (github, google) is granted (`Runtime::Base#sandbox_env`). |
-| GitHub bot | `github_bot` is staged only when granted, and its installation token is minted with `contents: read, metadata: read, pull_requests: write, issues: write` (`GithubApp::BotServer::UNATTENDED_PERMISSIONS`). GitHub refuses a push or merge with it. |
+| GitHub bot | `github_bot` is staged only when granted. What it can then do is the GitHub App's own permissions; protect `main` with a ruleset that requires a reviewed PR so a person still merges what it pushes. |
 | Self-widening | HostBridge refuses `create_*`/`update_*` for routines, workflows and skills, and `start_workflow` unless the routine allows it. The agent gets a refusal it can report. |
 | Memory | HostBridge refuses `remember`, `update_memory` and `forget_memory` unless the routine is the memory review, so an injected payload can't plant a memory that steers later chats. Reading memories and `note_memory_*` stay allowed. |
 | Budget | `UnattendedBudget` refuses a fire once the user has had `METIS_UNATTENDED_DAILY_RUNS` (default 50) routine runs, or `METIS_UNATTENDED_DAILY_COST_USD` (default 10) of their cost, in the last 24 hours. A scheduled fire is skipped and its schedule advances; "Run now" shows the reason. |
