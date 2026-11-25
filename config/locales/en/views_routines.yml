@@ -84,9 +84,11 @@ en:
       project_hint: "Optional — gives the run a project's repo and standards as context."
       grants_label: "Unattended access"
       grants_hint: "What a run this routine starts may reach when nobody is watching. Anything not ticked is left out."
-      grants_provider_hint: "GitHub and Google connectors share one token per provider, so the run gets it only when every connector on that provider is ticked."
       grants_none: "This team has no connectors yet."
-      grants_start_workflow: "Can start workflows"
+      grants_connectors_label: "Connectors"
+      grants_actions_label: "Actions"
+      grants_actions:
+        start_workflow: "Can start workflows"
       grants_github_bot: "GitHub bot"
       model_label: "Model"
       model_default: "Deployment default"

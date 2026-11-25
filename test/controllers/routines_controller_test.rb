@@ -126,15 +126,15 @@ class RoutinesControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[type=checkbox][name='routine[grants][connectors][]'][value=linear]"
 
     patch routine_path(routine), params: { routine: { name: routine.name, prompt: "x",
-      grants: { connectors: [ "", "linear", "github_bot", "other" ], start_workflow: "1" } } }
+      grants: { connectors: [ "", "linear", "github_bot", "other" ], actions: [ "", "start_workflow", "create_skill" ] } } }
     routine.reload
     assert_equal %w[linear], routine.granted_connectors
-    assert routine.may_start_workflows?
+    assert_equal %w[start_workflow], routine.granted_actions
 
     patch routine_path(routine), params: { routine: { name: routine.name, prompt: "x",
-      grants: { connectors: [ "" ], start_workflow: "0" } } }
+      grants: { connectors: [ "" ], actions: [ "" ] } } }
     assert_empty routine.reload.granted_connectors
-    assert_not routine.may_start_workflows?
+    assert_empty routine.granted_actions
   end
 
   test "run over the daily budget is refused with the reason" do

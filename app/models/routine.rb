@@ -54,17 +54,25 @@ class Routine < ApplicationRecord
     Array(trigger_config.dig("grants", "connectors")).map(&:to_s)
   end
 
-  # label => server name, for the form: the team's connectors, plus the bot
-  # when an admin enabled it on the github connector.
+  # label => grant, for the form. Connectors on one OAuth provider share the
+  # user's token, so they're one grant ("provider:google"); the bot is its own.
   def grantable_connectors
     connectors = team.connectors.order(:name).to_a
-    choices = connectors.to_h { |connector| [ connector.catalog_app&.name || connector.name, connector.name ] }
+    by_provider, others = connectors.partition { |connector| connector.catalog_app&.oauth_provider }
+    choices = others.to_h { |connector| [ connector.catalog_app&.name || connector.name, connector.name ] }
+    by_provider.group_by { |connector| connector.catalog_app.oauth_provider }.each do |provider, group|
+      choices[provider_label(provider, group)] = Agent::RunPolicy.provider_grant(provider)
+    end
     choices[I18n.t("routines.form.grants_github_bot")] = GithubApp::BotServer::NAME if GithubApp::BotServer.eligible(connectors)
     choices
   end
 
-  def may_start_workflows?
-    trigger_config.dig("grants", "start_workflow") == true
+  def granted_actions
+    Array(trigger_config.dig("grants", "actions")).map(&:to_s)
+  end
+
+  def grantable_actions
+    Agent::RunPolicy::GRANTABLE_OPS.to_h { |op| [ I18n.t("routines.form.grants_actions.#{op}"), op ] }
   end
 
   def memory_review?
@@ -126,6 +134,14 @@ class Routine < ApplicationRecord
   end
 
   private
+
+  def provider_label(provider, group)
+    names = group.map { |connector| connector.catalog_app.name }
+    return names.first if names.one?
+
+    brand = provider == "github" ? "GitHub" : provider.capitalize
+    "#{brand} (#{names.map { |name| name.delete_prefix("#{brand} ") }.join(", ")})"
+  end
 
   def fire_unless_over_budget
     fire!

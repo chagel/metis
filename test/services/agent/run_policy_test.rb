@@ -56,7 +56,7 @@ class Agent::RunPolicyTest < ActiveSupport::TestCase
 
   test "an unattended turn gets the bot only when granted" do
     with_bot do
-      assert_not servers(fired(grants: { "connectors" => %w[github] })).key?("github_bot")
+      assert_not servers(fired(grants: { "connectors" => %w[provider:github] })).key?("github_bot")
       assert servers(fired(grants: { "connectors" => %w[github_bot] })).key?("github_bot")
     end
   end
@@ -66,17 +66,19 @@ class Agent::RunPolicyTest < ActiveSupport::TestCase
                                expires_at: 1.hour.from_now, scopes: "user:email repo")
 
     assert_nil Agent::Runtime::Docker.new(conversation: fired).sandbox_env["GH_TOKEN"]
-    granted = fired(grants: { "connectors" => %w[github] })
+    granted = fired(grants: { "connectors" => %w[provider:github] })
     assert_equal "live-bearer", Agent::Runtime::Docker.new(conversation: granted).sandbox_env["GH_TOKEN"]
   end
 
-  test "the Google token needs every Google connector granted" do
+  test "Google connectors are one grant that also carries the Google token" do
     %w[gmail google_calendar].each { |key| @team.connectors.create!(name: key, transport: :cli, catalog_key: key) }
+    routine = routine(grants: { "connectors" => %w[provider:google] })
 
-    gmail_only = Agent::RunPolicy.for(fired(grants: { "connectors" => %w[gmail] }))
-    assert_not gmail_only.provider_allowed?("google")
-    assert_not gmail_only.connector_allowed?(@team.connectors.find_by(name: "gmail"))
-    assert Agent::RunPolicy.for(fired(grants: { "connectors" => %w[gmail google_calendar] })).provider_allowed?("google")
+    assert_equal "provider:google", routine.grantable_connectors["Google (Gmail, Calendar)"]
+    policy = Agent::RunPolicy.for(routine.fire!)
+    assert policy.provider_allowed?("google")
+    assert policy.connector_allowed?(@team.connectors.find_by(name: "gmail"))
+    assert_not policy.provider_allowed?("github")
   end
 
   test "an unattended turn can't widen itself through HostBridge" do
@@ -99,7 +101,7 @@ class Agent::RunPolicyTest < ActiveSupport::TestCase
   end
 
   test "starting a workflow follows the routine's grant" do
-    assert Agent::RunPolicy.for(fired(grants: { "start_workflow" => true })).op_allowed?("start_workflow")
+    assert Agent::RunPolicy.for(fired(grants: { "actions" => %w[start_workflow] })).op_allowed?("start_workflow")
   end
 
   test "only the memory review writes memories unattended" do
@@ -122,7 +124,7 @@ class Agent::RunPolicyTest < ActiveSupport::TestCase
   end
 
   test "a fire stays unattended with nothing granted after its routine is deleted" do
-    conversation = fired(grants: { "connectors" => %w[linear], "start_workflow" => true })
+    conversation = fired(grants: { "connectors" => %w[linear], "actions" => %w[start_workflow] })
     conversation.routine.destroy!
     policy = Agent::RunPolicy.for(conversation.reload)
 

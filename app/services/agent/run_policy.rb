@@ -9,8 +9,11 @@ module Agent
       get_workflow get_project list_skills list_routines note_memory_applied note_memory_correction memory_report
     ].freeze
     MEMORY_WRITE_OPS = %w[remember update_memory forget_memory].freeze
+    GRANTABLE_OPS = %w[start_workflow].freeze
 
     def self.for(conversation) = new(conversation)
+
+    def self.provider_grant(provider) = "provider:#{provider}"
 
     def initialize(conversation)
       @conversation = conversation
@@ -20,9 +23,10 @@ module Agent
 
     def unattended? = @unattended
 
-    # A CLI connector works only through its provider's token.
+    # Connectors on an OAuth provider share the user's token, so they're
+    # granted together.
     def connector_allowed?(connector)
-      provider = connector.cli? && connector.catalog_app&.oauth_provider
+      provider = connector.catalog_app&.oauth_provider
       provider ? provider_allowed?(provider) : allowed_server?(connector.name)
     end
 
@@ -30,21 +34,15 @@ module Agent
       !unattended? || granted_names.include?(name)
     end
 
-    # The sandbox's CLI tokens (GH_TOKEN, the gws token) carry the user's whole
-    # grant for a provider, so they need every connector on it granted.
     def provider_allowed?(provider)
-      return true unless unattended?
-
-      names = @conversation.team.connectors.select { |connector| connector.catalog_app&.oauth_provider == provider }.map(&:name)
-      names.any? && (names - granted_names).empty?
+      !unattended? || granted_names.include?(self.class.provider_grant(provider))
     end
 
     def op_allowed?(op)
       return true unless unattended?
-      return !!@routine&.may_start_workflows? if op == "start_workflow"
       return !!@routine&.memory_review? if MEMORY_WRITE_OPS.include?(op)
 
-      UNATTENDED_OPS.include?(op)
+      UNATTENDED_OPS.include?(op) || (GRANTABLE_OPS.include?(op) && Array(@routine&.granted_actions).include?(op))
     end
 
     private

@@ -116,7 +116,7 @@ class RoutinesController < ApplicationController
     @routine.trigger_config = @routine.trigger_config.merge(
       "grants" => {
         "connectors" => Array(grants[:connectors]).compact_blank & @routine.grantable_connectors.values,
-        "start_workflow" => grants[:start_workflow] == "1"
+        "actions" => Array(grants[:actions]).compact_blank & Agent::RunPolicy::GRANTABLE_OPS
       }
     )
   end
