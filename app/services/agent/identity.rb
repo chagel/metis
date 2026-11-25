@@ -161,9 +161,6 @@ module Agent
 
     private
 
-    # Warm eviction reclaimed workspace/ but kept sessions/ — pi still has
-    # its transcript, so this warns about lost files only (cf. the
-    # reaped-sandbox history replay below). See Runtime::Docker#workspace_evicted?.
     def unattended_block
       return "" unless mcp_config.policy.unattended?
 
@@ -183,6 +180,9 @@ module Agent
       MD
     end
 
+    # Warm eviction reclaimed workspace/ but kept sessions/ — pi still has
+    # its transcript, so this warns about lost files only (cf. the
+    # reaped-sandbox history replay below). See Runtime::Docker#workspace_evicted?.
     def workspace_eviction_block
       return "" unless @workspace_evicted
 

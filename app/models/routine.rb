@@ -59,7 +59,7 @@ class Routine < ApplicationRecord
   def grantable_connectors
     connectors = team.connectors.order(:name).to_a
     choices = connectors.to_h { |connector| [ connector.catalog_app&.name || connector.name, connector.name ] }
-    choices["GitHub bot"] = GithubApp::BotServer::NAME if connectors.any?(&:bot_enabled?)
+    choices[I18n.t("routines.form.grants_github_bot")] = GithubApp::BotServer::NAME if GithubApp::BotServer.eligible(connectors)
     choices
   end
 
@@ -95,11 +95,7 @@ class Routine < ApplicationRecord
     with_lock do
       return false unless enabled? && schedule? && next_run_at && next_run_at <= Time.current
 
-      begin
-        fire! unless memory_review? && !MemoryReview.activity?(self)
-      rescue UnattendedBudget::Exceeded => error
-        Rails.logger.warn("Routine #{id} skipped: #{error.message}")
-      end
+      fire_unless_over_budget unless memory_review? && !MemoryReview.activity?(self)
       update!(next_run_at: next_cron_time)
       true
     end
@@ -128,6 +124,12 @@ class Routine < ApplicationRecord
   end
 
   private
+
+  def fire_unless_over_budget
+    fire!
+  rescue UnattendedBudget::Exceeded => error
+    Rails.logger.warn("Routine #{id} skipped: #{error.message}")
+  end
 
   def rendered_prompt(event)
     Routine::PromptRenderer.render(self, event: event)

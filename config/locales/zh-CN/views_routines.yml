@@ -86,6 +86,7 @@
       grants_hint: "此例程在无人值守时启动的运行可以访问的内容。未勾选的一律不提供。"
       grants_none: "该团队还没有连接器。"
       grants_start_workflow: "可以启动工作流"
+      grants_github_bot: "GitHub 机器人"
       model_label: "模型"
       model_default: "部署默认"
       model_hint: "每次触发所使用的模型。默认为部署配置的模型。"

@@ -86,6 +86,7 @@ en:
       grants_hint: "What a run this routine starts may reach when nobody is watching. Anything not ticked is left out."
       grants_none: "This team has no connectors yet."
       grants_start_workflow: "Can start workflows"
+      grants_github_bot: "GitHub bot"
       model_label: "Model"
       model_default: "Deployment default"
       model_hint: "The model each fire runs on. Defaults to the deployment's configured model."

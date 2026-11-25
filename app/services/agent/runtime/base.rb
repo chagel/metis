@@ -81,12 +81,12 @@ module Agent
                             workspace_evicted: workspace_evicted?, mcp_config: mcp_document).content
       end
 
-      # One per turn, so AGENTS.md describes exactly the connectors staged in
-      # .pi/mcp.json and OAuth refreshes run once.
       def run_policy
         @run_policy ||= Agent::RunPolicy.for(conversation)
       end
 
+      # One per turn, so AGENTS.md describes exactly the connectors staged in
+      # .pi/mcp.json and OAuth refreshes run once.
       def mcp_document
         @mcp_document ||= Agent::McpConfig.new(conversation, policy: run_policy)
       end
@@ -203,7 +203,7 @@ module Agent
       # talk to a desktop keyring in the headless sandbox.
       def sandbox_env
         env = {}
-        github = run_policy.provider_allowed?("github") && bearer_or_nil(provider: "github", required_scopes: %w[repo])
+        github = bearer_or_nil(provider: "github", required_scopes: %w[repo])
         if github
           env["GH_TOKEN"] = github
           author = git_identity_for(conversation.user)
@@ -213,7 +213,7 @@ module Agent
           env["GIT_COMMITTER_EMAIL"] = author[:email]
         end
 
-        google = run_policy.provider_allowed?("google") && bearer_or_nil(provider: "google")
+        google = bearer_or_nil(provider: "google")
         if google
           env["GOOGLE_WORKSPACE_CLI_TOKEN"] = google
           env["GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND"] = "file"
@@ -237,6 +237,8 @@ module Agent
       # drop that credential and proceed, same as Agent::McpConfig does
       # when a connector's refresh fails.
       def bearer_or_nil(provider:, required_scopes: [])
+        return unless run_policy.provider_allowed?(provider)
+
         OauthBroker.bearer_for(
           user: conversation.user, provider: provider, required_scopes: required_scopes
         )

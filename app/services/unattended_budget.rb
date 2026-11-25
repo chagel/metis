@@ -15,11 +15,11 @@ class UnattendedBudget
     raise Exceeded, I18n.t("unattended_budget.cost", limit: format("%.2f", cost_limit)) if cost >= cost_limit
   end
 
+  private
+
   def runs = recent.count
 
-  def cost = Message.where(conversation: recent, role: :assistant).sum(:cost).to_f
-
-  private
+  def cost = Message.assistant.where(conversation: recent).sum(:cost).to_f
 
   def recent = @user.conversations.routines.where(created_at: WINDOW.ago..)
 

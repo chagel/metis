@@ -193,9 +193,7 @@ Rails.application.config.x.agent.serper_api_key = ENV["SERPER_API_KEY"].presence
 Rails.application.config.x.agent.brave_search_api_key = ENV["BRAVE_SEARCH_API_KEY"].presence
 Rails.application.config.x.agent.searxng_url = ENV["SEARXNG_URL"].presence
 
-# Daily limits on each user's unattended work (routine fires) over a rolling
-# 24 hours — UnattendedBudget refuses a fire past either. See
-# docs/unattended-runs.md.
+# UnattendedBudget limits; see docs/unattended-runs.md.
 Rails.application.config.x.agent.unattended_daily_runs =
   Integer(ENV.fetch("METIS_UNATTENDED_DAILY_RUNS", "50"))
 Rails.application.config.x.agent.unattended_daily_cost =

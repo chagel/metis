@@ -76,7 +76,9 @@ class Agent::RunPolicyTest < ActiveSupport::TestCase
       result = JSON.parse(Agent::HostBridge.call(conversation, op, {}))
       assert_equal false, result["ok"], op
       assert_match "unattended", result["error"]
-    end
+      assert_not Agent::RunPolicy.for(conversation).op_allowed?("some_future_op")
+  end
+    assert_not Agent::RunPolicy.for(conversation).op_allowed?("some_future_op")
   end
 
   test "fails closed when the policy can't be established" do

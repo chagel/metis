@@ -24,18 +24,19 @@ module Agent
       list_routines create_routine update_routine
       remember update_memory forget_memory note_memory_applied note_memory_correction memory_report
     ].freeze
+    DENIED = ->(op) { { ok: false, error: "#{op} isn't allowed in an unattended routine run. Say what you would have done; the operator can do it." }.to_json }
 
     # Build an `extension_ui:` handler bound to this conversation. It services
     # "metis:"-prefixed dialog requests as host calls and cancels everything
     # else (a genuine user dialog has nowhere to go in async web chat).
-    def self.handler(conversation)
+    def self.handler(conversation, policy: nil)
       lambda do |request|
         next log_notification(conversation, request) if request.method == :notify
 
         op = request.title.to_s
         next nil unless op.start_with?(PREFIX)
 
-        call(conversation, op.delete_prefix(PREFIX), params_from(request))
+        call(conversation, op.delete_prefix(PREFIX), params_from(request), policy)
       end
     end
 
@@ -57,21 +58,17 @@ module Agent
     # on the gem's per-request thread, so it checks out its own AR connection.
     # Never raises — a failed host call cancels the dialog, it doesn't crash
     # the turn.
-    def self.call(conversation, op, params)
+    def self.call(conversation, op, params, policy = nil)
       return nil unless OPS.include?(op)
 
       ActiveRecord::Base.connection_pool.with_connection do
-        next denied(op) unless RunPolicy.for(conversation).op_allowed?(op)
+        next DENIED.call(op) unless (policy || RunPolicy.for(conversation)).op_allowed?(op)
 
         new(conversation, params || {}).public_send(op)
       end
     rescue StandardError => e
       Rails.logger.error("HostBridge #{op} failed for conversation #{conversation.id}: #{e.class}: #{e.message}")
       nil
-    end
-
-    def self.denied(op)
-      { ok: false, error: "#{op} isn't allowed in an unattended routine run. Say what you would have done; the operator can do it." }.to_json
     end
 
     def initialize(conversation, params)
