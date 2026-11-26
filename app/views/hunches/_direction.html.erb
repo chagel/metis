@@ -4,21 +4,15 @@
       <h2 class="hdir-title"><%= direction.title %></h2>
       <% if direction.brief.present? %><p class="hdir-brief"><%= direction.brief %></p><% end %>
     </div>
-    <% label = t(direction.active? ? "settings.directions.index.pause" : "settings.directions.index.resume", title: direction.title) %>
-    <%= button_to "", toggle_direction_path(direction, return_to: "hunches"), method: :patch, form_class: "inline-form",
-          class: "switch #{'is-on' if direction.active?}", title: label,
-          role: "switch", aria: { checked: direction.active?.to_s, label: t("settings.directions.index.active", title: direction.title) } %>
+    <div class="hdir-actions">
+      <%= button_to t("common.delete"), direction_path(direction), method: :delete, class: "btn btn-ghost btn-sm",
+            form: { data: { turbo_confirm: t("directions.delete_confirm", title: direction.title) } } %>
+      <%= render "directions/toggle", direction: direction %>
+    </div>
   </div>
-  <p class="hdir-meta">
-    <%= direction.last_explored_at ? t("settings.directions.index.explored", time: time_ago_in_words(direction.last_explored_at)) : t("settings.directions.index.not_explored") %>
+  <p class="hdir-meta routine-meta">
+    <span><%= direction_explored(direction) %></span>
+    <span><%= t("directions.outcomes", used: outcomes.fetch("used", 0), dismissed: outcomes.fetch("dismissed", 0), total: outcomes.values.sum) %></span>
   </p>
-  <% if direction.view.present? %>
-    <div class="hdir-view chat-content"><%= markdown(direction.view) %></div>
-  <% end %>
-  <% if direction.open_questions.any? %>
-    <p class="hdir-label"><%= t("settings.directions.index.open_questions") %></p>
-    <ul class="hdir-questions">
-      <% direction.open_questions.each do |question| %><li><%= question %></li><% end %>
-    </ul>
-  <% end %>
+  <%= render "directions/state", direction: direction %>
 </section>

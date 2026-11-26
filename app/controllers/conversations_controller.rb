@@ -10,7 +10,7 @@ class ConversationsController < ApplicationController
   before_action :set_sidebar, only: %i[index show archived]
 
   def index
-    @hunch = Hunch.for(current_user, current_team).ready.find_by(id: params[:hunch]) if params[:hunch]
+    @hunch = ready_hunch(params[:hunch])
     respond_to do |format|
       format.html
       # Gated on :page so Turbo Drive form redirects don't get the scroll stream.
@@ -32,7 +32,7 @@ class ConversationsController < ApplicationController
   end
 
   def create
-    hunch = Hunch.for(current_user, current_team).ready.find_by(id: params[:hunch_id]) if params[:hunch_id]
+    hunch = ready_hunch(params[:hunch_id])
     content = [ hunch&.prompt, composed_content.presence ].compact.join("\n\n")
     uploads = composed_uploads
 
@@ -129,6 +129,10 @@ class ConversationsController < ApplicationController
   end
 
   private
+
+  def ready_hunch(id)
+    Hunch.for(current_user, current_team).ready.find_by(id: id) if id.present?
+  end
 
   def searchable_conversations
     sidebar_kind_scope(search_scope(@sidebar_filter), @sidebar_kind)

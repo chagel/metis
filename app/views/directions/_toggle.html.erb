@@ -1,0 +1,4 @@
+<% label = t(direction.active? ? "directions.pause" : "directions.resume", title: direction.title) %>
+<%= button_to "", toggle_direction_path(direction), method: :patch, form_class: "inline-form",
+      class: "switch #{'is-on' if direction.active?}", title: label,
+      role: "switch", aria: { checked: direction.active?.to_s, label: t("directions.active", title: direction.title) } %>

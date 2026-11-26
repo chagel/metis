@@ -22,10 +22,9 @@ class Hunch < ApplicationRecord
 
   scope :for, ->(user, team) { where(user: user, team: team) }
   scope :newest_first, -> { order(created_at: :desc) }
-  scope :stale, -> { ready.where(created_at: ...TTL.ago) }
-
+  # Run hourly (config/recurring.yml).
   def self.expire_stale!
-    stale.update_all(status: statuses[:expired], outcome_at: Time.current, updated_at: Time.current)
+    ready.where(created_at: ...TTL.ago).update_all(status: statuses[:expired], outcome_at: Time.current, updated_at: Time.current)
   end
 
   def use!

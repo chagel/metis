@@ -320,8 +320,8 @@ and commitment memories, and records up to three `Hunch`es through
 `metis_record_hunch` (`Agent::ForesightManager` over HostBridge, allowed
 unattended only in that routine). The `/hunches` page shows them with Continue in chat /
 Useful / Dismiss and a **Read my mind** button; outcomes (`used`, `dismissed`,
-`expired`) are the measure. Directions live at
-`/settings/directions`. See [`docs/hunches.md`](docs/hunches.md).
+`expired`) are the measure. Directions are managed on the
+Hunches tab. See [`docs/hunches.md`](docs/hunches.md).
 
 ## Conventions
 

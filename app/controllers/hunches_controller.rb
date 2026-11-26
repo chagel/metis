@@ -3,18 +3,17 @@ class HunchesController < ApplicationController
 
   DISMISS_REASONS = %w[not_relevant already_done wrong_timing not_good_enough].freeze
 
-  before_action :set_sidebar, only: :index
+  before_action :set_nav_badges, only: :index
   before_action :set_hunch, only: %i[useful dismiss]
 
   def index
-    hunches.expire_stale!
     @directions = directions.order(:status, :created_at)
     @ready_counts = hunches.ready.group(:direction_id).count
     @filter = filter
     @direction = directions.find_by(id: params[:direction]) if @filter == :direction
-    @hunches = filtered.newest_first.includes(:direction, :source_memory).limit(@filter == :history ? 50 : nil)
-    @foresight = Foresight.routine_for(current_user, current_team)
-    @last_run = @foresight&.conversations&.order(created_at: :desc)&.first
+    @outcomes = hunches.where(direction: @direction).group(:status).count if @direction
+    @hunches = filtered.newest_first.includes(:direction, :source_memory).limit(@filter == :history ? 50 : nil).load
+    @last_run = Foresight.routine_for(current_user, current_team)&.conversations&.order(created_at: :desc)&.first
   end
 
   # Fires foresight now, focused on one direction when one is selected; its
@@ -48,6 +47,12 @@ class HunchesController < ApplicationController
   private
 
   def hunches = Hunch.for(current_user, current_team)
+
+  # The Hunches sidebar shows only the nav badges, not the chat list.
+  def set_nav_badges
+    set_sidebar_params
+    @needs_you = needs_you_conversations
+  end
   def directions = Direction.for(current_user, current_team)
 
   def filter

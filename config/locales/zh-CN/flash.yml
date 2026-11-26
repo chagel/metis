@@ -105,6 +105,11 @@
       destroy:
         notice: "%{name} 已删除。"
         alert: "%{name} %{error}。"
+    directions:
+      create:
+        notice: "已添加方向。"
+      destroy:
+        notice: "已删除方向。"
     hunches:
       useful:
         notice: "已标记为有用，可在历史中查看。"
@@ -113,13 +118,6 @@
       dismiss:
         notice: "已忽略这个预感。"
     settings:
-      directions:
-        create:
-          notice: "已添加方向。"
-        update:
-          notice: "已保存方向。"
-        destroy:
-          notice: "已删除方向。"
       memories:
         destroy:
           notice: "记忆已删除。"

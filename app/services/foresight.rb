@@ -4,9 +4,12 @@
 # Hunch::MAX_PER_RUN hunches. Routine#fire_scheduled! skips it when there's
 # nothing to follow. See docs/hunches.md.
 module Foresight
+  extend PurposeRoutine
+
   PURPOSE = "foresight".freeze
   CRON = "0 6 * * *".freeze
   NAME = "Foresight".freeze
+  WRITE_OPS = %w[update_direction record_hunch].freeze
 
   PROMPT = <<~MD.freeze
     Foresight run. Work out what I'm likely to need soon and have it ready.
@@ -24,17 +27,6 @@ module Foresight
     Reply with a few bullets: what you explored and which hunches you recorded. If nothing
     was worth preparing, say why and record none.
   MD
-
-  def self.routine_for(user, team)
-    team.routines.where(user: user).find_by("trigger_config->>'purpose' = ?", PURPOSE)
-  end
-
-  def self.ensure_for(user, team)
-    routine_for(user, team) || team.routines.create!(
-      user: user, name: NAME, prompt: PROMPT, cron: CRON,
-      timezone: user.iana_timezone, enabled: true, trigger_config: { "purpose" => PURPOSE }
-    )
-  end
 
   def self.activity?(routine)
     Direction.for(routine.user, routine.team).active.exists? ||

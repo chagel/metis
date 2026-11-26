@@ -835,7 +835,7 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
     label: "Record Hunch",
     description:
       "Save a hunch: finished work the operator will probably need soon (a draft, a summary, a review, a plan), " +
-      "with why now and the sources behind it. It appears on their Hunches page to use, edit or dismiss.",
+      "with why now and the sources behind it. It appears on their Hunches page to continue in chat, mark useful, or dismiss.",
     promptSnippet: "Save finished work the operator will likely need",
     promptGuidelines: [
       "Use metis_record_hunch in a foresight run, at most 3 times, only for work you'd rate at least medium impact and can back with sources.",

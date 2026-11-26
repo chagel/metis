@@ -15,15 +15,14 @@ class HunchesControllerTest < ActionDispatch::IntegrationTest
                     evidence: [ { "url" => "https://example.com" } ] }.merge(attrs))
   end
 
-  test "index lists ready hunches and expires stale ones" do
+  test "index lists ready hunches but not past ones" do
     hunch
-    stale = hunch(title: "Old", created_at: (Hunch::TTL + 1.day).ago)
+    hunch(title: "Old", status: :expired)
     get hunches_path
 
     assert_response :success
     assert_select ".hunch .hunch-title", text: "Draft reply"
     assert_select ".hunch .hunch-title", text: "Old", count: 0
-    assert stale.reload.expired?
   end
 
   test "useful records the outcome without starting a chat" do
@@ -124,8 +123,30 @@ class HunchesControllerTest < ActionDispatch::IntegrationTest
     assert_match "focus only on direction ##{direction.id}", prompt
   end
 
-  test "a direction added from the sidebar opens on the Hunches tab" do
-    post directions_path, params: { return_to: "hunches", direction: { title: "Payments" } }
+  test "a direction added from the sidebar opens on the Hunches tab with its foresight routine" do
+    post directions_path, params: { direction: { title: "Payments", brief: "Incidents" } }
     assert_redirected_to hunches_path(direction: Direction.for(@user, @team).last.id)
+    assert Foresight.routine_for(@user, @team)
+  end
+
+  test "a selected direction shows its outcomes and can be paused or deleted" do
+    direction = Direction.create!(user: @user, team: @team, title: "Payments")
+    hunch(direction: direction, status: :used)
+    get hunches_path(direction: direction.id)
+    assert_select ".hdir-meta", text: /1 used · 0 dismissed · 1 hunches/
+
+    patch toggle_direction_path(direction)
+    assert direction.reload.paused?
+    assert_redirected_to hunches_path(direction: direction.id)
+
+    delete direction_path(direction)
+    assert_not Direction.exists?(direction.id)
+    assert_redirected_to hunches_path
+  end
+
+  test "a blank direction title comes back with an error" do
+    post directions_path, params: { direction: { title: " " } }
+    assert_redirected_to hunches_path
+    assert flash[:alert].present?
   end
 end

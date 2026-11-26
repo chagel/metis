@@ -7,7 +7,7 @@
       <span class="badge"><%= t(".outcome.#{hunch.status}") %></span>
     <% end %>
   </header>
-  <p class="hunch-meta">
+  <p class="hunch-meta routine-meta">
     <% if hunch.direction %>
       <span><%= link_to hunch.direction.title, hunches_path(direction: hunch.direction.id), class: "hunch-source", data: { turbo_frame: "_top" } %></span>
     <% elsif hunch.source_memory %>
@@ -16,7 +16,7 @@
                   class: "hunch-source", title: hunch.source_memory.content, data: { turbo_frame: "_top" } %></span>
     <% end %>
     <span><%= t(".age", time: time_ago_in_words(hunch.created_at)) %></span>
-    <% if hunch.dismissed? && hunch.dismiss_reason.present? %><span><%= hunch.dismiss_reason %></span><% end %>
+    <% if hunch.dismiss_reason.present? %><span><%= hunch.dismiss_reason %></span><% end %>
   </p>
   <% if hunch.why_now.present? %>
     <p class="hunch-why"><%= hunch.why_now %></p>

@@ -285,7 +285,7 @@ tidies the memories, skipping quiet nights. Managed at `/settings/memory`.
 
 A **hunch** is finished work (a draft, a summary, a review) Metis prepared
 before the user asked. The user names `Direction`s to follow (team + user,
-personal, max 10; `/settings/directions`, or `metis_add_direction` from
+personal, max 10; managed on the Hunches tab, or `metis_add_direction` from
 chat). A per-user "Foresight" routine (`Foresight`,
 `trigger_config["purpose"] = "foresight"`, daily 06:00, created with the
 first direction, skipped when there are no directions, goals or commitments)

@@ -2,11 +2,17 @@
 <% conversation = local_assigns[:conversation] %>
 <% new_chat = conversation.nil? %>
 <%# hunch: a Hunch to continue from — attached as context, sent with the first message. %>
-<% hunch = local_assigns[:hunch] if new_chat %>
+<% hunch = local_assigns[:hunch] %>
 <% post_url = new_chat ? conversations_path : conversation_messages_path(conversation) %>
 <%# A new chat can instead launch a workflow: pick one and the composer
     posts to workflow_runs#create with the text as the run's input. %>
 <% launchable = new_chat ? current_team.workflows.includes(:default_project).order(:name).to_a : [] %>
+<% placeholder =
+     if hunch then t(".placeholder_hunch")
+     elsif !new_chat then t(".placeholder_message")
+     elsif launchable.any? then t(".placeholder_new_with_workflows")
+     else t(".placeholder_new")
+     end %>
 <% form_data = new_chat ? { turbo_frame: "_top" } : {} %>
 <% if launchable.any?
      form_data.merge!(controller: "workflow-launch",
@@ -79,7 +85,7 @@
           <textarea name="content" rows="2"
                     data-controller="composer"
                     data-action="keydown->skill-palette#onKeydown keydown->composer#submitOnEnter input->skill-palette#onInput input->composer#autoResize"
-                    placeholder="<%= if hunch then t('.placeholder_hunch') elsif new_chat then (launchable.any? ? t('.placeholder_new_with_workflows') : t('.placeholder_new')) else t('.placeholder_message') end %>"
+                    placeholder="<%= placeholder %>"
                     <%= "autofocus" if hunch %>></textarea>
         <div class="composer-bar">
           <label class="attach" title="<%= t('.attach') %>" aria-label="<%= t('.attach') %>">

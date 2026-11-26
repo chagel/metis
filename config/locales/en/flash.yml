@@ -112,6 +112,11 @@ en:
       destroy:
         notice: "%{name} deleted."
         alert: "%{name} %{error}."
+    directions:
+      create:
+        notice: "Direction added."
+      destroy:
+        notice: "Direction deleted."
     hunches:
       useful:
         notice: "Marked useful. It’s in History."
@@ -120,13 +125,6 @@ en:
       dismiss:
         notice: "Hunch dismissed."
     settings:
-      directions:
-        create:
-          notice: "Direction added."
-        update:
-          notice: "Direction saved."
-        destroy:
-          notice: "Direction deleted."
       memories:
         destroy:
           notice: "Memory deleted."

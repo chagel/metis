@@ -75,13 +75,11 @@ class Routine < ApplicationRecord
     Agent::RunPolicy::GRANTABLE_OPS.to_h { |op| [ I18n.t("routines.form.grants_actions.#{op}"), op ] }
   end
 
-  def memory_review?
-    trigger_config["purpose"] == MemoryReview::PURPOSE
-  end
+  def purpose_routine = PurposeRoutine.for(trigger_config["purpose"])
 
-  def foresight?
-    trigger_config["purpose"] == Foresight::PURPOSE
-  end
+  def memory_review? = purpose_routine == MemoryReview
+
+  def foresight? = purpose_routine == Foresight
 
   def cooldown_seconds
     trigger_config["cooldown_seconds"].to_i
@@ -148,7 +146,7 @@ class Routine < ApplicationRecord
 
   # A purpose-built routine with nothing to work on skips the night.
   def quiet?
-    (memory_review? && !MemoryReview.activity?(self)) || (foresight? && !Foresight.activity?(self))
+    purpose_routine.present? && !purpose_routine.activity?(self)
   end
 
   def fire_unless_over_budget

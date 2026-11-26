@@ -9,8 +9,6 @@ module Agent
       get_workflow get_project list_skills list_routines note_memory_applied note_memory_correction memory_report
       list_directions
     ].freeze
-    MEMORY_WRITE_OPS = %w[remember update_memory forget_memory].freeze
-    FORESIGHT_WRITE_OPS = %w[update_direction record_hunch].freeze
     GRANTABLE_OPS = %w[start_workflow].freeze
 
     def self.for(conversation) = new(conversation)
@@ -42,8 +40,9 @@ module Agent
 
     def op_allowed?(op)
       return true unless unattended?
-      return !!@routine&.memory_review? if MEMORY_WRITE_OPS.include?(op)
-      return !!@routine&.foresight? if FORESIGHT_WRITE_OPS.include?(op)
+      if (owner = PurposeRoutine.all.find { |mod| mod::WRITE_OPS.include?(op) })
+        return @routine&.purpose_routine == owner
+      end
 
       UNATTENDED_OPS.include?(op) || (GRANTABLE_OPS.include?(op) && Array(@routine&.granted_actions).include?(op))
     end

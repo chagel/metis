@@ -512,6 +512,7 @@ def granted_connectors      # connector names, "github_bot", "provider:<key>"
 def granted_actions         # e.g. ["start_workflow"]
 def grantable_connectors    # label => grant for the form; provider-grouped
 def grantable_actions
+def purpose_routine           # MemoryReview / Foresight (PurposeRoutine.for) or nil
 def memory_review?
 
 def fire!(event: nil)

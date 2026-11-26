@@ -3106,13 +3106,12 @@ a.sharing-card-preview { color:inherit; text-decoration:none; }
   background:var(--card); border:1px solid var(--line); border-radius:12px;
   padding:14px 16px; box-shadow:var(--sh-sm); display:flex; flex-direction:column; gap:7px;
 }
-.hunch:not(.is-ready, :has(.hunch-actions)) { box-shadow:none; background:var(--bg); }
+.hunch:not(:has(.hunch-actions)) { box-shadow:none; background:var(--bg); }
 .hunch-head { display:flex; align-items:flex-start; gap:10px; }
 .hunch-head .badge { flex:none; margin-top:1px; }
 .badge-strong { color:var(--on-accent); background:var(--accent); }
 .hunch-title { font-size:15px; font-weight:600; color:var(--ink); margin:0; flex:1; min-width:0; }
 .hunch-meta { margin:0; font-size:12px; color:var(--ink-3); display:flex; flex-wrap:wrap; }
-.hunch-meta span + span::before { content:"·"; margin:0 6px; }
 .hunch-source { color:var(--ink-2); text-decoration:none; }
 .hunch-source:hover { color:var(--ink); text-decoration:underline; text-underline-offset:2px; }
 .memory-row.is-highlighted { background:var(--accent-soft); box-shadow:inset 3px 0 0 var(--accent); }
@@ -3153,7 +3152,6 @@ a.sharing-card-preview { color:inherit; text-decoration:none; }
 .hnav-item.on { background:var(--card); color:var(--ink); box-shadow:var(--sh-sm); }
 .hnav-name { font-size:13.5px; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .hnav-meta { grid-column:1; font-size:11.5px; color:var(--ink-3); }
-.hnav-meta:empty { display:none; }
 .hnav-count { grid-column:2; grid-row:1; font-family:var(--fm); font-size:11.5px; color:var(--ink-3); }
 .hnav-group > summary { list-style:none; cursor:pointer; }
 .hnav-group > summary::-webkit-details-marker { display:none; }
@@ -3164,10 +3162,8 @@ a.sharing-card-preview { color:inherit; text-decoration:none; }
 }
 .hnav-group-head:hover .hnav-add { background:var(--card); color:var(--ink); }
 .hnav-group[open] .hnav-add { transform:rotate(45deg); }
-.hnav-empty { font-size:12.5px; color:var(--ink-3); margin:0; padding:2px 10px 8px; }
 .hnav-form { display:flex; flex-direction:column; gap:6px; padding:4px 6px 10px; align-items:flex-start; }
 .hnav-form .team-input { width:100%; }
-.hnav-foot { margin-top:auto; border-top:1px solid var(--line); padding-top:6px; }
 
 /* The selected direction, above its hunches. */
 .hdir {
@@ -3175,6 +3171,8 @@ a.sharing-card-preview { color:inherit; text-decoration:none; }
   display:flex; flex-direction:column; gap:6px;
 }
 .hdir-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.hdir-actions { display:flex; align-items:center; gap:8px; flex:none; }
+.hdir-actions form { margin:0; }
 .hdir-title { font-size:16px; font-weight:700; color:var(--ink); margin:0; }
 .hdir-brief { font-size:13px; color:var(--ink-2); margin:3px 0 0; }
 .hdir-meta { font-size:12px; color:var(--ink-3); margin:0; }
@@ -3182,10 +3180,6 @@ a.sharing-card-preview { color:inherit; text-decoration:none; }
 .hdir-label { font-size:12px; font-weight:600; color:var(--ink-2); margin:4px 0 0; }
 .hdir-questions { margin:0; padding-left:18px; list-style:disc; font-size:13px; color:var(--ink-2); }
 .hdir.is-paused .hdir-title { color:var(--ink-2); }
-.direction-form { margin-bottom:18px; }
-.direction-brief { font-size:12.5px; color:var(--ink-2); margin-top:3px; }
-.direction-state { margin-top:6px; font-size:12.5px; color:var(--ink-2); }
-.direction-state summary { cursor:pointer; color:var(--ink-3); }
 .sharing-empty {
   margin-top:22px; padding:44px 20px; text-align:center;
   border:1px dashed var(--line); border-radius:12px; color:var(--ink-2);

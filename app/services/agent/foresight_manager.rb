@@ -75,8 +75,9 @@ module Agent
 
     def evidence
       Array(@params["evidence"]).filter_map do |source|
-        url = source.is_a?(Hash) ? source["url"].to_s.strip : source.to_s.strip
-        { "title" => (source["title"].to_s.strip if source.is_a?(Hash)), "url" => url }.compact if url.match?(%r{\Ahttps?://})
+        source = { "url" => source } unless source.is_a?(Hash)
+        url = source["url"].to_s.strip
+        { "title" => source["title"].to_s.strip.presence, "url" => url }.compact if url.match?(%r{\Ahttps?://})
       end.first(10)
     end
 

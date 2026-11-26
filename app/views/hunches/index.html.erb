@@ -19,7 +19,7 @@
 
   <div class="sharing-body">
     <div class="hunch-list">
-      <%= render "direction", direction: @direction if @direction %>
+      <%= render "direction", direction: @direction, outcomes: @outcomes if @direction %>
 
       <% if @hunches.any? %>
         <%= render partial: "hunch", collection: @hunches %>

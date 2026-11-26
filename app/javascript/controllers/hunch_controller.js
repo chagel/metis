@@ -6,7 +6,6 @@ export default class extends Controller {
   static targets = ["work", "toggle"];
 
   connect() {
-    if (!this.hasWorkTarget) return;
     const clipped = this.workTarget.scrollHeight > this.workTarget.clientHeight + 4;
     this.toggleTarget.hidden = !clipped;
     this.workTarget.classList.toggle("is-clipped", clipped);

@@ -75,6 +75,9 @@ Rails.application.routes.draw do
 
   resources :artifact_shares, only: %i[create destroy]
   get "sharing", to: "sharing#index"
+  resources :directions, only: %i[create destroy] do
+    member { patch :toggle }
+  end
   resources :hunches, only: :index do
     member do
       patch :useful
@@ -101,9 +104,6 @@ Rails.application.routes.draw do
     post  "developer/bridge_token", to: "settings/developer#bridge_token", as: :developer_bridge_token
     patch "developer/bridge_prefs", to: "settings/developer#bridge_prefs", as: :developer_bridge_prefs
     resource :profile, only: %i[show update]
-    resources :directions, only: %i[index create update destroy], controller: "settings/directions" do
-      member { patch :toggle }
-    end
     resources :memories, path: "memory", only: %i[index update destroy], controller: "settings/memories" do
       member { patch :confirm }
       collection { delete :clear }

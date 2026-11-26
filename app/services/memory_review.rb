@@ -3,9 +3,12 @@
 # metis_memory_report and tidies the memories; Routine#fire_scheduled! skips
 # nights with nothing new. See docs/memory.md.
 module MemoryReview
+  extend PurposeRoutine
+
   PURPOSE = "memory_review".freeze
   CRON = "0 3 * * *".freeze
   NAME = "Memory review".freeze
+  WRITE_OPS = %w[remember update_memory forget_memory].freeze
 
   PROMPT = <<~MD.freeze
     Nightly memory review. Call metis_memory_report, then tidy what you know about me
@@ -23,17 +26,6 @@ module MemoryReview
     Then reply with a short note in a few bullets: what you changed and why. If the
     report shows nothing new, reply "Nothing new." and stop.
   MD
-
-  def self.routine_for(user, team)
-    team.routines.where(user: user).find_by("trigger_config->>'purpose' = ?", PURPOSE)
-  end
-
-  def self.ensure_for(user, team)
-    routine_for(user, team) || team.routines.create!(
-      user: user, name: NAME, prompt: PROMPT, cron: CRON,
-      timezone: user.iana_timezone, enabled: true, trigger_config: { "purpose" => PURPOSE }
-    )
-  end
 
   # Where the current review's report starts: the review before it.
   def self.window_start(user, team, before: Time.current)
