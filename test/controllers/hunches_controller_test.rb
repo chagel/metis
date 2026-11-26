@@ -81,6 +81,7 @@ class HunchesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".hnav .hnav-item.on .hnav-name", text: "Payments"
     assert_select ".hnav .hnav-item .hnav-name", text: "Hiring"
     assert_select ".hdir .hdir-title", text: "Payments"
+    assert_select ".hdir .switch[aria-checked=true][aria-label='Payments active'][title='Pause Payments']"
     assert_select ".hunch .hunch-title", count: 1
     assert_select ".hunch .hunch-meta a.hunch-source[href='#{hunches_path(direction: payments.id)}']", text: "Payments"
   end

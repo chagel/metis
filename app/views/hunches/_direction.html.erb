@@ -7,7 +7,7 @@
     <% label = t(direction.active? ? "settings.directions.index.pause" : "settings.directions.index.resume", title: direction.title) %>
     <%= button_to "", toggle_direction_path(direction, return_to: "hunches"), method: :patch, form_class: "inline-form",
           class: "switch #{'is-on' if direction.active?}", title: label,
-          role: "switch", aria: { checked: direction.active?.to_s, label: label } %>
+          role: "switch", aria: { checked: direction.active?.to_s, label: t("settings.directions.index.active", title: direction.title) } %>
   </div>
   <p class="hdir-meta">
     <%= direction.last_explored_at ? t("settings.directions.index.explored", time: time_ago_in_words(direction.last_explored_at)) : t("settings.directions.index.not_explored") %>

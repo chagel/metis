@@ -77,5 +77,6 @@ en:
         current_view: "Current view"
         open_questions: "Open questions"
         pause: "Pause %{title}"
+        active: "%{title} active"
         resume: "Resume %{title}"
         delete_confirm: "Stop following %{title}?"
