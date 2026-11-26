@@ -1,8 +1,8 @@
-<div class="conn-row">
+<div class="conn-row <%= "is-paused" unless routine.enabled? %>">
   <div class="conn-main">
     <div class="conn-name">
       <%= routine.name %>
-      <% unless routine.enabled? %><span class="pill pill-muted"><%= t(".disabled") %></span><% end %>
+      <% unless routine.enabled? %><span class="badge"><%= t(".disabled") %></span><% end %>
     </div>
     <div class="conn-sub"><%= routine_schedule_text(routine) %></div>
     <div class="conn-sub routine-meta">
@@ -20,9 +20,11 @@
           full chat layout (sidebar included), not just the pane. %>
       <%= button_to t(".run"), run_routine_path(routine), class: "btn btn-ghost btn-sm",
             form: { data: { turbo_frame: "_top" } } %>
-      <%= button_to routine.enabled? ? t(".pause") : t(".resume"), toggle_routine_path(routine),
-            method: :patch, class: "btn btn-ghost btn-sm" %>
       <%= link_to t("common.edit"), edit_routine_path(routine), class: "btn btn-ghost btn-sm" %>
+      <% label = t(routine.enabled? ? ".pause" : ".resume", name: routine.name) %>
+      <%= button_to "", toggle_routine_path(routine), method: :patch, form_class: "inline-form",
+            class: "switch #{'is-on' if routine.enabled?}", title: label,
+            role: "switch", aria: { checked: routine.enabled?.to_s, label: t(".active", name: routine.name) } %>
     </div>
   <% end %>
 </div>
