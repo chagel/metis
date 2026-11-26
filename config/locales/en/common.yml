@@ -7,3 +7,6 @@ en:
     remove: "Remove"
     restore: "Restore"
     import: "Import"
+  unattended_budget:
+    runs: "Daily limit reached: %{limit} unattended runs in the last 24 hours."
+    cost: "Daily limit reached: $%{limit} spent on unattended runs in the last 24 hours."

@@ -18,10 +18,7 @@ module GithubApp
     # `[NAME, entry]` for Agent::McpConfig, or nil when not eligible or
     # the mint fails — never crashes the turn.
     def self.for(connectors)
-      return unless Config.app_auth_configured?
-
-      github = connectors.find { |connector| connector.catalog_app&.oauth_provider == "github" }
-      return unless github&.bot_enabled?
+      return unless (github = eligible(connectors))
 
       token = InstallationToken.for(github.bot_installation_id)
       entry = github.definition.deep_dup.merge("description" => DESCRIPTION)
@@ -30,6 +27,14 @@ module GithubApp
     rescue InstallationToken::Error => error
       Rails.logger.error("GithubApp::BotServer: #{NAME} skipped — #{error.message}")
       nil
+    end
+
+    # The bot-enabled github connector, when the deployment can mint for it.
+    def self.eligible(connectors)
+      return unless Config.app_auth_configured?
+
+      github = connectors.find { |connector| connector.catalog_app&.oauth_provider == "github" }
+      github if github&.bot_enabled?
     end
   end
 end

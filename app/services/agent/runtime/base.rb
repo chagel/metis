@@ -65,6 +65,11 @@ module Agent
         @touched_skill_slugs << slug if slug.present?
       end
 
+      # Skills written to disk become team skills, the same as create_skill.
+      def skill_sync_allowed?
+        run_policy.op_allowed?("update_skill")
+      end
+
       # The rendered `.pi/mcp.json` (Agent::McpConfig) for this
       # conversation's connectors, for a runtime to stage into pi's
       # workspace each turn.
@@ -81,10 +86,14 @@ module Agent
                             workspace_evicted: workspace_evicted?, mcp_config: mcp_document).content
       end
 
+      def run_policy
+        @run_policy ||= Agent::RunPolicy.for(conversation)
+      end
+
       # One per turn, so AGENTS.md describes exactly the connectors staged in
       # .pi/mcp.json and OAuth refreshes run once.
       def mcp_document
-        @mcp_document ||= Agent::McpConfig.new(conversation)
+        @mcp_document ||= Agent::McpConfig.new(conversation, policy: run_policy)
       end
 
       # The working tree was reclaimed while its transcript survived —
@@ -233,6 +242,8 @@ module Agent
       # drop that credential and proceed, same as Agent::McpConfig does
       # when a connector's refresh fails.
       def bearer_or_nil(provider:, required_scopes: [])
+        return unless run_policy.provider_allowed?(provider)
+
         OauthBroker.bearer_for(
           user: conversation.user, provider: provider, required_scopes: required_scopes
         )

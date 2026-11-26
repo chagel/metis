@@ -169,7 +169,7 @@ module Agent
         begin
           remove_container
           collect_host_artifacts(dir: workspace.artifacts_dir, since: turn_started_at)
-          ingest_team_skills(slugs: touched_skill_slugs)
+          skill_sync_allowed? ? ingest_team_skills(slugs: touched_skill_slugs) : workspace.discard_skills
         ensure
           workspace.discard_mcp_config
         end

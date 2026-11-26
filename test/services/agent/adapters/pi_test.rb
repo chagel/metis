@@ -53,6 +53,8 @@ class Agent::Adapters::PiTest < ActiveSupport::TestCase
       @touched_skill_slugs = Set.new
     end
 
+    def run_policy = nil
+
     def session_dir
       Pathname.new("/tmp/metis-fake-runtime/sessions")
     end

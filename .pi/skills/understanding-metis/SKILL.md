@@ -1,7 +1,7 @@
 ---
 name: understanding-metis
 description: Architectural knowledge of the Metis codebase (chagel/metis) — a Rails 8.1 chat UI in front of the pi agent harness. Use ONLY when working on the Metis repository.
-version: 10
+version: 11
 ---
 
 # Metis Architecture
@@ -240,7 +240,46 @@ paths — `RoutineSchedulerJob` (every minute, over `Routine.due`),
 trigger half of the collect-then-trigger webhook split), and manual
 `run`. Managed from the `/settings/routines` UI and from chat
 (`Agent::RoutineManager` over `Agent::HostBridge`; agent-created
-routines start disabled).
+routines start disabled). A routine is **personal** (its user alone sees
+and manages it) or **team** (members see it, admins manage it).
+
+A fire is an **unattended run** (`Agent::RunPolicy`): a routine started the
+turn and its latest user message has no sender. A human reply in that
+conversation makes the next turn attended again. Unattended, the turn gets
+only what the routine grants in `trigger_config["grants"]`:
+
+- `connectors` — connector names, `github_bot`, and provider grants
+  (`provider:google`) covering every connector on one OAuth provider plus
+  its CLI token (`GH_TOKEN`, the gws token), since they share one token.
+- `actions` — HostBridge ops from `RunPolicy::GRANTABLE_OPS`
+  (`start_workflow`).
+
+HostBridge allows only `RunPolicy::UNATTENDED_OPS` (reads, memory notes)
+plus granted actions; memory writes only in the memory review; anything
+new is refused until listed. Skills the agent wrote to disk are discarded,
+not synced. `UnattendedBudget` caps each user's routine runs and cost per
+rolling 24h (`METIS_UNATTENDED_DAILY_RUNS`, default 50;
+`METIS_UNATTENDED_DAILY_COST_USD`, default 10), checked under a user lock in
+`Routine#fire!`. `{{event_payload}}` is fenced as untrusted. The limit is
+which credentials Rails puts in the sandbox, never the prompt. Grants are
+set only on the routine form; a fire marks its conversation
+`settings["fired_by_routine"]`, so it stays unattended (with nothing
+granted) if the routine is deleted first.
+
+## User memory
+
+`UserMemory` (team + user, `content` encrypted, typed by `kind` / `source` /
+`confidence`, capped at 100 per user per team) is what the agent has learned
+about a user. The agent records it with `metis_remember` /
+`metis_update_memory` / `metis_forget` (`Agent::MemoryManager` over
+HostBridge, scoped to the conversation's own user and team; not inside a
+workflow run), and `Agent::Identity` shows it every turn. Replies record
+which memories shaped them (`Message#applied_memory_ids`) and whether the
+user corrected them (`corrected_at`, `correction_note`); deletions on the
+memory page are kept as `Membership#memory_deletions` (kinds only, 30 days).
+A nightly per-user "Memory review" routine (`MemoryReview`, created with the
+first memory) reads `Agent::MemoryReport` via `metis_memory_report` and
+tidies the memories, skipping quiet nights. Managed at `/settings/memory`.
 
 ## Credentials & connectors
 
@@ -250,9 +289,11 @@ Two distinct surfaces, separately governed:
    `GEMINI_API_KEY` (pi's name for Google — not `GOOGLE_API_KEY`),
    `DEEPSEEK_API_KEY`, `XAI_API_KEY`, … Shared, deployment-level
    (loaded from `config.x.agent.api_keys`). **No per-user provider
-   keys.** `Pi#credential_args` resolves the conversation's
-   provider/model (per-conversation `settings` overriding
-   `config.x.agent` defaults) and matches the env-loaded key.
+   keys.** `Pi#credential_args` passes the conversation's
+   provider/model from `settings` — filled at creation from the
+   composer's pick, else the user's `preferred_model`, else the catalog
+   default a superuser marks (`LlmModel#deployment_default`). There is no
+   model env var.
 2. **Connector OAuth + tokens** — per-user, per-provider. One
    `OauthGrant` per `(user, provider)` holds tokens + scope union;
    `ConnectorCredential` rows are presence markers, **not** the
@@ -313,7 +354,8 @@ credentials are deployment-level ENV — never per-user.
   (stdio / http / cli), `Membership#role`, `Invitation#role`,
   `Workflow#trigger_source`, `WorkflowRun#status`, `Task#status`,
   `Task#gate`, `WebhookEvent#provider`, `Routine#trigger_source`,
-  `Routine#visibility`.
+  `Routine#visibility`, `UserMemory#kind`, `UserMemory#source`,
+  `UserMemory#confidence`.
 - `Message#content` and `Message#reasoning` use Active Record
   encryption — credentials must be present in every environment that
   touches the model (including tests).

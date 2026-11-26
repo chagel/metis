@@ -129,6 +129,26 @@
     <p class="field-hint"><%= t(".project_hint") %></p>
   </div>
 
+  <fieldset class="field routine-grants">
+    <legend><%= t(".grants_label") %></legend>
+    <p class="field-hint"><%= t(".grants_hint") %></p>
+    <% [ [ :connectors, routine.grantable_connectors, routine.granted_connectors ],
+         [ :actions, routine.grantable_actions, routine.granted_actions ] ].each do |kind, choices, granted| %>
+      <span class="field-sublabel"><%= t(".grants_#{kind}_label") %></span>
+      <%= hidden_field_tag "routine[grants][#{kind}][]", "", id: nil %>
+      <% if choices.empty? %>
+        <p class="field-hint"><%= t(".grants_none") %></p>
+      <% end %>
+      <% choices.each do |label, name| %>
+        <label class="routine-grant">
+          <%= check_box_tag "routine[grants][#{kind}][]", name, granted.include?(name),
+                id: "routine_grant_#{name.parameterize(separator: "_")}" %>
+          <span><%= label %><% if kind == :connectors && !name.start_with?("provider:") %> <code><%= name %></code><% end %></span>
+        </label>
+      <% end %>
+    <% end %>
+  </fieldset>
+
   <div class="form-actions">
     <%= f.submit(routine.persisted? ? t("common.save") : t(".create_routine"), class: "btn btn-primary") %>
   </div>

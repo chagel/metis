@@ -120,6 +120,10 @@ else the catalog default (`docs/configuration.md#providers`).
 
 ## Boundaries
 
+- A fire runs unattended: it reaches only the connectors its **Unattended
+  access** grants, can't create or edit routines, workflows, skills or (outside
+  the memory review) memories, and counts against a daily budget. See [unattended runs](unattended-runs.md).
+
 - The engine never reads agent output — a routine fires a turn and is done;
   whatever the agent does is the agent's business.
 - A routine is not a workflow. If a recurring job needs multiple gated

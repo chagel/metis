@@ -48,6 +48,33 @@ class Routine < ApplicationRecord
     visibility_personal? ? user_id == someone.id : team.managed_by?(someone)
   end
 
+  # Connector names (plus GithubApp::BotServer::NAME) an unattended fire may
+  # reach; set only from the routine form (docs/unattended-runs.md).
+  def granted_connectors
+    Array(trigger_config.dig("grants", "connectors")).map(&:to_s)
+  end
+
+  # label => grant, for the form. Connectors on one OAuth provider share the
+  # user's token, so they're one grant ("provider:google"); the bot is its own.
+  def grantable_connectors
+    connectors = team.connectors.order(:name).to_a
+    by_provider, others = connectors.partition { |connector| connector.catalog_app&.oauth_provider }
+    choices = others.to_h { |connector| [ connector.catalog_app&.name || connector.name, connector.name ] }
+    by_provider.group_by { |connector| connector.catalog_app.oauth_provider }.each do |provider, group|
+      choices[provider_label(provider, group)] = Agent::RunPolicy.provider_grant(provider)
+    end
+    choices[I18n.t("routines.form.grants_github_bot")] = GithubApp::BotServer::NAME if GithubApp::BotServer.eligible(connectors)
+    choices
+  end
+
+  def granted_actions
+    Array(trigger_config.dig("grants", "actions")).map(&:to_s)
+  end
+
+  def grantable_actions
+    Agent::RunPolicy::GRANTABLE_OPS.to_h { |op| [ I18n.t("routines.form.grants_actions.#{op}"), op ] }
+  end
+
   def memory_review?
     trigger_config["purpose"] == MemoryReview::PURPOSE
   end
@@ -60,10 +87,13 @@ class Routine < ApplicationRecord
   # routine's user, and stamp last_run_at. `event` (a WebhookEvent) feeds the
   # prompt's event_* variables on the webhook path. Returns the conversation.
   def fire!(event: nil)
-    conversation = user.conversations.create!(
-      team: team, project: project, routine: self,
-      settings: run_settings, visibility: visibility, title: name
-    )
+    conversation = user.with_lock do
+      UnattendedBudget.new(user).check!
+      user.conversations.create!(
+        team: team, project: project, routine: self,
+        settings: run_settings.merge("fired_by_routine" => true), visibility: visibility, title: name
+      )
+    end
     ConversationTurn.start(conversation, content: rendered_prompt(event))
     update!(last_run_at: Time.current)
     conversation
@@ -75,7 +105,7 @@ class Routine < ApplicationRecord
     with_lock do
       return false unless enabled? && schedule? && next_run_at && next_run_at <= Time.current
 
-      fire! unless memory_review? && !MemoryReview.activity?(self)
+      fire_unless_over_budget unless memory_review? && !MemoryReview.activity?(self)
       update!(next_run_at: next_cron_time)
       true
     end
@@ -104,6 +134,18 @@ class Routine < ApplicationRecord
   end
 
   private
+
+  def provider_label(provider, group)
+    brand = provider == "github" ? "GitHub" : provider.capitalize
+    names = group.map { |connector| connector.catalog_app.name.delete_prefix("#{brand} ") }
+    names == [ brand ] ? brand : "#{brand} (#{names.join(", ")})"
+  end
+
+  def fire_unless_over_budget
+    fire!
+  rescue UnattendedBudget::Exceeded => error
+    Rails.logger.warn("Routine #{id} skipped: #{error.message}")
+  end
 
   def rendered_prompt(event)
     Routine::PromptRenderer.render(self, event: event)
