@@ -1690,6 +1690,11 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
 .routine-hint { font-size:12.5px; color:var(--ink-3); margin:0 0 16px; }
 .routine-meta { font-family:inherit; font-size:12px; }
 .routine-meta span + span::before { content:"·"; margin:0 6px; }
+.conn-row.is-paused { background:var(--bg); box-shadow:none; }
+.conn-row.is-paused .conn-name { color:var(--ink-3); }
+.conn-row.is-paused .conn-sub { opacity:.7; }
+.conn-name .badge { margin-left:8px; vertical-align:middle; }
+.conn-actions .inline-form { display:flex; }
 
 /* connector form */
 .conn-form { display:flex; flex-direction:column; gap:17px; }
