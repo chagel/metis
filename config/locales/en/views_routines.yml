@@ -18,6 +18,7 @@ en:
       event: "On %{type}"
       run: "Run now"
       pause: "Pause %{name}"
+      active: "%{name} active"
       resume: "Resume %{name}"
       next_run: "Next in %{time}"
       last_run: "Last ran %{time} ago"

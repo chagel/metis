@@ -29,9 +29,9 @@ class RoutinesControllerTest < ActionDispatch::IntegrationTest
     make_routine(name: "Digest", enabled: false)
     get routines_path
 
-    assert_select ".conn-row:not(.is-paused) .switch.is-on[aria-checked=true][aria-label='Pause Standup']"
+    assert_select ".conn-row:not(.is-paused) .switch.is-on[aria-checked=true][aria-label='Standup active'][title='Pause Standup']"
     assert_select ".conn-row.is-paused .badge", text: "Paused"
-    assert_select ".conn-row.is-paused .switch:not(.is-on)[aria-checked=false][aria-label='Resume Digest']"
+    assert_select ".conn-row.is-paused .switch:not(.is-on)[aria-checked=false][aria-label='Digest active'][title='Resume Digest']"
   end
 
   test "a personal team has no team framing: no tabs, no scope picker, always personal" do

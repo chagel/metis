@@ -24,7 +24,7 @@
       <% label = t(routine.enabled? ? ".pause" : ".resume", name: routine.name) %>
       <%= button_to "", toggle_routine_path(routine), method: :patch, form_class: "inline-form",
             class: "switch #{'is-on' if routine.enabled?}", title: label,
-            role: "switch", aria: { checked: routine.enabled?.to_s, label: label } %>
+            role: "switch", aria: { checked: routine.enabled?.to_s, label: t(".active", name: routine.name) } %>
     </div>
   <% end %>
 </div>

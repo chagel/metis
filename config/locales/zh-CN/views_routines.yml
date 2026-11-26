@@ -18,6 +18,7 @@
       event: "当 %{type} 时"
       run: "立即运行"
       pause: "暂停 %{name}"
+      active: "%{name} 已启用"
       resume: "恢复 %{name}"
       next_run: "%{time}后运行"
       last_run: "%{time}前运行过"
