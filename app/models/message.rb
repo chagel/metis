@@ -58,6 +58,8 @@ class Message < ApplicationRecord
   # is enough context; generate_title_async! is idempotent and respects a
   # user rename, so firing on every user turn is harmless.
   after_commit :enqueue_title_generation, on: :create
+  after_create_commit -> { conversation.broadcast_sidebar_refresh }, if: -> { assistant? && (pending? || streaming?) }
+  after_update_commit -> { conversation.broadcast_sidebar_refresh }, if: -> { assistant? && saved_change_to_streaming_status? && !pending? && !streaming? }
 
   def attachments?
     images.attached? || files.attached?
