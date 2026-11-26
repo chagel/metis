@@ -25,18 +25,37 @@ description: Code review methodology — security checklist, Rails anti-patterns
 5. **Review security** — See [SECURITY_CHECKLIST.md](SECURITY_CHECKLIST.md)
 6. **Check Rails patterns** — See [RAILS_PATTERNS.md](RAILS_PATTERNS.md)
 7. **Spot simplification opportunities** — See [SIMPLIFICATION.md](SIMPLIFICATION.md)
-8. **Read previous discussion** — Never re-raise issues already addressed in PR comments
+8. **Read previous discussion** — Never re-raise issues already addressed in PR comments.
+   A finding the author answered with reasoning, or the PR documents as a known
+   gap, is addressed: re-raise it only to rebut that reasoning, in its thread.
+
+## Severity
+
+Rate every finding by what breaks and **who can trigger it**, separately from
+confidence (how sure you are it's real):
+
+- **P1** — blocks merge. The PR's stated purpose doesn't work; a security
+  boundary can be crossed by someone it's meant to stop (an outside
+  contributor, injected content, another team); data loss or corruption.
+- **P2** — should fix. Wrong behavior in an edge case, a race with a bounded
+  effect, a risky path without a test, a limit the owner can bypass on
+  their own resources.
+- **P3** — polish. Naming, clarity, small simplifications.
+
+A path that needs the user or an admin to act against their own interest
+(deleting their own records to reset their own limit) is not a P1. Say who
+the attacker is; if you can't name one, it's not a security finding.
 
 ## Review Verdicts
 
-- **APPROVE**: Code is correct, **delivers its stated purpose end to end**, is tested, and follows patterns. Minor style nits are not blocking.
-- **COMMENT**: Questions or suggestions that don't block merging.
-- **REQUEST_CHANGES**: Bugs, security issues, missing tests, architectural problems, or **a change that does not deliver its stated purpose** (a promise with no working code path behind it).
+- **REQUEST_CHANGES**: at least one open **P1**.
+- **COMMENT**: no P1, at least one open P2.
+- **APPROVE**: only P3s or nothing. List the P3s as non-blocking notes.
 
 ## Verdict Authority
 
-The verdict is the **most severe unresolved finding** — not an average, not
-an overall vibe. One open REQUEST_CHANGES makes the whole review
+The verdict is set by the **most severe unresolved finding** — not an
+average, not an overall vibe. One open P1 makes the whole review
 REQUEST_CHANGES; a long list of positives does not outvote it, and neither
 does a later review pass.
 
@@ -44,10 +63,11 @@ You may downgrade a prior blocking finding **only** by showing it is:
 - **Fixed** — cite the commit and the lines that fix it, or
 - **Refuted** — show concretely why it was never real.
 
-"Acknowledged, but shipping anyway", "out of this PR's scope" (see below),
-"the daemon/client/follow-up will handle it", or "tests pass so it's fine"
-are **not** resolutions. If a finding is real and unfixed, the verdict
-stays REQUEST_CHANGES even if everything else is excellent.
+For a **P1**, "acknowledged, but shipping anyway", "out of this PR's scope"
+(see below), "the daemon/client/follow-up will handle it", or "tests pass so
+it's fine" are **not** resolutions; the verdict stays REQUEST_CHANGES. For a
+P2 or P3, a reasoned decision in the thread or a documented known gap is a
+resolution unless you rebut it.
 
 ## Scope Is Not an Escape Hatch
 
@@ -67,7 +87,7 @@ to a future PR.
 
 Good review comments:
 - Explain the *why*, not just the *what*
-- Suggest concrete fixes, not vague criticism
+- Suggest concrete fixes, not vague criticism — the smallest one that closes the gap, not a redesign
 - Distinguish blocking issues from suggestions (prefix non-blocking with "nit:" or "suggestion:")
 - Reference specific lines and files
 
@@ -103,7 +123,7 @@ The review summary should include these sections:
 [2-3 sentence overview of what the PR does and your overall assessment]
 
 ### Key Issues Identified
-1. **[Issue Title]** (confidence: N)
+1. **[Issue Title]** (P1, confidence: N)
    [Explanation of why it matters and potential impact]
 
 ### Positive Aspects
