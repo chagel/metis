@@ -89,7 +89,7 @@ gem "kamal", require: false
 gem "thruster", require: false
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-gem "image_processing", "~> 2.0"
+gem "image_processing", "~> 2.2"
 # libvips driver for image_processing — image_processing lists it only as an
 # optional dep, so the variant processor (Rails 8 default :vips) needs it here.
 gem "ruby-vips", "~> 2.0"
