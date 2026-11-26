@@ -1,0 +1,75 @@
+class HunchesController < ApplicationController
+  layout "chat"
+
+  DISMISS_REASONS = %w[not_relevant already_done wrong_timing not_good_enough].freeze
+
+  before_action :set_sidebar, only: :index
+  before_action :set_hunch, only: %i[useful dismiss]
+
+  def index
+    hunches.expire_stale!
+    @directions = directions.order(:status, :created_at)
+    @ready_counts = hunches.ready.group(:direction_id).count
+    @filter = filter
+    @direction = directions.find_by(id: params[:direction]) if @filter == :direction
+    @hunches = filtered.newest_first.includes(:direction, :source_memory).limit(@filter == :history ? 50 : nil)
+    @foresight = Foresight.routine_for(current_user, current_team)
+    @last_run = @foresight&.conversations&.order(created_at: :desc)&.first
+  end
+
+  # Fires foresight now, focused on one direction when one is selected; its
+  # hunches land here when the run finishes.
+  def read_my_mind
+    direction = directions.find_by(id: params[:direction_id])
+    focus = t("hunches.prompt.focus", id: direction.id, title: direction.title) if direction
+    Foresight.ensure_for(current_user, current_team).fire!(note: focus)
+    redirect_to hunches_path(direction: direction&.id), notice: t("flash.hunches.read_my_mind.notice")
+  rescue UnattendedBudget::Exceeded => error
+    redirect_to hunches_path, alert: error.message
+  end
+
+  # Right as it was, nothing more to do: it moves to History.
+  def useful
+    @hunch.use!
+    respond_to do |format|
+      format.turbo_stream { render turbo_stream: turbo_stream.remove(helpers.dom_id(@hunch)) }
+      format.html { redirect_to hunches_path, notice: t("flash.hunches.useful.notice") }
+    end
+  end
+
+  def dismiss
+    @hunch.dismiss!(dismiss_reason)
+    respond_to do |format|
+      format.turbo_stream { render turbo_stream: turbo_stream.remove(helpers.dom_id(@hunch)) }
+      format.html { redirect_to hunches_path, notice: t("flash.hunches.dismiss.notice") }
+    end
+  end
+
+  private
+
+  def hunches = Hunch.for(current_user, current_team)
+  def directions = Direction.for(current_user, current_team)
+
+  def filter
+    return :history if params[:view] == "history"
+
+    params[:direction].present? ? :direction : :all
+  end
+
+  def filtered
+    case @filter
+    when :history then hunches.where.not(status: :ready)
+    when :direction then hunches.ready.where(direction: @direction)
+    else hunches.ready
+    end
+  end
+
+  def dismiss_reason
+    key = params[:reason].to_s
+    DISMISS_REASONS.include?(key) ? t("hunches.hunch.reasons.#{key}") : params[:reason_text]
+  end
+
+  def set_hunch
+    @hunch = hunches.ready.find(params[:id])
+  end
+end

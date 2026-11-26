@@ -5,12 +5,24 @@ import { Controller } from "@hotwired/stimulus";
 // them current.
 export default class extends Controller {
   static targets = ["tab", "count", "row", "query", "list", "none"];
+  static values = { key: String, highlight: String };
 
+  // A link from elsewhere (a hunch's source) can open on a tab with one row
+  // highlighted: ?kind=goal&highlight=<id>.
   connect() {
-    this.key = "";
+    this.key = this.keyValue;
     if (!this.hasListTarget) return;
     this.observer = new MutationObserver(() => this.apply());
     this.observer.observe(this.listTarget, { childList: true });
+    if (this.key) this.apply();
+    this.highlight();
+  }
+
+  highlight() {
+    const row = this.highlightValue && this.element.querySelector(`#user_memory_${this.highlightValue}`);
+    if (!row) return;
+    row.classList.add("is-highlighted");
+    row.scrollIntoView({ block: "center" });
   }
 
   disconnect() {

@@ -1,0 +1,81 @@
+zh-CN:
+  hunches:
+    index:
+      title: "预感"
+      history: "历史"
+      read_my_mind: "读懂我"
+      read_my_mind_focus: "只针对「%{title}」"
+      last_run_html: "%{time}前读过 · %{link}"
+      see_run: "查看运行"
+      never_run: "Metis 还没有预感"
+      empty:
+        all:
+          title: "暂时没有预感"
+          desc: "每天早上，Metis 会根据你的目标、承诺和方向，推测你接下来需要什么并提前做好。在左侧添加一个方向，或点击「读懂我」。"
+        direction:
+          title: "这个方向暂时没有预感"
+          desc: "下一次运行会探索它。点击「读懂我」现在就看看。"
+        history:
+          title: "还没有历史"
+          desc: "你使用或忽略过的预感，以及过期的预感，会出现在这里。"
+    hunch:
+      age: "%{time}前"
+      why_now: "为什么是现在："
+      continue: "在聊天中继续"
+      useful: "有用 👍"
+      cancel: "取消"
+      dismiss_question: "为什么忽略？"
+      dismiss: "忽略"
+      source:
+        goal: "目标：%{memory}"
+        commitment: "承诺：%{memory}"
+        memory: "记忆：%{memory}"
+      show_more: "展开"
+      show_less: "收起"
+      outcome:
+        used: "已使用"
+        dismissed: "已忽略"
+        expired: "已过期"
+      reasons:
+        not_relevant: "不相关"
+        already_done: "已经做了"
+        wrong_timing: "时机不对"
+        not_good_enough: "不够好"
+      reason_placeholder: "其他原因（可选）"
+      impact:
+        medium: "有用"
+        high: "重要"
+    nav:
+      label: "方向"
+      all: "全部预感"
+      directions: "方向"
+      paused: "已暂停"
+      explored: "%{time}前探索"
+      new: "新方向"
+      empty: "点击 + 添加 Metis 要关注的方向。"
+      history: "历史"
+    prompt:
+      focus: "这次只关注方向 #%{id}「%{title}」。"
+      intro: "你为我准备的一个预感："
+      why_now: "为什么是现在："
+      evidence: "来源："
+  settings:
+    directions:
+      index:
+        title: "方向"
+        hint_html: "你希望 Metis 持续关注的事情。每天早上它会探索这些方向，保持最新的判断，并把你需要的东西做成%{link}。"
+        hunches: "预感"
+        title_label: "关注"
+        title_placeholder: "例如：主动式智能体"
+        brief_label: "关注什么，为什么"
+        brief_placeholder: "例如：新的研究和产品，以及它们对 Metis 的意义"
+        add: "添加方向"
+        paused: "已暂停"
+        explored: "%{time}前探索过"
+        not_explored: "尚未探索"
+        outcomes: "已用 %{used} · 已忽略 %{dismissed} · 共 %{total} 个预感"
+        current_view: "当前判断"
+        open_questions: "未解决的问题"
+        pause: "暂停 %{title}"
+        resume: "恢复 %{title}"
+        delete_confirm: "停止关注 %{title}？"

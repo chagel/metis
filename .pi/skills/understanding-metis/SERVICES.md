@@ -563,6 +563,20 @@ forked, or accepted), and deletions; `#activity?` gates the nightly run.
 `CRON = "0 3 * * *"`, `ensure_for(user, team)`, `activity?(routine)`), an
 ordinary personal routine whose prompt reads `metis_memory_report` and tidies.
 
+## Hunches — `Foresight` / `Agent::ForesightManager`
+
+`Foresight` owns the per-user "Foresight" routine (`PURPOSE`, `CRON =
+"0 6 * * *"`, `ensure_for`, `activity?`), an ordinary personal routine like
+`MemoryReview`. `Agent::ForesightManager` serves `list_directions`,
+`add_direction`, `update_direction` and `record_hunch` over HostBridge,
+scoped to the conversation's user and team, never raising. `record` refuses
+a hunch without an http(s) source, below medium impact, or past
+`Hunch::MAX_PER_RUN` for that conversation. `RunPolicy::FORESIGHT_WRITE_OPS`
+(`update_direction`, `record_hunch`) are allowed unattended only when the
+routine is the foresight one; `list_directions` is in `UNATTENDED_OPS`.
+`HunchesController` (`index`, `use`, `dismiss`, `read_my_mind`) and
+`Settings::DirectionsController` are the web side.
+
 ## Skills — `Agent::SkillManager` / `SkillImporter` / `RepoSkills` / `SkillMarketplace`
 
 `SkillManager` is the agent-driven team-skill CRUD over HostBridge —

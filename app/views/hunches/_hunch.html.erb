@@ -1,0 +1,58 @@
+<article class="hunch <%= "is-#{hunch.status}" unless hunch.ready? %>" id="<%= dom_id(hunch) %>" data-controller="hunch">
+  <header class="hunch-head">
+    <h2 class="hunch-title"><%= hunch.title %></h2>
+    <% if hunch.ready? %>
+      <span class="badge <%= "badge-strong" if hunch.impact_high? %>"><%= t(".impact.#{hunch.impact}") %></span>
+    <% else %>
+      <span class="badge"><%= t(".outcome.#{hunch.status}") %></span>
+    <% end %>
+  </header>
+  <p class="hunch-meta">
+    <% if hunch.direction %>
+      <span><%= link_to hunch.direction.title, hunches_path(direction: hunch.direction.id), class: "hunch-source", data: { turbo_frame: "_top" } %></span>
+    <% elsif hunch.source_memory %>
+      <span><%= link_to t(".source.#{hunch.source_memory.kind}", default: t(".source.memory"), memory: hunch.source_memory.content.truncate(40)),
+                  memories_path(kind: hunch.source_memory.kind, highlight: hunch.source_memory.id),
+                  class: "hunch-source", title: hunch.source_memory.content, data: { turbo_frame: "_top" } %></span>
+    <% end %>
+    <span><%= t(".age", time: time_ago_in_words(hunch.created_at)) %></span>
+    <% if hunch.dismissed? && hunch.dismiss_reason.present? %><span><%= hunch.dismiss_reason %></span><% end %>
+  </p>
+  <% if hunch.why_now.present? %>
+    <p class="hunch-why"><%= hunch.why_now %></p>
+  <% end %>
+  <% if hunch.evidence.any? %>
+    <ul class="hunch-sources">
+      <% hunch.evidence.each do |source| %>
+        <li><%= link_to source["title"].presence || source["url"], source["url"], target: "_blank", rel: "noopener noreferrer" %></li>
+      <% end %>
+    </ul>
+  <% end %>
+  <div class="hunch-work" data-hunch-target="work">
+    <div class="hunch-body chat-content"><%= markdown(hunch.body) %></div>
+  </div>
+  <button type="button" class="hunch-more-toggle" data-hunch-target="toggle" data-action="hunch#toggle" hidden
+          data-more="<%= t(".show_more") %>" data-less="<%= t(".show_less") %>"><%= t(".show_more") %></button>
+  <% if hunch.ready? %>
+    <footer class="hunch-actions">
+      <%= link_to t(".continue"), root_path(hunch: hunch.id), class: "btn btn-primary btn-sm", data: { turbo_frame: "_top" } %>
+      <%= button_to t(".useful"), useful_hunch_path(hunch), method: :patch, class: "btn btn-ghost btn-sm" %>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="hunch#dismiss"><%= t(".dismiss") %></button>
+    </footer>
+
+
+    <%= form_with url: dismiss_hunch_path(hunch), method: :patch, class: "hunch-dismiss" do %>
+      <p class="hunch-dismiss-q"><%= t(".dismiss_question") %></p>
+      <div class="hunch-reasons">
+        <% HunchesController::DISMISS_REASONS.each do |key| %>
+          <button type="submit" name="reason" value="<%= key %>" class="board-chip"><%= t(".reasons.#{key}") %></button>
+        <% end %>
+      </div>
+      <div class="hunch-mode-actions">
+        <%= text_field_tag :reason_text, nil, placeholder: t(".reason_placeholder"), class: "team-input", "aria-label": t(".reason_placeholder") %>
+        <%= submit_tag t(".dismiss"), class: "btn btn-ghost btn-sm" %>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="hunch#cancel"><%= t(".cancel") %></button>
+      </div>
+    <% end %>
+  <% end %>
+</article>

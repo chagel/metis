@@ -112,7 +112,21 @@ en:
       destroy:
         notice: "%{name} deleted."
         alert: "%{name} %{error}."
+    hunches:
+      useful:
+        notice: "Marked useful. It’s in History."
+      read_my_mind:
+        notice: "Metis is reading your mind. New hunches appear here when it finishes."
+      dismiss:
+        notice: "Hunch dismissed."
     settings:
+      directions:
+        create:
+          notice: "Direction added."
+        update:
+          notice: "Direction saved."
+        destroy:
+          notice: "Direction deleted."
       memories:
         destroy:
           notice: "Memory deleted."

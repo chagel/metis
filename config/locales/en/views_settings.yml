@@ -211,6 +211,7 @@ en:
       models: "Models"
       developer: "Developer"
       memory: "Memory"
+      directions: "Directions"
     memories:
       index:
         title: "Memory"

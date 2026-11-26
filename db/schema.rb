@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_25_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_26_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -117,6 +117,47 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_010000) do
     t.index ["team_id"], name: "index_conversations_on_team_id"
     t.index ["title"], name: "index_conversations_on_title_trigram", opclass: :gin_trgm_ops, using: :gin
     t.index ["user_id"], name: "index_conversations_on_user_id"
+  end
+
+  create_table "directions", force: :cascade do |t|
+    t.bigint "team_id", null: false
+    t.bigint "user_id", null: false
+    t.string "title", null: false
+    t.text "brief"
+    t.text "view"
+    t.jsonb "open_questions", default: [], null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "last_explored_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["team_id", "user_id", "status"], name: "index_directions_on_team_id_and_user_id_and_status"
+    t.index ["team_id"], name: "index_directions_on_team_id"
+    t.index ["user_id"], name: "index_directions_on_user_id"
+  end
+
+  create_table "hunches", force: :cascade do |t|
+    t.bigint "team_id", null: false
+    t.bigint "user_id", null: false
+    t.bigint "direction_id"
+    t.bigint "source_memory_id"
+    t.bigint "conversation_id"
+    t.string "title", null: false
+    t.text "body", null: false
+    t.text "why_now"
+    t.jsonb "evidence", default: [], null: false
+    t.integer "impact", default: 1, null: false
+    t.integer "confidence", default: 1, null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "outcome_at"
+    t.text "dismiss_reason"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["conversation_id"], name: "index_hunches_on_conversation_id"
+    t.index ["direction_id"], name: "index_hunches_on_direction_id"
+    t.index ["source_memory_id"], name: "index_hunches_on_source_memory_id"
+    t.index ["team_id", "user_id", "status", "created_at"], name: "index_hunches_on_team_id_and_user_id_and_status_and_created_at"
+    t.index ["team_id"], name: "index_hunches_on_team_id"
+    t.index ["user_id"], name: "index_hunches_on_user_id"
   end
 
   create_table "identities", force: :cascade do |t|
@@ -433,6 +474,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_010000) do
   add_foreign_key "conversations", "routines"
   add_foreign_key "conversations", "teams"
   add_foreign_key "conversations", "users"
+  add_foreign_key "directions", "teams", on_delete: :cascade
+  add_foreign_key "directions", "users", on_delete: :cascade
+  add_foreign_key "hunches", "conversations", on_delete: :nullify
+  add_foreign_key "hunches", "directions", on_delete: :nullify
+  add_foreign_key "hunches", "teams", on_delete: :cascade
+  add_foreign_key "hunches", "user_memories", column: "source_memory_id", on_delete: :nullify
+  add_foreign_key "hunches", "users", on_delete: :cascade
   add_foreign_key "identities", "users"
   add_foreign_key "invitations", "teams"
   add_foreign_key "invitations", "users", column: "invited_by_id"

@@ -34,6 +34,15 @@
       </svg>
       <span><%= t('.memory') %></span>
     <% end %>
+    <%= link_to directions_path,
+          class: "nav-item#{' on' if controller_name == 'directions'}" do %>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="8" cy="8" r="5.8"/>
+        <path d="M10.4 5.6L9 9 5.6 10.4 7 7z"/>
+      </svg>
+      <span><%= t('.directions') %></span>
+    <% end %>
     <%= link_to account_path,
           class: "nav-item#{' on' if controller_name == 'accounts'}" do %>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"

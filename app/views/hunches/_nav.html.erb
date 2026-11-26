@@ -1,0 +1,46 @@
+<%# The Hunches tab's sidebar: what Metis is following for you. Full Turbo
+    Drive visits, so the active row is server-rendered. %>
+<nav class="hnav" aria-label="<%= t("hunches.nav.label") %>">
+  <%= link_to hunches_path, class: class_names("hnav-item", on: @filter == :all) do %>
+    <span class="hnav-name"><%= t("hunches.nav.all") %></span>
+    <span class="hnav-count"><%= @ready_counts.values.sum.nonzero? %></span>
+  <% end %>
+
+  <details class="hnav-group" <%= "open" if @directions.empty? %>>
+    <summary class="grp-label hnav-group-head">
+      <span><%= t("hunches.nav.directions") %></span>
+      <span class="hnav-add" title="<%= t("hunches.nav.new") %>" aria-label="<%= t("hunches.nav.new") %>">+</span>
+    </summary>
+    <%= form_with model: Direction.new, url: directions_path, class: "hnav-form" do |f| %>
+      <%= hidden_field_tag :return_to, "hunches" %>
+      <%= f.text_field :title, placeholder: t("settings.directions.index.title_placeholder"),
+            class: "team-input", required: true, "aria-label": t("settings.directions.index.title_label") %>
+      <%= f.text_area :brief, rows: 2, placeholder: t("settings.directions.index.brief_placeholder"),
+            class: "team-input", "aria-label": t("settings.directions.index.brief_label") %>
+      <%= f.submit t("settings.directions.index.add"), class: "btn btn-primary btn-sm" %>
+    <% end %>
+  </details>
+  <% if @directions.empty? %>
+    <p class="hnav-empty"><%= t("hunches.nav.empty") %></p>
+  <% end %>
+  <% @directions.each do |direction| %>
+    <%= link_to hunches_path(direction: direction.id),
+          class: class_names("hnav-item", on: @direction&.id == direction.id, "is-paused": direction.paused?) do %>
+      <span class="hnav-name"><%= direction.title %></span>
+      <span class="hnav-meta">
+        <% if direction.paused? %>
+          <%= t("hunches.nav.paused") %>
+        <% elsif direction.last_explored_at %>
+          <%= t("hunches.nav.explored", time: time_ago_in_words(direction.last_explored_at)) %>
+        <% end %>
+      </span>
+      <span class="hnav-count"><%= @ready_counts[direction.id] %></span>
+    <% end %>
+  <% end %>
+
+  <div class="hnav-foot">
+    <%= link_to hunches_path(view: "history"), class: class_names("hnav-item", on: @filter == :history) do %>
+      <span class="hnav-name"><%= t("hunches.nav.history") %></span>
+    <% end %>
+  </div>
+</nav>

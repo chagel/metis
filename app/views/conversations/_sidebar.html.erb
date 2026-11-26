@@ -35,7 +35,7 @@
       then, so the tab would otherwise stay lit). %>
   <nav class="prnav" aria-label="<%= t('.primary_nav') %>" data-controller="nav-tabs">
     <%= link_to t('.chats'), conversations_path,
-          class: "prnav-item#{' on' unless controller_name.in?(%w[board projects sharing])}",
+          class: "prnav-item#{' on' unless controller_name.in?(%w[board projects sharing hunches])}",
           data: { nav_tabs_target: "link" } %>
     <%= link_to t('.projects'), projects_path,
           class: "prnav-item#{' on' if controller_name == 'projects'}",
@@ -46,6 +46,9 @@
       <%= t('.board') %>
       <%= render "conversations/nav_badge", count: @needs_you&.size %>
     <% end %>
+    <%= link_to t('.hunches'), hunches_path,
+          class: "prnav-item#{' on' if controller_name == 'hunches'}",
+          data: { nav_tabs_target: "link" } %>
     <%= link_to t('.sharing'), sharing_path,
           class: "prnav-item#{' on' if controller_name == 'sharing'}",
           data: { nav_tabs_target: "link" } %>
@@ -158,6 +161,8 @@
                      loading="eager" data-turbo-prefetch="false"></turbo-frame>
       </div>
     </nav>
+  <% elsif controller_name == "hunches" %>
+    <%= render "hunches/nav" %>
   <% else %>
     <%= render "conversations/projects_nav" %>
   <% end %>
@@ -194,6 +199,14 @@
       </svg>
       <% if @needs_you&.any? %><span class="rail-dot" aria-hidden="true"></span><% end %>
       <span class="rail-label"><%= t('.board') %></span>
+    <% end %>
+    <%= link_to hunches_path, class: "rail-dest#{' on' if controller_name == 'hunches'}" do %>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M8 1.8l1.6 3.6 3.6 1.6-3.6 1.6L8 12.2 6.4 8.6 2.8 7l3.6-1.6z"/>
+        <path d="M12.5 11.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z"/>
+      </svg>
+      <span class="rail-label"><%= t('.hunches') %></span>
     <% end %>
     <%= link_to sharing_path, class: "rail-dest#{' on' if controller_name == 'sharing'}" do %>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"

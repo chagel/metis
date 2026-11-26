@@ -1,0 +1,24 @@
+<section class="hdir <%= "is-paused" if direction.paused? %>">
+  <div class="hdir-top">
+    <div>
+      <h2 class="hdir-title"><%= direction.title %></h2>
+      <% if direction.brief.present? %><p class="hdir-brief"><%= direction.brief %></p><% end %>
+    </div>
+    <% label = t(direction.active? ? "settings.directions.index.pause" : "settings.directions.index.resume", title: direction.title) %>
+    <%= button_to "", toggle_direction_path(direction, return_to: "hunches"), method: :patch, form_class: "inline-form",
+          class: "switch #{'is-on' if direction.active?}", title: label,
+          role: "switch", aria: { checked: direction.active?.to_s, label: label } %>
+  </div>
+  <p class="hdir-meta">
+    <%= direction.last_explored_at ? t("settings.directions.index.explored", time: time_ago_in_words(direction.last_explored_at)) : t("settings.directions.index.not_explored") %>
+  </p>
+  <% if direction.view.present? %>
+    <div class="hdir-view chat-content"><%= markdown(direction.view) %></div>
+  <% end %>
+  <% if direction.open_questions.any? %>
+    <p class="hdir-label"><%= t("settings.directions.index.open_questions") %></p>
+    <ul class="hdir-questions">
+      <% direction.open_questions.each do |question| %><li><%= question %></li><% end %>
+    </ul>
+  <% end %>
+</section>

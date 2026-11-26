@@ -105,7 +105,21 @@
       destroy:
         notice: "%{name} 已删除。"
         alert: "%{name} %{error}。"
+    hunches:
+      useful:
+        notice: "已标记为有用，可在历史中查看。"
+      read_my_mind:
+        notice: "Metis 正在读懂你，完成后新的预感会出现在这里。"
+      dismiss:
+        notice: "已忽略这个预感。"
     settings:
+      directions:
+        create:
+          notice: "已添加方向。"
+        update:
+          notice: "已保存方向。"
+        destroy:
+          notice: "已删除方向。"
       memories:
         destroy:
           notice: "记忆已删除。"

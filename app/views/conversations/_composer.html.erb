@@ -1,6 +1,8 @@
 <%# conversation: the chat being messaged, or nil to start a new one. %>
 <% conversation = local_assigns[:conversation] %>
 <% new_chat = conversation.nil? %>
+<%# hunch: a Hunch to continue from — attached as context, sent with the first message. %>
+<% hunch = local_assigns[:hunch] if new_chat %>
 <% post_url = new_chat ? conversations_path : conversation_messages_path(conversation) %>
 <%# A new chat can instead launch a workflow: pick one and the composer
     posts to workflow_runs#create with the text as the run's input. %>
@@ -44,6 +46,15 @@
            data-skill-palette-workflows-value="<%= workflow_palette.to_json %>">
         <div hidden class="skill-palette" data-skill-palette-target="popup"></div>
         <div class="composer">
+          <% if hunch %>
+            <input type="hidden" name="hunch_id" value="<%= hunch.id %>">
+            <div class="composer-wf-chip">
+              <span class="auto-chip" title="<%= hunch.title %>">
+                <%= t(".hunch", title: hunch.title.truncate(60)) %>
+                <%= link_to "✕", root_path, class: "auto-chip-x", "aria-label": t(".clear_hunch"), data: { turbo_frame: "_top" } %>
+              </span>
+            </div>
+          <% end %>
           <% if launchable.any? %>
             <input type="hidden" name="workflow_id" data-workflow-launch-target="field">
             <div class="composer-wf-chip" data-workflow-launch-target="chip" hidden>
@@ -68,7 +79,8 @@
           <textarea name="content" rows="2"
                     data-controller="composer"
                     data-action="keydown->skill-palette#onKeydown keydown->composer#submitOnEnter input->skill-palette#onInput input->composer#autoResize"
-                    placeholder="<%= new_chat ? (launchable.any? ? t('.placeholder_new_with_workflows') : t('.placeholder_new')) : t('.placeholder_message') %>"></textarea>
+                    placeholder="<%= if hunch then t('.placeholder_hunch') elsif new_chat then (launchable.any? ? t('.placeholder_new_with_workflows') : t('.placeholder_new')) else t('.placeholder_message') end %>"
+                    <%= "autofocus" if hunch %>></textarea>
         <div class="composer-bar">
           <label class="attach" title="<%= t('.attach') %>" aria-label="<%= t('.attach') %>">
             <input type="file" name="attachments[]" multiple

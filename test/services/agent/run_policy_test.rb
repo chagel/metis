@@ -143,4 +143,15 @@ class Agent::RunPolicyTest < ActiveSupport::TestCase
     ConversationTurn.start(chat, content: "hi", sender: @user)
     assert Agent::Runtime::Local.new(conversation: chat).send(:skill_sync_allowed?)
   end
+
+  test "only the foresight routine writes directions and hunches unattended" do
+    policy = Agent::RunPolicy.for(fired)
+    %w[update_direction record_hunch add_direction].each { |op| assert_not policy.op_allowed?(op), op }
+    assert policy.op_allowed?("list_directions")
+
+    foresight = Agent::RunPolicy.for(Foresight.ensure_for(@user, @team).fire!)
+    assert foresight.op_allowed?("record_hunch")
+    assert foresight.op_allowed?("update_direction")
+    assert_not foresight.op_allowed?("add_direction")
+  end
 end
