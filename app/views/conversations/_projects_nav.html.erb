@@ -6,9 +6,7 @@
   <% stats = sidebar_project_stats(projects) %>
   <% if team_manager? %>
     <%= link_to new_project_path, class: "prjnav-new" do %>
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-        <path d="M8 3v10M3 8h10" stroke-linecap="round"/>
-      </svg>
+      <%= render "shared/icons/plus" %>
       <%= t('conversations.sidebar.new_project') %>
     <% end %>
   <% end %>
