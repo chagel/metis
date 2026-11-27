@@ -69,9 +69,9 @@ class WorkflowAdvanceJob < ApplicationJob
   def start_step(run, task)
     task.running!
     run.running! unless run.running?
-    user, assistant = ConversationTurn.start(run.conversation, content: step_prompt(run, task), kind: :step_prompt)
+    _, assistant = ConversationTurn.start(run.conversation, content: step_prompt(run, task), kind: :step_prompt)
     task.update!(assistant_message: assistant)
-    WorkflowBroadcaster.new(run).append_turn(user, assistant)
+    WorkflowBroadcaster.new(run).refresh_run_page
   end
 
   # Later steps restate the run input (creation folds it into step 0 only)

@@ -67,6 +67,7 @@
           <% end %>
           <textarea name="content" rows="2"
                     data-controller="composer"
+                    data-composer-busy-message-value="<%= t('.busy') %>"
                     data-action="keydown->skill-palette#onKeydown keydown->composer#submitOnEnter input->skill-palette#onInput input->composer#autoResize"
                     placeholder="<%= new_chat ? (launchable.any? ? t('.placeholder_new_with_workflows') : t('.placeholder_new')) : t('.placeholder_message') %>"></textarea>
         <div class="composer-bar">

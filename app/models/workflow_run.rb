@@ -209,11 +209,11 @@ class WorkflowRun < ApplicationRecord
     else
       task.update!(status: :running, approved_by: by)
       running!
-      user, assistant = ConversationTurn.start(
+      _, assistant = ConversationTurn.start(
         conversation, content: "#{reviewer(by)} requested changes — #{feedback}", kind: :review, sender: by
       )
       task.update!(assistant_message: assistant)
-      WorkflowBroadcaster.new(self).append_turn(user, assistant)
+      WorkflowBroadcaster.new(self).refresh_run_page
     end
   end
 

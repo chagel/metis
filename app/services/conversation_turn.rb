@@ -21,6 +21,7 @@ module ConversationTurn
         role: :assistant, content: "", streaming_status: :pending, started_at: Time.current
       )
     end
+    ChatBroadcaster.new(conversation, assistant_message).announce(user_message)
     ChatJob.perform_later(conversation.id, user_message.id, assistant_message.id)
     [ user_message, assistant_message ]
   end

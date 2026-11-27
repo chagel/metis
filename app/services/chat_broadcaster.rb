@@ -77,7 +77,15 @@ class ChatBroadcaster
     )
   end
 
-  # Swap the composer's Stop button back to Send once the turn ends.
+  # A new turn's rows and Stop button, for every window on the conversation —
+  # the sender's own window also gets them from create.turbo_stream.
+  def announce(user_message)
+    append_row(user_message, forkable: false)
+    append_row(@message, forkable: true)
+    refresh_composer
+  end
+
+  # Match the composer's Send/Stop to whether a turn is running.
   def refresh_composer
     Turbo::StreamsChannel.broadcast_replace_to(
       @conversation,
@@ -249,6 +257,10 @@ class ChatBroadcaster
       skill_slug: call[:skill_slug],
       status: status
     }
+  end
+
+  def append_row(message, forkable:)
+    broadcast(:append, target: "messages", partial: "messages/message", locals: { message: message, forkable: forkable })
   end
 
   def broadcast_append(target:, html:)

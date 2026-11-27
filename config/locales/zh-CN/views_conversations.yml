@@ -14,6 +14,7 @@
       placeholder_new_with_workflows: "开始你的提问，或输入 / 调用命令"
       placeholder_new: "随便问点什么，开始新对话"
       placeholder_message: "给智能体发消息…"
+      busy: "仍在回复中，请等它完成后再发送。"
       attach: "附加照片或文件"
       model: "模型"
       toggle_team_visibility: "切换此对话的团队可见性"
