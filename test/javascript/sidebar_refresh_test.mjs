@@ -27,7 +27,8 @@ function setup() {
   vm.runInNewContext(source, context)
   const controller = new context.SidebarRefresh()
   const controls = { dataset: { filter: "team", kind: "routines" } }
-  const frame = { src: "", querySelector: () => controls, reload() { this.reloaded = true } }
+  const frame = { src: "", busy: false, hasAttribute(name) { return name === "busy" && this.busy },
+                  querySelector: () => controls, reload() { this.reloaded = true } }
   controller.element = { querySelector: () => frame }
   controller.signalTarget = {}
   controller.urlValue = "/conversations"
@@ -68,5 +69,17 @@ test("returning to a tab refreshes missed updates", async () => {
   listeners.get("visibilitychange")()
   await new Promise(resolve => setTimeout(resolve, 350))
   assert.match(frame.src, /kind=routines/)
+  controller.disconnect()
+})
+
+test("a filter change still loading isn't overridden by a refresh", async () => {
+  const { controller, frame, controls } = setup()
+  frame.busy = true
+  controller.refresh()
+  assert.equal(frame.src, "")
+  controls.dataset.filter = "starred"
+  frame.busy = false
+  await new Promise(resolve => setTimeout(resolve, 350))
+  assert.match(frame.src, /filter=starred/)
   controller.disconnect()
 })

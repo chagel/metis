@@ -28,6 +28,9 @@ export default class extends Controller {
     const frame = this.element.querySelector("#convos")
     const controls = frame?.querySelector(".convo-controls")
     if (!frame || !controls) return
+    // A tab click still loading: its controls aren't in the DOM yet, so wait
+    // rather than navigate back to the old filter.
+    if (frame.hasAttribute("busy")) return this.scheduleRefresh()
 
     const url = new URL(this.urlValue, window.location.origin)
     url.searchParams.set("filter", controls.dataset.filter)
