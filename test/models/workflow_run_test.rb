@@ -34,6 +34,21 @@ class WorkflowRunTest < ActiveSupport::TestCase
     assert_equal [ awaiting ], @team.workflow_runs.awaiting.to_a
   end
 
+  test "entering or leaving an awaiting state refreshes the sidebar's Needs you section" do
+    run = new_run
+    stream = [ @user, @team, :sidebar ]
+
+    assert_turbo_stream_broadcasts(stream, count: 1) { run.awaiting_local! }
+    assert_turbo_stream_broadcasts(stream, count: 0) { run.awaiting_approval! }
+    assert_turbo_stream_broadcasts(stream, count: 1) { run.running! }
+    assert_turbo_stream_broadcasts(stream, count: 0) { run.completed! }
+  end
+
+  test "a run created queued refreshes the sidebar" do
+    conversation = @user.conversations.create!
+    assert_turbo_stream_broadcasts([ @user, @team, :sidebar ], count: 1) { new_run(conversation:, status: :queued) }
+  end
+
   test "one run per conversation" do
     conversation = @user.conversations.create!
     new_run(conversation: conversation)

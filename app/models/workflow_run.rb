@@ -17,7 +17,14 @@ class WorkflowRun < ApplicationRecord
   scope :active,   -> { where(status: %i[queued pending running awaiting_approval awaiting_local]) }
   # Runs a human (or their machine) must act on for the run to move — a gate,
   # a local claim, or a queued run a person must start.
-  scope :awaiting, -> { where(status: %i[queued awaiting_approval awaiting_local]) }
+  AWAITING = %w[queued awaiting_approval awaiting_local].freeze
+  scope :awaiting, -> { where(status: AWAITING) }
+
+  after_commit -> { conversation.broadcast_sidebar_refresh }, on: %i[create update], if: :awaiting_changed?
+
+  def awaiting_changed?
+    saved_change_to_status? && saved_change_to_status.map { AWAITING.include?(it) }.uniq.size == 2
+  end
 
   def active?
     queued? || pending? || running? || awaiting_approval? || awaiting_local?
