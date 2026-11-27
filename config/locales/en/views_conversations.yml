@@ -49,6 +49,9 @@ en:
       board: "Board"
       hunches: "Hunches"
       sharing: "Sharing"
+      sharing_count:
+        one: "Sharing · %{count} shared"
+        other: "Sharing · %{count} shared"
       search: "Search history"
       search_loading: "Searching history…"
       search_error: "Search unavailable. Try again."

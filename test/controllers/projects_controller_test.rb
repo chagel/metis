@@ -212,6 +212,7 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     get projects_path
     assert_response :success
     assert_select ".prnav a.prnav-item.on", text: "Projects"
+    assert_select ".prjnav a.prjnav-new[href='#{new_project_path}']"
   end
 
   test "projects shows the project list in the sidebar, not conversations, and stays expanded" do

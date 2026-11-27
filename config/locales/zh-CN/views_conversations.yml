@@ -49,6 +49,8 @@
       board: "看板"
       hunches: "预感"
       sharing: "分享"
+      sharing_count:
+        other: "分享 · 已分享 %{count} 项"
       search: "搜索历史"
       search_loading: "正在搜索历史…"
       search_error: "搜索不可用，请重试。"

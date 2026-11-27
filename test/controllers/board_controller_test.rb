@@ -23,10 +23,11 @@ class BoardControllerTest < ActionDispatch::IntegrationTest
     sign_in @user
     get board_path
     assert_response :success
-    assert_select ".sidebar .prnav .prnav-item.on", text: /Board/
+    assert_select ".sidebar .ws a.ws-place.on[href='#{board_path}']"
     # nav-tabs keeps the active tab in sync when a conversation opens in #main.
     assert_select ".sidebar .prnav[data-controller='nav-tabs']"
-    assert_select ".sidebar .prnav .prnav-item[data-nav-tabs-target='link']", count: 5
+    assert_select ".sidebar .prnav .prnav-item[data-nav-tabs-target='link']", count: 3
+    assert_equal %w[Chats Hunches Projects], css_select(".sidebar .prnav .prnav-item").map { it.text.strip }
   end
 
   test "the board opens collapsed by default, with rail destinations" do

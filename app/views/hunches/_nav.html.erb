@@ -1,14 +1,10 @@
 <%# The Hunches tab's sidebar: what Metis is following for you. Full Turbo
     Drive visits, so the active row is server-rendered. %>
 <nav class="hnav" aria-label="<%= t("hunches.nav.directions") %>">
-  <%= link_to hunches_path, class: class_names("hnav-item", on: @filter == :all) do %>
-    <span class="hnav-name"><%= t("hunches.nav.all") %></span>
-    <span class="hnav-count"><%= @ready_counts.values.sum.nonzero? %></span>
-  <% end %>
-
-  <%= link_to hunches_path(view: "history"), class: class_names("hnav-item", on: @filter == :history) do %>
-    <span class="hnav-name"><%= t("hunches.nav.history") %></span>
-  <% end %>
+  <div class="convo-tabs hnav-tabs" role="tablist">
+    <%= link_to t("hunches.nav.all"), hunches_path, class: class_names("convo-tab", on: @filter != :history) %>
+    <%= link_to t("hunches.nav.history"), hunches_path(view: "history"), class: class_names("convo-tab", on: @filter == :history) %>
+  </div>
 
   <details class="hnav-group" <%= "open" if @directions.empty? %>>
     <summary class="grp-label hnav-group-head">

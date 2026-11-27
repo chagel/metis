@@ -79,6 +79,7 @@ class HunchesControllerTest < ActionDispatch::IntegrationTest
     get hunches_path(direction: payments.id)
     assert_select ".hnav .hnav-item.on .hnav-name", text: "Payments"
     assert_select ".hnav .hnav-item .hnav-name", text: "Hiring"
+    assert_select ".hnav-tabs .convo-tab.on", text: "Ready"
     assert_select ".hdir .hdir-title", text: "Payments"
     assert_select ".hdir .switch[aria-checked=true][aria-label='Payments active'][title='Pause Payments']"
     assert_select ".hunch .hunch-title", count: 1
@@ -102,6 +103,7 @@ class HunchesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".hunch .hunch-title", text: "Done one"
     assert_select ".hunch .hunch-title", text: "Still ready", count: 0
     assert_select ".hunch .badge", text: "Used"
+    assert_select ".hnav-tabs .convo-tab.on", text: "History"
   end
 
   test "a dismiss reason chip records its label; free text works too" do
@@ -148,5 +150,16 @@ class HunchesControllerTest < ActionDispatch::IntegrationTest
     post directions_path, params: { direction: { title: " " } }
     assert_redirected_to hunches_path
     assert flash[:alert].present?
+  end
+
+  test "the Hunches tab counts what's ready; Sharing and new chat sit in the header" do
+    hunch
+    hunch(title: "Done", status: :used)
+    get hunches_path
+
+    assert_select ".prnav .prnav-item.on .prnav-badge", text: "1"
+    assert_select ".prnav .prnav-item", text: /Sharing/, count: 0
+    assert_select ".sidebar .ws a.ws-place[href='#{sharing_path}'][aria-label='Sharing']"
+    assert_select ".sidebar .ws a[href='#{conversations_path}'][data-turbo-frame='_top']"
   end
 end

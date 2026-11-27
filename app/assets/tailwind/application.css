@@ -506,6 +506,7 @@ button.sidebar-rail-avatar:hover { box-shadow:0 0 0 2px var(--accent-glow); }
 }
 .convo-tab:hover { color:var(--ink); background:var(--bg); }
 .convo-tab.on { color:var(--ink); background:var(--card); box-shadow:var(--sh-sm); }
+.hnav-tabs { flex:none; padding:0 2px 6px; }
 
 /* Conversation-type filter (chat/workflow/routine) — a compact dropdown
    riding the tab row, reusing the dropdown controller's open/close. */
@@ -2981,6 +2982,20 @@ body.drawer-open { overflow:hidden; }
 }
 .prnav-item:hover { color:var(--ink); }
 .prnav-item.on { background:var(--accent); color:var(--on-accent); }
+/* Board and Sharing: page shortcuts in the header, left of new chat. */
+.ws-place { position:relative; }
+.ws-place.on { background:var(--card); color:var(--ink); box-shadow:var(--sh-sm); }
+.ws-place .prnav-badge-slot { position:absolute; top:-5px; right:-6px; pointer-events:none; }
+.ws-place .prnav-badge { font-size:10px; padding:2px 5px; }
+.ws-sep { width:1px; height:16px; background:var(--line-2); margin:0 1px; }
+.rail-sep { width:20px; height:1px; background:var(--line-2); margin:4px 0; flex:none; }
+.prjnav-new {
+  display:flex; align-items:center; gap:7px; padding:8px 12px; border-radius:10px;
+  border:1px dashed var(--line-2); color:var(--ink-2); font-size:13px; font-weight:600; text-decoration:none;
+}
+.prjnav-new svg { width:14px; height:14px; }
+.prjnav-new:hover { color:var(--ink); border-color:var(--ink-3); }
+.prnav-badge.prnav-badge--quiet { background:var(--line-2); color:var(--ink); }
 .prnav-badge {
   font-family:var(--fm); font-size:11px; line-height:1;
   background:var(--gold); color:#231a06; border-radius:9px; padding:2px 6px;
