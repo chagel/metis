@@ -12,7 +12,10 @@
   </div>
   <p class="hdir-meta routine-meta">
     <span><%= direction_explored(direction) %></span>
-    <span><%= t("directions.outcomes", used: outcomes.fetch("used", 0), dismissed: outcomes.fetch("dismissed", 0), total: outcomes.values.sum) %></span>
+    <span>
+      <%= t("directions.outcomes", **outcomes.slice(:used, :dismissed, :expired)) %>
+      <% if outcomes[:used_rate] %>· <%= t("directions.used_rate", rate: outcomes[:used_rate]) %><% end %>
+    </span>
   </p>
   <%= render "directions/state", direction: direction %>
 </section>
