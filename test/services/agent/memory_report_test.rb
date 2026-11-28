@@ -90,4 +90,13 @@ class Agent::MemoryReportTest < ActiveSupport::TestCase
     team.memberships.create!(user: @user, role: :member)
     assert_not Agent::MemoryReport.new(@user, team).to_h[:can_propose_skills]
   end
+
+  test "chat titles span earlier nights, so a once-a-day task shows as recurring" do
+    3.times { |day| @user.conversations.create!(team: @team, title: "Investor update", created_at: (day + 1).days.ago) }
+    @user.conversations.create!(team: @team, title: "Ancient", created_at: 40.days.ago)
+
+    titles = report(since: 12.hours.ago).to_h[:conversation_titles]
+    assert_equal 3, titles.count("Investor update")
+    assert_not_includes titles, "Ancient"
+  end
 end

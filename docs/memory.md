@@ -90,7 +90,8 @@ the user's workflow gate decisions (their `review` messages, so a "requested
 changes" note reads as a correction), hunches used or dismissed (with the
 dismiss reason; expiries only as a count, never as feedback), every
 correction note from the last 30 days (`correction_history`, so a
-correction repeated across nights is visible), the window's chat titles,
+correction repeated across nights is visible), the last 30 days of chat titles
+(so a task asked once a day shows as recurring),
 and whether the user may propose skills (`can_propose_skills`, team admins).
 Three new chats in the window count as activity on their own, so a task that
 keeps coming back wakes the review.

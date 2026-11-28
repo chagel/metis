@@ -78,8 +78,11 @@ module Agent
 
     def new_chats = Conversation.chats.where(user: @user, team: @team, created_at: @since..)
 
+    # Older than the window too: a task asked once a day only shows as
+    # recurring across several nights.
     def conversation_titles
-      new_chats.where.not(title: [ nil, "" ]).order(:created_at).limit(LIST_CAP).pluck(:title)
+      Conversation.chats.where(user: @user, team: @team, created_at: HISTORY.ago..).where.not(title: [ nil, "" ])
+                  .order(created_at: :desc).limit(LIST_CAP).pluck(:title)
     end
 
     def deletions
