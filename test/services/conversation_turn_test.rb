@@ -29,6 +29,7 @@ class ConversationTurnTest < ActiveSupport::TestCase
     end
 
     assert_equal %w[messages messages composer_actions], streams.map { it["target"] }
+    assert_equal %w[append_missing append_missing replace], streams.map { it["action"] }
     assert_includes streams[0].to_html, ActionView::RecordIdentifier.dom_id(@user_message)
     assert_includes streams[1].to_html, ActionView::RecordIdentifier.dom_id(@assistant_message)
     assert_includes streams[2].to_html, 'data-composer-state="streaming"'

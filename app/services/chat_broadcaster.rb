@@ -77,11 +77,12 @@ class ChatBroadcaster
     )
   end
 
-  # A new turn's rows and Stop button, for every window on the conversation —
-  # the sender's own window also gets them from create.turbo_stream.
+  # A new turn's rows and Stop button, for every window on the conversation.
+  # The sender also gets the rows from create.turbo_stream; append_missing
+  # keeps the second copy from replacing a row that's already streaming.
   def announce(user_message)
-    append_row(user_message, forkable: false)
-    append_row(@message, forkable: true)
+    append_missing(user_message, forkable: false)
+    append_missing(@message, forkable: true)
     refresh_composer
   end
 
@@ -259,8 +260,11 @@ class ChatBroadcaster
     }
   end
 
-  def append_row(message, forkable:)
-    broadcast(:append, target: "messages", partial: "messages/message", locals: { message: message, forkable: forkable })
+  def append_missing(message, forkable:)
+    Turbo::StreamsChannel.broadcast_action_to(
+      @conversation, action: :append_missing, target: "messages",
+      partial: "messages/message", locals: { message: message, forkable: forkable }
+    )
   end
 
   def broadcast_append(target:, html:)

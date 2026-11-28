@@ -30,13 +30,16 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_equal @user, @conversation.messages.find_by(role: :user).sender
   end
 
-  test "the create stream leaves the new rows to the conversation broadcast" do
+  test "the create stream adds the new rows only if the broadcast hasn't" do
     post conversation_messages_path(@conversation),
          params: { content: "Hello agent" }, as: :turbo_stream
 
     assert_response :success
     assert_no_match %r{turbo-stream action="append" target="messages"}, response.body
-    assert_match %r{turbo-stream action="replace" target="composer"}, response.body
+    assert_match %r{turbo-stream action="append_missing" target="messages"}, response.body
+    @conversation.messages.each { assert_includes response.body, %(id="#{ActionView::RecordIdentifier.dom_id(it)}") }
+    # Fork is revealed only once the reply finishes (ChatBroadcaster#reveal_fork).
+    assert_not_includes response.body, "msg-fork-form"
   end
 
   test "replying lifts the conversation to the top of the sidebar list" do

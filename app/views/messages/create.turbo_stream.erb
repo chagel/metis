@@ -1,5 +1,11 @@
-<%# The new rows arrive by broadcast (ChatBroadcaster#announce) — appending
-    them here too would race it and could wipe a reply already streaming. %>
+<%# ChatBroadcaster#announce broadcasts the same rows; append_missing makes
+    whichever arrives second a no-op, so a dropped broadcast still shows them
+    and a late copy never replaces a row that's already streaming. %>
+<%= turbo_stream.action :append_missing, "messages" do %>
+  <%= render @user_message %>
+  <%= render "messages/message", message: @assistant_message, forkable: true %>
+<% end %>
+
 <%= turbo_stream.replace "composer",
       partial: "conversations/composer", locals: { conversation: @conversation } %>
 
