@@ -11,12 +11,12 @@ class SkillsController < ApplicationController
     @tab = TABS.include?(params[:tab]) ? params[:tab] : "team"
     case @tab
     when "team"
-      @skills = team.skills.order(updated_at: :desc)
+      @skills = team.skills.visible_to(current_user).order(updated_at: :desc)
     when "builtin"
       @repo_skills = Agent::RepoSkills.all
     when "marketplace"
       @featured = Agent::SkillMarketplace::FEATURED
-      @existing_slugs = team.skills.pluck(:slug).to_set
+      @existing_slugs = team.skills.visible_to(current_user).pluck(:slug).to_set
     end
   end
 
@@ -116,7 +116,7 @@ class SkillsController < ApplicationController
   end
 
   def set_skill
-    @skill = team.skills.find(params[:id])
+    @skill = team.skills.visible_to(current_user).find(params[:id])
   end
 
   def skill_params

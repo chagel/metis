@@ -204,6 +204,9 @@
         first_review: "今晚进行第一次回顾。"
         corrections: "纠正：本周 %{this_week} 次，上周 %{last_week} 次"
         review_settings: "回顾设置"
+        note_label: "上次回顾学到的内容"
+        changes:
+          other: "最近的变更（%{count}）"
         empty: "还没有记忆。Metis 会在聊天中了解你：你的纠正、偏好、目标和工作方式。"
         clear: "清除全部记忆"
         clear_confirm: "删除 Metis 在这个团队中关于你的所有记忆？"
@@ -214,6 +217,20 @@
           goal: "目标"
           commitment: "跟进"
           experience: "与你合作的经验"
+      change:
+        actions:
+          created: "学到"
+          updated: "修改"
+          forgotten: "忘记"
+        actors:
+          review: "夜间回顾"
+          chat: "在对话中"
+          user: "你"
+        ago: "%{time}前"
+        source: "来源"
+        fields:
+          kind: "类型：%{from} → %{to}"
+          confidence: "置信度：%{from} → %{to}"
       memory:
         kinds:
           preference: "偏好"

@@ -171,6 +171,7 @@ class WorkflowAdvanceJobTest < ActiveSupport::TestCase
     run.request_changes!("actually, open a PR too", by: user)
     spec = run.tasks.find_by(position: 0)
     assert spec.reload.running?, "the step re-runs rather than cancelling"
+    assert_not_nil spec.decided_at, "the decision is timestamped like approve and reject"
     assert run.reload.running?
     feedback = run.conversation.messages.user.order(:created_at).last
     assert feedback.review?, "the feedback is a review record in the timeline"

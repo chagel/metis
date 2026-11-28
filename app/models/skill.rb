@@ -22,6 +22,9 @@ class Skill < ApplicationRecord
   belongs_to :team
   belongs_to :created_by, class_name: "User", optional: true
   belongs_to :updated_by, class_name: "User", optional: true
+  # Set while a skill is the memory review's disabled proposal: only that
+  # user sees it, and enabling it publishes it to the team.
+  belongs_to :proposed_by, class_name: "User", optional: true
 
   has_many_attached :files
 
@@ -30,7 +33,12 @@ class Skill < ApplicationRecord
                     format: { with: SLUG_FORMAT }
   validate :slug_not_in_repo_tree
 
+  before_save { self.proposed_by = nil if enabled? }
+
   scope :enabled, -> { where(enabled: true) }
+  scope :visible_to, ->(user) { where(proposed_by_id: [ nil, user.id ]) }
+
+  def proposal? = proposed_by_id.present?
 
   def self.valid_file_path?(path)
     return false unless path.is_a?(String)

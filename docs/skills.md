@@ -110,6 +110,11 @@ Stimulus controller for the filename auto-fill on the file uploader.
 - **Broadcasting.** `after_commit` broadcasts to `[team, :skills]` —
   concurrent editors see updates live.
 
+
+A skill the nightly memory review proposes (`proposed_by` set, disabled) is
+listed only for that user, with a "Proposed" badge; enabling it publishes it
+to the team. See `docs/memory.md`.
+
 ## Import from GitHub
 
 Team skills can also be **imported from a public GitHub directory** —

@@ -23,6 +23,12 @@ module Agent
       new(conversation, params).update
     end
 
+    # The memory review's suggestion of a skill for a task that keeps coming
+    # back: created disabled and visible only to its user until they enable it.
+    def self.propose(conversation, params)
+      new(conversation, params).propose
+    end
+
     def initialize(conversation, params = {})
       @conversation = conversation
       @params = params
@@ -32,9 +38,9 @@ module Agent
       builtin = Agent::RepoSkills.all.map do |skill|
         { slug: skill.slug, description: skill.description, source: "builtin", status: "built-in" }
       end
-      team = @conversation.team.skills.order(:slug).map do |skill|
+      team = @conversation.team.skills.visible_to(@conversation.user).order(:slug).map do |skill|
         { slug: skill.slug, description: skill.description, source: "team",
-          status: skill.enabled? ? "enabled" : "disabled" }
+          status: skill.proposal? ? "proposed" : (skill.enabled? ? "enabled" : "disabled") }
       end
       builtin + team
     end
@@ -49,6 +55,17 @@ module Agent
         return failure(skill.errors.full_messages.join("; ")) unless skill.valid?
 
         persist(skill, "created")
+      end
+    end
+
+    def propose
+      guarded do
+        return failure("A skill named #{quoted(slug)} already exists.") if existing
+        return failure("A proposal needs SKILL.md content.") if content.blank?
+
+        skill = @conversation.team.skills.new(slug: slug, created_by: @conversation.user, proposed_by: @conversation.user)
+        @params = @params.merge("enabled" => false)
+        persist(skill, "proposed")
       end
     end
 

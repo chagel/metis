@@ -308,8 +308,11 @@ typed by `kind` / `source` / `confidence`) is recorded by the agent's own
 `Agent::Identity`, and managed at `/settings/memory`. Replies record which
 memories shaped them and whether the user corrected, cancelled or forked
 them; a nightly per-user "Memory review" routine (`MemoryReview`) reads
-`Agent::MemoryReport` and tidies the memories, skipping quiet nights. See
-[`docs/memory.md`](docs/memory.md).
+`Agent::MemoryReport` (which also carries gate decisions, hunch outcomes and
+30 days of corrections) and tidies the memories, skipping quiet nights. Every
+change is a `MemoryChange` (before/after, actor, reason) shown on the memory
+page, and the review may propose one disabled skill a night, visible only to
+its user (`Skill#proposed_by`). See [`docs/memory.md`](docs/memory.md).
 
 ### Hunches
 
@@ -339,7 +342,8 @@ Hunches tab. See [`docs/hunches.md`](docs/hunches.md).
   `Membership#role`, `Invitation#role`, `WebhookEvent#provider`,
   `Routine#trigger_source`, `Routine#visibility`, `UserMemory#kind`,
   `UserMemory#source`, `UserMemory#confidence`, `Direction#status`,
-  `Hunch#impact`, `Hunch#confidence`, `Hunch#status`.
+  `Hunch#impact`, `Hunch#confidence`, `Hunch#status`, `MemoryChange#action`,
+  `MemoryChange#actor`.
 - User-facing copy lives in `config/locales/*.en.yml` (split by surface:
   `views_*`, `flash`, `mailers`, `models`, …), reached via `t(...)` / `I18n.t`
   — not inline strings. English is the baseline.

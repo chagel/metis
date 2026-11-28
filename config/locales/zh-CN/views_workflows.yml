@@ -24,6 +24,8 @@
     skill:
       enabled: "已启用"
       disabled: "已禁用"
+      proposed: "建议"
+      proposed_hint: "由记忆回顾建议。只有你能看到；启用后会分享给团队，或删除它。"
     tab_builtin:
       built_in: "内置"
       empty: "此部署未附带内置技能。"

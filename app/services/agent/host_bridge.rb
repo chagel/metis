@@ -20,7 +20,7 @@ module Agent
     # Allowlist — only these ops are dispatchable, and each maps to a method.
     OPS = %w[
       get_workflow get_project start_workflow create_workflow update_workflow
-      list_skills create_skill update_skill
+      list_skills create_skill update_skill propose_skill
       list_routines create_routine update_routine
       remember update_memory forget_memory note_memory_applied note_memory_correction memory_report
       list_directions add_direction update_direction record_hunch
@@ -124,6 +124,10 @@ module Agent
 
     def update_skill
       JSON.generate(Agent::SkillManager.update(@conversation, @params))
+    end
+
+    def propose_skill
+      JSON.generate(Agent::SkillManager.propose(@conversation, @params))
     end
 
     def list_routines

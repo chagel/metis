@@ -24,6 +24,8 @@ en:
     skill:
       enabled: "Enabled"
       disabled: "Disabled"
+      proposed: "Proposed"
+      proposed_hint: "Suggested by your memory review. Only you can see it; enable it to share it with the team, or delete it."
     tab_builtin:
       built_in: "Built-in"
       empty: "No built-in skills shipped with this deployment."

@@ -99,4 +99,36 @@ class Settings::MemoriesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".memory-status", text: /First review runs tonight/
     assert_select ".memory-status", text: /Corrections: 0 this week, 0 last week/
   end
+
+  test "the page shows the last review's note and the memory history" do
+    routine = MemoryReview.ensure_for(@user, @team)
+    review = @user.conversations.create!(team: @team, routine: routine)
+    review.messages.create!(role: :assistant, streaming_status: :done, content: "- Merged two notes about tables")
+    m = memory
+    MemoryChange.record!(m, action: :created, actor: :review, conversation: review, reason: "seen twice")
+    get memories_path
+
+    assert_select ".memory-note", text: /Merged two notes about tables/
+    assert_select ".memory-changes summary", text: /Recent changes \(1\)/
+    assert_select ".memory-change", text: /Learned.*Nightly review.*prefers short answers.*seen twice/m
+  end
+
+  test "the user's own edits, confirms and deletes are recorded as theirs" do
+    m = memory
+    patch memory_path(m), params: { user_memory: { content: "prefers very short answers" } }
+    patch confirm_memory_path(memory(content: "guess")), as: :turbo_stream
+    delete memory_path(m), as: :turbo_stream
+
+    changes = MemoryChange.for(@user, @team).order(:id)
+    assert_equal %w[updated updated forgotten], changes.map(&:action)
+    assert changes.all?(&:by_user?)
+    assert_equal "prefers very short answers", changes.last.before["content"]
+  end
+
+  test "history survives clearing every memory" do
+    memory
+    delete clear_memories_path
+    get memories_path
+    assert_select ".memory-change", text: /Forgot.*You.*prefers short answers/m
+  end
 end

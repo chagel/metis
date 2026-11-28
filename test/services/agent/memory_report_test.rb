@@ -53,4 +53,24 @@ class Agent::MemoryReportTest < ActiveSupport::TestCase
     reply(applied_memory_ids: [ @memory.id ])
     assert report.activity?
   end
+
+  test "reports gate decisions, hunch outcomes, 30 days of corrections and conversation titles" do
+    run_conversation = @user.conversations.create!(team: @team, title: "Ship it")
+    run_conversation.messages.create!(role: :user, kind: :review, sender: @user, streaming_status: :done,
+                                      content: "M requested changes — use the staging bucket")
+    Hunch.create!(user: @user, team: @team, title: "Draft the update", body: "b", why_now: "w", impact: :medium,
+                  confidence: :medium, status: :dismissed, dismiss_reason: "already done", outcome_at: Time.current)
+    Hunch.create!(user: @user, team: @team, title: "Old", body: "b", why_now: "w", impact: :medium,
+                  confidence: :medium, status: :expired, outcome_at: Time.current)
+    reply(corrected_at: 20.days.ago, correction_note: "no em dashes")
+    @user.conversations.create!(team: @team, title: "Weekly investor update")
+
+    data = report.to_h
+    assert_equal [ "M requested changes — use the staging bucket" ], data[:gate_decisions].map { it[:decision] }
+    assert_equal [ { title: "Draft the update", outcome: "dismissed", reason: "already done" } ], data[:hunches]
+    assert_equal 1, data[:hunches_expired]
+    assert_includes data[:correction_history].map { it[:note] }, "no em dashes"
+    assert_includes data[:conversation_titles], "Weekly investor update"
+    assert report.activity?
+  end
 end

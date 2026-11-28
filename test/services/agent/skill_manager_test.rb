@@ -138,4 +138,24 @@ class Agent::SkillManagerTest < ActiveSupport::TestCase
     refute result[:ok]
     assert_match(/inside a workflow run/i, result[:error])
   end
+
+  test "propose creates a disabled skill only its user sees, published once enabled" do
+    result = Agent::SkillManager.propose(@conversation, "slug" => "investor-update", "content" => SKILL_MD, "enabled" => true)
+
+    assert result[:ok]
+    skill = @team.skills.find_by!(slug: "investor-update")
+    assert_not skill.enabled?
+    assert_equal @user, skill.proposed_by
+    other = User.create!(email: "sm2-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    assert_not @team.skills.visible_to(other).exists?(skill.id)
+    assert @team.skills.visible_to(@user).exists?(skill.id)
+
+    skill.update!(enabled: true)
+    assert_nil skill.reload.proposed_by
+  end
+
+  test "propose refuses a slug that already exists" do
+    @team.skills.create!(slug: "investor-update", content_cache: "x")
+    assert_not Agent::SkillManager.propose(@conversation, "slug" => "investor-update", "content" => SKILL_MD)[:ok]
+  end
 end

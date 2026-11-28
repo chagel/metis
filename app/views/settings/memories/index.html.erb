@@ -29,6 +29,11 @@
           · <%= t(".corrections", this_week: @corrections_this_week, last_week: @corrections_last_week) %>
           · <%= link_to t(".review_settings"), edit_routine_path(@review) %>
         </p>
+        <% if @review_note&.content.present? %>
+          <section class="memory-note" aria-label="<%= t(".note_label") %>">
+            <div class="chat-content"><%= markdown(@review_note.content) %></div>
+          </section>
+        <% end %>
       <% end %>
 
       <% if @memories.empty? %>
@@ -53,6 +58,13 @@
           <%= button_to t(".clear"), clear_memories_path, method: :delete, class: "memory-clear",
                 form: { data: { turbo_confirm: t(".clear_confirm") } } %>
         </div>
+      <% end %>
+
+      <% if @changes.any? %>
+        <details class="memory-changes">
+          <summary><%= t(".changes", count: @changes.size) %></summary>
+          <ul><%= render partial: "settings/memories/change", collection: @changes %></ul>
+        </details>
       <% end %>
     </div>
   </div>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_26_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_28_020000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -237,6 +237,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_26_010000) do
     t.index ["user_id"], name: "index_memberships_on_user_id"
   end
 
+  create_table "memory_changes", force: :cascade do |t|
+    t.integer "action", null: false
+    t.integer "actor", null: false
+    t.text "after"
+    t.text "before"
+    t.bigint "conversation_id"
+    t.datetime "created_at", null: false
+    t.text "reason"
+    t.bigint "team_id", null: false
+    t.bigint "user_id", null: false
+    t.bigint "user_memory_id"
+    t.index ["conversation_id"], name: "index_memory_changes_on_conversation_id"
+    t.index ["team_id", "user_id", "created_at"], name: "index_memory_changes_on_team_id_and_user_id_and_created_at"
+    t.index ["team_id"], name: "index_memory_changes_on_team_id"
+    t.index ["user_id"], name: "index_memory_changes_on_user_id"
+    t.index ["user_memory_id"], name: "index_memory_changes_on_user_memory_id"
+  end
+
   create_table "messages", force: :cascade do |t|
     t.bigint "applied_memory_ids", default: [], null: false, array: true
     t.integer "cache_read_tokens"
@@ -328,11 +346,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_26_010000) do
     t.string "description"
     t.boolean "enabled", default: true, null: false
     t.jsonb "metadata", default: {}, null: false
+    t.bigint "proposed_by_id"
     t.string "slug", null: false
     t.bigint "team_id", null: false
     t.datetime "updated_at", null: false
     t.bigint "updated_by_id"
     t.index ["created_by_id"], name: "index_skills_on_created_by_id"
+    t.index ["proposed_by_id"], name: "index_skills_on_proposed_by_id"
     t.index ["team_id", "slug"], name: "index_skills_on_team_id_and_slug", unique: true
     t.index ["team_id"], name: "index_skills_on_team_id"
     t.index ["updated_by_id"], name: "index_skills_on_updated_by_id"
@@ -487,6 +507,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_26_010000) do
   add_foreign_key "llm_models", "llm_providers"
   add_foreign_key "memberships", "teams"
   add_foreign_key "memberships", "users"
+  add_foreign_key "memory_changes", "conversations", on_delete: :nullify
+  add_foreign_key "memory_changes", "teams", on_delete: :cascade
+  add_foreign_key "memory_changes", "user_memories", on_delete: :nullify
+  add_foreign_key "memory_changes", "users", on_delete: :cascade
   add_foreign_key "messages", "conversations"
   add_foreign_key "messages", "users", column: "sender_id", on_delete: :nullify
   add_foreign_key "oauth_grants", "users"
@@ -498,6 +522,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_26_010000) do
   add_foreign_key "routines", "users"
   add_foreign_key "skills", "teams"
   add_foreign_key "skills", "users", column: "created_by_id"
+  add_foreign_key "skills", "users", column: "proposed_by_id", on_delete: :nullify
   add_foreign_key "skills", "users", column: "updated_by_id"
   add_foreign_key "tasks", "messages", column: "assistant_message_id", on_delete: :nullify
   add_foreign_key "tasks", "users", column: "approved_by_id", on_delete: :nullify

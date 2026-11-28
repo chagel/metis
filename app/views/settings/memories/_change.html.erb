@@ -1,0 +1,31 @@
+<%# One row of the memory history: who changed what, from what, and why. %>
+<% before = change.before || {} %>
+<% after = change.after || {} %>
+<li class="memory-change">
+  <div class="memory-change-head">
+    <span class="memory-change-what"><%= t(".actions.#{change.action}") %></span>
+    <span class="memory-change-meta">
+      <%= t(".actors.#{change.actor}") %> · <%= t(".ago", time: time_ago_in_words(change.created_at)) %>
+      <% if change.conversation && !change.by_user? %>
+        · <%= link_to t(".source"), conversation_path(change.conversation) %>
+      <% end %>
+    </span>
+  </div>
+  <% if change.forgotten? %>
+    <p class="memory-change-text memory-change-gone"><%= before["content"] %></p>
+  <% elsif change.updated? && before["content"] != after["content"] %>
+    <p class="memory-change-text memory-change-gone"><%= before["content"] %></p>
+    <p class="memory-change-text"><%= after["content"] %></p>
+  <% else %>
+    <p class="memory-change-text"><%= after["content"] %></p>
+    <% if change.updated? %>
+      <% %w[kind confidence].each do |field| %>
+        <% next if before[field] == after[field] %>
+        <p class="memory-change-field"><%= t(".fields.#{field}", from: before[field], to: after[field]) %></p>
+      <% end %>
+    <% end %>
+  <% end %>
+  <% if change.reason.present? %>
+    <p class="memory-change-reason"><%= change.reason %></p>
+  <% end %>
+</li>

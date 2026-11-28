@@ -227,6 +227,10 @@ en:
         first_review: "First review runs tonight."
         corrections: "Corrections: %{this_week} this week, %{last_week} last week"
         review_settings: "Review settings"
+        note_label: "What the last review learned"
+        changes:
+          one: "Recent changes (1)"
+          other: "Recent changes (%{count})"
         empty: "Nothing yet. Metis learns about you as you chat: your corrections, preferences, goals and the way you work."
         clear: "Clear all memories"
         clear_confirm: "Delete every memory Metis has about you in this team?"
@@ -237,6 +241,20 @@ en:
           goal: "Goals"
           commitment: "Follow-ups"
           experience: "Working with you"
+      change:
+        actions:
+          created: "Learned"
+          updated: "Changed"
+          forgotten: "Forgot"
+        actors:
+          review: "Nightly review"
+          chat: "In a chat"
+          user: "You"
+        ago: "%{time} ago"
+        source: "source"
+        fields:
+          kind: "Type: %{from} → %{to}"
+          confidence: "Confidence: %{from} → %{to}"
       memory:
         kinds:
           preference: "Preference"

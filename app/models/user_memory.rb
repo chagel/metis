@@ -30,15 +30,23 @@ class UserMemory < ApplicationRecord
   end
 
   def confirm!
+    before = snapshot
     update!(source: :stated, confidence: :high)
+    MemoryChange.record!(self, action: :updated, actor: :user, before: before) if saved_changes?
   end
 
   # The user's own wording: as good as stated, and a signal for the review.
   def edit_by_user(content)
+    before = snapshot
     self.content = content
     assign_attributes(source: :stated, confidence: :high, edited_by_user_at: Time.current) if content_changed?
-    save
+    return false unless save
+
+    MemoryChange.record!(self, action: :updated, actor: :user, before: before) if saved_change_to_content?
+    true
   end
+
+  def snapshot = { "content" => content, "kind" => kind, "confidence" => confidence, "source" => source }
 
   private
 

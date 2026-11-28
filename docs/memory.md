@@ -85,7 +85,13 @@ these counts as accepted. On `/settings/memory`, an edit marks the memory
 **Report.** `Agent::MemoryReport` (tool `metis_memory_report`) summarises
 a window: per memory, replies applied / corrected / cancelled / forked;
 corrections on replies that used no memory; the user's own edits and
-deletions; corrections this window against the one before.
+deletions; corrections this window against the one before. It also carries
+the user's workflow gate decisions (their `review` messages, so a "requested
+changes" note reads as a correction), hunches used or dismissed (with the
+dismiss reason; expiries only as a count, never as feedback), every
+correction note from the last 30 days (`correction_history`, so a
+correction repeated across nights is visible), and the window's
+conversation titles.
 
 **Nightly review.** The first memory a user saves in a team creates a
 "Memory review" routine for them (`MemoryReview`, personal, daily at 03:00
@@ -100,8 +106,27 @@ last week, and a link to the routine's settings.
 
 A review is an ordinary personal routine: only its user sees, edits or runs
 it, under "My routines". Pause it to turn reviews off; deleting it only lasts
-until the next new memory recreates it.
+until the next new memory recreates it. Its prompt is stored on the routine
+when it's created; a migration moves reviews still on the shipped prompt to a
+new one (a user-edited prompt is left alone).
+
+**History.** Every change to a memory writes a `MemoryChange`: action
+(created / updated / forgotten), actor (`review`, `chat`, or the `user`
+on `/settings/memory`), the conversation, encrypted before/after snapshots
+and the agent's one-line `reason` (the memory tools take an optional
+`reason`). Rows outlive a forgotten memory and are pruned after 90 days
+(`MemoryChange.prune!`, daily). The memory page shows the last review's note
+inline and the last 30 days of changes under "Recent changes". There's no
+undo yet; the snapshots are what one would restore.
+
+**Skill proposals.** When the conversation titles show a task coming back,
+the review may call `metis_propose_skill` (HostBridge `propose_skill`, allowed
+unattended only in the review), at most once a night. It creates a team skill
+through `Agent::SkillManager.propose`: disabled, with `proposed_by` set, so
+only that user sees it (`Skill.visible_to`). Enabling it clears
+`proposed_by` and publishes it to the team; deleting it discards it.
 
 ## Not yet
 
-A decision log for prepared and proposed work, and directions and foresight (P3).
+Undo for memory changes, and a general decision log with levels (P4, the
+decision ladder).
