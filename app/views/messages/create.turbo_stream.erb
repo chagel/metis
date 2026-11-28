@@ -1,12 +1,5 @@
-<%= turbo_stream.append "messages" do %>
-  <%= render @user_message %>
-<% end %>
-
-<%# Still pending — ChatBroadcaster#reveal_fork adds Fork once it finishes. %>
-<%= turbo_stream.append "messages" do %>
-  <%= render "messages/message", message: @assistant_message, forkable: true %>
-<% end %>
-
+<%# The new rows arrive by broadcast (ChatBroadcaster#announce) — appending
+    them here too would race it and could wipe a reply already streaming. %>
 <%= turbo_stream.replace "composer",
       partial: "conversations/composer", locals: { conversation: @conversation } %>
 

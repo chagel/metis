@@ -30,14 +30,13 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_equal @user, @conversation.messages.find_by(role: :user).sender
   end
 
-  test "the create stream renders no fork action yet" do
+  test "the create stream leaves the new rows to the conversation broadcast" do
     post conversation_messages_path(@conversation),
          params: { content: "Hello agent" }, as: :turbo_stream
 
     assert_response :success
-    # User messages aren't forkable, and the assistant is still pending — its
-    # action is revealed only at turn end (ChatBroadcaster#reveal_fork).
-    assert_equal 0, response.body.scan("msg-fork-form").size
+    assert_no_match %r{turbo-stream action="append" target="messages"}, response.body
+    assert_match %r{turbo-stream action="replace" target="composer"}, response.body
   end
 
   test "replying lifts the conversation to the top of the sidebar list" do

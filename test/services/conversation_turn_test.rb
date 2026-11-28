@@ -32,6 +32,8 @@ class ConversationTurnTest < ActiveSupport::TestCase
     assert_includes streams[0].to_html, ActionView::RecordIdentifier.dom_id(@user_message)
     assert_includes streams[1].to_html, ActionView::RecordIdentifier.dom_id(@assistant_message)
     assert_includes streams[2].to_html, 'data-composer-state="streaming"'
+    # Fork is revealed only once the reply finishes (ChatBroadcaster#reveal_fork).
+    assert_not_includes streams[1].to_html, "msg-fork-form"
   end
 
   test "yields the user message before the assistant row exists" do
