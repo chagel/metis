@@ -47,7 +47,7 @@
         </nav>
 
         <div class="memory-list" data-memory-filter-target="list">
-          <%= render partial: "settings/memories/memory", collection: @memories, locals: { revisions: @revisions } %>
+          <%= render partial: "settings/memories/memory", collection: @memories %>
         </div>
         <p class="memory-none" data-memory-filter-target="none" hidden><%= t(".no_match") %></p>
 

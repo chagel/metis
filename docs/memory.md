@@ -110,10 +110,10 @@ until the next new memory recreates it. Its prompt is stored on the routine
 when it's created; a migration moves reviews still on the shipped prompt to a
 new one (a user-edited prompt is left alone).
 
-**History.** Every change to a memory writes a `MemoryChange` (from
-`UserMemory`'s own callbacks, once a write sets `change_actor`): action
-(created / updated / forgotten), actor (`review`, `chat`, or the `user`
-on `/settings/memory`), the conversation, encrypted before/after snapshots
+**History.** Every change to a memory writes a `MemoryChange` from
+`UserMemory`'s own callbacks: action (created / updated / forgotten), actor
+(`review`, `chat`, the `user` on `/settings/memory`, or `system` when a
+write names no one; see `UserMemory#changed_by`), the conversation, encrypted before/after snapshots
 and the agent's one-line `reason` (the memory tools take an optional
 `reason`). Rows outlive a forgotten memory and are pruned after 90 days
 (`MemoryChange.prune!`, daily). On the memory page each memory lists its own

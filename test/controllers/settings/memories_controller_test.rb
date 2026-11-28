@@ -40,7 +40,7 @@ class Settings::MemoriesControllerTest < ActionDispatch::IntegrationTest
   test "an edited row comes back with its new revision" do
     m = memory
     patch memory_path(m), params: { user_memory: { content: "prefers very short answers" } }, as: :turbo_stream
-    assert_select ".memory-meta", text: /1 change/
+    assert_select ".memory-meta", text: /2 changes/
     assert_select ".memory-change .memory-change-gone", text: "prefers short answers"
   end
 
@@ -125,10 +125,15 @@ class Settings::MemoriesControllerTest < ActionDispatch::IntegrationTest
     patch confirm_memory_path(memory(content: "guess")), as: :turbo_stream
     delete memory_path(m), as: :turbo_stream
 
-    changes = MemoryChange.for(@user, @team).order(:id)
+    changes = MemoryChange.for(@user, @team).by_user.order(:id)
     assert_equal %w[updated updated forgotten], changes.map(&:action)
-    assert changes.all?(&:by_user?)
     assert_equal "prefers very short answers", changes.last.before["content"]
+  end
+
+  test "a write that names no actor is still recorded, as Metis" do
+    memory
+    change = MemoryChange.for(@user, @team).sole
+    assert change.created? && change.by_system?
   end
 
   test "history survives clearing every memory" do

@@ -4,13 +4,11 @@ class Settings::MemoriesController < ApplicationController
   before_action :set_memory, only: %i[update destroy confirm]
 
   def index
-    @memories = memories.newest_first.load
+    @memories = memories.newest_first.includes(memory_changes: :conversation).load
     @review = MemoryReview.routine_for(current_user, current_team)
     @last_review = MemoryReview.last_run_for(current_user, current_team)
-    @proposals = current_team.skills.where(proposed_by: current_user).count
-    changes = MemoryChange.for(current_user, current_team).recent.includes(:conversation)
-    @revisions = changes.where.not(user_memory_id: nil).group_by(&:user_memory_id)
-    @forgotten = changes.forgotten.limit(20).load
+    @proposals = current_team.skills.proposals_of(current_user).count
+    @forgotten = MemoryChange.for(current_user, current_team).forgotten.recent.includes(:conversation).limit(20).load
     week = Agent::MemoryReport.new(current_user, current_team, since: 1.week.ago)
     @corrections_this_week = week.corrections_count
     @corrections_last_week = week.previous_corrections_count
@@ -32,8 +30,7 @@ class Settings::MemoriesController < ApplicationController
   def destroy
     Membership.transaction do
       current_membership.record_memory_deletions!([ @memory.kind ])
-      @memory.change_actor = :user
-      @memory.destroy!
+      @memory.forget_by_user!
     end
     respond_to do |format|
       format.turbo_stream { render turbo_stream: turbo_stream.remove(helpers.dom_id(@memory)) }
@@ -44,10 +41,7 @@ class Settings::MemoriesController < ApplicationController
   def clear
     Membership.transaction do
       current_membership.record_memory_deletions!(memories.pluck(:kind))
-      memories.each do |memory|
-        memory.change_actor = :user
-        memory.destroy!
-      end
+      memories.each(&:forget_by_user!)
     end
     redirect_to memories_path, notice: t("flash.settings.memories.clear.notice")
   end

@@ -1,4 +1,4 @@
-<% changes = local_assigns.key?(:revisions) ? revisions.fetch(memory.id, []) : memory.memory_changes.recent.includes(:conversation) %>
+<% changes = memory.memory_changes %>
 <div id="<%= dom_id(memory) %>" class="memory-row<%= " is-inferred" if memory.source_inferred? %>"
      data-controller="memory-row" data-memory-filter-target="row"
      data-kind="<%= memory.kind %>" data-review="<%= memory.source_inferred? %>">

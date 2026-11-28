@@ -103,10 +103,8 @@ module Agent
     end
 
     def stamp(memory)
-      memory.change_actor = @conversation.routine&.memory_review? ? :review : :chat
-      memory.change_conversation = @conversation
-      memory.change_reason = @params["reason"]
-      memory
+      memory.changed_by(@conversation.routine&.memory_review? ? :review : :chat,
+                        conversation: @conversation, reason: @params["reason"])
     end
 
     def guarded

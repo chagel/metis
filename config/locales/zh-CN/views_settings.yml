@@ -225,6 +225,7 @@
           review: "夜间回顾"
           chat: "在对话中"
           user: "你"
+          system: "Metis"
         ago: "%{time}前"
         source: "来源"
         fields:

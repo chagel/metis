@@ -250,6 +250,7 @@ en:
           review: "Nightly review"
           chat: "In a chat"
           user: "You"
+          system: "Metis"
         ago: "%{time} ago"
         source: "source"
         fields:

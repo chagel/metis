@@ -37,6 +37,7 @@ class Skill < ApplicationRecord
 
   scope :enabled, -> { where(enabled: true) }
   scope :visible_to, ->(user) { where(proposed_by_id: [ nil, user.id ]) }
+  scope :proposals_of, ->(user) { where(proposed_by: user) }
 
   def proposal? = proposed_by_id.present?
 

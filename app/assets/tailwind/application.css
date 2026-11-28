@@ -1583,7 +1583,7 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
   display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px;
   border-radius:7px; background:none; border:none; color:var(--ink-3); cursor:pointer;
 }
-.memory-icon:hover { background:var(--line); color:var(--ink); }
+.memory-icon:hover, .memory-icon[aria-expanded="true"] { background:var(--line); color:var(--ink); }
 .memory-icon-danger:hover { color:var(--danger); }
 .memory-icon svg { width:15px; height:15px; }
 .memory-edit { padding:10px 12px 10px 14px; display:flex; flex-direction:column; gap:8px; margin:0; background:var(--bg); }
@@ -1596,7 +1596,6 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
 .memory-hint { flex:1; font-size:12px; color:var(--faint); }
 .memory-none { text-align:center; color:var(--ink-3); font-size:13.5px; padding:28px 0; }
 .memory-foot { display:flex; justify-content:flex-end; margin-top:18px; }
-.memory-icon[aria-expanded="true"] { background:var(--line); color:var(--ink); }
 .memory-row:has(.memory-revisions:not([hidden])) .memory-actions { opacity:1; pointer-events:auto; }
 .memory-revisions { list-style:none; margin:0; padding:2px 14px 12px; display:flex; flex-direction:column; gap:8px; }
 .memory-revisions .memory-change { background:var(--bg); }
