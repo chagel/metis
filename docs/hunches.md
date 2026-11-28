@@ -80,8 +80,10 @@ of a chat continued from it), `dismissed` (with an optional reason), or `expired
   were right as prepared. Not surfaced yet.
 - On History (`Hunch.outcome_stats`): used / dismissed / expired counts, the
   share used, and cost per used hunch, which is every foresight run's
-  `Message#cost` divided by hunches used. A run with an unpriced reply leaves
-  the cost out rather than counting it as zero.
+  `Message#cost` divided by hunches used. Fired runs carry their routine's
+  purpose in `settings["purpose"]` (`Conversation.purpose_runs`), so runs from
+  a deleted routine still count. A run with an unpriced reply leaves the cost
+  out rather than counting it as zero.
 
 ## Known gaps
 

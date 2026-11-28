@@ -47,4 +47,13 @@ class Agent::ConversationForkerTest < ActiveSupport::TestCase
     assert fork.messages.where.not(input_tokens: nil).none?
     assert fork.messages.where.not(cost: nil).none?
   end
+
+  test "a fork of a routine run isn't a routine run" do
+    @source.update!(settings: @source.settings.merge("fired_by_routine" => true, "purpose" => "foresight"))
+    fork = Agent::ConversationForker.new(@a1, by: @user).call
+
+    assert_nil fork.settings["purpose"]
+    assert_nil fork.settings["fired_by_routine"]
+    assert_not_includes Conversation.purpose_runs("foresight"), fork
+  end
 end

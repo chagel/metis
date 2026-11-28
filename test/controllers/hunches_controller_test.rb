@@ -170,7 +170,7 @@ class HunchesControllerTest < ActionDispatch::IntegrationTest
 
   test "history shows how hunches fared and what foresight cost per hunch used" do
     routine = Foresight.ensure_for(@user, @team)
-    run = @user.conversations.create!(team: @team, routine: routine)
+    run = @user.conversations.create!(team: @team, routine: routine, settings: { "purpose" => Foresight::PURPOSE })
     run.messages.create!(role: :assistant, streaming_status: :done, content: "ok", cost: 0.9)
     3.times { hunch(status: :used, conversation: run) }
     hunch(status: :dismissed)
@@ -181,7 +181,7 @@ class HunchesControllerTest < ActionDispatch::IntegrationTest
 
   test "an unpriced foresight reply leaves the cost out instead of counting it as free" do
     routine = Foresight.ensure_for(@user, @team)
-    run = @user.conversations.create!(team: @team, routine: routine)
+    run = @user.conversations.create!(team: @team, routine: routine, settings: { "purpose" => Foresight::PURPOSE })
     run.messages.create!(role: :assistant, streaming_status: :done, content: "ok", cost: nil)
     hunch(status: :used, conversation: run)
     get hunches_path(view: "history")
@@ -190,17 +190,31 @@ class HunchesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".hunch-stats", text: /per used hunch/, count: 0
   end
 
-  test "deleting Foresight leaves the cost unknown, not free" do
-    routine = Foresight.ensure_for(@user, @team)
-    run = @user.conversations.create!(team: @team, routine: routine)
-    run.messages.create!(role: :assistant, streaming_status: :done, content: "ok", cost: 0.6)
+  test "foresight cost keeps every run after the routine is deleted and recreated" do
+    run = ->(routine, cost) do
+      @user.conversations.create!(team: @team, routine: routine, settings: { "purpose" => Foresight::PURPOSE })
+           .tap { it.messages.create!(role: :assistant, streaming_status: :done, content: "ok", cost: cost) }
+    end
+    old = Foresight.ensure_for(@user, @team)
+    hunch(status: :used, conversation: run.(old, 0.6))
+    run.(old, 0.8)
+    old.destroy!
+    run.(Foresight.ensure_for(@user, @team), 0.4)
+
+    assert_in_delta 1.8, Hunch.outcome_stats(@user, @team)[:cost_per_used], 0.001
+
+    run.(Foresight.routine_for(@user, @team), nil)
+    assert_nil Hunch.outcome_stats(@user, @team)[:cost_per_used], "an unpriced run makes it unknown"
+  end
+
+  test "the user's own follow-up chat in a foresight run isn't foresight cost" do
+    run = @user.conversations.create!(team: @team, routine: Foresight.ensure_for(@user, @team), settings: { "purpose" => Foresight::PURPOSE })
+    run.messages.create!(role: :assistant, streaming_status: :done, content: "foresight", cost: 0.2)
     hunch(status: :used, conversation: run)
-    routine.destroy!
+    run.messages.create!(role: :user, streaming_status: :done, content: "tell me more", sender: @user)
+    run.messages.create!(role: :assistant, streaming_status: :done, content: "chat", cost: 2.0)
+    run.messages.create!(role: :assistant, streaming_status: :done, content: "chat", cost: nil)
 
-    assert_nil Hunch.outcome_stats(@user, @team)[:cost_per_used]
-
-    recreated = Foresight.ensure_for(@user, @team)
-    @user.conversations.create!(team: @team, routine: recreated).messages.create!(role: :assistant, streaming_status: :done, content: "ok", cost: 0.4)
-    assert_in_delta 1.0, Hunch.outcome_stats(@user, @team)[:cost_per_used], 0.001, "earlier runs that left a hunch still count"
+    assert_in_delta 0.2, Hunch.outcome_stats(@user, @team)[:cost_per_used], 0.001
   end
 end

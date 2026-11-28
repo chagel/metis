@@ -94,7 +94,8 @@ class Routine < ApplicationRecord
       UnattendedBudget.new(user).check!
       user.conversations.create!(
         team: team, project: project, routine: self,
-        settings: run_settings.merge("fired_by_routine" => true), visibility: visibility, title: name
+        settings: run_settings.merge({ "fired_by_routine" => true, "purpose" => trigger_config["purpose"] }.compact),
+        visibility: visibility, title: name
       )
     end
     ConversationTurn.start(conversation, content: [ rendered_prompt(event), note ].compact.join("\n\n"))
