@@ -35,10 +35,13 @@ class HunchesControllerTest < ActionDispatch::IntegrationTest
 
   test "continue in chat attaches the hunch and counts it once the message is sent" do
     item = hunch
+    @team.workflows.create!(name: "Ship it", steps: [ { "name" => "go", "prompt" => "go" } ])
+    get root_path
+    assert_select "[data-controller~='workflow-launch']", 1, "a plain new chat offers workflows"
+
     get root_path(hunch: item.id)
     assert_select "input[type=hidden][name=hunch_id][value='#{item.id}']"
     assert_select ".composer .auto-chip", text: /Hunch: Draft reply/
-    @team.workflows.create!(name: "Ship it", steps: [ { "name" => "go", "prompt" => "go" } ])
     assert_select "[data-controller~='workflow-launch']", count: 0, message: "no workflow palette while a hunch is attached"
     assert item.reload.ready?
 
@@ -137,7 +140,7 @@ class HunchesControllerTest < ActionDispatch::IntegrationTest
     direction = Direction.create!(user: @user, team: @team, title: "Payments")
     hunch(direction: direction, status: :used)
     get hunches_path(direction: direction.id)
-    assert_select ".hdir-meta", text: /1 used · 0 dismissed · 1 hunches/
+    assert_select ".hdir-meta", text: /1 used · 0 dismissed · 0 expired\s*· 100% used/
 
     patch toggle_direction_path(direction)
     assert direction.reload.paused?
@@ -185,5 +188,19 @@ class HunchesControllerTest < ActionDispatch::IntegrationTest
 
     assert_select ".hunch-stats", text: /Used 1/
     assert_select ".hunch-stats", text: /per used hunch/, count: 0
+  end
+
+  test "deleting Foresight leaves the cost unknown, not free" do
+    routine = Foresight.ensure_for(@user, @team)
+    run = @user.conversations.create!(team: @team, routine: routine)
+    run.messages.create!(role: :assistant, streaming_status: :done, content: "ok", cost: 0.6)
+    hunch(status: :used, conversation: run)
+    routine.destroy!
+
+    assert_nil Hunch.outcome_stats(@user, @team)[:cost_per_used]
+
+    recreated = Foresight.ensure_for(@user, @team)
+    @user.conversations.create!(team: @team, routine: recreated).messages.create!(role: :assistant, streaming_status: :done, content: "ok", cost: 0.4)
+    assert_in_delta 1.0, Hunch.outcome_stats(@user, @team)[:cost_per_used], 0.001, "earlier runs that left a hunch still count"
   end
 end

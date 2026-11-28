@@ -11,7 +11,7 @@ class HunchesController < ApplicationController
     @ready_counts = hunches.ready.group(:direction_id).count
     @filter = filter
     @direction = directions.find_by(id: params[:direction]) if @filter == :direction
-    @outcomes = hunches.where(direction: @direction).group(:status).count if @direction
+    @outcomes = Hunch.outcome_counts(hunches.where(direction: @direction)) if @direction
     @stats = Hunch.outcome_stats(current_user, current_team) if @filter == :history
     @hunches = filtered.newest_first.includes(:direction, :source_memory).limit(@filter == :history ? 50 : nil).load
     @last_run = Foresight.routine_for(current_user, current_team)&.conversations&.order(created_at: :desc)&.first
