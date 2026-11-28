@@ -204,9 +204,10 @@
         first_review: "今晚进行第一次回顾。"
         corrections: "纠正：本周 %{this_week} 次，上周 %{last_week} 次"
         review_settings: "回顾设置"
-        note_label: "上次回顾学到的内容"
-        changes:
-          other: "最近的变更（%{count}）"
+        proposals:
+          other: "建议了 %{count} 个技能"
+        forgotten:
+          other: "最近忘记的（%{count}）"
         empty: "还没有记忆。Metis 会在聊天中了解你：你的纠正、偏好、目标和工作方式。"
         clear: "清除全部记忆"
         clear_confirm: "删除 Metis 在这个团队中关于你的所有记忆？"
@@ -248,6 +249,9 @@
           high: "高"
         source: "来源对话"
         applied: "%{time}前用过"
+        history: "查看变更"
+        revisions:
+          other: "%{count} 次变更"
         save: "保存"
         confirm: "确认"
         delete: "删除"

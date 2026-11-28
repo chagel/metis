@@ -38,6 +38,13 @@ class Settings::MemoriesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "prefers very short answers", m.reload.content
   end
 
+  test "an edited row comes back with its new revision" do
+    m = memory
+    patch memory_path(m), params: { user_memory: { content: "prefers very short answers" } }, as: :turbo_stream
+    assert_select ".memory-meta", text: /1 change/
+    assert_select ".memory-change .memory-change-gone", text: "prefers short answers"
+  end
+
   test "confirm makes an inference stated (turbo_stream)" do
     m = memory
     patch confirm_memory_path(m), as: :turbo_stream
@@ -100,17 +107,17 @@ class Settings::MemoriesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".memory-status", text: /Corrections: 0 this week, 0 last week/
   end
 
-  test "the page shows the last review's note and the memory history" do
+  test "each memory shows its revisions, and a waiting skill proposal is linked" do
     routine = MemoryReview.ensure_for(@user, @team)
     review = @user.conversations.create!(team: @team, routine: routine)
-    review.messages.create!(role: :assistant, streaming_status: :done, content: "- Merged two notes about tables")
-    m = memory
-    MemoryChange.record!(m, action: :created, actor: :review, conversation: review, reason: "seen twice")
+    memory(change_actor: :review, change_conversation: review, change_reason: "seen twice")
+    @team.skills.create!(slug: "golf-progress", enabled: false, proposed_by: @user)
     get memories_path
 
-    assert_select ".memory-note", text: /Merged two notes about tables/
-    assert_select ".memory-changes summary", text: /Recent changes \(1\)/
-    assert_select ".memory-change", text: /Learned.*Nightly review.*prefers short answers.*seen twice/m
+    assert_select ".memory-status a[href='#{skills_path}']", text: "1 skill proposed"
+    assert_select ".memory-row .memory-meta", text: /1 change/
+    assert_select ".memory-row .memory-actions button[data-action='memory-row#toggleHistory'][aria-label='Show changes']"
+    assert_select ".memory-row .memory-revisions[hidden] .memory-change", text: /Learned.*Nightly review.*prefers short answers.*seen twice/m
   end
 
   test "the user's own edits, confirms and deletes are recorded as theirs" do
@@ -129,6 +136,7 @@ class Settings::MemoriesControllerTest < ActionDispatch::IntegrationTest
     memory
     delete clear_memories_path
     get memories_path
-    assert_select ".memory-change", text: /Forgot.*You.*prefers short answers/m
+    assert_select ".memory-changes summary", text: /Recently forgotten \(1\)/
+    assert_select ".memory-changes .memory-change", text: /Forgot.*You.*prefers short answers/m
   end
 end

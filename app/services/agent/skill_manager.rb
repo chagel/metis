@@ -40,14 +40,14 @@ module Agent
       end
       team = @conversation.team.skills.visible_to(@conversation.user).order(:slug).map do |skill|
         { slug: skill.slug, description: skill.description, source: "team",
-          status: skill.proposal? ? "proposed" : (skill.enabled? ? "enabled" : "disabled") }
+          status: skill.status }
       end
       builtin + team
     end
 
     def create
       guarded do
-        return failure("A skill named #{quoted(slug)} already exists — use metis_update_skill.") if existing
+        return failure("A skill named #{quoted(slug)} already exists — use metis_update_skill.") if taken?
         return failure("A new skill needs SKILL.md content.") if content.blank?
 
         skill = @conversation.team.skills.new(slug: slug, created_by: @conversation.user)
@@ -60,12 +60,11 @@ module Agent
 
     def propose
       guarded do
-        return failure("A skill named #{quoted(slug)} already exists.") if existing
+        return failure("A skill named #{quoted(slug)} already exists.") if taken?
         return failure("A proposal needs SKILL.md content.") if content.blank?
 
-        skill = @conversation.team.skills.new(slug: slug, created_by: @conversation.user, proposed_by: @conversation.user)
-        @params = @params.merge("enabled" => false)
-        persist(skill, "proposed")
+        persist(@conversation.team.skills.new(slug: slug, enabled: false, created_by: @conversation.user,
+                                              proposed_by: @conversation.user), "proposed")
       end
     end
 
@@ -74,6 +73,7 @@ module Agent
         skill = existing
         return failure("No team skill named #{quoted(slug)} on this team.") unless skill
 
+        skill.enabled = truthy(@params["enabled"]) if @params.key?("enabled")
         persist(skill, "updated")
       end
     end
@@ -97,13 +97,14 @@ module Agent
         desc = Skill.parse_description(content)
         skill.description = desc if desc.present?
       end
-      skill.enabled = truthy(@params["enabled"]) if @params.key?("enabled")
       return failure(skill.errors.full_messages.join("; ")) unless skill.save
 
       { ok: true, action: action, slug: skill.slug, enabled: skill.enabled }
     end
 
-    def existing = @conversation.team.skills.find_by(slug: slug)
+    # Someone else's proposal is invisible here, so it can't be edited or enabled.
+    def existing = @conversation.team.skills.visible_to(@conversation.user).find_by(slug: slug)
+    def taken? = @conversation.team.skills.exists?(slug: slug)
     def slug = @params["slug"].to_s.strip.downcase
     def content = @params["content"].to_s
     def truthy(value) = [ true, "true", 1, "1" ].include?(value)

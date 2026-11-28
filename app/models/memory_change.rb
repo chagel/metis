@@ -1,6 +1,7 @@
 # One change to a user's memory: what it was before and after, who made it
 # (the nightly review, a chat, or the user) and why. Shown on the memory page
 # so consolidation is never silent. Snapshots outlive a forgotten memory.
+# Written by UserMemory's callbacks; see UserMemory#change_actor.
 class MemoryChange < ApplicationRecord
   RETENTION = 90.days
 
@@ -17,13 +18,15 @@ class MemoryChange < ApplicationRecord
   encrypts :before, :after, :reason
 
   scope :for, ->(user, team) { where(user: user, team: team) }
-  scope :recent, -> { where(created_at: 30.days.ago..).order(created_at: :desc, id: :desc) }
+  scope :recent, -> { where(created_at: RETENTION.ago..).order(created_at: :desc, id: :desc) }
 
-  def self.record!(memory, action:, actor:, before: nil, conversation: nil, reason: nil)
+  def self.record!(memory, action)
+    gone = action == :forgotten
     create!(
-      team_id: memory.team_id, user_id: memory.user_id, user_memory: (memory unless action.to_s == "forgotten"),
-      action: action, actor: actor, conversation: conversation, reason: reason.to_s.strip.presence,
-      before: before, after: (memory.snapshot unless action.to_s == "forgotten")
+      team_id: memory.team_id, user_id: memory.user_id, user_memory: (memory unless gone), action: action,
+      actor: memory.change_actor, conversation: memory.change_conversation, reason: memory.change_reason.to_s.strip.presence,
+      before: { created: nil, updated: memory.snapshot_before_save, forgotten: memory.snapshot }[action],
+      after: (memory.snapshot unless gone)
     )
   end
 

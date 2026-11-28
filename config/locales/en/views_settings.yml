@@ -227,10 +227,12 @@ en:
         first_review: "First review runs tonight."
         corrections: "Corrections: %{this_week} this week, %{last_week} last week"
         review_settings: "Review settings"
-        note_label: "What the last review learned"
-        changes:
-          one: "Recent changes (1)"
-          other: "Recent changes (%{count})"
+        proposals:
+          one: "1 skill proposed"
+          other: "%{count} skills proposed"
+        forgotten:
+          one: "Recently forgotten (1)"
+          other: "Recently forgotten (%{count})"
         empty: "Nothing yet. Metis learns about you as you chat: your corrections, preferences, goals and the way you work."
         clear: "Clear all memories"
         clear_confirm: "Delete every memory Metis has about you in this team?"
@@ -272,6 +274,10 @@ en:
           high: "high"
         source: "Source chat"
         applied: "used %{time} ago"
+        history: "Show changes"
+        revisions:
+          one: "1 change"
+          other: "%{count} changes"
         save: "Save"
         confirm: "Confirm"
         delete: "Delete"

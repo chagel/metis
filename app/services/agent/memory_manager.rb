@@ -20,14 +20,13 @@ module Agent
       guarded do
         memory = memories.new(content: @params["content"], kind: choice(:kind, UserMemory.kinds))
         assign_provenance(memory)
-        persist(memory, "remembered", :created)
+        persist(stamp(memory), "remembered")
       end
     end
 
     def update
       guarded do
-        memory = find
-        before = memory.snapshot
+        memory = stamp(find)
         memory.kind = choice(:kind, UserMemory.kinds) if @params.key?("kind")
         memory.content = @params["content"] if @params.key?("content")
         if memory.content_changed?
@@ -35,17 +34,13 @@ module Agent
         elsif @params.key?("confidence")
           memory.confidence = choice(:confidence, UserMemory.confidences)
         end
-        persist(memory, "updated", :updated, before: before)
+        persist(memory, "updated")
       end
     end
 
     def forget
       guarded do
-        memory = find
-        UserMemory.transaction do
-          record(memory, :forgotten, before: memory.snapshot)
-          memory.destroy!
-        end
+        memory = stamp(find).destroy!
         { ok: true, action: "forgotten", id: memory.id }
       end
     end
@@ -101,24 +96,18 @@ module Agent
       raise Invalid, "#{key.to_s.capitalize} must be one of: #{options.keys.join(", ")}."
     end
 
-    def persist(memory, action, change, before: nil)
-      saved = UserMemory.transaction do
-        next false unless memory.save
-
-        record(memory, change, before: before) if change == :created || memory.saved_changes.except("updated_at").any?
-        true
-      end
-      return failure(memory.errors.full_messages.join("; ")) unless saved
+    def persist(memory, action)
+      return failure(memory.errors.full_messages.join("; ")) unless memory.save
 
       { ok: true, action: action, id: memory.id, kind: memory.kind, source: memory.source, confidence: memory.confidence }
     end
 
-    def record(memory, action, before: nil)
-      MemoryChange.record!(memory, action: action, actor: actor, before: before,
-                                   conversation: @conversation, reason: @params["reason"])
+    def stamp(memory)
+      memory.change_actor = @conversation.routine&.memory_review? ? :review : :chat
+      memory.change_conversation = @conversation
+      memory.change_reason = @params["reason"]
+      memory
     end
-
-    def actor = @conversation.routine&.purpose_routine == MemoryReview ? :review : :chat
 
     def guarded
       return failure("Memory isn't available in this conversation.") unless UserMemory.available_in?(@conversation)

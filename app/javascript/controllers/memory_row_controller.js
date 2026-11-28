@@ -1,9 +1,16 @@
 import { Controller } from "@hotwired/stimulus";
 
-// Swaps a memory row between its one-line view and the inline edit form.
-// Enter saves, Shift+Enter adds a line, Esc cancels.
+// Swaps a memory row between its one-line view and the inline edit form,
+// and shows or hides its revisions. Enter saves, Shift+Enter adds a line,
+// Esc cancels.
 export default class extends Controller {
-  static targets = ["view", "form", "input"];
+  static targets = ["view", "form", "input", "history", "historyToggle"];
+
+  toggleHistory() {
+    const open = this.historyTarget.hidden;
+    this.historyTarget.hidden = !open;
+    this.historyToggleTarget.setAttribute("aria-expanded", String(open));
+  }
 
   edit() {
     this.viewTarget.hidden = true;

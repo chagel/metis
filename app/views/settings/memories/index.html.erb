@@ -27,13 +27,11 @@
             <%= t(".first_review") %>
           <% end %>
           · <%= t(".corrections", this_week: @corrections_this_week, last_week: @corrections_last_week) %>
+          <% if @proposals.positive? %>
+            · <%= link_to t(".proposals", count: @proposals), skills_path %>
+          <% end %>
           · <%= link_to t(".review_settings"), edit_routine_path(@review) %>
         </p>
-        <% if @review_note&.content.present? %>
-          <section class="memory-note" aria-label="<%= t(".note_label") %>">
-            <div class="chat-content"><%= markdown(@review_note.content) %></div>
-          </section>
-        <% end %>
       <% end %>
 
       <% if @memories.empty? %>
@@ -50,7 +48,7 @@
         </nav>
 
         <div class="memory-list" data-memory-filter-target="list">
-          <%= render partial: "settings/memories/memory", collection: @memories %>
+          <%= render partial: "settings/memories/memory", collection: @memories, locals: { revisions: @revisions } %>
         </div>
         <p class="memory-none" data-memory-filter-target="none" hidden><%= t(".no_match") %></p>
 
@@ -60,10 +58,10 @@
         </div>
       <% end %>
 
-      <% if @changes.any? %>
+      <% if @forgotten.any? %>
         <details class="memory-changes">
-          <summary><%= t(".changes", count: @changes.size) %></summary>
-          <ul><%= render partial: "settings/memories/change", collection: @changes %></ul>
+          <summary><%= t(".forgotten", count: @forgotten.size) %></summary>
+          <ul><%= render partial: "settings/memories/change", collection: @forgotten %></ul>
         </details>
       <% end %>
     </div>

@@ -40,6 +40,12 @@ class Skill < ApplicationRecord
 
   def proposal? = proposed_by_id.present?
 
+  def status
+    return "proposed" if proposal?
+
+    enabled? ? "enabled" : "disabled"
+  end
+
   def self.valid_file_path?(path)
     return false unless path.is_a?(String)
 

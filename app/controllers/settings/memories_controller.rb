@@ -6,9 +6,11 @@ class Settings::MemoriesController < ApplicationController
   def index
     @memories = memories.newest_first.load
     @review = MemoryReview.routine_for(current_user, current_team)
-    @last_review = @review&.conversations&.order(created_at: :desc)&.first
-    @review_note = @last_review&.messages&.assistant&.done&.chronological&.last
-    @changes = MemoryChange.for(current_user, current_team).recent.limit(50).load
+    @last_review = MemoryReview.last_run_for(current_user, current_team)
+    @proposals = current_team.skills.where(proposed_by: current_user).count
+    changes = MemoryChange.for(current_user, current_team).recent.includes(:conversation)
+    @revisions = changes.where.not(user_memory_id: nil).group_by(&:user_memory_id)
+    @forgotten = changes.forgotten.limit(20).load
     week = Agent::MemoryReport.new(current_user, current_team, since: 1.week.ago)
     @corrections_this_week = week.corrections_count
     @corrections_last_week = week.previous_corrections_count
@@ -30,7 +32,7 @@ class Settings::MemoriesController < ApplicationController
   def destroy
     Membership.transaction do
       current_membership.record_memory_deletions!([ @memory.kind ])
-      MemoryChange.record!(@memory, action: :forgotten, actor: :user, before: @memory.snapshot)
+      @memory.change_actor = :user
       @memory.destroy!
     end
     respond_to do |format|
@@ -42,8 +44,10 @@ class Settings::MemoriesController < ApplicationController
   def clear
     Membership.transaction do
       current_membership.record_memory_deletions!(memories.pluck(:kind))
-      memories.each { MemoryChange.record!(it, action: :forgotten, actor: :user, before: it.snapshot) }
-      memories.delete_all
+      memories.each do |memory|
+        memory.change_actor = :user
+        memory.destroy!
+      end
     end
     redirect_to memories_path, notice: t("flash.settings.memories.clear.notice")
   end

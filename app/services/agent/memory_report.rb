@@ -30,12 +30,12 @@ module Agent
       {
         since: @since.iso8601,
         memories: memories.ordered.map { |memory| memory_entry(memory) },
-        corrections_without_memory: corrections.where(applied_memory_ids: []).map { |reply| { at: reply.corrected_at.iso8601, note: reply.correction_note } },
+        corrections_without_memory: corrections.where(applied_memory_ids: []).map { correction_entry(it) },
         deleted_by_you: deletions,
         correction_history: correction_history,
         gate_decisions: gate_decisions.limit(LIST_CAP).map { |message| { at: message.created_at.iso8601, decision: message.content } },
         hunches: hunch_outcomes.limit(LIST_CAP).map { |hunch| hunch_entry(hunch) },
-        hunches_expired: Hunch.for(@user, @team).expired.where(outcome_at: @since..).count,
+        hunches_expired: hunches_expired,
         conversation_titles: conversation_titles,
         totals: { replies: replies.count, corrections: corrections_count, corrections_previous_window: previous_corrections_count }
       }
@@ -51,9 +51,10 @@ module Agent
 
     # Older than the window too, so a correction repeated across nights shows.
     def correction_history
-      all_replies.where(corrected_at: HISTORY.ago..).order(corrected_at: :desc).limit(LIST_CAP)
-                 .map { |reply| { at: reply.corrected_at.iso8601, note: reply.correction_note } }
+      all_replies.where(corrected_at: HISTORY.ago..).order(corrected_at: :desc).limit(LIST_CAP).map { correction_entry(it) }
     end
+
+    def correction_entry(reply) = { at: reply.corrected_at.iso8601, note: reply.correction_note }
 
     def gate_decisions
       Message.review.joins(:conversation).where(conversations: { team_id: @team.id }, sender_id: @user.id, created_at: @since..)
@@ -64,12 +65,14 @@ module Agent
       Hunch.for(@user, @team).where(status: %i[used dismissed], outcome_at: @since..).includes(:direction).order(:outcome_at)
     end
 
+    def hunches_expired = Hunch.for(@user, @team).expired.where(outcome_at: @since..).count
+
     def hunch_entry(hunch)
       { title: hunch.title, outcome: hunch.status, direction: hunch.direction&.title, reason: hunch.dismiss_reason }.compact
     end
 
     def conversation_titles
-      Conversation.where(user: @user, team: @team, routine_id: nil, created_at: @since..).where.not(title: [ nil, "" ])
+      Conversation.chats.where(user: @user, team: @team, created_at: @since..).where.not(title: [ nil, "" ])
                   .order(:created_at).limit(LIST_CAP).pluck(:title)
     end
 

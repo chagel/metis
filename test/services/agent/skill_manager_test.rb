@@ -158,4 +158,17 @@ class Agent::SkillManagerTest < ActiveSupport::TestCase
     @team.skills.create!(slug: "investor-update", content_cache: "x")
     assert_not Agent::SkillManager.propose(@conversation, "slug" => "investor-update", "content" => SKILL_MD)[:ok]
   end
+
+  test "another member's agent can't edit or enable someone's proposal" do
+    team = Team.create!(name: "Shared #{SecureRandom.hex(2)}")
+    team.memberships.create!(user: @user, role: :admin)
+    teammate = User.create!(email: "sm3-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    team.memberships.create!(user: teammate, role: :admin)
+    team.skills.create!(slug: "investor-update", enabled: false, proposed_by: @user)
+    chat = teammate.conversations.create!(team: team)
+
+    assert_not Agent::SkillManager.update(chat, "slug" => "investor-update", "enabled" => true)[:ok]
+    assert_not Agent::SkillManager.create(chat, "slug" => "investor-update", "content" => SKILL_MD)[:ok]
+    assert_not team.skills.find_by!(slug: "investor-update").enabled?
+  end
 end
