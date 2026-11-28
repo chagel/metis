@@ -14,9 +14,15 @@ import { Controller } from "@hotwired/stimulus"
 //
 // 3. Auto-resize — grows with content up to MAX_HEIGHT_PX, then scrolls.
 //    Resets to the natural `rows` size on form reset (post-submit).
+//
+// 4. One send at a time — a second submit while one is in flight is
+//    dropped, and a 409 (a turn is already running) says so and keeps
+//    the draft instead of failing silently.
 const MAX_HEIGHT_PX = 200
 
 export default class extends Controller {
+  static values = { busyMessage: String }
+
   connect() {
     this._focusIfIdle()
     this._streamRenderHandler = this._handleStreamRender.bind(this)
@@ -24,11 +30,13 @@ export default class extends Controller {
     this._resetHandler = () => this._resetSize()
     this.element.form?.addEventListener("reset", this._resetHandler)
     this._observeComposerSize()
+    this._guardSubmits()
   }
 
   disconnect() {
     document.removeEventListener("turbo:before-stream-render", this._streamRenderHandler)
     this.element.form?.removeEventListener("reset", this._resetHandler)
+    this._submitGuard?.abort()
     this._composerObserver?.disconnect()
   }
 
@@ -54,6 +62,35 @@ export default class extends Controller {
   }
 
   // ── private ──────────────────────────────────────────────────────────────
+
+  _guardSubmits() {
+    const form = this.element.form
+    if (!form) return
+    this._submitGuard = new AbortController()
+    const { signal } = this._submitGuard
+    form.addEventListener("submit", (event) => {
+      if (this._sending) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        return
+      }
+      this._sending = true
+      form.querySelector(".composer-error")?.remove()
+    }, { signal })
+    form.addEventListener("turbo:submit-end", ({ detail }) => {
+      this._sending = false
+      if (detail.fetchResponse?.statusCode === 409) this._showError(form, this.busyMessageValue)
+    }, { signal })
+  }
+
+  _showError(form, text) {
+    if (!text) return
+    const note = document.createElement("div")
+    note.className = "composer-error"
+    note.setAttribute("role", "status")
+    note.textContent = text
+    form.prepend(note)
+  }
 
   _resetSize() {
     this.element.style.height = ""

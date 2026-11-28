@@ -18,16 +18,6 @@ class WorkflowBroadcaster
     refresh_board
   end
 
-  # An engine-started turn has no controller to append its message rows (the
-  # chat path does that in create.turbo_stream), so do it here — else
-  # ChatBroadcaster's streaming has no DOM to land in until a refresh.
-  # The run page rides along so the step card flips to running.
-  def append_turn(user_message, assistant_message)
-    append_message(user_message, forkable: false)
-    append_message(assistant_message, forkable: true)
-    refresh_run_page
-  end
-
   # A delegated step's report line (WorkflowRun#append_local_report).
   def append_report(message)
     append_message(message, forkable: false)

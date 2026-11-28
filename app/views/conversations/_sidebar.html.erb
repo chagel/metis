@@ -61,8 +61,12 @@
              data-action="input->conversation-search#queryChanged keydown.esc->conversation-search#clear">
     </div>
 
+    <%= turbo_stream_from current_user, current_team, :sidebar %>
+    <%= turbo_stream_from current_team, :sidebar unless current_team.personal? %>
     <nav class="convos" aria-label="Conversations" data-turbo-prefetch="false"
-         data-controller="infinite-scroll active-link">
+         data-controller="infinite-scroll active-link sidebar-refresh"
+         data-sidebar-refresh-url-value="<%= conversations_path %>">
+      <div id="sidebar-refresh-signal" data-sidebar-refresh-target="signal" hidden></div>
       <%# The list (and its scope tabs) live in a turbo-frame so picking a
           tab swaps only the list — the open conversation in #main and the
           sidebar's scroll position stay put. Tabs are inside the frame, so

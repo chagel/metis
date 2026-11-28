@@ -33,6 +33,9 @@ class Conversation < ApplicationRecord
   before_destroy :kill_paused_e2b_sandbox
   before_destroy :kill_daytona_sandbox
   after_destroy_commit :cleanup_persistent_workspace
+  after_create_commit { broadcast_sidebar_refresh }
+  after_update_commit -> { broadcast_sidebar_refresh }, if: :sidebar_changed?
+  after_destroy_commit { broadcast_sidebar_refresh }
 
   scope :recent, -> { order(updated_at: :desc) }
   scope :active, -> { where(archived_at: nil) }
@@ -85,6 +88,21 @@ class Conversation < ApplicationRecord
     where("conversations.title ILIKE ?", "%#{sanitize_sql_like(normalized)}%")
       .reorder(Arel.sql(sanitize_sql_array([ "similarity(conversations.title, ?) DESC", normalized ])))
       .order(updated_at: :desc, id: :desc)
+  end
+
+  def broadcast_sidebar_refresh
+    Turbo::StreamsChannel.broadcast_update_to(
+      [ user, team, :sidebar ], target: "sidebar-refresh-signal", html: "<span></span>"
+    )
+    if visibility_team? || visibility_before_last_save == "team"
+      Turbo::StreamsChannel.broadcast_update_to(
+        [ team, :sidebar ], target: "sidebar-refresh-signal", html: "<span></span>"
+      )
+    end
+  end
+
+  def sidebar_changed?
+    saved_change_to_title? || saved_change_to_visibility? || saved_change_to_archived_at? || saved_change_to_starred_at?
   end
 
   def accessible_to?(user)

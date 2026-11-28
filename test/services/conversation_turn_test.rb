@@ -23,6 +23,22 @@ class ConversationTurnTest < ActiveSupport::TestCase
     assert_not_nil assistant_message.started_at
   end
 
+  test "shows the new turn and the Stop button in every window on the conversation" do
+    streams = capture_turbo_stream_broadcasts(@conversation) do
+      @user_message, @assistant_message = ConversationTurn.start(@conversation, content: "hello")
+    end
+
+    assert_equal %w[messages composer_actions], streams.map { it["target"] }
+    assert_equal %w[append_missing replace], streams.map { it["action"] }
+    rows = streams[0].to_html
+    user_at = rows.index(%(id="#{ActionView::RecordIdentifier.dom_id(@user_message)}"))
+    assistant_at = rows.index(%(id="#{ActionView::RecordIdentifier.dom_id(@assistant_message)}"))
+    assert user_at < assistant_at, "both rows go in one broadcast, user first"
+    assert_includes streams[1].to_html, 'data-composer-state="streaming"'
+    # Fork is revealed only once the reply finishes (ChatBroadcaster#reveal_fork).
+    assert_not_includes rows, "msg-fork-form"
+  end
+
   test "yields the user message before the assistant row exists" do
     seen_assistant_count = nil
     ConversationTurn.start(@conversation, content: "hi") do |user_message|

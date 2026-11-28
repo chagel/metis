@@ -14,6 +14,7 @@ en:
       placeholder_new_with_workflows: "Ask anything, or / for commands…"
       placeholder_new: "Ask anything to start a new chat…"
       placeholder_message: "Message the agent…"
+      busy: "Still replying — wait for it to finish, then send."
       attach: "Attach photos or files"
       model: "Model"
       toggle_team_visibility: "Toggle team visibility for this chat"

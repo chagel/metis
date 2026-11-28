@@ -10,6 +10,50 @@ class ConversationTest < ActiveSupport::TestCase
     @conversation = @user.conversations.create!
   end
 
+  test "new conversations invalidate only the owner's sidebar in their team" do
+    team = Team.create!(name: "Sidebar team")
+    @user.memberships.create!(team: team, role: :owner)
+
+    team_stream = capture_turbo_stream_broadcasts([ team, :sidebar ]) do
+      owner_stream = capture_turbo_stream_broadcasts([ @user, team, :sidebar ]) do
+        @user.conversations.create!(team: team, visibility: :personal, title: "Private")
+      end
+      assert_equal 1, owner_stream.size
+      assert_equal "sidebar-refresh-signal", owner_stream.first["target"]
+      refute_includes owner_stream.first.to_html, "Private"
+    end
+    assert_empty team_stream
+  end
+
+  test "shared conversation creation and visibility changes invalidate the team sidebar" do
+    team = Team.create!(name: "Shared sidebar")
+    @user.memberships.create!(team: team, role: :owner)
+    conversation = nil
+    assert_turbo_stream_broadcasts([ team, :sidebar ], count: 1) do
+      conversation = @user.conversations.create!(team: team, visibility: :team)
+    end
+    assert_turbo_stream_broadcasts([ team, :sidebar ], count: 1) do
+      conversation.update!(visibility: :personal)
+    end
+    assert_turbo_stream_broadcasts([ team, :sidebar ], count: 0) do
+      conversation.update!(title: "Private title")
+    end
+  end
+
+  test "starting a turn and changing the title refresh the sidebar" do
+    stream = [ @user, @conversation.team, :sidebar ]
+    message = nil
+    assert_turbo_stream_broadcasts(stream, count: 1) do
+      message = @conversation.messages.create!(role: :assistant, streaming_status: :pending)
+    end
+    assert_turbo_stream_broadcasts(stream, count: 1) do
+      message.update!(streaming_status: :done)
+    end
+    assert_turbo_stream_broadcasts(stream, count: 1) do
+      @conversation.update!(title: "New title")
+    end
+  end
+
   test "a conversation defaults its team to the creator's personal team" do
     assert_equal @user.personal_team, @conversation.team
   end
