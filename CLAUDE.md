@@ -311,6 +311,18 @@ them; a nightly per-user "Memory review" routine (`MemoryReview`) reads
 `Agent::MemoryReport` and tidies the memories, skipping quiet nights. See
 [`docs/memory.md`](docs/memory.md).
 
+### Hunches
+
+A **hunch** is finished work Metis prepared before the user asked. The user
+names `Direction`s to follow; a per-user "Foresight" routine (`Foresight`,
+same pattern as `MemoryReview`) runs each morning, reads directions plus goal
+and commitment memories, and records up to three `Hunch`es through
+`metis_record_hunch` (`Agent::ForesightManager` over HostBridge, allowed
+unattended only in that routine). The `/hunches` page shows them with Continue in chat /
+Useful / Dismiss and a **Read my mind** button; outcomes (`used`, `dismissed`,
+`expired`) are the measure. Directions are managed on the
+Hunches tab. See [`docs/hunches.md`](docs/hunches.md).
+
 ## Conventions
 
 - **Tenancy is `Team`-only.** Every ownable resource (`Conversation`,
@@ -326,7 +338,8 @@ them; a nightly per-user "Memory review" routine (`MemoryReview`) reads
   `WorkflowRun#status`, `Task#status`, `Task#gate`, `Workflow#trigger_source`,
   `Membership#role`, `Invitation#role`, `WebhookEvent#provider`,
   `Routine#trigger_source`, `Routine#visibility`, `UserMemory#kind`,
-  `UserMemory#source`, `UserMemory#confidence`.
+  `UserMemory#source`, `UserMemory#confidence`, `Direction#status`,
+  `Hunch#impact`, `Hunch#confidence`, `Hunch#status`.
 - User-facing copy lives in `config/locales/*.en.yml` (split by surface:
   `views_*`, `flash`, `mailers`, `models`, …), reached via `t(...)` / `I18n.t`
   — not inline strings. English is the baseline.

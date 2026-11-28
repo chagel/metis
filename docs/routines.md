@@ -114,6 +114,10 @@ else the catalog default (`docs/configuration.md#providers`).
   marked `trigger_config["purpose"] = "memory_review"` (`docs/memory.md`);
   `fire_scheduled!` skips it on a night with no memory activity. It is an
   ordinary personal routine.
+- **Foresight** — Metis also creates one "Foresight" routine per user per
+  team (`trigger_config["purpose"] = "foresight"`, `docs/hunches.md`) with
+  their first direction; it skips a day with no directions, goals or
+  commitments.
 - **Provenance** — a fired conversation is tagged with `Conversation#routine`,
   surfaced as a clock badge on its sidebar row and a "Routine · <name>" chip on
   its show header, so it's distinguishable from a hand-started chat.

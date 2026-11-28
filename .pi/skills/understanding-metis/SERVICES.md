@@ -532,7 +532,8 @@ the latest user message has no sender. Attended turns are unrestricted.
 ```ruby
 UNATTENDED_OPS   # always allowed: get_workflow get_project list_skills list_routines
                  # note_memory_applied note_memory_correction memory_report
-MEMORY_WRITE_OPS # remember update_memory forget_memory — memory review only
+# A PurposeRoutine's WRITE_OPS (MemoryReview: remember/update_memory/forget_memory;
+# Foresight: update_direction/record_hunch) are allowed only in that routine's runs
 GRANTABLE_OPS    # start_workflow — via grants["actions"]
 def connector_allowed?(connector)  # OAuth-provider connectors → provider grant
 def allowed_server?(name)          # grants["connectors"] includes name
@@ -562,6 +563,21 @@ forked, or accepted), and deletions; `#activity?` gates the nightly run.
 `MemoryReview` owns the per-user "Memory review" routine (`PURPOSE`,
 `CRON = "0 3 * * *"`, `ensure_for(user, team)`, `activity?(routine)`), an
 ordinary personal routine whose prompt reads `metis_memory_report` and tidies.
+
+## Hunches — `Foresight` / `Agent::ForesightManager`
+
+`Foresight` owns the per-user "Foresight" routine (`PURPOSE`, `CRON =
+"0 6 * * *"`, `ensure_for`, `activity?`), an ordinary personal routine like
+`MemoryReview`. `Agent::ForesightManager` serves `list_directions`,
+`add_direction`, `update_direction` and `record_hunch` over HostBridge,
+scoped to the conversation's user and team, never raising. `record` refuses
+a hunch without an http(s) source, below medium impact, or past
+`Hunch::MAX_PER_RUN` for that conversation. `Foresight::WRITE_OPS`
+(`update_direction`, `record_hunch`) are allowed unattended only when the
+routine is the foresight one; `list_directions` is in `UNATTENDED_OPS`.
+`HunchesController` (`index`, `use`, `dismiss`, `read_my_mind`) and
+`DirectionsController` (create / toggle / destroy, all back to the Hunches
+tab) are the web side.
 
 ## Skills — `Agent::SkillManager` / `SkillImporter` / `RepoSkills` / `SkillMarketplace`
 

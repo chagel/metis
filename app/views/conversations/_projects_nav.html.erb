@@ -4,6 +4,12 @@
 <nav class="prjnav" aria-label="<%= t('conversations.sidebar.projects') %>">
   <% projects = sidebar_projects(current_team) %>
   <% stats = sidebar_project_stats(projects) %>
+  <% if team_manager? %>
+    <%= link_to new_project_path, class: "prjnav-new" do %>
+      <%= render "shared/icons/plus" %>
+      <%= t('conversations.sidebar.new_project') %>
+    <% end %>
+  <% end %>
   <% if projects.any? %>
     <% projects.each do |project| %>
       <% s = stats[project.id] %>

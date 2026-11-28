@@ -23,6 +23,7 @@ module Agent
       list_skills create_skill update_skill
       list_routines create_routine update_routine
       remember update_memory forget_memory note_memory_applied note_memory_correction memory_report
+      list_directions add_direction update_direction record_hunch
     ].freeze
     DENIED = ->(op) { { ok: false, error: "#{op} isn't allowed in an unattended routine run. Say what you would have done; the operator can do it." }.to_json }
 
@@ -159,6 +160,22 @@ module Agent
 
     def memory_report
       JSON.generate(Agent::MemoryManager.report(@conversation, @params))
+    end
+
+    def list_directions
+      JSON.generate(Agent::ForesightManager.list(@conversation, @params))
+    end
+
+    def add_direction
+      JSON.generate(Agent::ForesightManager.add(@conversation, @params))
+    end
+
+    def update_direction
+      JSON.generate(Agent::ForesightManager.update(@conversation, @params))
+    end
+
+    def record_hunch
+      JSON.generate(Agent::ForesightManager.record(@conversation, @params))
     end
   end
 end

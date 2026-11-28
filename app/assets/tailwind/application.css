@@ -241,7 +241,8 @@ button.sidebar-rail-avatar:hover { box-shadow:0 0 0 2px var(--accent-glow); }
 .rail-dest svg { width:19px; height:19px; }
 .rail-label { font-size:9.5px; line-height:1; letter-spacing:.01em; }
 .rail-dest:hover { background:var(--card); color:var(--ink); }
-.rail-dest.on { background:var(--card); color:var(--ink); box-shadow:var(--sh-sm); }
+.rail-dest.on, .ws-place.on { background:var(--card); color:var(--ink); box-shadow:var(--sh-sm); }
+.rail-sep { width:20px; height:1px; background:var(--line-2); margin:4px 0; flex:none; }
 .rail-dot {
   position:absolute; top:5px; right:13px; width:6px; height:6px; border-radius:50%;
   background:var(--accent); box-shadow:0 0 0 2px var(--side);
@@ -259,6 +260,12 @@ button.sidebar-rail-avatar:hover { box-shadow:0 0 0 2px var(--accent-glow); }
 }
 .prjnav-item:hover { border-color:var(--line-2); }
 .prjnav-item.on { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+.prjnav-new {
+  display:flex; align-items:center; gap:7px; padding:8px 12px; border-radius:10px;
+  border:1px dashed var(--line-2); color:var(--ink-2); font-size:13px; font-weight:600; text-decoration:none;
+}
+.prjnav-new svg { width:14px; height:14px; }
+.prjnav-new:hover { color:var(--ink); border-color:var(--ink-3); }
 .prjnav-name { font-size:15px; font-weight:700; color:var(--ink); }
 .prjnav-repo { font-family:var(--fm); font-size:12px; color:var(--ink-3);
                overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -506,6 +513,7 @@ button.sidebar-rail-avatar:hover { box-shadow:0 0 0 2px var(--accent-glow); }
 }
 .convo-tab:hover { color:var(--ink); background:var(--bg); }
 .convo-tab.on { color:var(--ink); background:var(--card); box-shadow:var(--sh-sm); }
+.hnav-tabs { flex:none; padding:0 2px 6px; }
 
 /* Conversation-type filter (chat/workflow/routine) — a compact dropdown
    riding the tab row, reusing the dropdown controller's open/close. */
@@ -2976,12 +2984,12 @@ body.drawer-open { overflow:hidden; }
    See docs/workflows.md.
    ═══════════════════════════════════════════════════════════ */
 .prnav {
-  display:flex; gap:4px; margin:10px 2px 8px; padding:3px;
+  display:flex; gap:2px; margin:10px 2px 8px; padding:3px;
   background:var(--card); border:1px solid var(--line); border-radius:10px;
 }
 .prnav-item {
-  flex:1; display:inline-flex; align-items:center; justify-content:center; gap:6px;
-  padding:6px 0; border-radius:7px; font-weight:600; font-size:13px;
+  flex:1 1 auto; display:inline-flex; align-items:center; justify-content:center; gap:5px;
+  padding:6px 4px; border-radius:7px; font-weight:600; font-size:12.5px; white-space:nowrap;
   color:var(--ink-3); text-decoration:none;
 }
 .prnav-item:hover { color:var(--ink); }
@@ -2990,6 +2998,12 @@ body.drawer-open { overflow:hidden; }
   font-family:var(--fm); font-size:11px; line-height:1;
   background:var(--gold); color:#231a06; border-radius:9px; padding:2px 6px;
 }
+.prnav-badge.prnav-badge--quiet { background:var(--line-2); color:var(--ink); }
+/* Board and Sharing: page shortcuts in the header, left of new chat. */
+.ws-place { position:relative; }
+.ws-place .prnav-badge-slot { position:absolute; top:-5px; right:-6px; pointer-events:none; }
+.ws-place .prnav-badge { font-size:10px; padding:2px 5px; }
+.ws-sep { width:1px; height:16px; background:var(--line-2); margin:0 1px; }
 
 /* ───────────── sharing page ───────────── */
 .sharing {
@@ -3102,6 +3116,90 @@ a.sharing-card-preview { color:inherit; text-decoration:none; }
   border:1px solid var(--danger-line); border-radius:7px; cursor:pointer;
 }
 .sharing-stop:hover { background:var(--danger-soft); }
+/* Hunches: finished work Metis prepared ahead of the user. */
+.hunch-stats { margin:0 0 4px; font-size:12.5px; color:var(--ink-2); }
+.hunches-sub { font-size:12.5px; color:var(--ink-3); margin:0; }
+.hunches-sub a { color:inherit; }
+.hunches .sharing-head form { margin:0 0 0 auto; }
+.hunch-list { display:flex; flex-direction:column; gap:12px; max-width:760px; margin:0 auto; }
+.hunch {
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:14px 16px; box-shadow:var(--sh-sm); display:flex; flex-direction:column; gap:7px;
+}
+.hunch:not(:has(.hunch-actions)) { box-shadow:none; background:var(--bg); }
+.hunch-head { display:flex; align-items:flex-start; gap:10px; }
+.hunch-head .badge { flex:none; margin-top:1px; }
+.badge-strong { color:var(--on-accent); background:var(--accent); }
+.hunch-title { font-size:15px; font-weight:600; color:var(--ink); margin:0; flex:1; min-width:0; }
+.hunch-meta { margin:0; font-size:12px; color:var(--ink-3); display:flex; flex-wrap:wrap; }
+.hunch-source { color:var(--ink-2); text-decoration:none; }
+.hunch-source:hover { color:var(--ink); text-decoration:underline; text-underline-offset:2px; }
+.memory-row.is-highlighted { background:var(--accent-soft); box-shadow:inset 3px 0 0 var(--accent); }
+.hunch-why { font-size:13.5px; color:var(--ink-2); margin:2px 0 0; }
+.hunch-sources { margin:0; padding:0; list-style:none; display:flex; flex-wrap:wrap; gap:4px 12px; font-size:12.5px; }
+.hunch-sources a { color:var(--ink-2); text-underline-offset:2px; }
+.hunch-sources a::after { content:" ↗"; color:var(--ink-3); }
+/* The work previews ~5 lines, faded, and expands in place. */
+.hunch-work { max-height:8.5em; overflow:hidden; margin-top:2px; }
+.hunch-work.is-clipped { mask-image:linear-gradient(to bottom, #000 55%, transparent); }
+.hunch.is-expanded .hunch-work { max-height:none; mask-image:none; }
+.hunch-body { font-size:13.5px; line-height:1.55; border-left:2px solid var(--line-2); padding-left:12px; }
+.hunch-body > :first-child { margin-top:0; }
+.hunch-more-toggle {
+  align-self:flex-start; padding:0; border:0; background:none; cursor:pointer;
+  font-size:12.5px; font-weight:600; color:var(--ink-2);
+}
+.hunch-more-toggle:hover { color:var(--ink); text-decoration:underline; text-underline-offset:2px; }
+.hunch-body :is(h1,h2,h3,h4) { font-size:14px; margin:10px 0 4px; }
+.hunch-actions { display:flex; align-items:center; gap:6px; margin-top:4px; }
+.hunch-actions form { margin:0; }
+.hunch-dismiss { display:none; flex-direction:column; gap:8px; margin-top:4px; }
+.hunch.is-dismissing .hunch-dismiss { display:flex; }
+.hunch.is-dismissing .hunch-actions { display:none; }
+.hunch-mode-actions { display:flex; align-items:center; gap:6px; }
+.hunch-mode-actions input[type="text"] { flex:1; }
+.hunch-dismiss-q { margin:0; font-size:12.5px; font-weight:600; color:var(--ink-2); }
+.hunch-reasons { display:flex; flex-wrap:wrap; gap:6px; }
+.hunch-reasons .board-chip { cursor:pointer; }
+
+/* The Hunches tab's sidebar: directions as the contextual list. */
+.hnav { display:flex; flex-direction:column; gap:2px; overflow-y:auto; padding:6px 4px; min-height:0; flex:1; }
+.hnav-item {
+  display:grid; grid-template-columns:1fr auto; align-items:center; column-gap:8px;
+  padding:8px 10px; border-radius:8px; text-decoration:none; color:var(--ink-2); cursor:pointer;
+}
+.hnav-item:hover { background:var(--card); color:var(--ink); }
+.hnav-item.on { background:var(--card); color:var(--ink); box-shadow:var(--sh-sm); }
+.hnav-name { font-size:13.5px; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hnav-meta { grid-column:1; font-size:11.5px; color:var(--ink-3); }
+.hnav-count { grid-column:2; grid-row:1; font-family:var(--fm); font-size:11.5px; color:var(--ink-3); }
+.hnav-group > summary { list-style:none; cursor:pointer; }
+.hnav-group > summary::-webkit-details-marker { display:none; }
+.hnav-group-head { display:flex; align-items:center; justify-content:space-between; padding-right:10px; }
+.hnav-add {
+  width:20px; height:20px; border-radius:6px; display:grid; place-items:center;
+  font-family:var(--fb); font-size:15px; line-height:1; color:var(--ink-3);
+}
+.hnav-group-head:hover .hnav-add { background:var(--card); color:var(--ink); }
+.hnav-group[open] .hnav-add { transform:rotate(45deg); }
+.hnav-form { display:flex; flex-direction:column; gap:6px; padding:4px 6px 10px; align-items:flex-start; }
+.hnav-form .team-input { width:100%; }
+
+/* The selected direction, above its hunches. */
+.hdir {
+  background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:14px 16px;
+  display:flex; flex-direction:column; gap:6px;
+}
+.hdir-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.hdir-actions { display:flex; align-items:center; gap:8px; flex:none; }
+.hdir-actions form { margin:0; }
+.hdir-title { font-size:16px; font-weight:700; color:var(--ink); margin:0; }
+.hdir-brief { font-size:13px; color:var(--ink-2); margin:3px 0 0; }
+.hdir-meta { font-size:12px; color:var(--ink-3); margin:0; }
+.hdir-view { font-size:13.5px; }
+.hdir-label { font-size:12px; font-weight:600; color:var(--ink-2); margin:4px 0 0; }
+.hdir-questions { margin:0; padding-left:18px; list-style:disc; font-size:13px; color:var(--ink-2); }
+.hdir.is-paused .hdir-title { color:var(--ink-2); }
 .sharing-empty {
   margin-top:22px; padding:44px 20px; text-align:center;
   border:1px dashed var(--line); border-radius:12px; color:var(--ink-2);

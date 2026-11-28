@@ -1,0 +1,75 @@
+en:
+  hunches:
+    index:
+      title: "Hunches"
+      history: "History"
+      stats: "Used %{used} · Dismissed %{dismissed} · Expired %{expired} · %{rate}% used"
+      cost_per_used: "%{cost} per used hunch"
+      read_my_mind: "Read my mind"
+      read_my_mind_focus: "Just %{title}"
+      last_run_html: "Last read %{time} ago · %{link}"
+      see_run: "see the run"
+      never_run: "Metis hasn't had a hunch yet"
+      empty:
+        all:
+          title: "No hunches right now"
+          desc: "Each morning Metis works out what you'll probably need and does it ahead of time, from your goals, commitments and directions. Add a direction on the left, or press Read my mind."
+        direction:
+          title: "No hunches for this direction yet"
+          desc: "The next run explores it. Press Read my mind to look now."
+        history:
+          title: "No history yet"
+          desc: "Hunches you used or dismissed, and ones that expired, show up here."
+    hunch:
+      age: "%{time} ago"
+      continue: "Continue in chat"
+      useful: "Useful 👍"
+      cancel: "Cancel"
+      dismiss_question: "Why dismiss it?"
+      dismiss: "Dismiss"
+      source:
+        goal: "Goal: %{memory}"
+        commitment: "Commitment: %{memory}"
+        memory: "Memory: %{memory}"
+      show_more: "Show more"
+      show_less: "Show less"
+      outcome:
+        used: "Used"
+        dismissed: "Dismissed"
+        expired: "Expired"
+      reasons:
+        not_relevant: "Not relevant"
+        already_done: "Already done"
+        wrong_timing: "Wrong timing"
+        not_good_enough: "Not good enough"
+      reason_placeholder: "Something else (optional)"
+      impact:
+        medium: "Useful"
+        high: "Important"
+    nav:
+      all: "Ready"
+      directions: "Directions"
+      new: "New direction"
+      empty: "Add what Metis should follow with +."
+      history: "History"
+    prompt:
+      focus: "This run, focus only on direction #%{id} \"%{title}\"."
+      intro: "A hunch you prepared for me:"
+      why_now: "Why now:"
+      evidence: "Sources:"
+  directions:
+    title_label: "Follow"
+    title_placeholder: "e.g. Proactive agents"
+    brief_label: "What to watch and why"
+    brief_placeholder: "e.g. New research and products, and what they mean for Metis"
+    add: "Add direction"
+    paused: "Paused"
+    explored: "Explored %{time} ago"
+    not_explored: "Not explored yet"
+    outcomes: "%{used} used · %{dismissed} dismissed · %{expired} expired"
+    used_rate: "%{rate}% used"
+    open_questions: "Open questions"
+    pause: "Pause %{title}"
+    resume: "Resume %{title}"
+    active: "%{title} active"
+    delete_confirm: "Stop following %{title}?"

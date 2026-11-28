@@ -1,7 +1,7 @@
 ---
 name: understanding-metis
 description: Architectural knowledge of the Metis codebase (chagel/metis) — a Rails 8.1 chat UI in front of the pi agent harness. Use ONLY when working on the Metis repository.
-version: 11
+version: 12
 ---
 
 # Metis Architecture
@@ -281,6 +281,23 @@ A nightly per-user "Memory review" routine (`MemoryReview`, created with the
 first memory) reads `Agent::MemoryReport` via `metis_memory_report` and
 tidies the memories, skipping quiet nights. Managed at `/settings/memory`.
 
+## Hunches
+
+A **hunch** is finished work (a draft, a summary, a review) Metis prepared
+before the user asked. The user names `Direction`s to follow (team + user,
+personal, max 10; managed on the Hunches tab, or `metis_add_direction` from
+chat). A per-user "Foresight" routine (`Foresight`,
+`trigger_config["purpose"] = "foresight"`, daily 06:00, created with the
+first direction, skipped when there are no directions, goals or commitments)
+reads them plus goal and commitment memories, updates each direction's view
+(`metis_update_direction`) and records up to 3 `Hunch`es
+(`metis_record_hunch`, evidence and ≥ medium impact required) through
+`Agent::ForesightManager`. Only that routine may make those two writes
+unattended. `/hunches` shows ready hunches with Continue in chat (a new chat with
+the hunch attached to the composer; used once a message is sent), Useful
+(used, no chat), Dismiss, and **Read my mind** (fire foresight now);
+a hunch left 14 days expires. Outcomes are the measure.
+
 ## Credentials & connectors
 
 Two distinct surfaces, separately governed:
@@ -355,7 +372,8 @@ credentials are deployment-level ENV — never per-user.
   `Workflow#trigger_source`, `WorkflowRun#status`, `Task#status`,
   `Task#gate`, `WebhookEvent#provider`, `Routine#trigger_source`,
   `Routine#visibility`, `UserMemory#kind`, `UserMemory#source`,
-  `UserMemory#confidence`.
+  `UserMemory#confidence`, `Direction#status`, `Hunch#impact`,
+  `Hunch#confidence`, `Hunch#status`.
 - `Message#content` and `Message#reasoning` use Active Record
   encryption — credentials must be present in every environment that
   touches the model (including tests).

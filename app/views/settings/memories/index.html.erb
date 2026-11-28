@@ -1,6 +1,8 @@
 <% content_for :title, t(".title") %>
 
-<main class="pane" data-controller="memory-filter">
+<main class="pane" data-controller="memory-filter"
+      data-memory-filter-key-value="<%= params[:kind] if UserMemory.kinds.key?(params[:kind]) %>"
+      data-memory-filter-highlight-value="<%= params[:highlight].to_i.nonzero? %>">
   <header class="pane-head">
     <h1 class="pane-title"><%= t(".heading") %></h1>
     <div style="flex:1"></div>

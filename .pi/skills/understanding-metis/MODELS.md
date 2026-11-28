@@ -97,7 +97,7 @@ def memory_deletions_since(time)   # { kind => count }
 
 # Leaving a team: the user's memories there and personal routines are
 # deleted; team routines that run as them are paused.
-after_destroy { UserMemory.for(user, team).delete_all }
+after_destroy { UserMemory.for(user, team).delete_all }   # also Hunch and Direction
 ```
 
 ## Identity
@@ -512,6 +512,7 @@ def granted_connectors      # connector names, "github_bot", "provider:<key>"
 def granted_actions         # e.g. ["start_workflow"]
 def grantable_connectors    # label => grant for the form; provider-grouped
 def grantable_actions
+def purpose_routine           # MemoryReview / Foresight (PurposeRoutine.for) or nil
 def memory_review?
 
 def fire!(event: nil)
@@ -603,6 +604,46 @@ scope :for, ->(user, team) { where(user: user, team: team) }
 def self.available_in?(conversation)  # not a workflow run, user still a member
 def confirm!                          # stated + high
 def edit_by_user(content)             # the user's own wording: stated + high
+```
+
+## Direction
+
+Something a user asked Metis to follow; explored by the foresight run.
+
+```ruby
+MAX_PER_USER = 10
+enum :status, { active: 0, paused: 1 }
+belongs_to :team
+belongs_to :user
+has_many :hunches, dependent: :nullify
+encrypts :brief, :view
+# title (≤120), open_questions (jsonb array), last_explored_at
+after_create_commit :ensure_foresight   # Foresight.ensure_for(user, team)
+scope :for, ->(user, team) { where(user: user, team: team) }
+```
+
+## Hunch
+
+Finished work Metis prepared ahead of the user (`docs/hunches.md`).
+
+```ruby
+MAX_PER_RUN = 3
+TTL = 14.days
+enum :impact,     { low: 0, medium: 1, high: 2 }, prefix: true  # not "value": clashes with Relation.values
+enum :confidence, { low: 0, medium: 1, high: 2 }, prefix: true
+enum :status,     { ready: 0, used: 1, dismissed: 2, expired: 3 }
+belongs_to :team
+belongs_to :user
+belongs_to :direction, optional: true                         # FK nullify
+belongs_to :source_memory, class_name: "UserMemory", optional: true
+belongs_to :conversation, optional: true                      # the foresight run
+encrypts :body, :why_now, :dismiss_reason
+# title, evidence (jsonb [{ title, url }]), outcome_at
+scope :stale, -> { ready.where(created_at: ...TTL.ago) }
+def self.expire_stale!
+def use!                      # Useful, or the first message of a chat continued from it
+def dismiss!(reason = nil)
+def prompt                    # prefixed to the first message of a continued chat
 ```
 
 ## Skill

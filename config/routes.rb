@@ -75,6 +75,16 @@ Rails.application.routes.draw do
 
   resources :artifact_shares, only: %i[create destroy]
   get "sharing", to: "sharing#index"
+  resources :directions, only: %i[create destroy] do
+    member { patch :toggle }
+  end
+  resources :hunches, only: :index do
+    member do
+      patch :useful
+      patch :dismiss
+    end
+    collection { post :read_my_mind }
+  end
 
   get "/settings", to: redirect("/settings/profile")
   scope "/settings", as: nil do

@@ -1,0 +1,34 @@
+<%# The Hunches tab's sidebar: what Metis is following for you. Full Turbo
+    Drive visits, so the active row is server-rendered. %>
+<nav class="hnav" aria-label="<%= t("hunches.nav.directions") %>">
+  <div class="convo-tabs hnav-tabs" role="tablist">
+    <%= link_to t("hunches.nav.all"), hunches_path, class: class_names("convo-tab", on: @filter != :history) %>
+    <%= link_to t("hunches.nav.history"), hunches_path(view: "history"), class: class_names("convo-tab", on: @filter == :history) %>
+  </div>
+
+  <details class="hnav-group" <%= "open" if @directions.empty? %>>
+    <summary class="grp-label hnav-group-head">
+      <span><%= t("hunches.nav.directions") %></span>
+      <span class="hnav-add" title="<%= t("hunches.nav.new") %>" aria-label="<%= t("hunches.nav.new") %>">+</span>
+    </summary>
+    <%= form_with model: Direction.new, url: directions_path, class: "hnav-form" do |f| %>
+      <%= f.text_field :title, placeholder: t("directions.title_placeholder"),
+            class: "team-input", required: true, "aria-label": t("directions.title_label") %>
+      <%= f.text_area :brief, rows: 2, placeholder: t("directions.brief_placeholder"),
+            class: "team-input", "aria-label": t("directions.brief_label") %>
+      <%= f.submit t("directions.add"), class: "btn btn-primary btn-sm" %>
+    <% end %>
+  </details>
+  <% if @directions.empty? %>
+    <p class="convos-empty"><%= t("hunches.nav.empty") %></p>
+  <% end %>
+  <% @directions.each do |direction| %>
+    <%= link_to hunches_path(direction: direction.id),
+          class: class_names("hnav-item", on: @direction&.id == direction.id) do %>
+      <span class="hnav-name"><%= direction.title %></span>
+      <span class="hnav-meta"><%= direction.paused? ? t("directions.paused") : direction_explored(direction) %></span>
+      <span class="hnav-count"><%= @ready_counts[direction.id] %></span>
+    <% end %>
+  <% end %>
+
+</nav>

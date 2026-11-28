@@ -1,0 +1,10 @@
+<%# What Metis currently thinks about a direction: its view and open questions. %>
+<% if direction.view.present? %>
+  <div class="hdir-view chat-content"><%= markdown(direction.view) %></div>
+<% end %>
+<% if direction.open_questions.any? %>
+  <p class="hdir-label"><%= t("directions.open_questions") %></p>
+  <ul class="hdir-questions">
+    <% direction.open_questions.each do |question| %><li><%= question %></li><% end %>
+  </ul>
+<% end %>

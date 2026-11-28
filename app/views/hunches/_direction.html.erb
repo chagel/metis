@@ -1,0 +1,21 @@
+<section class="hdir <%= "is-paused" if direction.paused? %>">
+  <div class="hdir-top">
+    <div>
+      <h2 class="hdir-title"><%= direction.title %></h2>
+      <% if direction.brief.present? %><p class="hdir-brief"><%= direction.brief %></p><% end %>
+    </div>
+    <div class="hdir-actions">
+      <%= button_to t("common.delete"), direction_path(direction), method: :delete, class: "btn btn-ghost btn-sm",
+            form: { data: { turbo_confirm: t("directions.delete_confirm", title: direction.title) } } %>
+      <%= render "directions/toggle", direction: direction %>
+    </div>
+  </div>
+  <p class="hdir-meta routine-meta">
+    <span><%= direction_explored(direction) %></span>
+    <span>
+      <%= t("directions.outcomes", **outcomes.slice(:used, :dismissed, :expired)) %>
+      <% if outcomes[:used_rate] %>· <%= t("directions.used_rate", rate: outcomes[:used_rate]) %><% end %>
+    </span>
+  </p>
+  <%= render "directions/state", direction: direction %>
+</section>

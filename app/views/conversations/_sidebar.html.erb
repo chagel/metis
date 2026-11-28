@@ -1,8 +1,8 @@
-<%# The persistent shell sidebar: brand, primary nav, a section-contextual
-    body (conversations on chat, a project list on projects/board), and the
-    user menu. Rendered by the "chat" layout on every top-level page. The
-    body collapses to the icon rail (.sidebar-rail) — board and sharing are
-    pinned to the rail on desktop; see nav_rail_only?. %>
+<%# The persistent shell sidebar: a header (Board, Sharing, new chat), list
+    tabs, a section-contextual body (conversations on chat, a project list on
+    projects/board), and the user menu. Rendered by the "chat" layout on every
+    top-level page. The body collapses to the icon rail (.sidebar-rail) — board
+    and sharing are pinned to the rail on desktop; see nav_rail_only?. %>
 <aside id="sidebar" class="sidebar" data-controller="conversation-search"
        data-conversation-search-url-value="<%= search_conversations_path %>"
        data-conversation-search-min-length-value="<%= ConversationsController::SEARCH_MIN_LENGTH %>">
@@ -13,19 +13,19 @@
       <%= render "shared/team_switcher" %>
     </div>
     <div style="flex:1"></div>
-    <% if controller_name == "conversations" %>
-      <%= link_to conversations_path, class: "ico-btn", title: "#{t('.new_chat')} ⌘N",
-            data: { turbo_frame: "main", sidebar_target: "newChat" } do %>
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-          <path d="M8 3v10M3 8h10" stroke-linecap="round"/>
-        </svg>
-      <% end %>
-    <% elsif team_manager? %>
-      <%= link_to new_project_path, class: "ico-btn", title: t('.new_project') do %>
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-          <path d="M8 3v10M3 8h10" stroke-linecap="round"/>
-        </svg>
-      <% end %>
+    <%= link_to board_path, class: "ico-btn ws-place#{' on' if controller_name == 'board'}",
+          title: t('.board'), aria: { label: t('.board') } do %>
+      <%= render "shared/icons/board" %>
+      <%= render "conversations/nav_badge", count: @needs_you&.size %>
+    <% end %>
+    <%= link_to sharing_path, class: "ico-btn ws-place#{' on' if controller_name == 'sharing'}",
+          title: t('.sharing'), aria: { label: t('.sharing') } do %>
+      <%= render "shared/icons/sharing" %>
+    <% end %>
+    <span class="ws-sep" aria-hidden="true"></span>
+    <%= link_to conversations_path, class: "ico-btn", title: "#{t('.new_chat')} ⌘N", aria: { label: t('.new_chat') },
+          data: { turbo_frame: controller_name == "conversations" ? "main" : "_top", sidebar_target: "newChat" } do %>
+      <%= render "shared/icons/plus" %>
     <% end %>
   </div>
 
@@ -35,19 +35,16 @@
       then, so the tab would otherwise stay lit). %>
   <nav class="prnav" aria-label="<%= t('.primary_nav') %>" data-controller="nav-tabs">
     <%= link_to t('.chats'), conversations_path,
-          class: "prnav-item#{' on' unless controller_name.in?(%w[board projects sharing])}",
+          class: "prnav-item#{' on' if controller_name == 'conversations'}",
           data: { nav_tabs_target: "link" } %>
+    <%= link_to hunches_path,
+          class: "prnav-item#{' on' if controller_name == 'hunches'}",
+          data: { nav_tabs_target: "link" } do %>
+      <%= t('.hunches') %>
+      <% if ready_hunches_count.positive? %><span class="prnav-badge prnav-badge--quiet"><%= ready_hunches_count %></span><% end %>
+    <% end %>
     <%= link_to t('.projects'), projects_path,
           class: "prnav-item#{' on' if controller_name == 'projects'}",
-          data: { nav_tabs_target: "link" } %>
-    <%= link_to board_path,
-          class: "prnav-item#{' on' if controller_name == 'board'}",
-          data: { nav_tabs_target: "link" } do %>
-      <%= t('.board') %>
-      <%= render "conversations/nav_badge", count: @needs_you&.size %>
-    <% end %>
-    <%= link_to t('.sharing'), sharing_path,
-          class: "prnav-item#{' on' if controller_name == 'sharing'}",
           data: { nav_tabs_target: "link" } %>
   </nav>
 
@@ -162,6 +159,8 @@
                      loading="eager" data-turbo-prefetch="false"></turbo-frame>
       </div>
     </nav>
+  <% elsif controller_name == "hunches" %>
+    <%= render "hunches/nav" %>
   <% else %>
     <%= render "conversations/projects_nav" %>
   <% end %>
@@ -184,32 +183,33 @@
       </svg>
       <span class="rail-label"><%= t('.chats') %></span>
     <% end %>
+    <%= link_to hunches_path, class: "rail-dest#{' on' if controller_name == 'hunches'}" do %>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M8 1.8l1.6 3.6 3.6 1.6-3.6 1.6L8 12.2 6.4 8.6 2.8 7l3.6-1.6z"/>
+        <path d="M12.5 11.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z"/>
+      </svg>
+      <span class="rail-label"><%= t('.hunches') %></span>
+    <% end %>
     <%= link_to projects_path, class: "rail-dest#{' on' if controller_name == 'projects'}" do %>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
         <path d="M2 4.5h4l1 1.2h7V13H2z" stroke-linejoin="round"/>
       </svg>
       <span class="rail-label"><%= t('.projects') %></span>
     <% end %>
+    <span class="rail-sep" aria-hidden="true"></span>
     <%# A plain dot, not the id'd nav_badge partial — that lives in the
-        expanded prnav, and a second copy would duplicate its DOM id. %>
+        expanded header, and a second copy would duplicate its DOM id. %>
     <%= link_to board_path, class: "rail-dest#{' on' if controller_name == 'board'}" do %>
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-        <path d="M2.5 2.5h3v11h-3zM6.5 2.5h3v7h-3zM10.5 2.5h3v11h-3z" stroke-linejoin="round"/>
-      </svg>
+      <%= render "shared/icons/board" %>
       <% if @needs_you&.any? %><span class="rail-dot" aria-hidden="true"></span><% end %>
       <span class="rail-label"><%= t('.board') %></span>
     <% end %>
     <%= link_to sharing_path, class: "rail-dest#{' on' if controller_name == 'sharing'}" do %>
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
-           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="3.5" r="1.75"/>
-        <circle cx="4" cy="8" r="1.75"/>
-        <circle cx="12" cy="12.5" r="1.75"/>
-        <path d="M5.5 7.1l5-2.7"/>
-        <path d="M5.5 8.9l5 2.7"/>
-      </svg>
+      <%= render "shared/icons/sharing" %>
       <span class="rail-label"><%= t('.sharing') %></span>
     <% end %>
+    <span class="rail-sep" aria-hidden="true"></span>
     <span style="flex:1"></span>
     <%= link_to "/settings", class: "rail-dest", data: { turbo_frame: "_top" } do %>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"

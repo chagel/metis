@@ -8,6 +8,10 @@ en:
           attributes:
             base:
               cap_reached: "already has %{count} memories — update or forget one first"
+        direction:
+          attributes:
+            base:
+              cap_reached: "already has %{count} directions — pause or delete one first"
         skill:
           attributes:
             slug:

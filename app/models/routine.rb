@@ -75,9 +75,11 @@ class Routine < ApplicationRecord
     Agent::RunPolicy::GRANTABLE_OPS.to_h { |op| [ I18n.t("routines.form.grants_actions.#{op}"), op ] }
   end
 
-  def memory_review?
-    trigger_config["purpose"] == MemoryReview::PURPOSE
-  end
+  def purpose_routine = PurposeRoutine.for(trigger_config["purpose"])
+
+  def memory_review? = purpose_routine == MemoryReview
+
+  def foresight? = purpose_routine == Foresight
 
   def cooldown_seconds
     trigger_config["cooldown_seconds"].to_i
@@ -85,16 +87,18 @@ class Routine < ApplicationRecord
 
   # Fire the routine: start one chat turn in a fresh conversation owned by the
   # routine's user, and stamp last_run_at. `event` (a WebhookEvent) feeds the
-  # prompt's event_* variables on the webhook path. Returns the conversation.
-  def fire!(event: nil)
+  # prompt's event_* variables on the webhook path; `note` is appended to the
+  # prompt for this fire only. Returns the conversation.
+  def fire!(event: nil, note: nil)
     conversation = user.with_lock do
       UnattendedBudget.new(user).check!
       user.conversations.create!(
         team: team, project: project, routine: self,
-        settings: run_settings.merge("fired_by_routine" => true), visibility: visibility, title: name
+        settings: run_settings.merge({ "fired_by_routine" => true, "purpose" => trigger_config["purpose"] }.compact),
+        visibility: visibility, title: name
       )
     end
-    ConversationTurn.start(conversation, content: rendered_prompt(event))
+    ConversationTurn.start(conversation, content: [ rendered_prompt(event), note ].compact.join("\n\n"))
     update!(last_run_at: Time.current)
     conversation
   end
@@ -105,7 +109,7 @@ class Routine < ApplicationRecord
     with_lock do
       return false unless enabled? && schedule? && next_run_at && next_run_at <= Time.current
 
-      fire_unless_over_budget unless memory_review? && !MemoryReview.activity?(self)
+      fire_unless_over_budget unless quiet?
       update!(next_run_at: next_cron_time)
       true
     end
@@ -139,6 +143,11 @@ class Routine < ApplicationRecord
     brand = provider == "github" ? "GitHub" : provider.capitalize
     names = group.map { |connector| connector.catalog_app.name.delete_prefix("#{brand} ") }
     names == [ brand ] ? brand : "#{brand} (#{names.join(", ")})"
+  end
+
+  # A purpose-built routine with nothing to work on skips the night.
+  def quiet?
+    purpose_routine.present? && !purpose_routine.activity?(self)
   end
 
   def fire_unless_over_budget

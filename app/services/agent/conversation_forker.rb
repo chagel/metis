@@ -1,6 +1,10 @@
 module Agent
   # The real pi session copy is deferred to ForkPreparer on the first turn.
   class ConversationForker
+    # A fork is the user's own chat, not a routine run: it neither runs
+    # unattended nor counts toward a purpose routine's runs or cost.
+    ROUTINE_MARKERS = %w[fired_by_routine purpose].freeze
+
     def initialize(message, by:)
       @plan = ForkPlan.new(message)
       @user = by
@@ -24,7 +28,7 @@ module Agent
       @user.conversations.new(
         team: source.team,
         project_id: source.project_id,
-        settings: source.settings,
+        settings: source.settings.except(*ROUTINE_MARKERS),
         title: source.title,
         forked_from_message: @plan.message,
         fork_pending: @plan.host_eligible?

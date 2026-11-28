@@ -8,6 +8,10 @@
           attributes:
             base:
               cap_reached: "已有 %{count} 条记忆 — 请先更新或删除一条"
+        direction:
+          attributes:
+            base:
+              cap_reached: "已有 %{count} 个方向 — 请先暂停或删除一个"
         skill:
           attributes:
             slug:

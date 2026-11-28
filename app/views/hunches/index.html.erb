@@ -1,0 +1,42 @@
+<% content_for :title, t(".title") %>
+
+<main class="sharing hunches">
+  <header class="sharing-head">
+    <h1><%= @filter == :history ? t(".history") : t(".title") %></h1>
+    <p class="hunches-sub">
+      <% if @last_run %>
+        <%= t(".last_run_html", time: time_ago_in_words(@last_run.created_at), link: link_to(t(".see_run"), conversation_path(@last_run))) %>
+      <% else %>
+        <%= t(".never_run") %>
+      <% end %>
+    </p>
+    <% unless @filter == :history %>
+      <%= button_to t(".read_my_mind"), read_my_mind_hunches_path(direction_id: @direction&.id),
+            class: "btn btn-primary btn-sm", title: (t(".read_my_mind_focus", title: @direction.title) if @direction),
+            form: { data: { turbo_frame: "_top" } } %>
+    <% end %>
+  </header>
+
+  <div class="sharing-body">
+    <div class="hunch-list">
+      <%= render "direction", direction: @direction, outcomes: @outcomes if @direction %>
+      <% if @stats && @stats[:used_rate] %>
+        <p class="hunch-stats">
+          <%= t(".stats", used: @stats[:used], dismissed: @stats[:dismissed], expired: @stats[:expired], rate: @stats[:used_rate]) %>
+          <% if @stats[:cost_per_used] %>
+            · <%= t(".cost_per_used", cost: number_to_currency(@stats[:cost_per_used], precision: 2)) %>
+          <% end %>
+        </p>
+      <% end %>
+
+      <% if @hunches.any? %>
+        <%= render partial: "hunch", collection: @hunches %>
+      <% else %>
+        <div class="sharing-empty">
+          <p class="sharing-empty-title"><%= t(".empty.#{@filter}.title") %></p>
+          <p class="sharing-empty-desc"><%= t(".empty.#{@filter}.desc") %></p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</main>

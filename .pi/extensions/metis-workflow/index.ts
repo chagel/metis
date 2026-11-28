@@ -21,6 +21,10 @@
  *   metis_note_applied    — report which memories shaped this reply
  *   metis_note_correction — mark the previous reply as corrected by the operator
  *   metis_memory_report   — how memories fared lately (the nightly review reads it)
+ *   metis_list_directions — the operator's directions and their current state
+ *   metis_add_direction   — start following something the operator asks for
+ *   metis_update_direction — record a direction's current view and open questions
+ *   metis_record_hunch    — save finished work the operator will likely need
  *
  * These manage team skills as single SKILL.md rows. Multi-file skills (with
  * supporting assets) still go through the native file path: write
@@ -767,6 +771,92 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
 
     async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
       return hostWrite(ctx, "memory_report", {}, (r) => JSON.stringify(r, null, 2));
+    },
+  });
+
+  pi.registerTool({
+    name: "metis_list_directions",
+    label: "List Directions",
+    description:
+      "The directions the operator asked you to follow, each with its brief, status, your current view, " +
+      "open questions and when it was last explored.",
+    promptSnippet: "List the operator's directions",
+    promptGuidelines: [
+      "Use metis_list_directions during a foresight run, or when the operator asks what you're following for them.",
+    ],
+    parameters: Type.Object({}),
+
+    async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
+      return hostWrite(ctx, "list_directions", {}, (r) => JSON.stringify(r.directions, null, 2));
+    },
+  });
+
+  pi.registerTool({
+    name: "metis_add_direction",
+    label: "Add Direction",
+    description:
+      "Start following something for the operator, like \"keep me current on proactive agents\". " +
+      "The nightly foresight run explores it and records hunches from it.",
+    promptSnippet: "Follow a topic for the operator",
+    promptGuidelines: [
+      "Use metis_add_direction only when the operator asks you to follow, track or keep them current on something.",
+    ],
+    parameters: Type.Object({
+      title: Type.String({ description: "A short name, e.g. \"Proactive agents\"." }),
+      brief: Type.Optional(Type.String({ description: "What to follow and why, in the operator's terms." })),
+    }),
+
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return hostWrite(ctx, "add_direction", params, (r) => `Now following "${r.title}" (#${r.id}).`);
+    },
+  });
+
+  pi.registerTool({
+    name: "metis_update_direction",
+    label: "Update Direction",
+    description: "Record what you now understand about a direction after exploring it: your current view and open questions.",
+    promptSnippet: "Update a direction's view",
+    promptGuidelines: [
+      "Use metis_update_direction in a foresight run after researching a direction. Rewrite the view in full; it replaces the old one.",
+    ],
+    parameters: Type.Object({
+      id: Type.Number({ description: "The direction id from metis_list_directions." }),
+      view: Type.Optional(Type.String({ description: "Your current understanding, a few short paragraphs." })),
+      open_questions: Type.Optional(Type.Array(Type.String(), { description: "What's still unclear, up to 10." })),
+    }),
+
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return hostWrite(ctx, "update_direction", params, (r) => `Updated direction #${r.id}.`);
+    },
+  });
+
+  pi.registerTool({
+    name: "metis_record_hunch",
+    label: "Record Hunch",
+    description:
+      "Save a hunch: finished work the operator will probably need soon (a draft, a summary, a review, a plan), " +
+      "with why now and the sources behind it. It appears on their Hunches page to continue in chat, mark useful, or dismiss.",
+    promptSnippet: "Save finished work the operator will likely need",
+    promptGuidelines: [
+      "Use metis_record_hunch in a foresight run, at most 3 times, only for work you'd rate at least medium impact and can back with sources.",
+      "Put the finished work in body, not a plan to do it.",
+    ],
+    parameters: Type.Object({
+      title: Type.String({ description: "What it is, e.g. \"Draft reply to the Acme renewal thread\"." }),
+      body: Type.String({ description: "The finished work, in Markdown." }),
+      why_now: Type.String({ description: "Why the operator will need this soon." }),
+      evidence: Type.Array(
+        Type.Object({ title: Type.Optional(Type.String()), url: Type.String() }),
+        { description: "Sources behind it, each with a url." },
+      ),
+      impact: literals(["medium", "high"], { description: "How much it should help." }),
+      confidence: literals(["low", "medium", "high"], { description: "How sure you are they'll need it." }),
+      direction_id: Type.Optional(Type.Number({ description: "The direction it came from. Pass this or memory_id." })),
+      memory_id: Type.Optional(Type.Number({ description: "The goal or commitment memory it came from. Pass this or direction_id." })),
+    }),
+
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return hostWrite(ctx, "record_hunch", params, (r) => `Recorded hunch #${r.id}.`);
     },
   });
 }

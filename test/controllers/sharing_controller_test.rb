@@ -162,11 +162,12 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil artifact
   end
 
-  test "lights the Sharing nav item and opens with the sidebar collapsed" do
+  test "opens from the header link with the sidebar collapsed" do
     sign_in @user
     get sharing_path
 
-    assert_select ".sidebar .prnav .prnav-item.on", text: "Sharing"
+    assert_select ".sidebar .prnav .prnav-item.on", count: 0
+    assert_select ".sidebar .ws a.ws-place.on[href='#{sharing_path}']"
     assert_select ".app.sidebar-collapsed"
   end
 end

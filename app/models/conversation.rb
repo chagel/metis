@@ -46,6 +46,9 @@ class Conversation < ApplicationRecord
   # (_convo.html.erb): a workflow run, else a routine fire, else a plain
   # chat. Used by the sidebar's kind filter.
   scope :chats, -> { where(routine_id: nil).where.missing(:workflow_run) }
+  # Runs of a purpose routine (Foresight, MemoryReview), kept after the
+  # routine itself is deleted.
+  scope :purpose_runs, ->(purpose) { where("conversations.settings->>'purpose' = ?", purpose) }
   scope :workflows, -> { where.associated(:workflow_run) }
   scope :routines, -> { where.not(routine_id: nil) }
   scope :for_team, ->(team) { where(team: team) }
