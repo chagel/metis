@@ -46,6 +46,12 @@ A path that needs the user or an admin to act against their own interest
 (deleting their own records to reset their own limit) is not a P1. Say who
 the attacker is; if you can't name one, it's not a security finding.
 
+A race or ordering finding is a P2 only with a **realistic trigger**: name
+the sequence and why it happens in normal use, given the real timings and
+the infrastructure's actual guarantees. If it needs a component to be down
+or stalled for the whole operation, or the same gap already exists outside
+this PR, it's a P3 suggestion (or a follow-up issue), not a P2.
+
 ## Review Verdicts
 
 - **REQUEST_CHANGES**: at least one open **P1**.
@@ -68,6 +74,23 @@ For a **P1**, "acknowledged, but shipping anyway", "out of this PR's scope"
 it's fine" are **not** resolutions; the verdict stays REQUEST_CHANGES. For a
 P2 or P3, a reasoned decision in the thread or a documented known gap is a
 resolution unless you rebut it.
+
+## Re-reviews Converge
+
+A re-review exists to confirm the earlier findings are closed, not to
+re-audit the PR from scratch.
+
+1. Settle each prior finding first: fixed (cite the commit), refuted, or
+   decided by the author in its thread.
+2. New findings are limited to **regressions the commits since your last
+   review introduce**, plus any **P1** anywhere. Don't open new P2/P3s on
+   code you already reviewed and passed.
+3. A finding on a fix commit must show the fix **broke** something. Further
+   hardening of a concern the fix already addresses is a suggestion.
+4. Don't ask for a larger mechanism (reconciliation, versioning, replay) to
+   close a residual edge of a fix. Name it as a follow-up.
+5. If everything left is P3, or P2s the author answered with a decision or a
+   tracked follow-up issue, **APPROVE** and list them as non-blocking.
 
 ## Scope Is Not an Escape Hatch
 
@@ -123,8 +146,12 @@ The review summary should include these sections:
 [2-3 sentence overview of what the PR does and your overall assessment]
 
 ### Key Issues Identified
-1. **[Issue Title]** (P1, confidence: N)
+1. **[Issue Title]** (P1 · blocks merge, confidence: N)
    [Explanation of why it matters and potential impact]
+
+Mark every finding, in the summary and its inline comment, as
+**blocks merge** (P1) or **non-blocking** (P2, P3), so the author knows
+what stands between the PR and an approval.
 
 ### Positive Aspects
 - **[Aspect]**: [Brief explanation]
