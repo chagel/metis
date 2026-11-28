@@ -24,7 +24,6 @@ class Settings::MemoriesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".memory-tabs .board-chip[data-key='review']", text: /Needs review\s+1/
     assert_select ".memory-row.is-inferred .memory-meta", text: /Preference · guessed, low/
     assert_select ".memory-row:not(.is-inferred) .memory-meta", text: /Correction · you said/
-    assert_select ".memory-intro", text: /your personal workspace/
   end
 
   test "index empty state" do

@@ -215,8 +215,6 @@ en:
       index:
         title: "Memory"
         heading: "Memory"
-        intro: "What Metis has learned about you in %{team}. It records these on its own as you chat and uses them in every conversation. Click a memory to edit it."
-        personal_team: "your personal workspace"
         search: "Search memories"
         filter: "Filter memories"
         all: "All"

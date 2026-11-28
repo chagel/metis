@@ -192,8 +192,6 @@
       index:
         title: "记忆"
         heading: "记忆"
-        intro: "Metis 在 %{team} 中了解到的关于你的信息。它会在聊天中自行记录，并在每次对话中运用。点击任意一条即可编辑。"
-        personal_team: "你的个人空间"
         search: "搜索记忆"
         filter: "筛选记忆"
         all: "全部"
