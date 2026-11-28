@@ -37,12 +37,14 @@ class Hunch < ApplicationRecord
   end
 
   # Plus what foresight cost per hunch used, over every foresight run (even
-  # ones from a since-deleted routine). Unknown (nil), never free, when a run
-  # is unpriced.
+  # ones from a since-deleted routine). Each fire is its own conversation and
+  # its first reply is the routine's turn; later replies are the user chatting.
+  # Unknown (nil), never free, when a run is unpriced.
   def self.outcome_stats(user, team)
     counts = outcome_counts(self.for(user, team))
     runs = Conversation.where(user: user, team: team).purpose_runs(Foresight::PURPOSE)
-    costs = Message.assistant.where(conversation: runs).pluck(:cost)
+    costs = Message.assistant.where(conversation: runs).order(:created_at, :id).pluck(:conversation_id, :cost)
+                   .uniq(&:first).map(&:last)
     counts.merge(cost_per_used: (costs.sum / counts[:used] if counts[:used].positive? && costs.none?(&:nil?)))
   end
 

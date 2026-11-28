@@ -206,4 +206,15 @@ class HunchesControllerTest < ActionDispatch::IntegrationTest
     run.(Foresight.routine_for(@user, @team), nil)
     assert_nil Hunch.outcome_stats(@user, @team)[:cost_per_used], "an unpriced run makes it unknown"
   end
+
+  test "the user's own follow-up chat in a foresight run isn't foresight cost" do
+    run = @user.conversations.create!(team: @team, routine: Foresight.ensure_for(@user, @team), settings: { "purpose" => Foresight::PURPOSE })
+    run.messages.create!(role: :assistant, streaming_status: :done, content: "foresight", cost: 0.2)
+    hunch(status: :used, conversation: run)
+    run.messages.create!(role: :user, streaming_status: :done, content: "tell me more", sender: @user)
+    run.messages.create!(role: :assistant, streaming_status: :done, content: "chat", cost: 2.0)
+    run.messages.create!(role: :assistant, streaming_status: :done, content: "chat", cost: nil)
+
+    assert_in_delta 0.2, Hunch.outcome_stats(@user, @team)[:cost_per_used], 0.001
+  end
 end
