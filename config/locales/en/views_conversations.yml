@@ -17,6 +17,7 @@ en:
       hunch: "Hunch: %{title}"
       clear_hunch: "Remove the hunch"
       placeholder_message: "Message the agent…"
+      busy: "Still replying — wait for it to finish, then send."
       attach: "Attach photos or files"
       model: "Model"
       toggle_team_visibility: "Toggle team visibility for this chat"

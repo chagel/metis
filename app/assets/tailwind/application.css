@@ -1533,8 +1533,9 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
   font-size:12.5px; color:var(--ink-3); margin-top:2px;
 }
 
+/* ink-2 on an 8% tint keeps the label above 4.5:1 in both themes. */
 .badge {
-  font-size:11.5px; color:var(--ink-3); background:var(--accent-soft);
+  font-size:11.5px; color:var(--ink-2); background:color-mix(in srgb, var(--accent) 8%, var(--card));
   border-radius:6px; padding:3px 8px;
 }
 
@@ -1698,6 +1699,10 @@ turbo-frame[aria-busy="true"] .ref-placeholder-spinner { display:block; }
 .routine-hint { font-size:12.5px; color:var(--ink-3); margin:0 0 16px; }
 .routine-meta { font-family:inherit; font-size:12px; }
 .routine-meta span + span::before { content:"·"; margin:0 6px; }
+.conn-row.is-paused { background:var(--bg); box-shadow:none; }
+.conn-row.is-paused :is(.conn-name, .conn-sub) { color:var(--ink-2); }
+.conn-name .badge { margin-left:8px; vertical-align:middle; }
+.conn-actions .inline-form { display:flex; }
 
 /* connector form */
 .conn-form { display:flex; flex-direction:column; gap:17px; }

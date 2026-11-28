@@ -77,7 +77,18 @@ class ChatBroadcaster
     )
   end
 
-  # Swap the composer's Stop button back to Send once the turn ends.
+  # A new turn's rows and Stop button, for every window on the conversation.
+  # The sender also gets the rows from create.turbo_stream; append_missing
+  # keeps the second copy from replacing a row that's already streaming.
+  def announce(user_message)
+    rows = [ [ user_message, false ], [ @message, true ] ].map do |message, forkable|
+      ApplicationController.render(partial: "messages/message", locals: { message: message, forkable: forkable })
+    end
+    Turbo::StreamsChannel.broadcast_action_to(@conversation, action: :append_missing, target: "messages", html: rows.join)
+    refresh_composer
+  end
+
+  # Match the composer's Send/Stop to whether a turn is running.
   def refresh_composer
     Turbo::StreamsChannel.broadcast_replace_to(
       @conversation,

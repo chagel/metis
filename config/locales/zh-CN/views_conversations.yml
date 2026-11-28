@@ -17,6 +17,7 @@
       hunch: "预感：%{title}"
       clear_hunch: "移除预感"
       placeholder_message: "给智能体发消息…"
+      busy: "仍在回复中，请等它完成后再发送。"
       attach: "附加照片或文件"
       model: "模型"
       toggle_team_visibility: "切换此对话的团队可见性"
