@@ -100,6 +100,10 @@ class Skill < ApplicationRecord
 
     body = body.dup.force_encoding("UTF-8")
     skill = team.skills.find_or_initialize_by(slug: slug)
+    if skill.proposal? && skill.proposed_by_id != by&.id
+      skill.errors.add(:slug, :taken)
+      raise ActiveRecord::RecordInvalid, skill
+    end
     skill.created_by ||= by
     skill.updated_by = by
     if (desc = parse_description(body)).present?

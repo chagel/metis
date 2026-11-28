@@ -35,8 +35,9 @@ class RefreshMemoryReviewPrompt < ActiveRecord::Migration[8.1]
       - Corrections on replies that used no memory point to something missing: record it.
       - Memories I edited or deleted myself are final: never undo an edit or re-learn a
         deleted kind of thing without new evidence.
-      - If conversation_titles show the same kind of task coming back and no skill covers
-        it (metis_list_skills), propose one with metis_propose_skill. At most one per review.
+      - If can_propose_skills is true and conversation_titles show the same kind of task
+        coming back that no skill covers (metis_list_skills), propose one with
+        metis_propose_skill. At most one per review.
 
       Then reply with a short note in a few bullets: what you changed and why. If the
       report shows nothing new, reply "Nothing new." and stop.

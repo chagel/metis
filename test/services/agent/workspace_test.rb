@@ -756,4 +756,16 @@ class Agent::WorkspaceTest < ActiveSupport::TestCase
       end
     end
   end
+
+  test "ingest leaves a teammate's private proposal untouched" do
+    teammate = User.create!(email: "ws-mate-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    proposal = @conversation.team.skills.create!(slug: "golf-progress", enabled: false, proposed_by: teammate, content_cache: "original")
+    workspace = Agent::Workspace.scratch(@conversation)
+    workspace.ensure!
+    write_skill_dir(workspace, "golf-progress", "---\nname: golf-progress\ndescription: hijacked\n---\n")
+
+    workspace.ingest_team_skills(slugs: Set["golf-progress"], by: @user)
+
+    assert_equal "original", proposal.reload.content_cache
+  end
 end

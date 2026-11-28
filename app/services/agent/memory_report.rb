@@ -8,6 +8,9 @@ module Agent
     DEFAULT_WINDOW = 7.days
     HISTORY = 30.days
     LIST_CAP = 50
+    # New chats that alone make a night worth reviewing: enough to spot a
+    # task coming back.
+    RECURRING_CHATS = 3
 
     def initialize(user, team, since: nil)
       @user = user
@@ -17,7 +20,8 @@ module Agent
 
     def activity?
       memories.where(updated_at: @since..).exists? || replies.applying_memories.exists? ||
-        corrections.exists? || deletions.any? || gate_decisions.exists? || hunch_outcomes.exists?
+        corrections.exists? || deletions.any? || gate_decisions.exists? || hunch_outcomes.exists? ||
+        new_chats.count >= RECURRING_CHATS
     end
 
     def corrections_count = corrections.count
@@ -37,6 +41,7 @@ module Agent
         hunches: hunch_outcomes.limit(LIST_CAP).map { |hunch| hunch_entry(hunch) },
         hunches_expired: hunches_expired,
         conversation_titles: conversation_titles,
+        can_propose_skills: @team.managed_by?(@user),
         totals: { replies: replies.count, corrections: corrections_count, corrections_previous_window: previous_corrections_count }
       }
     end
@@ -71,9 +76,10 @@ module Agent
       { title: hunch.title, outcome: hunch.status, direction: hunch.direction&.title, reason: hunch.dismiss_reason }.compact
     end
 
+    def new_chats = Conversation.chats.where(user: @user, team: @team, created_at: @since..)
+
     def conversation_titles
-      Conversation.chats.where(user: @user, team: @team, created_at: @since..).where.not(title: [ nil, "" ])
-                  .order(:created_at).limit(LIST_CAP).pluck(:title)
+      new_chats.where.not(title: [ nil, "" ]).order(:created_at).limit(LIST_CAP).pluck(:title)
     end
 
     def deletions

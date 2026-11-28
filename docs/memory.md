@@ -90,8 +90,10 @@ the user's workflow gate decisions (their `review` messages, so a "requested
 changes" note reads as a correction), hunches used or dismissed (with the
 dismiss reason; expiries only as a count, never as feedback), every
 correction note from the last 30 days (`correction_history`, so a
-correction repeated across nights is visible), and the window's
-conversation titles.
+correction repeated across nights is visible), the window's chat titles,
+and whether the user may propose skills (`can_propose_skills`, team admins).
+Three new chats in the window count as activity on their own, so a task that
+keeps coming back wakes the review.
 
 **Nightly review.** The first memory a user saves in a team creates a
 "Memory review" routine for them (`MemoryReview`, personal, daily at 03:00
@@ -123,10 +125,13 @@ undo yet; the snapshots are what one would restore.
 
 **Skill proposals.** When the conversation titles show a task coming back,
 the review may call `metis_propose_skill` (HostBridge `propose_skill`, allowed
-unattended only in the review), at most once a night. It creates a team skill
+unattended only in the review). The host allows one proposal per review
+conversation, and only for a team admin. It creates a team skill
 through `Agent::SkillManager.propose`: disabled, with `proposed_by` set, so
 only that user sees it (`Skill.visible_to`). Enabling it clears
 `proposed_by` and publishes it to the team; deleting it discards it.
+Agent-written skill files and GitHub imports can't overwrite someone else's
+proposal (`Skill.upsert_from_files`).
 
 ## Not yet
 

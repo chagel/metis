@@ -73,4 +73,21 @@ class Agent::MemoryReportTest < ActiveSupport::TestCase
     assert_includes data[:conversation_titles], "Weekly investor update"
     assert report.activity?
   end
+
+  test "three new chats alone make a night worth reviewing" do
+    @memory.update_columns(created_at: 2.days.ago, updated_at: 2.days.ago)
+    @user.conversations.create!(team: @team, title: "Investor update")
+    assert_not report.activity?, "two new chats aren't enough"
+
+    @user.conversations.create!(team: @team, title: "Investor update again")
+    assert report.activity?
+  end
+
+  test "tells the review whether this user may propose skills" do
+    assert report.to_h[:can_propose_skills]
+
+    team = Team.create!(name: "Work #{SecureRandom.hex(2)}")
+    team.memberships.create!(user: @user, role: :member)
+    assert_not Agent::MemoryReport.new(@user, team).to_h[:can_propose_skills]
+  end
 end

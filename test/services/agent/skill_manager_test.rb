@@ -171,4 +171,13 @@ class Agent::SkillManagerTest < ActiveSupport::TestCase
     assert_not Agent::SkillManager.create(chat, "slug" => "investor-update", "content" => SKILL_MD)[:ok]
     assert_not team.skills.find_by!(slug: "investor-update").enabled?
   end
+
+  test "a review proposes at most one skill, enforced on the host" do
+    assert Agent::SkillManager.propose(@conversation, "slug" => "first-idea", "content" => SKILL_MD)[:ok]
+    second = Agent::SkillManager.propose(@conversation, "slug" => "second-idea", "content" => SKILL_MD)
+
+    assert_not second[:ok]
+    assert_match(/one per review/i, second[:error])
+    assert_not @team.skills.exists?(slug: "second-idea")
+  end
 end

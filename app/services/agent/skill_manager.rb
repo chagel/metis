@@ -63,8 +63,14 @@ module Agent
         return failure("A skill named #{quoted(slug)} already exists.") if taken?
         return failure("A proposal needs SKILL.md content.") if content.blank?
 
-        persist(@conversation.team.skills.new(slug: slug, enabled: false, created_by: @conversation.user,
-                                              proposed_by: @conversation.user), "proposed")
+        @conversation.with_lock do
+          if proposed_here?
+            failure("This review already proposed a skill. One per review.")
+          else
+            persist(@conversation.team.skills.new(slug: slug, enabled: false, created_by: @conversation.user,
+                                                  proposed_by: @conversation.user), "proposed")
+          end
+        end
       end
     end
 
@@ -105,6 +111,10 @@ module Agent
     # Someone else's proposal is invisible here, so it can't be edited or enabled.
     def existing = @conversation.team.skills.visible_to(@conversation.user).find_by(slug: slug)
     def taken? = @conversation.team.skills.exists?(slug: slug)
+
+    def proposed_here?
+      @conversation.team.skills.proposals_of(@conversation.user).where(created_at: @conversation.created_at..).exists?
+    end
     def slug = @params["slug"].to_s.strip.downcase
     def content = @params["content"].to_s
     def truthy(value) = [ true, "true", 1, "1" ].include?(value)
