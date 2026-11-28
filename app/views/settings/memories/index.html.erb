@@ -17,7 +17,6 @@
 
   <div class="pane-body">
     <div class="pane-inner">
-      <p class="form-hint memory-intro"><%= t(".intro", team: current_team.personal? ? t(".personal_team") : current_team.name) %></p>
       <% if @review %>
         <p class="memory-status">
           <% if @last_review %>
@@ -27,6 +26,9 @@
             <%= t(".first_review") %>
           <% end %>
           · <%= t(".corrections", this_week: @corrections_this_week, last_week: @corrections_last_week) %>
+          <% if @proposals.positive? %>
+            · <%= link_to t(".proposals", count: @proposals), skills_path %>
+          <% end %>
           · <%= link_to t(".review_settings"), edit_routine_path(@review) %>
         </p>
       <% end %>
@@ -53,6 +55,13 @@
           <%= button_to t(".clear"), clear_memories_path, method: :delete, class: "memory-clear",
                 form: { data: { turbo_confirm: t(".clear_confirm") } } %>
         </div>
+      <% end %>
+
+      <% if @forgotten.any? %>
+        <details class="memory-changes">
+          <summary><%= t(".forgotten", count: @forgotten.size) %></summary>
+          <ul><%= render partial: "settings/memories/change", collection: @forgotten %></ul>
+        </details>
       <% end %>
     </div>
   </div>

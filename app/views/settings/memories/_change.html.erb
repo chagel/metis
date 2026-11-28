@@ -1,0 +1,25 @@
+<% before = change.before || {} %>
+<% after = change.after || {} %>
+<li class="memory-change">
+  <div class="memory-change-head">
+    <span class="memory-change-what"><%= t(".actions.#{change.action}") %></span>
+    <span class="memory-change-meta">
+      <%= t(".actors.#{change.actor}") %> · <%= t(".ago", time: time_ago_in_words(change.created_at)) %>
+      <% if change.conversation %>· <%= link_to t(".source"), conversation_path(change.conversation) %><% end %>
+    </span>
+  </div>
+  <% if before["content"].present? && before["content"] != after["content"] %>
+    <p class="memory-change-text memory-change-gone"><%= before["content"] %></p>
+  <% end %>
+  <% if after["content"].present? %>
+    <p class="memory-change-text"><%= after["content"] %></p>
+  <% end %>
+  <% if change.updated? %>
+    <% %w[kind confidence].reject { before[it] == after[it] }.each do |field| %>
+      <p class="memory-change-field"><%= t(".fields.#{field}", from: before[field], to: after[field]) %></p>
+    <% end %>
+  <% end %>
+  <% if change.reason.present? %>
+    <p class="memory-change-reason"><%= change.reason %></p>
+  <% end %>
+</li>

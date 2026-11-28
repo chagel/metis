@@ -20,13 +20,13 @@ module Agent
       guarded do
         memory = memories.new(content: @params["content"], kind: choice(:kind, UserMemory.kinds))
         assign_provenance(memory)
-        persist(memory, "remembered")
+        persist(stamp(memory), "remembered")
       end
     end
 
     def update
       guarded do
-        memory = find
+        memory = stamp(find)
         memory.kind = choice(:kind, UserMemory.kinds) if @params.key?("kind")
         memory.content = @params["content"] if @params.key?("content")
         if memory.content_changed?
@@ -40,8 +40,8 @@ module Agent
 
     def forget
       guarded do
-        find.destroy!
-        { ok: true, action: "forgotten", id: @params["id"].to_i }
+        memory = stamp(find).destroy!
+        { ok: true, action: "forgotten", id: memory.id }
       end
     end
 
@@ -100,6 +100,11 @@ module Agent
       return failure(memory.errors.full_messages.join("; ")) unless memory.save
 
       { ok: true, action: action, id: memory.id, kind: memory.kind, source: memory.source, confidence: memory.confidence }
+    end
+
+    def stamp(memory)
+      memory.changed_by(@conversation.routine&.memory_review? ? :review : :chat,
+                        conversation: @conversation, reason: @params["reason"])
     end
 
     def guarded

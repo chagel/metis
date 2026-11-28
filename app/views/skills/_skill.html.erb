@@ -7,7 +7,7 @@
       <div class="conn-sub"><%= skill.description %></div>
     <% end %>
   </div>
-  <span class="skill-badge<%= ' off' unless skill.enabled? %>">
-    <%= skill.enabled? ? t(".enabled") : t(".disabled") %>
+  <span class="skill-badge <%= skill.status %>" title="<%= t(".proposed_hint") if skill.proposal? %>">
+    <%= t(".#{skill.status}") %>
   </span>
 <% end %>

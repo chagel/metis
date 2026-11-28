@@ -13,6 +13,8 @@ module PurposeRoutine
     team.routines.where(user: user).find_by("trigger_config->>'purpose' = ?", self::PURPOSE)
   end
 
+  def last_run_for(user, team) = routine_for(user, team)&.conversations&.order(created_at: :desc)&.first
+
   def ensure_for(user, team)
     routine_for(user, team) || team.routines.create!(
       user: user, name: self::NAME, prompt: self::PROMPT, cron: self::CRON,

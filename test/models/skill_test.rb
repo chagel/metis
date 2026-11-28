@@ -104,4 +104,17 @@ class SkillTest < ActiveSupport::TestCase
       assert_equal "#!/bin/sh\n", File.read(File.join(dir, "scripts/run.sh"))
     end
   end
+
+  test "files can't overwrite someone else's private proposal, but its owner can revise it" do
+    owner = User.create!(email: "own-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    teammate = User.create!(email: "mate-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    proposal = team.skills.create!(slug: "golf-progress", enabled: false, proposed_by: owner, content_cache: "original")
+    files = { Skill::SKILL_MD => "---\nname: golf-progress\ndescription: changed\n---\n" }
+
+    assert_raises(ActiveRecord::RecordInvalid) { Skill.upsert_from_files(team: team, slug: "golf-progress", files: files, by: teammate) }
+    assert_equal "original", proposal.reload.content_cache
+
+    Skill.upsert_from_files(team: team, slug: "golf-progress", files: files, by: owner)
+    assert_equal "changed", proposal.reload.description
+  end
 end

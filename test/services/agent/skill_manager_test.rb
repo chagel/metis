@@ -138,4 +138,46 @@ class Agent::SkillManagerTest < ActiveSupport::TestCase
     refute result[:ok]
     assert_match(/inside a workflow run/i, result[:error])
   end
+
+  test "propose creates a disabled skill only its user sees, published once enabled" do
+    result = Agent::SkillManager.propose(@conversation, "slug" => "investor-update", "content" => SKILL_MD, "enabled" => true)
+
+    assert result[:ok]
+    skill = @team.skills.find_by!(slug: "investor-update")
+    assert_not skill.enabled?
+    assert_equal @user, skill.proposed_by
+    other = User.create!(email: "sm2-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    assert_not @team.skills.visible_to(other).exists?(skill.id)
+    assert @team.skills.visible_to(@user).exists?(skill.id)
+
+    skill.update!(enabled: true)
+    assert_nil skill.reload.proposed_by
+  end
+
+  test "propose refuses a slug that already exists" do
+    @team.skills.create!(slug: "investor-update", content_cache: "x")
+    assert_not Agent::SkillManager.propose(@conversation, "slug" => "investor-update", "content" => SKILL_MD)[:ok]
+  end
+
+  test "another member's agent can't edit or enable someone's proposal" do
+    team = Team.create!(name: "Shared #{SecureRandom.hex(2)}")
+    team.memberships.create!(user: @user, role: :admin)
+    teammate = User.create!(email: "sm3-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    team.memberships.create!(user: teammate, role: :admin)
+    team.skills.create!(slug: "investor-update", enabled: false, proposed_by: @user)
+    chat = teammate.conversations.create!(team: team)
+
+    assert_not Agent::SkillManager.update(chat, "slug" => "investor-update", "enabled" => true)[:ok]
+    assert_not Agent::SkillManager.create(chat, "slug" => "investor-update", "content" => SKILL_MD)[:ok]
+    assert_not team.skills.find_by!(slug: "investor-update").enabled?
+  end
+
+  test "a review proposes at most one skill, enforced on the host" do
+    assert Agent::SkillManager.propose(@conversation, "slug" => "first-idea", "content" => SKILL_MD)[:ok]
+    second = Agent::SkillManager.propose(@conversation, "slug" => "second-idea", "content" => SKILL_MD)
+
+    assert_not second[:ok]
+    assert_match(/one per review/i, second[:error])
+    assert_not @team.skills.exists?(slug: "second-idea")
+  end
 end

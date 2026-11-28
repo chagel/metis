@@ -199,7 +199,7 @@ class WorkflowRun < ApplicationRecord
     if task.delegated?
       task.update!(
         **Task::UNCLAIMED_ATTRS,
-        status: :running, approved_by: by, dispatched_at: Time.current,
+        status: :running, approved_by: by, decided_at: Time.current, dispatched_at: Time.current,
         result: {}, reclaims_count: 0,
         prompt: "#{task.prompt}\n\nRequested changes: #{feedback}"
       )
@@ -207,7 +207,7 @@ class WorkflowRun < ApplicationRecord
       awaiting_local!
       WorkflowBroadcaster.new(self).refresh
     else
-      task.update!(status: :running, approved_by: by)
+      task.update!(status: :running, approved_by: by, decided_at: Time.current)
       running!
       _, assistant = ConversationTurn.start(
         conversation, content: "#{reviewer(by)} requested changes — #{feedback}", kind: :review, sender: by

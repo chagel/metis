@@ -215,8 +215,6 @@ en:
       index:
         title: "Memory"
         heading: "Memory"
-        intro: "What Metis has learned about you in %{team}. It records these on its own as you chat and uses them in every conversation. Click a memory to edit it."
-        personal_team: "your personal workspace"
         search: "Search memories"
         filter: "Filter memories"
         all: "All"
@@ -227,6 +225,12 @@ en:
         first_review: "First review runs tonight."
         corrections: "Corrections: %{this_week} this week, %{last_week} last week"
         review_settings: "Review settings"
+        proposals:
+          one: "1 skill proposed"
+          other: "%{count} skills proposed"
+        forgotten:
+          one: "Recently forgotten (1)"
+          other: "Recently forgotten (%{count})"
         empty: "Nothing yet. Metis learns about you as you chat: your corrections, preferences, goals and the way you work."
         clear: "Clear all memories"
         clear_confirm: "Delete every memory Metis has about you in this team?"
@@ -237,6 +241,21 @@ en:
           goal: "Goals"
           commitment: "Follow-ups"
           experience: "Working with you"
+      change:
+        actions:
+          created: "Learned"
+          updated: "Changed"
+          forgotten: "Forgot"
+        actors:
+          review: "Nightly review"
+          chat: "In a chat"
+          user: "You"
+          system: "Metis"
+        ago: "%{time} ago"
+        source: "source"
+        fields:
+          kind: "Type: %{from} → %{to}"
+          confidence: "Confidence: %{from} → %{to}"
       memory:
         kinds:
           preference: "Preference"
@@ -254,6 +273,10 @@ en:
           high: "high"
         source: "Source chat"
         applied: "used %{time} ago"
+        history: "Show changes"
+        revisions:
+          one: "1 change"
+          other: "%{count} changes"
         save: "Save"
         confirm: "Confirm"
         delete: "Delete"

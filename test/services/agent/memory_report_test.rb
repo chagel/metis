@@ -53,4 +53,50 @@ class Agent::MemoryReportTest < ActiveSupport::TestCase
     reply(applied_memory_ids: [ @memory.id ])
     assert report.activity?
   end
+
+  test "reports gate decisions, hunch outcomes, 30 days of corrections and conversation titles" do
+    run_conversation = @user.conversations.create!(team: @team, title: "Ship it")
+    run_conversation.messages.create!(role: :user, kind: :review, sender: @user, streaming_status: :done,
+                                      content: "M requested changes — use the staging bucket")
+    Hunch.create!(user: @user, team: @team, title: "Draft the update", body: "b", why_now: "w", impact: :medium,
+                  confidence: :medium, status: :dismissed, dismiss_reason: "already done", outcome_at: Time.current)
+    Hunch.create!(user: @user, team: @team, title: "Old", body: "b", why_now: "w", impact: :medium,
+                  confidence: :medium, status: :expired, outcome_at: Time.current)
+    reply(corrected_at: 20.days.ago, correction_note: "no em dashes")
+    @user.conversations.create!(team: @team, title: "Weekly investor update")
+
+    data = report.to_h
+    assert_equal [ "M requested changes — use the staging bucket" ], data[:gate_decisions].map { it[:decision] }
+    assert_equal [ { title: "Draft the update", outcome: "dismissed", reason: "already done" } ], data[:hunches]
+    assert_equal 1, data[:hunches_expired]
+    assert_includes data[:correction_history].map { it[:note] }, "no em dashes"
+    assert_includes data[:conversation_titles], "Weekly investor update"
+    assert report.activity?
+  end
+
+  test "three new chats alone make a night worth reviewing" do
+    @memory.update_columns(created_at: 2.days.ago, updated_at: 2.days.ago)
+    @user.conversations.create!(team: @team, title: "Investor update")
+    assert_not report.activity?, "two new chats aren't enough"
+
+    @user.conversations.create!(team: @team, title: "Investor update again")
+    assert report.activity?
+  end
+
+  test "tells the review whether this user may propose skills" do
+    assert report.to_h[:can_propose_skills]
+
+    team = Team.create!(name: "Work #{SecureRandom.hex(2)}")
+    team.memberships.create!(user: @user, role: :member)
+    assert_not Agent::MemoryReport.new(@user, team).to_h[:can_propose_skills]
+  end
+
+  test "chat titles span earlier nights, so a once-a-day task shows as recurring" do
+    3.times { |day| @user.conversations.create!(team: @team, title: "Investor update", created_at: (day + 1).days.ago) }
+    @user.conversations.create!(team: @team, title: "Ancient", created_at: 40.days.ago)
+
+    titles = report(since: 12.hours.ago).to_h[:conversation_titles]
+    assert_equal 3, titles.count("Investor update")
+    assert_not_includes titles, "Ancient"
+  end
 end

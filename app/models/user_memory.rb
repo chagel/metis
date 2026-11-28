@@ -3,6 +3,11 @@
 class UserMemory < ApplicationRecord
   MAX_CONTENT = 500
   MAX_PER_USER = 100
+  SNAPSHOT = %w[content kind confidence source].freeze
+
+  # Who's changing this memory, and why, for its MemoryChange history (see
+  # #changed_by). Every write is recorded; one with no actor counts as :system.
+  attr_accessor :change_actor, :change_conversation, :change_reason
 
   enum :kind, { preference: 0, correction: 1, fact: 2, goal: 3, commitment: 4, experience: 5 }
   enum :source, { stated: 0, inferred: 1 }, prefix: true
@@ -11,6 +16,7 @@ class UserMemory < ApplicationRecord
   belongs_to :team
   belongs_to :user
   belongs_to :source_conversation, class_name: "Conversation", optional: true
+  has_many :memory_changes, -> { order(created_at: :desc, id: :desc) }
 
   encrypts :content
 
@@ -20,6 +26,9 @@ class UserMemory < ApplicationRecord
   validate :under_cap, on: :create
 
   after_create_commit :ensure_review
+  after_create { record_change(:created) }
+  after_update { record_change(:updated) if saved_changes.keys.intersect?(SNAPSHOT) }
+  before_destroy { record_change(:forgotten) }
 
   scope :for, ->(user, team) { where(user: user, team: team) }
   scope :newest_first, -> { order(created_at: :desc) }
@@ -29,18 +38,34 @@ class UserMemory < ApplicationRecord
     conversation.workflow_run.nil? && Membership.exists?(team_id: conversation.team_id, user_id: conversation.user_id)
   end
 
-  def confirm!
-    update!(source: :stated, confidence: :high)
+  def changed_by(actor, conversation: nil, reason: nil)
+    self.change_actor, self.change_conversation, self.change_reason = actor, conversation, reason
+    self
   end
+
+  def confirm!
+    changed_by(:user).update!(source: :stated, confidence: :high)
+  end
+
+  def forget_by_user! = changed_by(:user).destroy!
 
   # The user's own wording: as good as stated, and a signal for the review.
   def edit_by_user(content)
+    changed_by(:user)
     self.content = content
     assign_attributes(source: :stated, confidence: :high, edited_by_user_at: Time.current) if content_changed?
     save
   end
 
+  def snapshot = SNAPSHOT.index_with { public_send(it) }
+
+  def snapshot_before_save = snapshot.merge(saved_changes.slice(*SNAPSHOT).transform_values(&:first))
+
   private
+
+  def record_change(action)
+    MemoryChange.record!(self, action)
+  end
 
   def under_cap
     return unless UserMemory.for(user, team).count >= MAX_PER_USER

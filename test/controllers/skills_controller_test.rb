@@ -209,4 +209,24 @@ class SkillsControllerTest < ActionDispatch::IntegrationTest
 
 
   def current_user_id = @user.id
+
+  test "a proposed skill shows only to the user it was proposed for" do
+    shared = Team.create!(name: "Shared #{SecureRandom.hex(2)}")
+    shared.memberships.create!(user: @user, role: :admin)
+    teammate = User.create!(email: "sk2-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    shared.memberships.create!(user: teammate, role: :admin)
+    proposal = shared.skills.create!(slug: "investor-update", enabled: false, proposed_by: @user)
+
+    post switch_team_path(shared)
+    get skills_path
+    assert_select ".conn-name", text: "investor-update"
+    assert_select ".skill-badge.proposed"
+
+    sign_in teammate
+    post switch_team_path(shared)
+    get skills_path
+    assert_select ".conn-name", text: "investor-update", count: 0
+    get edit_skill_path(proposal)
+    assert_response :not_found
+  end
 end

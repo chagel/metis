@@ -161,5 +161,38 @@ module Agent
       assert_equal previous.created_at.iso8601, result[:since]
       assert_includes result[:memories].map { |m| m[:id] }, memory.id
     end
+
+    test "every agent change lands in the memory history with its reason" do
+      id = remember("content" => "likes tables", "kind" => "preference", "reason" => "said so twice")[:id]
+      Agent::MemoryManager.update(@conversation, "id" => id, "content" => "likes tables for comparisons", "reason" => "narrowed")
+      Agent::MemoryManager.forget(@conversation, "id" => id, "reason" => "stale")
+
+      changes = MemoryChange.for(@user, @team).order(:id)
+      assert_equal %w[created updated forgotten], changes.map(&:action)
+      assert changes.all?(&:by_chat?)
+      assert_equal [ "said so twice", "narrowed", "stale" ], changes.map(&:reason)
+      assert_equal "likes tables", changes.second.before["content"]
+      assert_equal "likes tables for comparisons", changes.second.after["content"]
+      assert_equal "likes tables for comparisons", changes.third.before["content"]
+      assert_nil changes.third.user_memory_id
+    end
+
+    test "an update that changes only confidence is recorded too; a no-op isn't" do
+      id = remember("content" => "x", "kind" => "fact")[:id]
+      Agent::MemoryManager.update(@conversation, "id" => id, "confidence" => "medium")
+      Agent::MemoryManager.update(@conversation, "id" => id, "confidence" => "medium")
+
+      updates = MemoryChange.for(@user, @team).updated
+      assert_equal 1, updates.count
+      assert_equal %w[low medium], [ updates.first.before["confidence"], updates.first.after["confidence"] ]
+    end
+
+    test "changes made by the nightly review are attributed to it" do
+      routine = MemoryReview.ensure_for(@user, @team)
+      review = @user.conversations.create!(team: @team, routine: routine)
+      Agent::MemoryManager.remember(review, "content" => "keeps PRs small", "kind" => "preference")
+
+      assert MemoryChange.for(@user, @team).last.by_review?
+    end
   end
 end

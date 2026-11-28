@@ -14,7 +14,7 @@ class HunchesController < ApplicationController
     @outcomes = Hunch.outcome_counts(hunches.where(direction: @direction)) if @direction
     @stats = Hunch.outcome_stats(current_user, current_team) if @filter == :history
     @hunches = filtered.newest_first.includes(:direction, :source_memory).limit(@filter == :history ? 50 : nil).load
-    @last_run = Foresight.routine_for(current_user, current_team)&.conversations&.order(created_at: :desc)&.first
+    @last_run = Foresight.last_run_for(current_user, current_team)
   end
 
   # Fires foresight now, focused on one direction when one is selected; its

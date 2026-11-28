@@ -28,6 +28,9 @@ production:
   expire_hunches:
     command: "Hunch.expire_stale!"
     schedule: every hour at minute 23
+  prune_memory_changes:
+    command: "MemoryChange.prune!"
+    schedule: at 4:41am every day
   reclaim_silent_bridge_tasks:
     class: ReclaimSilentBridgeTasksJob
     schedule: every 5 minutes

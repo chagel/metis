@@ -24,7 +24,6 @@ class Settings::MemoriesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".memory-tabs .board-chip[data-key='review']", text: /Needs review\s+1/
     assert_select ".memory-row.is-inferred .memory-meta", text: /Preference · guessed, low/
     assert_select ".memory-row:not(.is-inferred) .memory-meta", text: /Correction · you said/
-    assert_select ".memory-intro", text: /your personal workspace/
   end
 
   test "index empty state" do
@@ -36,6 +35,13 @@ class Settings::MemoriesControllerTest < ActionDispatch::IntegrationTest
     m = memory
     patch memory_path(m), params: { user_memory: { content: "prefers very short answers" } }
     assert_equal "prefers very short answers", m.reload.content
+  end
+
+  test "an edited row comes back with its new revision" do
+    m = memory
+    patch memory_path(m), params: { user_memory: { content: "prefers very short answers" } }, as: :turbo_stream
+    assert_select ".memory-meta", text: /2 changes/
+    assert_select ".memory-change .memory-change-gone", text: "prefers short answers"
   end
 
   test "confirm makes an inference stated (turbo_stream)" do
@@ -98,5 +104,43 @@ class Settings::MemoriesControllerTest < ActionDispatch::IntegrationTest
 
     assert_select ".memory-status", text: /First review runs tonight/
     assert_select ".memory-status", text: /Corrections: 0 this week, 0 last week/
+  end
+
+  test "each memory shows its revisions, and a waiting skill proposal is linked" do
+    routine = MemoryReview.ensure_for(@user, @team)
+    review = @user.conversations.create!(team: @team, routine: routine)
+    memory(change_actor: :review, change_conversation: review, change_reason: "seen twice")
+    @team.skills.create!(slug: "golf-progress", enabled: false, proposed_by: @user)
+    get memories_path
+
+    assert_select ".memory-status a[href='#{skills_path}']", text: "1 skill proposed"
+    assert_select ".memory-row .memory-meta", text: /1 change/
+    assert_select ".memory-row .memory-actions button[data-action='memory-row#toggleHistory'][aria-label='Show changes']"
+    assert_select ".memory-row .memory-revisions[hidden] .memory-change", text: /Learned.*Nightly review.*prefers short answers.*seen twice/m
+  end
+
+  test "the user's own edits, confirms and deletes are recorded as theirs" do
+    m = memory
+    patch memory_path(m), params: { user_memory: { content: "prefers very short answers" } }
+    patch confirm_memory_path(memory(content: "guess")), as: :turbo_stream
+    delete memory_path(m), as: :turbo_stream
+
+    changes = MemoryChange.for(@user, @team).by_user.order(:id)
+    assert_equal %w[updated updated forgotten], changes.map(&:action)
+    assert_equal "prefers very short answers", changes.last.before["content"]
+  end
+
+  test "a write that names no actor is still recorded, as Metis" do
+    memory
+    change = MemoryChange.for(@user, @team).sole
+    assert change.created? && change.by_system?
+  end
+
+  test "history survives clearing every memory" do
+    memory
+    delete clear_memories_path
+    get memories_path
+    assert_select ".memory-changes summary", text: /Recently forgotten \(1\)/
+    assert_select ".memory-changes .memory-change", text: /Forgot.*You.*prefers short answers/m
   end
 end

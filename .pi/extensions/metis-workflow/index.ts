@@ -10,6 +10,7 @@
  *   metis_get_workflow    — read a workflow's full step detail (live)
  *   metis_get_project     — read a project's detail + bound resources (live)
  *   metis_list_skills     — list built-in + team skills, with status (live)
+ *   metis_propose_skill   — suggest a disabled skill for a recurring task (memory review)
  *   metis_create_skill    — create a team skill from SKILL.md (admin only)
  *   metis_update_skill    — edit a team skill / toggle enabled (admin only)
  *   metis_list_routines   — list the team's routines, with trigger + status (live)
@@ -466,6 +467,28 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "metis_propose_skill",
+    label: "Propose Metis Skill",
+    description:
+      "Suggest a team skill for a task the operator keeps asking for. It is created " +
+      "disabled and only the operator sees it until they enable it. The content must " +
+      "have YAML frontmatter with `name` and `description`, then the markdown body.",
+    promptSnippet: "Suggest a disabled team skill for a recurring task",
+    promptGuidelines: [
+      "Use metis_propose_skill only in the nightly memory review, at most once per review, when the report shows the same kind of task coming back.",
+      "Check metis_list_skills first and don't propose one that duplicates an existing skill.",
+    ],
+    parameters: Type.Object({
+      slug: Type.String({ description: "Kebab-case slug, e.g. \"weekly-investor-update\"." }),
+      content: Type.String({ description: "Full SKILL.md content (YAML frontmatter + body)." }),
+    }),
+
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return hostWrite(ctx, "propose_skill", params, (r) => `Proposed the "${r.slug}" skill (disabled until the operator enables it).`);
+    },
+  });
+
+  pi.registerTool({
     name: "metis_update_skill",
     label: "Update Metis Skill",
     description:
@@ -675,6 +698,7 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
           description: "How sure you are. Defaults to high for stated, low for inferred.",
         }),
       ),
+      reason: Type.Optional(Type.String({ description: "Why, in one line. Shown to the operator in their memory history." })),
     }),
 
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
@@ -697,6 +721,7 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
       kind: Type.Optional(memoryKind()),
       source: Type.Optional(memorySource({ description: "Only with new content. Defaults to inferred." })),
       confidence: Type.Optional(memoryConfidence()),
+      reason: Type.Optional(Type.String({ description: "Why, in one line. Shown to the operator in their memory history." })),
     }),
 
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
@@ -714,6 +739,7 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
     ],
     parameters: Type.Object({
       id: Type.Number({ description: "The memory id, as listed in your context." }),
+      reason: Type.Optional(Type.String({ description: "Why, in one line. Shown to the operator in their memory history." })),
     }),
 
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {

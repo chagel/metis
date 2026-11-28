@@ -192,8 +192,6 @@
       index:
         title: "记忆"
         heading: "记忆"
-        intro: "Metis 在 %{team} 中了解到的关于你的信息。它会在聊天中自行记录，并在每次对话中运用。点击任意一条即可编辑。"
-        personal_team: "你的个人空间"
         search: "搜索记忆"
         filter: "筛选记忆"
         all: "全部"
@@ -204,6 +202,10 @@
         first_review: "今晚进行第一次回顾。"
         corrections: "纠正：本周 %{this_week} 次，上周 %{last_week} 次"
         review_settings: "回顾设置"
+        proposals:
+          other: "建议了 %{count} 个技能"
+        forgotten:
+          other: "最近忘记的（%{count}）"
         empty: "还没有记忆。Metis 会在聊天中了解你：你的纠正、偏好、目标和工作方式。"
         clear: "清除全部记忆"
         clear_confirm: "删除 Metis 在这个团队中关于你的所有记忆？"
@@ -214,6 +216,21 @@
           goal: "目标"
           commitment: "跟进"
           experience: "与你合作的经验"
+      change:
+        actions:
+          created: "学到"
+          updated: "修改"
+          forgotten: "忘记"
+        actors:
+          review: "夜间回顾"
+          chat: "在对话中"
+          user: "你"
+          system: "Metis"
+        ago: "%{time}前"
+        source: "来源"
+        fields:
+          kind: "类型：%{from} → %{to}"
+          confidence: "置信度：%{from} → %{to}"
       memory:
         kinds:
           preference: "偏好"
@@ -231,6 +248,9 @@
           high: "高"
         source: "来源对话"
         applied: "%{time}前用过"
+        history: "查看变更"
+        revisions:
+          other: "%{count} 次变更"
         save: "保存"
         confirm: "确认"
         delete: "删除"

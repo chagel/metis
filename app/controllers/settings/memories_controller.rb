@@ -4,9 +4,11 @@ class Settings::MemoriesController < ApplicationController
   before_action :set_memory, only: %i[update destroy confirm]
 
   def index
-    @memories = memories.newest_first.load
+    @memories = memories.newest_first.includes(memory_changes: :conversation).load
     @review = MemoryReview.routine_for(current_user, current_team)
-    @last_review = @review&.conversations&.order(created_at: :desc)&.first
+    @last_review = MemoryReview.last_run_for(current_user, current_team)
+    @proposals = current_team.skills.proposals_of(current_user).count
+    @forgotten = MemoryChange.for(current_user, current_team).forgotten.recent.includes(:conversation).limit(20).load
     week = Agent::MemoryReport.new(current_user, current_team, since: 1.week.ago)
     @corrections_this_week = week.corrections_count
     @corrections_last_week = week.previous_corrections_count
@@ -28,7 +30,7 @@ class Settings::MemoriesController < ApplicationController
   def destroy
     Membership.transaction do
       current_membership.record_memory_deletions!([ @memory.kind ])
-      @memory.destroy!
+      @memory.forget_by_user!
     end
     respond_to do |format|
       format.turbo_stream { render turbo_stream: turbo_stream.remove(helpers.dom_id(@memory)) }
@@ -39,7 +41,7 @@ class Settings::MemoriesController < ApplicationController
   def clear
     Membership.transaction do
       current_membership.record_memory_deletions!(memories.pluck(:kind))
-      memories.delete_all
+      memories.each(&:forget_by_user!)
     end
     redirect_to memories_path, notice: t("flash.settings.memories.clear.notice")
   end
