@@ -17,7 +17,14 @@ class WorkflowRun < ApplicationRecord
   scope :active,   -> { where(status: %i[queued pending running awaiting_approval awaiting_local]) }
   # Runs a human (or their machine) must act on for the run to move — a gate,
   # a local claim, or a queued run a person must start.
-  scope :awaiting, -> { where(status: %i[queued awaiting_approval awaiting_local]) }
+  AWAITING = %w[queued awaiting_approval awaiting_local].freeze
+  scope :awaiting, -> { where(status: AWAITING) }
+
+  after_commit -> { conversation.broadcast_sidebar_refresh }, on: %i[create update], if: :awaiting_changed?
+
+  def awaiting_changed?
+    saved_change_to_status? && saved_change_to_status.map { AWAITING.include?(it) }.uniq.size == 2
+  end
 
   def active?
     queued? || pending? || running? || awaiting_approval? || awaiting_local?
@@ -202,11 +209,11 @@ class WorkflowRun < ApplicationRecord
     else
       task.update!(status: :running, approved_by: by, decided_at: Time.current)
       running!
-      user, assistant = ConversationTurn.start(
+      _, assistant = ConversationTurn.start(
         conversation, content: "#{reviewer(by)} requested changes — #{feedback}", kind: :review, sender: by
       )
       task.update!(assistant_message: assistant)
-      WorkflowBroadcaster.new(self).append_turn(user, assistant)
+      WorkflowBroadcaster.new(self).refresh_run_page
     end
   end
 

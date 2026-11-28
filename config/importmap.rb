@@ -2,6 +2,7 @@
 
 pin "application"
 pin "frame_missing"
+pin "stream_actions"
 pin "native_haptics"
 pin "@hotwired/turbo-rails", to: "turbo.min.js"
 pin "@hotwired/stimulus", to: "stimulus.min.js"

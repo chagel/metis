@@ -34,7 +34,9 @@ the agent:
    (`metis_update_direction`), looking for evidence against the current view
    too;
 3. do the work for at most `Hunch::MAX_PER_RUN` (3) things the user will
-   probably need, recording each with `metis_record_hunch`.
+   probably need, recording each with `metis_record_hunch`. Every hunch names
+   its origin: a `direction_id`, or a `memory_id` of a goal or commitment;
+   the host refuses one with neither.
 
 `Routine#fire_scheduled!` skips a night with no active directions and no
 goal or commitment memories (`Foresight.activity?`). **Read my mind** on the
@@ -76,8 +78,10 @@ of a chat continued from it), `dismissed` (with an optional reason), or `expired
 - Quality: used hunches whose chat then got a correction (`Message#corrected_at`,
   recorded by `metis_note_correction`) were close but not right; the rest
   were right as prepared. Not surfaced yet.
-- Cost per used hunch: `Message#cost` on the foresight conversations behind
-  used hunches. A missing cost isn't counted as zero.
+- On History (`Hunch.outcome_stats`): used / dismissed / expired counts, the
+  share used, and cost per used hunch, which is every foresight run's
+  `Message#cost` divided by hunches used. A run with an unpriced reply leaves
+  the cost out rather than counting it as zero.
 
 ## Known gaps
 

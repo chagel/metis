@@ -3,6 +3,8 @@ zh-CN:
     index:
       title: "预感"
       history: "历史"
+      stats: "已用 %{used} · 已忽略 %{dismissed} · 已过期 %{expired} · 使用率 %{rate}%"
+      cost_per_used: "每个已用灵感 %{cost}"
       read_my_mind: "读懂我"
       read_my_mind_focus: "只针对「%{title}」"
       last_run_html: "%{time}前读过 · %{link}"

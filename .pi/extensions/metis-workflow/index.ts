@@ -877,8 +877,8 @@ export default function metisWorkflowExtension(pi: ExtensionAPI) {
       ),
       impact: literals(["medium", "high"], { description: "How much it should help." }),
       confidence: literals(["low", "medium", "high"], { description: "How sure you are they'll need it." }),
-      direction_id: Type.Optional(Type.Number({ description: "The direction it came from, if any." })),
-      memory_id: Type.Optional(Type.Number({ description: "The goal or commitment memory it came from, if any." })),
+      direction_id: Type.Optional(Type.Number({ description: "The direction it came from. Pass this or memory_id." })),
+      memory_id: Type.Optional(Type.Number({ description: "The goal or commitment memory it came from. Pass this or direction_id." })),
     }),
 
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {

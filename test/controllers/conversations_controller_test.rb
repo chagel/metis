@@ -35,6 +35,24 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".sidebar .convo .tt", text: "Existing"
   end
 
+  test "sidebar frame refresh uses the current filters and team" do
+    routine = @user.personal_team.routines.create!(user: @user, name: "Scheduled", prompt: "Run", cron: "0 9 * * *")
+    @user.conversations.create!(title: "Routine fire", routine: routine)
+    @user.conversations.create!(title: "Plain chat")
+    other_team = Team.create!(name: "Other team")
+    @user.memberships.create!(team: other_team, role: :owner)
+    other_routine = other_team.routines.create!(user: @user, name: "Other", prompt: "Run", cron: "0 9 * * *")
+    @user.conversations.create!(team: other_team, title: "Other team fire", routine: other_routine)
+
+    sign_in @user
+    get conversations_path(filter: "active", kind: "routines"), headers: { "Turbo-Frame" => "convos" }
+    assert_response :success
+    assert_select "#convos .convo-controls[data-filter=active][data-kind=routines]"
+    assert_select "#convos-list .convo .tt", text: "Routine fire"
+    assert_select "#convos-list .convo .tt", text: "Plain chat", count: 0
+    assert_select "#convos-list .convo .tt", text: "Other team fire", count: 0
+  end
+
   test "the sidebar's query count does not scale with its rows" do
     teammate = User.create!(email: "n1-mate@example.com", password: "password123")
     build_row = lambda do |i|

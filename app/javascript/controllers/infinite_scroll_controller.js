@@ -29,8 +29,11 @@ export default class extends Controller {
     this.loading = false
   }
 
+  // A frame reload swaps the list mid-request; an old page must not land in
+  // the new list, so abort it and drop any response for a gone sentinel.
   sentinelTargetDisconnected() {
     this.observer?.disconnect()
+    this.request?.abort()
   }
 
   async loadMore() {
@@ -38,13 +41,19 @@ export default class extends Controller {
     const url = this.sentinelTarget.dataset.url
     if (!url) return
 
+    const sentinel = this.sentinelTarget
+    this.request = new AbortController()
     this.loading = true
     try {
       const response = await fetch(url, {
         headers: { Accept: "text/vnd.turbo-stream.html" },
-        credentials: "same-origin"
+        credentials: "same-origin",
+        signal: this.request.signal
       })
-      if (response.ok) Turbo.renderStreamMessage(await response.text())
+      const html = response.ok ? await response.text() : null
+      if (html && sentinel.isConnected) Turbo.renderStreamMessage(html)
+    } catch (error) {
+      if (error.name !== "AbortError") throw error
     } finally {
       this.loading = false
     }
