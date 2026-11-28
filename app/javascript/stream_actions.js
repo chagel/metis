@@ -5,8 +5,9 @@ import { Turbo } from "@hotwired/turbo-rails"
 // order; a plain append would replace a row that's already streaming.
 Turbo.StreamActions.append_missing = function () {
   const fragment = this.templateContent
-  fragment.querySelectorAll(":scope > [id]").forEach((row) => {
-    if (document.getElementById(row.id)) row.remove()
-  })
+  // A fragment has no :scope element, so walk its children directly.
+  for (const row of Array.from(fragment.children)) {
+    if (row.id && document.getElementById(row.id)) row.remove()
+  }
   this.targetElements.forEach((target) => target.append(fragment.cloneNode(true)))
 }

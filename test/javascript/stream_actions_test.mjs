@@ -14,8 +14,11 @@ function run(existingIds, rows) {
   const Turbo = { StreamActions: {} }
   vm.runInNewContext(source, { Turbo, document: { getElementById: (id) => existingIds.includes(id) ? {} : null } })
   const appended = []
+  // Mirrors a real DocumentFragment: rows are reachable via children, while
+  // a :scope selector matches nothing (there is no scoping element).
   const fragment = {
-    querySelectorAll: () => rows,
+    children: rows,
+    querySelectorAll: () => [],
     cloneNode: () => rows.filter((r) => !r.removed).map((r) => r.id)
   }
   const target = { append: (nodes) => appended.push(...nodes) }
