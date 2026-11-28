@@ -27,6 +27,21 @@ class Hunch < ApplicationRecord
     ready.where(created_at: ...TTL.ago).update_all(status: statuses[:expired], outcome_at: Time.current, updated_at: Time.current)
   end
 
+  # How hunches fared for one user: decided outcomes, the share used, and
+  # what foresight cost per hunch used. A run with an unpriced reply makes
+  # the cost unknown (nil) rather than counting it as free.
+  def self.outcome_stats(user, team)
+    counts = self.for(user, team).where.not(status: :ready).group(:status).count
+    decided = counts.values.sum
+    used = counts.fetch("used", 0)
+    costs = Message.assistant.where(conversation: Foresight.routine_for(user, team)&.conversations || Conversation.none).pluck(:cost)
+    {
+      used: used, dismissed: counts.fetch("dismissed", 0), expired: counts.fetch("expired", 0),
+      used_rate: (used * 100 / decided if decided.positive?),
+      cost_per_used: (costs.sum / used if used.positive? && costs.none?(&:nil?))
+    }
+  end
+
   def use!
     update!(status: :used, outcome_at: Time.current)
   end

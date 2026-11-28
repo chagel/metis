@@ -6,7 +6,7 @@
 <% post_url = new_chat ? conversations_path : conversation_messages_path(conversation) %>
 <%# A new chat can instead launch a workflow: pick one and the composer
     posts to workflow_runs#create with the text as the run's input. %>
-<% launchable = new_chat ? current_team.workflows.includes(:default_project).order(:name).to_a : [] %>
+<% launchable = new_chat && !hunch ? current_team.workflows.includes(:default_project).order(:name).to_a : [] %>
 <% placeholder =
      if hunch then t(".placeholder_hunch")
      elsif !new_chat then t(".placeholder_message")

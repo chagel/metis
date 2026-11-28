@@ -3,6 +3,8 @@ en:
     index:
       title: "Hunches"
       history: "History"
+      stats: "Used %{used} · Dismissed %{dismissed} · Expired %{expired} · %{rate}% used"
+      cost_per_used: "%{cost} per used hunch"
       read_my_mind: "Read my mind"
       read_my_mind_focus: "Just %{title}"
       last_run_html: "Last read %{time} ago · %{link}"

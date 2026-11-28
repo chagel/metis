@@ -6,6 +6,7 @@ module Agent
       @user = User.create!(email: "fm-#{SecureRandom.hex(4)}@example.com", password: "password123")
       @team = @user.personal_team
       @conversation = @user.conversations.create!(team: @team)
+      @direction = Direction.create!(user: @user, team: @team, title: "Renewals")
     end
 
     def call(op, params = {}) = Agent::ForesightManager.public_send(op, @conversation, params)
@@ -13,7 +14,7 @@ module Agent
     def hunch_params(**overrides)
       { "title" => "Draft reply", "body" => "Hi Acme,", "why_now" => "Renewal is Friday",
         "evidence" => [ { "title" => "Thread", "url" => "https://mail.example/1" } ],
-        "impact" => "high", "confidence" => "medium" }.merge(overrides.stringify_keys)
+        "impact" => "high", "confidence" => "medium", "direction_id" => @direction.id }.merge(overrides.stringify_keys)
     end
 
     test "adding a direction creates the user's foresight routine" do
@@ -55,6 +56,18 @@ module Agent
       assert_match "impact", call(:record, hunch_params(impact: "low"))[:error]
     end
 
+    test "record needs an origin: a direction, or a goal or commitment memory" do
+      assert_match "where it came from", call(:record, hunch_params(direction_id: nil))[:error]
+      assert_match "where it came from", call(:record, hunch_params(direction_id: 0))[:error]
+
+      preference = UserMemory.create!(user: @user, team: @team, content: "short answers", kind: :preference)
+      assert_not call(:record, hunch_params(direction_id: nil, memory_id: preference.id))[:ok]
+
+      goal = UserMemory.create!(user: @user, team: @team, content: "renew Acme", kind: :goal)
+      result = call(:record, hunch_params(direction_id: nil, memory_id: goal.id))
+      assert_equal goal, Hunch.find(result[:id]).source_memory
+    end
+
     test "record stops at the per-run cap" do
       Hunch::MAX_PER_RUN.times { assert call(:record, hunch_params)[:ok] }
       assert_match "already recorded", call(:record, hunch_params)[:error]
@@ -62,7 +75,7 @@ module Agent
 
     test "list returns the user's directions" do
       Direction.create!(user: @user, team: @team, title: "Payments")
-      assert_equal [ "Payments" ], call(:list)[:directions].map { |d| d["title"] }
+      assert_equal [ "Renewals", "Payments" ], call(:list)[:directions].map { |d| d["title"] }
     end
   end
 end

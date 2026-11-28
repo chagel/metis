@@ -20,6 +20,14 @@
   <div class="sharing-body">
     <div class="hunch-list">
       <%= render "direction", direction: @direction, outcomes: @outcomes if @direction %>
+      <% if @stats && @stats[:used_rate] %>
+        <p class="hunch-stats">
+          <%= t(".stats", used: @stats[:used], dismissed: @stats[:dismissed], expired: @stats[:expired], rate: @stats[:used_rate]) %>
+          <% if @stats[:cost_per_used] %>
+            · <%= t(".cost_per_used", cost: number_to_currency(@stats[:cost_per_used], precision: 2)) %>
+          <% end %>
+        </p>
+      <% end %>
 
       <% if @hunches.any? %>
         <%= render partial: "hunch", collection: @hunches %>

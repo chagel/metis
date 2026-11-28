@@ -50,8 +50,11 @@ module Agent
           evidence: evidence, conversation: @conversation,
           impact: choice(:impact, Hunch.impacts), confidence: choice(:confidence, Hunch.confidences),
           direction: directions.find_by(id: @params["direction_id"]),
-          source_memory: UserMemory.for(@conversation.user, @conversation.team).find_by(id: @params["memory_id"])
+          source_memory: UserMemory.for(@conversation.user, @conversation.team).where(kind: %i[goal commitment]).find_by(id: @params["memory_id"])
         )
+        unless hunch.direction || hunch.source_memory
+          raise Invalid, "Say where it came from: pass direction_id (a direction from metis_list_directions) or memory_id (a goal or commitment memory)."
+        end
         raise Invalid, "A hunch needs at least medium impact." if hunch.impact_low?
         raise Invalid, "A hunch needs evidence: at least one source with a url." if hunch.evidence.empty?
         return failure(hunch.errors.full_messages.to_sentence) unless hunch.save

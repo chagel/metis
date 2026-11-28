@@ -3112,6 +3112,7 @@ a.sharing-card-preview { color:inherit; text-decoration:none; }
 }
 .sharing-stop:hover { background:var(--danger-soft); }
 /* Hunches: finished work Metis prepared ahead of the user. */
+.hunch-stats { margin:0 0 4px; font-size:12.5px; color:var(--ink-2); }
 .hunches-sub { font-size:12.5px; color:var(--ink-3); margin:0; }
 .hunches-sub a { color:inherit; }
 .hunches .sharing-head form { margin:0 0 0 auto; }

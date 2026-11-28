@@ -38,6 +38,8 @@ class HunchesControllerTest < ActionDispatch::IntegrationTest
     get root_path(hunch: item.id)
     assert_select "input[type=hidden][name=hunch_id][value='#{item.id}']"
     assert_select ".composer .auto-chip", text: /Hunch: Draft reply/
+    @team.workflows.create!(name: "Ship it", steps: [ { "name" => "go", "prompt" => "go" } ])
+    assert_select "[data-controller~='workflow-launch']", count: 0, message: "no workflow palette while a hunch is attached"
     assert item.reload.ready?
 
     post conversations_path, params: { hunch_id: item.id, content: "Send it to Acme" }
@@ -161,5 +163,27 @@ class HunchesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".prnav .prnav-item", text: /Sharing/, count: 0
     assert_select ".sidebar .ws a.ws-place[href='#{sharing_path}'][aria-label='Sharing']"
     assert_select ".sidebar .ws a[href='#{conversations_path}'][data-turbo-frame='_top']"
+  end
+
+  test "history shows how hunches fared and what foresight cost per hunch used" do
+    routine = Foresight.ensure_for(@user, @team)
+    run = @user.conversations.create!(team: @team, routine: routine)
+    run.messages.create!(role: :assistant, streaming_status: :done, content: "ok", cost: 0.9)
+    3.times { hunch(status: :used, conversation: run) }
+    hunch(status: :dismissed)
+    get hunches_path(view: "history")
+
+    assert_select ".hunch-stats", text: /Used 3 · Dismissed 1 · Expired 0 · 75% used · \$0\.30 per used hunch/
+  end
+
+  test "an unpriced foresight reply leaves the cost out instead of counting it as free" do
+    routine = Foresight.ensure_for(@user, @team)
+    run = @user.conversations.create!(team: @team, routine: routine)
+    run.messages.create!(role: :assistant, streaming_status: :done, content: "ok", cost: nil)
+    hunch(status: :used, conversation: run)
+    get hunches_path(view: "history")
+
+    assert_select ".hunch-stats", text: /Used 1/
+    assert_select ".hunch-stats", text: /per used hunch/, count: 0
   end
 end
