@@ -50,7 +50,9 @@ A race or ordering finding is a P2 only with a **realistic trigger**: name
 the sequence and why it happens in normal use, given the real timings and
 the infrastructure's actual guarantees. If it needs a component to be down
 or stalled for the whole operation, or the same gap already exists outside
-this PR, it's a P3 suggestion (or a follow-up issue), not a P2.
+this PR, it's a P3 suggestion (or a follow-up issue), not a P2 — unless its
+impact is a P1 (data loss, a crossed security boundary): severity follows
+impact, not likelihood.
 
 ## Review Verdicts
 
@@ -91,6 +93,9 @@ re-audit the PR from scratch.
    close a residual edge of a fix. Name it as a follow-up.
 5. If everything left is P3, or P2s the author answered with a decision or a
    tracked follow-up issue, **APPROVE** and list them as non-blocking.
+
+These downgrades apply only below P1. An unfixed P1 keeps the review at
+REQUEST_CHANGES (see Verdict Authority), however it was found.
 
 ## Scope Is Not an Escape Hatch
 
