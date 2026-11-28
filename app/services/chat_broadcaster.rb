@@ -81,8 +81,10 @@ class ChatBroadcaster
   # The sender also gets the rows from create.turbo_stream; append_missing
   # keeps the second copy from replacing a row that's already streaming.
   def announce(user_message)
-    append_missing(user_message, forkable: false)
-    append_missing(@message, forkable: true)
+    rows = [ [ user_message, false ], [ @message, true ] ].map do |message, forkable|
+      ApplicationController.render(partial: "messages/message", locals: { message: message, forkable: forkable })
+    end
+    Turbo::StreamsChannel.broadcast_action_to(@conversation, action: :append_missing, target: "messages", html: rows.join)
     refresh_composer
   end
 
@@ -258,13 +260,6 @@ class ChatBroadcaster
       skill_slug: call[:skill_slug],
       status: status
     }
-  end
-
-  def append_missing(message, forkable:)
-    Turbo::StreamsChannel.broadcast_action_to(
-      @conversation, action: :append_missing, target: "messages",
-      partial: "messages/message", locals: { message: message, forkable: forkable }
-    )
   end
 
   def broadcast_append(target:, html:)
