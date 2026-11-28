@@ -88,6 +88,16 @@ class RoutineTest < ActiveSupport::TestCase
     assert_not routine.within_cooldown?
   end
 
+  test "a purpose routine's runs carry its purpose, so they outlive the routine" do
+    routine = Foresight.ensure_for(@user, @team)
+    conversation = routine.fire!
+    assert_equal Foresight::PURPOSE, conversation.settings["purpose"]
+    assert conversation.settings["fired_by_routine"]
+
+    routine.destroy!
+    assert_includes Conversation.purpose_runs(Foresight::PURPOSE), conversation.reload
+  end
+
   test "fire! starts a turn in a fresh conversation and stamps last_run_at" do
     routine = build_routine
     routine.save!
